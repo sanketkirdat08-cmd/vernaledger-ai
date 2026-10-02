@@ -1,0 +1,6 @@
+streamlit
+pandas
+plotly
+google-generativeai
+streamlit-mic-recorder
+edge-tts
