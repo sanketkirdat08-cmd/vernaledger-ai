@@ -1662,123 +1662,20 @@ elif selected_page == "Ledger Database":
 
 # FEATURE 8: RAG AI CHATBOT ---
 elif selected_page == "RAG AI Chat":
-    st.markdown("""
-    <style>
-    * {
-        box-sizing: border-box !important;
-    }
-    .block-container {
-        padding-bottom: 150px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(h1) {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        flex-wrap: nowrap !important;
-        width: 100% !important;
-        padding-right: 15px !important;
-        overflow: visible !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"] {
-        width: auto !important;
-        min-width: 0 !important;
-        padding: 0 !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:first-child {
-        flex: 1 1 0% !important;
-        min-width: 0 !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
-        flex: 0 0 auto !important;
-    }
-    h1 {
-        white-space: nowrap !important;
-        font-size: 1.5rem !important;
-        min-width: 0 !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    .st-gemini-container,
-    .st-key-gemini_container {
-        position: fixed !important;
-        bottom: max(15px, env(safe-area-inset-bottom, 20px)) !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 94vw !important;
-        max-width: 700px !important;
-        margin: 0 auto !important;
-        background: #1e1e2e !important;
-        border-radius: 40px !important;
-        padding: 8px 12px !important;
-        z-index: 999999 !important;
-        box-sizing: border-box !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
-    }
-    .st-gemini-container div[data-testid="stVerticalBlock"],
-    .st-key-gemini_container [data-testid="stVerticalBlock"] {
-        width: 100% !important;
-        min-width: 0 !important;
-        gap: 0 !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-    .st-gemini-container div[data-testid="stHorizontalBlock"],
-    .st-key-gemini_container div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        gap: 8px !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        background: transparent !important;
-    }
-    .st-gemini-container div[data-testid="column"],
-    .st-key-gemini_container [data-testid="column"] {
-        padding: 0 !important;
-        width: auto !important;
-        flex: 0 0 auto !important;
-    }
-    .st-gemini-container div[data-testid="column"]:nth-child(2),
-    .st-key-gemini_container [data-testid="column"]:nth-child(2) {
-        flex: 1 1 auto !important;
-    }
-    .st-gemini-container div[data-baseweb] > div,
-    .st-gemini-container input,
-    .st-gemini-container textarea,
-    .st-gemini-container button,
-    .st-gemini-container iframe,
-    .st-key-gemini_container div[data-baseweb] > div,
-    .st-key-gemini_container input,
-    .st-key-gemini_container textarea,
-    .st-key-gemini_container button,
-    .st-key-gemini_container iframe {
-        background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-        color: white !important;
-        box-shadow: none !important;
-        outline: none !important;
-    }
-    .st-gemini-container input,
-    .st-gemini-container textarea,
-    .st-key-gemini_container input,
-    .st-key-gemini_container textarea {
-        min-width: 0 !important;
-        color: white !important;
-        caret-color: white !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    header_col, toggle_col = st.columns([0.8, 0.2], vertical_alignment="center")
+    header_col, toggle_col = st.columns([4, 1])
     with header_col:
         st.title("Verna AI Studio")
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+
+    with st.container():
+        voice_captured = speech_to_text(
+            start_prompt="🎙️",
+            stop_prompt="⏹",
+            just_once=True,
+            language="mr-IN",
+            key="verna_voice_mic_single_line",
+        )
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -1794,14 +1691,7 @@ elif selected_page == "RAG AI Chat":
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
-    with st.container(key="gemini_container"):
-        mic_col, input_col, submit_col = st.columns([0.12, 0.68, 0.20], vertical_alignment="center")
-        with mic_col:
-            voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
-        with input_col:
-            user_q = st.text_area("Prompt Input", placeholder="येथे प्रश्न विचारा किंवा बोला...", key="verna_text_input_single_box", label_visibility="collapsed", height=42)
-        with submit_col:
-            submit_clicked = st.button("⬆️", use_container_width=False, key="ask_verna_btn_main")
+    prompt = st.chat_input("येथे प्रश्न विचारा किंवा बोला...")
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
@@ -1810,8 +1700,8 @@ elif selected_page == "RAG AI Chat":
         corrected_voice = re.sub(r'कैसर\s*(अतार|अट्टर|अत्तर)', 'कैसर अतार', corrected_voice, flags=re.IGNORECASE)
         target_prompt = corrected_voice
         st.session_state["last_captured_voice"] = voice_captured
-    elif submit_clicked and user_q.strip():
-        target_prompt = user_q.strip()
+    elif prompt and prompt.strip():
+        target_prompt = prompt.strip()
 
     if target_prompt:
         st.session_state["chat_history"].append({"role": "user", "text": target_prompt})
