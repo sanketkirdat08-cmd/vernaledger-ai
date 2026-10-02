@@ -1665,7 +1665,7 @@ elif selected_page == "RAG AI Chat":
     st.markdown("""
     <style>
     .block-container {
-        padding-bottom: 120px !important;
+        padding-bottom: 150px !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) {
         display: flex !important;
@@ -1673,35 +1673,49 @@ elif selected_page == "RAG AI Chat":
         justify-content: space-between !important;
         align-items: center !important;
         flex-wrap: nowrap !important;
+        width: 100% !important;
+        overflow: hidden !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"] {
+        width: auto !important;
         min-width: 0 !important;
         padding: 0 !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:first-child {
-        flex: 1 1 auto !important;
+        flex: 1 1 0% !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
-        flex: 0 0 auto !important;
+        flex: 0 0 125px !important;
     }
-    .st-gemini-pill,
-    .st-key-gemini_pill {
+    h1 {
+        font-size: 1.5rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child label {
+        white-space: nowrap !important;
+    }
+    .st-gemini-container,
+    .st-key-gemini_container {
         position: fixed !important;
-        bottom: 25px !important;
+        bottom: max(15px, env(safe-area-inset-bottom)) !important;
         left: 50% !important;
-        width: 90% !important;
-        max-width: 800px !important;
-        box-sizing: border-box !important;
+        right: auto !important;
+        width: min(90vw, 600px) !important;
+        max-width: 600px !important;
         margin: 0 !important;
         padding: 5px 15px !important;
         transform: translateX(-50%) !important;
-        background-color: #1e1e2e !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        background: #1e1e2e !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 40px !important;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+        border-radius: 50px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
         z-index: 999999 !important;
     }
-    .st-key-gemini_pill [data-testid="stVerticalBlock"] {
+    .st-key-gemini_container [data-testid="stVerticalBlock"] {
         width: 100% !important;
         min-width: 0 !important;
         gap: 0 !important;
@@ -1710,80 +1724,86 @@ elif selected_page == "RAG AI Chat":
         border: none !important;
         box-shadow: none !important;
     }
-    .st-key-gemini_pill [data-testid="stHorizontalBlock"] {
+    .st-key-gemini_container [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 10px !important;
+        gap: 5px !important;
         width: 100% !important;
         min-width: 0 !important;
         background: transparent !important;
     }
-    .st-key-gemini_pill [data-testid="column"] {
+    .st-key-gemini_container [data-testid="column"] {
         width: auto !important;
         min-width: 0 !important;
+        flex: 0 0 auto !important;
         padding: 0 !important;
         background: transparent !important;
     }
-    .st-key-gemini_pill [data-testid="column"]:first-child,
-    .st-key-gemini_pill [data-testid="column"]:last-child {
-        flex: 0 0 42px !important;
+    .st-key-gemini_container [data-testid="column"]:first-child,
+    .st-key-gemini_container [data-testid="column"]:last-child {
+        flex-basis: 42px !important;
     }
-    .st-key-gemini_pill [data-testid="column"]:nth-child(2) {
-        flex: 1 1 0% !important;
+    .st-key-gemini_container [data-testid="column"]:nth-child(2) {
+        flex: 1 1 auto !important;
         min-width: 0 !important;
     }
-    .st-key-gemini_pill [data-testid="column"]:nth-child(2) [data-testid="stTextArea"] {
-        flex: 1 1 auto !important;
-    }
-    .st-key-gemini_pill [data-testid="stTextArea"] {
+    .st-key-gemini_container [data-testid="stTextArea"] {
         width: 100% !important;
         min-width: 0 !important;
         background: transparent !important;
     }
-    .st-key-gemini_pill [data-testid="stTextArea"] > div,
-    .st-key-gemini_pill [data-baseweb="textarea"],
-    .st-key-gemini_pill [data-testid="stButton"] {
+    .st-key-gemini_container [data-baseweb="input"] > div,
+    .st-key-gemini_container [data-baseweb="textarea"] > div,
+    .st-key-gemini_container [data-baseweb="textarea"],
+    .st-key-gemini_container [data-testid="stTextArea"],
+    .st-key-gemini_container [data-testid="stButton"] {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
-    .st-key-gemini_pill textarea {
+    .st-key-gemini_container input,
+    .st-key-gemini_container textarea {
         box-sizing: border-box !important;
         width: 100% !important;
         min-width: 0 !important;
         min-height: 42px !important;
         max-height: 120px !important;
-        padding: 10px 8px !important;
+        padding: 8px !important;
         border: 0 !important;
         outline: none !important;
         border-radius: 20px !important;
         resize: none !important;
         background: transparent !important;
         background-color: transparent !important;
-        color: #f8fafc !important;
+        color: #ffffff !important;
         box-shadow: none !important;
         caret-color: #ffffff !important;
     }
-    .st-key-gemini_pill textarea:focus,
-    .st-key-gemini_pill textarea:focus-visible {
+    .st-key-gemini_container input:focus,
+    .st-key-gemini_container textarea:focus,
+    .st-key-gemini_container input:focus-visible,
+    .st-key-gemini_container textarea:focus-visible {
         border: 0 !important;
         outline: none !important;
         box-shadow: none !important;
     }
-    .st-key-gemini_pill button,
-    .st-key-gemini_pill iframe,
-    .st-key-gemini_pill div[data-testid="stMicRecorder"],
-    .st-key-gemini_pill [data-testid="stButton"] {
+    .st-key-gemini_container button,
+    .st-key-gemini_container iframe,
+    .st-key-gemini_container div[data-testid="stMicRecorder"],
+    .st-key-gemini_container [data-testid="stButton"] {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
     }
-    .st-key-gemini_pill div[data-testid="stMicRecorder"] button {
+    .st-key-gemini_container iframe {
+        color-scheme: dark !important;
+    }
+    .st-key-gemini_container div[data-testid="stMicRecorder"] button {
         width: 42px !important;
         min-width: 42px !important;
         height: 42px !important;
@@ -1796,7 +1816,7 @@ elif selected_page == "RAG AI Chat":
         box-shadow: none !important;
         color: #e2e8f0 !important;
     }
-    .st-key-gemini_pill [data-testid="stButton"] button {
+    .st-key-gemini_container [data-testid="stButton"] button {
         width: 42px !important;
         min-width: 42px !important;
         min-height: 42px !important;
@@ -1808,6 +1828,18 @@ elif selected_page == "RAG AI Chat":
         color: #f8fafc !important;
         box-shadow: none !important;
         font-size: 18px !important;
+    }
+    @media (max-width: 768px) {
+        .st-key-gemini_container {
+            bottom: max(15px, env(safe-area-inset-bottom)) !important;
+            width: calc(100vw - 24px) !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
+            flex-basis: 112px !important;
+        }
+        h1 {
+            font-size: clamp(1rem, 5vw, 1.5rem) !important;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1832,7 +1864,7 @@ elif selected_page == "RAG AI Chat":
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
-    with st.container(key="gemini_pill"):
+    with st.container(key="gemini_container"):
         mic_col, input_col, submit_col = st.columns([0.12, 0.68, 0.20], vertical_alignment="center")
         with mic_col:
             voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
