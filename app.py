@@ -1664,6 +1664,9 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
     <style>
+    * {
+        box-sizing: border-box !important;
+    }
     .block-container {
         padding-bottom: 150px !important;
     }
@@ -1674,7 +1677,8 @@ elif selected_page == "RAG AI Chat":
         align-items: center !important;
         flex-wrap: nowrap !important;
         width: 100% !important;
-        overflow: hidden !important;
+        padding-right: 15px !important;
+        overflow: visible !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"] {
         width: auto !important;
@@ -1683,38 +1687,35 @@ elif selected_page == "RAG AI Chat":
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:first-child {
         flex: 1 1 0% !important;
+        min-width: 0 !important;
     }
     div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
-        flex: 0 0 125px !important;
+        flex: 0 0 auto !important;
     }
     h1 {
-        font-size: 1.5rem !important;
         white-space: nowrap !important;
+        font-size: 1.5rem !important;
+        min-width: 0 !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child label {
-        white-space: nowrap !important;
     }
     .st-gemini-container,
     .st-key-gemini_container {
         position: fixed !important;
-        bottom: max(15px, env(safe-area-inset-bottom)) !important;
-        left: 50% !important;
-        right: auto !important;
-        width: min(90vw, 600px) !important;
-        max-width: 600px !important;
-        margin: 0 !important;
-        padding: 5px 15px !important;
-        transform: translateX(-50%) !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
+        bottom: max(15px, env(safe-area-inset-bottom, 20px)) !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 94vw !important;
+        max-width: 700px !important;
+        margin: 0 auto !important;
         background: #1e1e2e !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 50px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+        border-radius: 40px !important;
+        padding: 8px 12px !important;
         z-index: 999999 !important;
+        box-sizing: border-box !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
     }
+    .st-gemini-container div[data-testid="stVerticalBlock"],
     .st-key-gemini_container [data-testid="stVerticalBlock"] {
         width: 100% !important;
         min-width: 0 !important;
@@ -1724,122 +1725,51 @@ elif selected_page == "RAG AI Chat":
         border: none !important;
         box-shadow: none !important;
     }
-    .st-key-gemini_container [data-testid="stHorizontalBlock"] {
+    .st-gemini-container div[data-testid="stHorizontalBlock"],
+    .st-key-gemini_container div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 5px !important;
+        gap: 8px !important;
         width: 100% !important;
         min-width: 0 !important;
         background: transparent !important;
     }
+    .st-gemini-container div[data-testid="column"],
     .st-key-gemini_container [data-testid="column"] {
-        width: auto !important;
-        min-width: 0 !important;
-        flex: 0 0 auto !important;
         padding: 0 !important;
-        background: transparent !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
     }
-    .st-key-gemini_container [data-testid="column"]:first-child,
-    .st-key-gemini_container [data-testid="column"]:last-child {
-        flex-basis: 42px !important;
-    }
+    .st-gemini-container div[data-testid="column"]:nth-child(2),
     .st-key-gemini_container [data-testid="column"]:nth-child(2) {
         flex: 1 1 auto !important;
-        min-width: 0 !important;
     }
-    .st-key-gemini_container [data-testid="stTextArea"] {
-        width: 100% !important;
-        min-width: 0 !important;
-        background: transparent !important;
-    }
-    .st-key-gemini_container [data-baseweb="input"] > div,
-    .st-key-gemini_container [data-baseweb="textarea"] > div,
-    .st-key-gemini_container [data-baseweb="textarea"],
-    .st-key-gemini_container [data-testid="stTextArea"],
-    .st-key-gemini_container [data-testid="stButton"] {
+    .st-gemini-container div[data-baseweb] > div,
+    .st-gemini-container input,
+    .st-gemini-container textarea,
+    .st-gemini-container button,
+    .st-gemini-container iframe,
+    .st-key-gemini_container div[data-baseweb] > div,
+    .st-key-gemini_container input,
+    .st-key-gemini_container textarea,
+    .st-key-gemini_container button,
+    .st-key-gemini_container iframe {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
+        color: white !important;
         box-shadow: none !important;
+        outline: none !important;
     }
+    .st-gemini-container input,
+    .st-gemini-container textarea,
     .st-key-gemini_container input,
     .st-key-gemini_container textarea {
-        box-sizing: border-box !important;
-        width: 100% !important;
         min-width: 0 !important;
-        min-height: 42px !important;
-        max-height: 120px !important;
-        padding: 8px !important;
-        border: 0 !important;
-        outline: none !important;
-        border-radius: 20px !important;
-        resize: none !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        color: #ffffff !important;
-        box-shadow: none !important;
-        caret-color: #ffffff !important;
-    }
-    .st-key-gemini_container input:focus,
-    .st-key-gemini_container textarea:focus,
-    .st-key-gemini_container input:focus-visible,
-    .st-key-gemini_container textarea:focus-visible {
-        border: 0 !important;
-        outline: none !important;
-        box-shadow: none !important;
-    }
-    .st-key-gemini_container button,
-    .st-key-gemini_container iframe,
-    .st-key-gemini_container div[data-testid="stMicRecorder"],
-    .st-key-gemini_container [data-testid="stButton"] {
-        background: transparent !important;
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-    }
-    .st-key-gemini_container iframe {
-        color-scheme: dark !important;
-    }
-    .st-key-gemini_container div[data-testid="stMicRecorder"] button {
-        width: 42px !important;
-        min-width: 42px !important;
-        height: 42px !important;
-        min-height: 42px !important;
-        padding: 0 !important;
-        border: 0 !important;
-        border-radius: 50% !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-        color: #e2e8f0 !important;
-    }
-    .st-key-gemini_container [data-testid="stButton"] button {
-        width: 42px !important;
-        min-width: 42px !important;
-        min-height: 42px !important;
-        padding: 0 !important;
-        border: 0 !important;
-        border-radius: 50% !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        color: #f8fafc !important;
-        box-shadow: none !important;
-        font-size: 18px !important;
-    }
-    @media (max-width: 768px) {
-        .st-key-gemini_container {
-            bottom: max(15px, env(safe-area-inset-bottom)) !important;
-            width: calc(100vw - 24px) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
-            flex-basis: 112px !important;
-        }
-        h1 {
-            font-size: clamp(1rem, 5vw, 1.5rem) !important;
-        }
+        color: white !important;
+        caret-color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
