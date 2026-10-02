@@ -1676,53 +1676,24 @@ elif selected_page == "RAG AI Chat":
         padding-top: 0.35rem !important;
         padding-bottom: 0 !important;
     }
-    .st-key-rag_chat_header {
-        position: relative !important;
-        display: flex !important;
+    .st-key-rag_chat_header_row [data-testid="stHorizontalBlock"] {
         align-items: center !important;
-        justify-content: space-between !important;
-        width: 100% !important;
-        min-width: 0 !important;
+        gap: 8px !important;
         margin-bottom: 2px !important;
     }
-    .st-key-rag_chat_header [data-testid="stVerticalBlock"] {
-        position: relative !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        width: 100% !important;
+    .st-key-rag_chat_header_row [data-testid="column"] {
         min-width: 0 !important;
+        padding: 0 !important;
     }
-    .st-key-rag_chat_header [data-testid="stElementContainer"]:first-child {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-    }
-    .st-key-rag_chat_header [data-testid="stElementContainer"]:last-child {
-        position: absolute !important;
-        top: 10px !important;
-        right: 10px !important;
-        z-index: 2 !important;
-        width: auto !important;
-        margin: 0 !important;
-    }
-    .st-key-rag_chat_header [data-testid="stElementContainer"]:last-child [data-testid="stToggle"] {
-        width: auto !important;
-        margin: 0 !important;
-    }
-    .st-key-rag_chat_header [data-testid="stToggle"] {
+    .st-key-rag_chat_header_row [data-testid="column"]:last-child [data-testid="stToggle"] {
         justify-content: flex-end !important;
         margin-left: auto !important;
     }
-    .st-key-rag_chat_header label {
+    .st-key-rag_chat_header_row label {
         color: #e2e8f0 !important;
         font-size: 12px !important;
         font-weight: 700 !important;
         white-space: nowrap !important;
-    }
-    .st-key-rag_chat_header .neon-chat-header {
-        box-sizing: border-box !important;
-        padding-right: 130px !important;
     }
     .neon-chat-header {
         width: 100%;
@@ -1741,6 +1712,7 @@ elif selected_page == "RAG AI Chat":
         -webkit-text-fill-color: transparent;
         margin: 0 auto;
         text-align: center;
+        white-space: nowrap;
         letter-spacing: -0.8px;
         line-height: 1.15;
         text-shadow: 0 0 24px rgba(0, 242, 254, 0.5);
@@ -1778,10 +1750,6 @@ elif selected_page == "RAG AI Chat":
         width: 100vw !important;
         box-sizing: border-box !important;
         margin: 0 !important;
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        gap: 5px !important;
         padding: 10px !important;
         padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
         background-color: #0e1117 !important;
@@ -1793,33 +1761,26 @@ elif selected_page == "RAG AI Chat":
         box-shadow: 0 -8px 30px rgba(0, 242, 254, 0.22) !important;
         z-index: 999999 !important;
     }
-    .st-key-rag_chat_input_bar [data-testid="stVerticalBlock"] {
-        display: flex !important;
-        flex: 1 1 auto !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        min-width: 0 !important;
-        width: 100% !important;
-        gap: 5px !important;
-    }
-    .st-key-rag_chat_input_bar [data-testid="stElementContainer"] {
-        min-width: 0 !important;
-        margin: 0 !important;
-    }
-    .st-key-rag_chat_input_bar [data-testid="stElementContainer"]:has([data-testid="stMicRecorder"]) {
-        flex: 0 0 48px !important;
-        width: 48px !important;
-    }
-    .st-key-rag_chat_input_bar [data-testid="stElementContainer"]:has([data-testid="stTextInput"]) {
-        flex: 1 1 0 !important;
-        width: auto !important;
-    }
-    .st-key-rag_chat_input_bar [data-testid="stElementContainer"]:has([data-testid="stButton"]) {
-        flex: 0 0 112px !important;
-        width: 112px !important;
-    }
     .st-key-rag_chat_input_bar [data-testid="stTextInput"] {
         width: 100% !important;
+    }
+    .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+        gap: 5px !important;
+        width: 100% !important;
+    }
+    .st-key-rag_chat_input_bar [data-testid="column"] {
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+    .st-key-rag_chat_input_bar [data-testid="column"]:first-child {
+        flex: 0 0 48px !important;
+    }
+    .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
+        flex: 1 1 auto !important;
+    }
+    .st-key-rag_chat_input_bar [data-testid="column"]:last-child {
+        flex: 0 0 112px !important;
     }
     .st-key-rag_chat_input_bar [data-testid="stButton"] {
         width: 100% !important;
@@ -1889,6 +1850,31 @@ elif selected_page == "RAG AI Chat":
         box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
     }
     @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 5px !important;
+        }
+        div[data-testid="column"] {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+        }
+        h1 {
+            font-size: 1.5rem !important;
+            white-space: nowrap !important;
+        }
+        .st-key-rag_chat_header_row [data-testid="column"]:first-child {
+            flex: 1 1 auto !important;
+        }
+        .st-key-rag_chat_header_row [data-testid="column"]:last-child {
+            flex: 0 0 auto !important;
+        }
+        .st-key-rag_chat_header_row label {
+            font-size: 10px !important;
+        }
         .st-key-rag_chat_input_bar {
             left: 0 !important;
             right: 0 !important;
@@ -1897,19 +1883,6 @@ elif selected_page == "RAG AI Chat":
             padding: 10px !important;
             padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
         }
-        .st-key-rag_chat_header [data-testid="stElementContainer"]:last-child {
-            top: 8px !important;
-            right: 6px !important;
-        }
-        .st-key-rag_chat_header [data-testid="stElementContainer"]:last-child [data-testid="stToggle"] {
-            width: auto !important;
-        }
-        .st-key-rag_chat_header .neon-chat-header {
-            padding-right: 108px !important;
-        }
-        .st-key-rag_chat_header label {
-            font-size: 10px !important;
-        }
         .st-key-rag_chat_history {
             box-sizing: border-box !important;
             padding-bottom: 130px !important;
@@ -1917,19 +1890,14 @@ elif selected_page == "RAG AI Chat":
         .st-key-rag_chat_history [data-testid="stVerticalBlock"] {
             padding-bottom: 130px !important;
         }
-        .st-key-rag_chat_input_bar [data-testid="stVerticalBlock"] {
-            gap: 5px !important;
+        .st-key-rag_chat_input_bar [data-testid="column"]:first-child {
+            flex: 0 0 40px !important;
         }
-        .st-key-rag_chat_input_bar [data-testid="stElementContainer"]:has([data-testid="stMicRecorder"]) {
-            flex-basis: 40px !important;
-            width: 40px !important;
+        .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
+            flex: 1 1 auto !important;
         }
-        .st-key-rag_chat_input_bar [data-testid="stElementContainer"]:has([data-testid="stButton"]) {
-            flex-basis: 88px !important;
-            width: 88px !important;
-        }
-        .st-key-rag_chat_input_bar [data-testid="stTextInput"] {
-            width: 100% !important;
+        .st-key-rag_chat_input_bar [data-testid="column"]:last-child {
+            flex: 0 0 88px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="stTextInput"] input {
             box-sizing: border-box !important;
@@ -1956,11 +1924,9 @@ elif selected_page == "RAG AI Chat":
         }
     }
     @media (max-width: 640px) {
-        .neon-chat-header {
-            padding: 1px 4px 5px;
-        }
         .neon-title {
-            font-size: 21px;
+            font-size: 1.5rem !important;
+            white-space: nowrap !important;
         }
         .neon-subtitle {
             font-size: 7px;
@@ -2009,14 +1975,17 @@ elif selected_page == "RAG AI Chat":
     </style>
     """, unsafe_allow_html=True)
 
-    with st.container(key="rag_chat_header"):
-        st.markdown("""
-        <div class="neon-chat-header">
-            <h2 class="neon-title">✨ Verna AI Studio</h2>
-            <div class="neon-subtitle">Neural Merchant Intelligence Core</div>
-        </div>
-        """, unsafe_allow_html=True)
-        enable_voice_output = st.toggle("🔊 Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+    with st.container(key="rag_chat_header_row"):
+        header_col, toggle_col = st.columns([0.78, 0.22], vertical_alignment="center")
+        with header_col:
+            st.markdown("""
+            <div class="neon-chat-header">
+                <h2 class="neon-title">✨ Verna AI Studio</h2>
+                <div class="neon-subtitle">Neural Merchant Intelligence Core</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with toggle_col:
+            enable_voice_output = st.toggle("🔊 Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -2056,9 +2025,13 @@ elif selected_page == "RAG AI Chat":
                 st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
     with st.container(key="rag_chat_input_bar"):
-        voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
-        user_q = st.text_input("Prompt Input", placeholder="येथे प्रश्न विचारा किंवा बोला...", key="verna_text_input_single_box", label_visibility="collapsed")
-        submit_clicked = st.button("Ask Verna AI", use_container_width=False, key="ask_verna_btn_main")
+        mic_col, input_col, submit_col = st.columns([0.12, 0.68, 0.20], vertical_alignment="center")
+        with mic_col:
+            voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
+        with input_col:
+            user_q = st.text_input("Prompt Input", placeholder="येथे प्रश्न विचारा किंवा बोला...", key="verna_text_input_single_box", label_visibility="collapsed")
+        with submit_col:
+            submit_clicked = st.button("Ask Verna AI", use_container_width=False, key="ask_verna_btn_main")
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
