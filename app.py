@@ -1674,7 +1674,7 @@ elif selected_page == "RAG AI Chat":
         min-width: 0 !important;
         overflow: visible !important;
         padding-top: 0.35rem !important;
-        padding-bottom: 0 !important;
+        padding-bottom: 150px !important;
     }
     .st-key-rag_chat_header_row [data-testid="stHorizontalBlock"] {
         align-items: center !important;
@@ -1744,74 +1744,97 @@ elif selected_page == "RAG AI Chat":
     }
     .st-key-rag_chat_input_bar {
         position: fixed !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+        width: min(900px, calc(100vw - 32px)) !important;
         box-sizing: border-box !important;
         margin: 0 !important;
-        padding: 10px !important;
-        padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
-        background-color: #0e1117 !important;
-        background: #0e1117 !important;
-        border: 0 !important;
-        border-top: 1px solid rgba(0, 242, 254, 0.62) !important;
-        border-radius: 16px 16px 0 0 !important;
+        padding: 5px 15px !important;
+        background: #1e1f20 !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 30px !important;
         backdrop-filter: blur(20px) !important;
-        box-shadow: 0 -8px 30px rgba(0, 242, 254, 0.22) !important;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4) !important;
         z-index: 999999 !important;
+        transform: translateX(-50%) !important;
     }
-    .st-key-rag_chat_input_bar [data-testid="stTextInput"] {
+    .st-key-rag_chat_input_bar [data-testid="stVerticalBlock"] {
         width: 100% !important;
+        min-width: 0 !important;
     }
     .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         gap: 5px !important;
         width: 100% !important;
+        min-width: 0 !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"] {
         min-width: 0 !important;
         padding: 0 !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:first-child {
-        flex: 0 0 48px !important;
+        flex: 0 0 42px !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
         flex: 1 1 auto !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:last-child {
-        flex: 0 0 112px !important;
+        flex: 0 0 42px !important;
     }
-    .st-key-rag_chat_input_bar [data-testid="stButton"] {
+    .st-key-rag_chat_input_bar [data-testid="stTextArea"] {
         width: 100% !important;
+        min-width: 0 !important;
     }
-    .st-key-rag_chat_input_bar [data-testid="stTextInput"] input {
-        min-height: 42px !important;
-        border: 1px solid rgba(0, 242, 254, 0.48) !important;
-        border-radius: 12px !important;
-        background: rgba(15, 23, 42, 0.92) !important;
+    .st-key-rag_chat_input_bar [data-testid="stTextArea"] textarea {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 38px !important;
+        max-height: 160px !important;
+        height: auto !important;
+        padding: 9px 8px !important;
+        border: 0 !important;
+        outline: none !important;
+        resize: none !important;
+        overflow-y: auto !important;
+        background: transparent !important;
         color: #f8fafc !important;
-        box-shadow: inset 0 0 12px rgba(0, 242, 254, 0.06), 0 0 12px rgba(0, 242, 254, 0.12) !important;
+        box-shadow: none !important;
+        field-sizing: content !important;
+        line-height: 1.4 !important;
     }
-    .st-key-rag_chat_input_bar [data-testid="stTextInput"] input:focus {
-        border-color: #00f2fe !important;
-        box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2), 0 0 18px rgba(0, 242, 254, 0.28) !important;
+    .st-key-rag_chat_input_bar [data-testid="stTextArea"] textarea:focus {
+        border: 0 !important;
+        outline: none !important;
+        box-shadow: none !important;
     }
     .st-key-rag_chat_input_bar div[data-testid="stMicRecorder"] button {
-        width: 42px !important;
-        min-width: 42px !important;
-        height: 42px !important;
-        min-height: 42px !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
         padding: 0 !important;
-        border-radius: 12px !important;
+        border: 0 !important;
+        border-radius: 50% !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: #c4c7c5 !important;
     }
     .st-key-rag_chat_input_bar [data-testid="stButton"] button {
-        width: 100% !important;
-        min-width: 96px !important;
-        min-height: 36px !important;
-        padding: 7px 10px !important;
-        border-radius: 11px !important;
-        font-size: 12px !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 50% !important;
+        background: #d3e3fd !important;
+        color: #1b1b1b !important;
+        box-shadow: none !important;
+        font-size: 18px !important;
         white-space: nowrap !important;
     }
     .neon-welcome-card {
@@ -1850,21 +1873,17 @@ elif selected_page == "RAG AI Chat":
         box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
     }
     @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"] {
+        .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
             gap: 5px !important;
         }
-        div[data-testid="column"] {
+        .st-key-rag_chat_input_bar [data-testid="column"] {
             width: auto !important;
             flex: 1 1 auto !important;
             min-width: 0 !important;
             padding: 0 !important;
-        }
-        h1 {
-            font-size: 1.5rem !important;
-            white-space: nowrap !important;
         }
         .st-key-rag_chat_header_row [data-testid="column"]:first-child {
             flex: 1 1 auto !important;
@@ -1876,51 +1895,38 @@ elif selected_page == "RAG AI Chat":
             font-size: 10px !important;
         }
         .st-key-rag_chat_input_bar {
-            left: 0 !important;
-            right: 0 !important;
-            width: 100vw !important;
+            left: 50% !important;
+            right: auto !important;
+            width: calc(100vw - 24px) !important;
             box-sizing: border-box !important;
-            padding: 10px !important;
-            padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
+            padding: 5px 10px !important;
         }
         .st-key-rag_chat_history {
             box-sizing: border-box !important;
-            padding-bottom: 130px !important;
+            padding-bottom: 150px !important;
         }
         .st-key-rag_chat_history [data-testid="stVerticalBlock"] {
-            padding-bottom: 130px !important;
+            padding-bottom: 150px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="column"]:first-child {
-            flex: 0 0 40px !important;
+            flex: 0 0 38px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
             flex: 1 1 auto !important;
         }
         .st-key-rag_chat_input_bar [data-testid="column"]:last-child {
-            flex: 0 0 88px !important;
-        }
-        .st-key-rag_chat_input_bar [data-testid="stTextInput"] input {
-            box-sizing: border-box !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            min-height: 40px !important;
-            padding: 0 9px !important;
-            font-size: 13px !important;
+            flex: 0 0 38px !important;
         }
         .st-key-rag_chat_input_bar div[data-testid="stMicRecorder"] button {
             width: 38px !important;
             min-width: 38px !important;
-            height: 40px !important;
-            min-height: 40px !important;
+            height: 38px !important;
+            min-height: 38px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="stButton"] button {
-            box-sizing: border-box !important;
-            width: 100% !important;
             min-width: 0 !important;
-            min-height: 34px !important;
-            padding: 6px 5px !important;
-            font-size: 9px !important;
-            white-space: nowrap !important;
+            width: 38px !important;
+            min-height: 38px !important;
         }
     }
     @media (max-width: 640px) {
@@ -1935,42 +1941,13 @@ elif selected_page == "RAG AI Chat":
         .st-key-rag_chat_history {
             height: calc(100dvh - 205px) !important;
             max-height: calc(100dvh - 205px) !important;
-            padding: 6px 8px 130px !important;
-        }
-        .st-key-rag_chat_input_bar {
-            padding: 10px !important;
-            padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
-        }
-        .st-key-rag_chat_input_bar div[data-testid="stMicRecorder"] button {
-            width: 38px !important;
-            min-width: 38px !important;
-            height: 40px !important;
-            min-height: 40px !important;
-        }
-        .st-key-rag_chat_input_bar [data-testid="stTextInput"] input {
-            min-height: 40px !important;
-            padding-left: 10px !important;
-            padding-right: 8px !important;
-            font-size: 13px !important;
-        }
-        .st-key-rag_chat_input_bar [data-testid="stButton"] button {
-            min-width: 0 !important;
-            min-height: 34px !important;
-            padding: 6px !important;
-            font-size: 10px !important;
+            padding: 6px 8px 150px !important;
         }
     }
     div[data-testid="stMicRecorder"] button {
-        background: linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%) !important;
-        border: 1.5px solid rgba(255, 255, 255, 0.7) !important;
-        border-radius: 12px !important;
-        color: white !important;
-        font-size: 16px !important;
-        width: 42px !important;
-        min-width: 42px !important;
-        height: 42px !important;
-        min-height: 42px !important;
-        box-shadow: 0 0 12px rgba(0, 242, 254, 0.6) !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -2029,9 +2006,9 @@ elif selected_page == "RAG AI Chat":
         with mic_col:
             voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
         with input_col:
-            user_q = st.text_input("Prompt Input", placeholder="येथे प्रश्न विचारा किंवा बोला...", key="verna_text_input_single_box", label_visibility="collapsed")
+            user_q = st.text_area("Prompt Input", placeholder="येथे प्रश्न विचारा किंवा बोला...", key="verna_text_input_single_box", label_visibility="collapsed", height=42)
         with submit_col:
-            submit_clicked = st.button("Ask Verna AI", use_container_width=False, key="ask_verna_btn_main")
+            submit_clicked = st.button("⬆️", use_container_width=False, key="ask_verna_btn_main")
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
