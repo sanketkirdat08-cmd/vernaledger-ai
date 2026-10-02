@@ -1669,36 +1669,44 @@ elif selected_page == "RAG AI Chat":
     }
     .st-key-bottom_floating {
         position: fixed !important;
-        bottom: 20px !important;
-        left: 5% !important;
+        bottom: 25px !important;
+        left: 50% !important;
         width: 90% !important;
+        max-width: 800px !important;
         box-sizing: border-box !important;
         margin: 0 !important;
         padding: 8px 15px !important;
-        background: #1e1e2e !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        transform: translateX(-50%) !important;
+        background-color: #1e1e2e !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 30px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
-        z-index: 99999 !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+        z-index: 999999 !important;
     }
     .st-key-bottom_floating [data-testid="stVerticalBlock"] {
         width: 100% !important;
         min-width: 0 !important;
         gap: 0 !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
     .st-key-bottom_floating [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 10px !important;
+        gap: 8px !important;
         width: 100% !important;
         min-width: 0 !important;
+        background: transparent !important;
     }
     .st-key-bottom_floating [data-testid="column"] {
         width: auto !important;
         min-width: 0 !important;
         padding: 0 !important;
+        background: transparent !important;
     }
     .st-key-bottom_floating [data-testid="column"]:first-child,
     .st-key-bottom_floating [data-testid="column"]:last-child {
@@ -1706,10 +1714,22 @@ elif selected_page == "RAG AI Chat":
     }
     .st-key-bottom_floating [data-testid="column"]:nth-child(2) {
         flex: 1 1 0% !important;
+        min-width: 0 !important;
+    }
+    .st-key-bottom_floating [data-testid="column"]:nth-child(2) [data-testid="stTextArea"] {
+        flex: 1 1 auto !important;
     }
     .st-key-bottom_floating [data-testid="stTextArea"] {
         width: 100% !important;
         min-width: 0 !important;
+        background: transparent !important;
+    }
+    .st-key-bottom_floating [data-baseweb="textarea"],
+    .st-key-bottom_floating [data-testid="stButton"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
     .st-key-bottom_floating textarea {
         box-sizing: border-box !important;
@@ -1719,10 +1739,26 @@ elif selected_page == "RAG AI Chat":
         max-height: 120px !important;
         padding: 10px 8px !important;
         border: 0 !important;
+        outline: none !important;
         border-radius: 20px !important;
         resize: none !important;
         background: transparent !important;
+        background-color: transparent !important;
         color: #f8fafc !important;
+        box-shadow: none !important;
+    }
+    .st-key-bottom_floating textarea:focus,
+    .st-key-bottom_floating textarea:focus-visible {
+        border: 0 !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    .st-key-bottom_floating button,
+    .st-key-bottom_floating div[data-testid="stMicRecorder"],
+    .st-key-bottom_floating [data-testid="stButton"] {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
         box-shadow: none !important;
     }
     .st-key-bottom_floating div[data-testid="stMicRecorder"] button {
@@ -1734,7 +1770,9 @@ elif selected_page == "RAG AI Chat":
         border: 0 !important;
         border-radius: 50% !important;
         background: transparent !important;
+        background-color: transparent !important;
         box-shadow: none !important;
+        color: #e2e8f0 !important;
     }
     .st-key-bottom_floating [data-testid="stButton"] button {
         width: 42px !important;
@@ -1743,8 +1781,9 @@ elif selected_page == "RAG AI Chat":
         padding: 0 !important;
         border: 0 !important;
         border-radius: 50% !important;
-        background: #d3e3fd !important;
-        color: #1b1b1b !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        color: #f8fafc !important;
         box-shadow: none !important;
         font-size: 18px !important;
     }
