@@ -1855,15 +1855,29 @@ elif selected_page == "RAG AI Chat":
             left: 0 !important;
             right: 0 !important;
             width: auto !important;
+            box-sizing: border-box !important;
             padding: 8px 10px calc(14px + env(safe-area-inset-bottom)) !important;
         }
         .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) {
+            display: flex !important;
+            flex-flow: row nowrap !important;
+            align-items: center !important;
+            width: 100% !important;
             gap: 4px !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"] {
+            min-width: 0 !important;
+            padding: 0 !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:first-child,
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:last-child {
+            flex: 1 1 0 !important;
         }
         .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:nth-child(2) {
             flex: 3 1 0 !important;
         }
         .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:last-child [data-testid="stToggle"] {
+            display: flex !important;
             justify-content: flex-end !important;
             margin-left: auto !important;
         }
@@ -1872,10 +1886,10 @@ elif selected_page == "RAG AI Chat":
         }
         .st-key-rag_chat_history {
             box-sizing: border-box !important;
-            padding-bottom: 110px !important;
+            padding-bottom: 120px !important;
         }
         .st-key-rag_chat_history [data-testid="stVerticalBlock"] {
-            padding-bottom: 110px !important;
+            padding-bottom: 120px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
             display: flex !important;
@@ -1884,6 +1898,12 @@ elif selected_page == "RAG AI Chat":
             justify-content: center !important;
             gap: 7px !important;
             width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="column"] {
+            min-width: 0 !important;
+            padding: 0 !important;
         }
         .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(1) {
             flex: 0 0 40px !important;
@@ -1944,7 +1964,7 @@ elif selected_page == "RAG AI Chat":
         .st-key-rag_chat_history {
             height: calc(100dvh - 205px) !important;
             max-height: calc(100dvh - 205px) !important;
-            padding: 6px 8px !important;
+            padding: 6px 8px 120px !important;
         }
         .st-key-rag_chat_input_bar {
             padding: 8px 8px calc(14px + env(safe-area-inset-bottom)) !important;
