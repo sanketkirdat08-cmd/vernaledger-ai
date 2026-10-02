@@ -1672,45 +1672,6 @@ elif selected_page == "RAG AI Chat":
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* 2. Advanced Glowing Floating Microphone (FAB) */
-/* Target the microphone iframe directly and force it to float */
-iframe[title="streamlit_mic_recorder"] {
-    position: fixed !important;
-    bottom: 95px !important; /* Floats perfectly above the native st.chat_input */
-    right: 20px !important;
-    z-index: 999999 !important;
-    background: rgba(30, 30, 46, 0.9) !important;
-    border: 2px solid #00d2ff !important;
-    border-radius: 50% !important;
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4), inset 0 0 10px rgba(0, 210, 255, 0.2) !important;
-    backdrop-filter: blur(5px) !important;
-    transform: scale(1.15) !important;
-    transition: all 0.3s ease-in-out !important;
-}
-
-/* Glow effect on hover/active */
-iframe[title="streamlit_mic_recorder"]:hover {
-    box-shadow: 0 0 30px rgba(0, 210, 255, 0.8) !important;
-    transform: scale(1.25) !important;
-    border-color: #00ffcc !important;
-}
-
-/* 3. Hide the empty container that originally held the mic */
-div[data-testid="stVerticalBlock"] > div:has(iframe[title="streamlit_mic_recorder"]) {
-    margin: 0 !important;
-    padding: 0 !important;
-    height: 0 !important;
-}
-
-/* 4. Chat Padding to avoid hiding messages behind the floating mic */
-.block-container {
-    padding-bottom: 160px !important;
-}
-
-/* Match the existing main.block-container specificity so chat padding applies. */
-main.block-container {
-    padding-bottom: 160px !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1719,15 +1680,6 @@ main.block-container {
         st.title("Verna AI Studio")
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
-
-    with st.container():
-        voice_captured = speech_to_text(
-            start_prompt="🎙️",
-            stop_prompt="⏹",
-            just_once=True,
-            language="mr-IN",
-            key="verna_voice_mic_single_line",
-        )
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
@@ -1742,6 +1694,16 @@ main.block-container {
                 st.markdown(chat["text"])
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
+
+    col_space, col_mic = st.columns([8, 1])
+    with col_mic:
+        voice_captured = speech_to_text(
+            start_prompt="🎙️",
+            stop_prompt="⏹",
+            just_once=True,
+            language="mr-IN",
+            key="verna_voice_mic_single_line",
+        )
 
     prompt = st.chat_input("येथे प्रश्न विचारा किंवा बोला...")
 
