@@ -1853,6 +1853,72 @@ elif selected_page == "RAG AI Chat":
     @media (max-width: 768px) {
         .st-key-rag_chat_input_bar {
             left: 0 !important;
+            right: 0 !important;
+            width: auto !important;
+            padding: 8px 10px calc(14px + env(safe-area-inset-bottom)) !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) {
+            gap: 4px !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:nth-child(2) {
+            flex: 3 1 0 !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:last-child [data-testid="stToggle"] {
+            justify-content: flex-end !important;
+            margin-left: auto !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) label {
+            font-size: 10px !important;
+        }
+        .st-key-rag_chat_history {
+            box-sizing: border-box !important;
+            padding-bottom: 110px !important;
+        }
+        .st-key-rag_chat_history [data-testid="stVerticalBlock"] {
+            padding-bottom: 110px !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-flow: row nowrap !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 7px !important;
+            width: 100% !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(1) {
+            flex: 0 0 40px !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
+            flex: 1 1 auto !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(3) {
+            flex: 0 0 88px !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="stTextInput"] {
+            width: 100% !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="stTextInput"] input {
+            box-sizing: border-box !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 40px !important;
+            padding: 0 9px !important;
+            font-size: 13px !important;
+        }
+        .st-key-rag_chat_input_bar div[data-testid="stMicRecorder"] button {
+            width: 38px !important;
+            min-width: 38px !important;
+            height: 40px !important;
+            min-height: 40px !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="stButton"] button {
+            box-sizing: border-box !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 34px !important;
+            padding: 6px 5px !important;
+            font-size: 9px !important;
+            white-space: nowrap !important;
         }
     }
     @media (max-width: 640px) {
