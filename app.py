@@ -16,6 +16,11 @@ import google.generativeai as genai
 from ocr_engine import process_receipt_advanced, process_voice_billing_advanced, generate_marathi_tts, get_active_gemini_models
 from streamlit_mic_recorder import speech_to_text
 
+CHAT_INPUT_COMPONENT = components.declare_component(
+    "verna_chat_input",
+    path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat_input_component"),
+)
+
 # ERROR LOGGING SETUP
 logging.basicConfig(filename='app.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 ai_logger = logging.getLogger("vernaledger.ai")
@@ -1671,7 +1676,25 @@ elif selected_page == "RAG AI Chat":
     -webkit-backdrop-filter: blur(15px) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
-
+[data-testid="stCustomComponentV1"] {
+    position: fixed !important;
+    left: 50% !important;
+    bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    width: min(760px, calc(100vw - 2rem)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 1000 !important;
+}
+main.block-container {
+    padding-bottom: 100px !important;
+}
+@media (max-width: 600px) {
+    [data-testid="stCustomComponentV1"] {
+        bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
+        width: calc(100vw - 1rem) !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1695,17 +1718,21 @@ elif selected_page == "RAG AI Chat":
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
-    col_space, col_mic = st.columns([8, 1])
-    with col_mic:
-        voice_captured = speech_to_text(
-            start_prompt="🎙️",
-            stop_prompt="⏹",
-            just_once=True,
-            language="mr-IN",
-            key="verna_voice_mic_single_line",
-        )
-
-    prompt = st.chat_input("येथे प्रश्न विचारा किंवा बोला...")
+    chat_input_event = CHAT_INPUT_COMPONENT(key="verna_chat_input_component", default=None)
+    prompt = None
+    voice_captured = None
+    if (
+        isinstance(chat_input_event, dict)
+        and isinstance(chat_input_event.get("id"), str)
+        and chat_input_event.get("id") != st.session_state.get("last_chat_input_event_id")
+    ):
+        st.session_state["last_chat_input_event_id"] = chat_input_event["id"]
+        event_text = chat_input_event.get("text")
+        if isinstance(event_text, str) and event_text.strip():
+            if chat_input_event.get("kind") == "submit":
+                prompt = event_text
+            elif chat_input_event.get("kind") == "voice":
+                voice_captured = event_text
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
