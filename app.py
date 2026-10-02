@@ -1664,25 +1664,49 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
     <style>
-    /* मुख्य ॲप आणि स्क्रीनचे स्क्रोलिंग नियंत्रित करणे */
-    .stApp {
-        overflow-x: hidden !important;
-    }
     .stApp [data-testid="stMain"] {
-        height: calc(100dvh - 3rem) !important;
-        overflow: hidden !important;
+        min-width: 0 !important;
+        overflow-x: clip !important;
+        overflow-y: visible !important;
     }
     .stApp [data-testid="stMainBlockContainer"] {
-        height: 100% !important;
-        overflow: hidden !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+        overflow: visible !important;
         padding-top: 0.35rem !important;
         padding-bottom: 0 !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) {
+        align-items: center !important;
+        gap: 8px !important;
+        margin-bottom: 2px !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"] {
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:first-child,
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:last-child {
+        flex: 1 1 0 !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:nth-child(2) {
+        flex: 4 1 0 !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:last-child [data-testid="stToggle"] {
+        justify-content: flex-end !important;
+        margin-left: auto !important;
+    }
+    .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) label {
+        color: #e2e8f0 !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
     }
     .neon-chat-header {
         width: 100%;
         text-align: center;
-        margin: 0 auto 2px;
-        padding: 2px 10px 6px;
+        margin: 0 auto;
+        padding: 2px 8px 5px;
         background: radial-gradient(ellipse at center, rgba(0, 242, 254, 0.18) 0%, rgba(37, 99, 235, 0.08) 38%, transparent 72%);
         border-bottom: 1px solid rgba(0, 242, 254, 0.28);
         filter: drop-shadow(0 0 18px rgba(0, 242, 254, 0.12));
@@ -1709,19 +1733,9 @@ elif selected_page == "RAG AI Chat":
         text-align: center;
         text-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
     }
-    .stApp [data-testid="stHorizontalBlock"]:has([data-testid="stToggle"]) {
-        align-items: center !important;
-    }
-    .stApp [data-testid="stHorizontalBlock"]:has([data-testid="stToggle"]) [data-testid="stToggle"] {
-        margin: 0 auto !important;
-    }
-    .stApp [data-testid="stHorizontalBlock"]:has([data-testid="stToggle"]) label {
-        color: #e2e8f0 !important;
-        font-weight: 700 !important;
-    }
     .st-key-rag_chat_history {
-        height: calc(100dvh - 245px) !important;
-        max-height: calc(100dvh - 245px) !important;
+        height: calc(100dvh - 225px) !important;
+        max-height: calc(100dvh - 225px) !important;
         min-height: 120px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
@@ -1732,15 +1746,15 @@ elif selected_page == "RAG AI Chat":
     }
     .st-key-rag_chat_input_bar {
         position: fixed !important;
-        left: 0 !important;
+        left: 21rem !important;
+        right: 0 !important;
         bottom: 0 !important;
-        width: 100% !important;
+        width: auto !important;
         box-sizing: border-box !important;
         margin: 0 !important;
-        padding: 10px max(16px, calc((100vw - 980px) / 2)) calc(12px + env(safe-area-inset-bottom)) !important;
+        padding: 10px 16px calc(14px + env(safe-area-inset-bottom)) !important;
         background: rgba(2, 6, 23, 0.97) !important;
         border-top: 1px solid rgba(0, 242, 254, 0.62) !important;
-        border-bottom: 0 !important;
         border-radius: 16px 16px 0 0 !important;
         backdrop-filter: blur(20px) !important;
         box-shadow: 0 -8px 30px rgba(0, 242, 254, 0.22) !important;
@@ -1751,24 +1765,23 @@ elif selected_page == "RAG AI Chat":
         flex-flow: row nowrap !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 10px !important;
+        gap: 8px !important;
         max-width: 980px !important;
         margin: 0 auto !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"] {
-        flex: 0 1 auto !important;
         min-width: 0 !important;
         width: auto !important;
         padding: 0 !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(1) {
-        flex: 0 0 46px !important;
+        flex: 0 0 48px !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(2) {
         flex: 1 1 auto !important;
     }
     .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(3) {
-        flex: 0 0 auto !important;
+        flex: 0 0 112px !important;
     }
     .st-key-rag_chat_input_bar [data-testid="stTextInput"] {
         width: 100% !important;
@@ -1837,30 +1850,47 @@ elif selected_page == "RAG AI Chat":
         line-height: 1.7 !important;
         box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
     }
+    @media (max-width: 768px) {
+        .st-key-rag_chat_input_bar {
+            left: 0 !important;
+        }
+    }
     @media (max-width: 640px) {
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) {
+            gap: 4px !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) > [data-testid="column"]:nth-child(2) {
+            flex: 3 1 0 !important;
+        }
+        .stApp [data-testid="stHorizontalBlock"]:has(.neon-chat-header) label {
+            font-size: 10px !important;
+        }
         .neon-chat-header {
             padding: 1px 4px 5px;
         }
         .neon-title {
-            font-size: 26px;
+            font-size: 21px;
         }
         .neon-subtitle {
-            font-size: 8px;
-            letter-spacing: 1.6px;
+            font-size: 7px;
+            letter-spacing: 1px;
         }
         .st-key-rag_chat_history {
-            height: calc(100dvh - 220px) !important;
-            max-height: calc(100dvh - 220px) !important;
+            height: calc(100dvh - 205px) !important;
+            max-height: calc(100dvh - 205px) !important;
             padding: 6px 8px !important;
         }
         .st-key-rag_chat_input_bar {
-            padding: 8px 8px calc(10px + env(safe-area-inset-bottom)) !important;
+            padding: 8px 8px calc(14px + env(safe-area-inset-bottom)) !important;
         }
         .st-key-rag_chat_input_bar [data-testid="stHorizontalBlock"] {
             gap: 7px !important;
         }
         .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(1) {
             flex-basis: 40px !important;
+        }
+        .st-key-rag_chat_input_bar [data-testid="column"]:nth-child(3) {
+            flex-basis: 88px !important;
         }
         .st-key-rag_chat_input_bar div[data-testid="stMicRecorder"] button {
             width: 38px !important;
@@ -1896,14 +1926,15 @@ elif selected_page == "RAG AI Chat":
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="neon-chat-header">
-        <h2 class="neon-title">✨ Verna AI Studio</h2>
-        <div class="neon-subtitle">Neural Merchant Intelligence Core</div>
-    </div>
-    """, unsafe_allow_html=True)
-    voice_cols = st.columns([1, 1, 1], vertical_alignment="center")
-    with voice_cols[1]:
+    header_left, header_center, header_right = st.columns([1, 4, 1], vertical_alignment="center")
+    with header_center:
+        st.markdown("""
+        <div class="neon-chat-header">
+            <h2 class="neon-title">✨ Verna AI Studio</h2>
+            <div class="neon-subtitle">Neural Merchant Intelligence Core</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with header_right:
         enable_voice_output = st.toggle("🔊 Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
     if "chat_history" not in st.session_state:
