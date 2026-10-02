@@ -1665,9 +1665,27 @@ elif selected_page == "RAG AI Chat":
     st.markdown("""
     <style>
     .block-container {
-        padding-bottom: 130px !important;
+        padding-bottom: 120px !important;
     }
-    .st-key-bottom_floating {
+    div[data-testid="stHorizontalBlock"]:has(h1) {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"] {
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:first-child {
+        flex: 1 1 auto !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(h1) > [data-testid="column"]:last-child {
+        flex: 0 0 auto !important;
+    }
+    .st-gemini-pill,
+    .st-key-gemini_pill {
         position: fixed !important;
         bottom: 25px !important;
         left: 50% !important;
@@ -1675,15 +1693,15 @@ elif selected_page == "RAG AI Chat":
         max-width: 800px !important;
         box-sizing: border-box !important;
         margin: 0 !important;
-        padding: 8px 15px !important;
+        padding: 5px 15px !important;
         transform: translateX(-50%) !important;
         background-color: #1e1e2e !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 30px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+        border-radius: 40px !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
         z-index: 999999 !important;
     }
-    .st-key-bottom_floating [data-testid="stVerticalBlock"] {
+    .st-key-gemini_pill [data-testid="stVerticalBlock"] {
         width: 100% !important;
         min-width: 0 !important;
         gap: 0 !important;
@@ -1692,46 +1710,47 @@ elif selected_page == "RAG AI Chat":
         border: none !important;
         box-shadow: none !important;
     }
-    .st-key-bottom_floating [data-testid="stHorizontalBlock"] {
+    .st-key-gemini_pill [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 10px !important;
         width: 100% !important;
         min-width: 0 !important;
         background: transparent !important;
     }
-    .st-key-bottom_floating [data-testid="column"] {
+    .st-key-gemini_pill [data-testid="column"] {
         width: auto !important;
         min-width: 0 !important;
         padding: 0 !important;
         background: transparent !important;
     }
-    .st-key-bottom_floating [data-testid="column"]:first-child,
-    .st-key-bottom_floating [data-testid="column"]:last-child {
+    .st-key-gemini_pill [data-testid="column"]:first-child,
+    .st-key-gemini_pill [data-testid="column"]:last-child {
         flex: 0 0 42px !important;
     }
-    .st-key-bottom_floating [data-testid="column"]:nth-child(2) {
+    .st-key-gemini_pill [data-testid="column"]:nth-child(2) {
         flex: 1 1 0% !important;
         min-width: 0 !important;
     }
-    .st-key-bottom_floating [data-testid="column"]:nth-child(2) [data-testid="stTextArea"] {
+    .st-key-gemini_pill [data-testid="column"]:nth-child(2) [data-testid="stTextArea"] {
         flex: 1 1 auto !important;
     }
-    .st-key-bottom_floating [data-testid="stTextArea"] {
+    .st-key-gemini_pill [data-testid="stTextArea"] {
         width: 100% !important;
         min-width: 0 !important;
         background: transparent !important;
     }
-    .st-key-bottom_floating [data-baseweb="textarea"],
-    .st-key-bottom_floating [data-testid="stButton"] {
+    .st-key-gemini_pill [data-testid="stTextArea"] > div,
+    .st-key-gemini_pill [data-baseweb="textarea"],
+    .st-key-gemini_pill [data-testid="stButton"] {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
-    .st-key-bottom_floating textarea {
+    .st-key-gemini_pill textarea {
         box-sizing: border-box !important;
         width: 100% !important;
         min-width: 0 !important;
@@ -1746,22 +1765,25 @@ elif selected_page == "RAG AI Chat":
         background-color: transparent !important;
         color: #f8fafc !important;
         box-shadow: none !important;
+        caret-color: #ffffff !important;
     }
-    .st-key-bottom_floating textarea:focus,
-    .st-key-bottom_floating textarea:focus-visible {
+    .st-key-gemini_pill textarea:focus,
+    .st-key-gemini_pill textarea:focus-visible {
         border: 0 !important;
         outline: none !important;
         box-shadow: none !important;
     }
-    .st-key-bottom_floating button,
-    .st-key-bottom_floating div[data-testid="stMicRecorder"],
-    .st-key-bottom_floating [data-testid="stButton"] {
+    .st-key-gemini_pill button,
+    .st-key-gemini_pill iframe,
+    .st-key-gemini_pill div[data-testid="stMicRecorder"],
+    .st-key-gemini_pill [data-testid="stButton"] {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
+        padding: 0 !important;
     }
-    .st-key-bottom_floating div[data-testid="stMicRecorder"] button {
+    .st-key-gemini_pill div[data-testid="stMicRecorder"] button {
         width: 42px !important;
         min-width: 42px !important;
         height: 42px !important;
@@ -1774,7 +1796,7 @@ elif selected_page == "RAG AI Chat":
         box-shadow: none !important;
         color: #e2e8f0 !important;
     }
-    .st-key-bottom_floating [data-testid="stButton"] button {
+    .st-key-gemini_pill [data-testid="stButton"] button {
         width: 42px !important;
         min-width: 42px !important;
         min-height: 42px !important;
@@ -1810,7 +1832,7 @@ elif selected_page == "RAG AI Chat":
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
-    with st.container(key="bottom_floating"):
+    with st.container(key="gemini_pill"):
         mic_col, input_col, submit_col = st.columns([0.12, 0.68, 0.20], vertical_alignment="center")
         with mic_col:
             voice_captured = speech_to_text(start_prompt="🎙️", stop_prompt="⏹", just_once=True, language='mr-IN', key='verna_voice_mic_single_line')
