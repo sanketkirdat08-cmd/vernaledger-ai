@@ -94,6 +94,27 @@ def is_gemini_auth_error(exception: Exception) -> bool:
     )
 
 
+def get_tts_voice(text: str) -> str:
+    """Choose an Edge TTS voice based on the language of the generated answer."""
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if latin_count > devanagari_count:
+        return "en-IN-NeerjaNeural"
+
+    marathi_markers = (
+        "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
+        "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
+        "विचारू शकता",
+    )
+    hindi_markers = (
+        "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
+        "करता है", "होता है",
+    )
+    marathi_score = sum(text.count(marker) for marker in marathi_markers)
+    hindi_score = sum(text.count(marker) for marker in hindi_markers)
+    return "mr-IN-AarohiNeural" if marathi_score > hindi_score else "hi-IN-SwaraNeural"
+
+
 # --- AI AUTOMATIC RETRY LOGIC ---
 def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
     for attempt in range(retries):
@@ -2066,20 +2087,31 @@ main.block-container {
         audio_file_path = None
         if enable_voice_output and success_stream:
             audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
-            audio_text = re.sub(r'\bAI\b', 'ए आय', audio_text, flags=re.IGNORECASE)
-            pronunciation_hints = {
-                "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
-                "ढवाळे": "ढव्-ळे",
-                "ढवळे": "ढव्-ळे",
-                "गवाली": "गव्-ळी",
-                "गवळी": "गव्-ळी",
-                "कैसर": "कै-सर",
-                "कौसर": "कै-सर",
-            }
-            for name, pronunciation in pronunciation_hints.items():
-                audio_text = audio_text.replace(name, pronunciation)
-            audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
-            audio_file_path = generate_marathi_tts(audio_text)
+            devanagari_count = len(re.findall(r"[\u0900-\u097f]", audio_text))
+            if devanagari_count:
+                audio_text = re.sub(r"\s*[\(\[][A-Za-z][^\)\]]*[\)\]]", "", audio_text)
+
+            tts_voice = get_tts_voice(audio_text)
+            if tts_voice.startswith("mr-"):
+                audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+                pronunciation_hints = {
+                    "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
+                    "ढवाळे": "ढव्-ळे",
+                    "ढवळे": "ढव्-ळे",
+                    "गवाली": "गव्-ळी",
+                    "गवळी": "गव्-ळी",
+                    "कैसर": "कै-सर",
+                    "कौसर": "कै-सर",
+                }
+                for name, pronunciation in pronunciation_hints.items():
+                    audio_text = audio_text.replace(name, pronunciation)
+                audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
+
+            audio_text = re.sub(r"[ \t]+", " ", audio_text)
+            audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
+            audio_text = re.sub(r" *([.!?।]) *", r"\1 ", audio_text)
+            audio_text = re.sub(r"\s*\n\s*", ". ", audio_text).strip()
+            audio_file_path = generate_marathi_tts(audio_text, voice=tts_voice)
 
         st.session_state["chat_history"].append({
             "role": "ai",
