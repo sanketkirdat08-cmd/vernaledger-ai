@@ -1669,30 +1669,119 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
-/* 1. Advanced Glassmorphism Header */
+.stApp,
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse at 14% 4%, rgba(14, 165, 233, 0.075), transparent 43%),
+        radial-gradient(ellipse at 88% 32%, rgba(124, 58, 237, 0.065), transparent 46%),
+        linear-gradient(145deg, #0e1117 0%, #101725 52%, #0b1020 100%) !important;
+    color: #f4f7ff !important;
+}
 [data-testid="stHeader"] {
-    background: rgba(14, 17, 23, 0.6) !important;
-    backdrop-filter: blur(15px) !important;
-    -webkit-backdrop-filter: blur(15px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background: rgba(14, 17, 23, 0.72) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+section.main > div.block-container {
+    max-width: 960px;
+    padding: 2.25rem 1.5rem 9rem;
+}
+.verna-ai-title {
+    margin: 0;
+    color: #d9fbff;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.12;
+    text-shadow:
+        0 0 10px rgba(34, 211, 238, 0.82),
+        0 0 26px rgba(34, 211, 238, 0.5),
+        0 0 48px rgba(139, 92, 246, 0.42);
+}
+.verna-ai-heading {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.2rem 0 1.25rem;
+}
+.verna-ai-subtitle {
+    margin: 0;
+    color: #aab8ca;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.015em;
+}
+.verna-ai-greeting {
+    width: min(680px, 100%);
+    margin: 1.25rem auto 1.75rem;
+    padding: 1px;
+    border-radius: 18px;
+    background: linear-gradient(125deg, rgba(103, 170, 190, 0.34), rgba(148, 130, 190, 0.28));
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+}
+.verna-ai-greeting-inner {
+    padding: 1.15rem 1.35rem;
+    border-radius: 17px;
+    background: linear-gradient(135deg, rgba(20, 27, 40, 0.97), rgba(17, 23, 36, 0.97));
+    text-align: center;
+}
+.verna-ai-greeting p {
+    margin: 0;
+    color: #d5deeb;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.st-key-rag_chat_history [data-testid="stChatMessage"] {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.62);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+.st-key-rag_chat_history [data-testid="stMarkdownContainer"] {
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 [data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
-    bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
     transform: translateX(-50%) !important;
-    width: min(760px, calc(100vw - 2rem)) !important;
+    width: min(820px, calc(100vw - 2rem)) !important;
     margin: 0 !important;
     padding: 0 !important;
-    z-index: 1000 !important;
+    z-index: 20 !important;
 }
 main.block-container {
-    padding-bottom: 100px !important;
+    padding-bottom: 9rem !important;
 }
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+    section.main > div.block-container {
+        padding: 1.35rem 0.8rem 8rem;
+    }
+    .verna-ai-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.1rem;
+    }
+    .verna-ai-title {
+        font-size: clamp(1.9rem, 9vw, 2.6rem);
+    }
+    .verna-ai-subtitle {
+        font-size: 0.84rem;
+    }
+    .verna-ai-greeting-inner {
+        padding: 1rem 0.85rem;
+    }
     [data-testid="stCustomComponentV1"] {
-        bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
-        width: calc(100vw - 1rem) !important;
+        bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
+        width: calc(100vw - 1.25rem) !important;
+    }
+    main.block-container {
+        padding-bottom: 8rem !important;
     }
 }
 </style>
@@ -1700,7 +1789,12 @@ main.block-container {
 
     header_col, toggle_col = st.columns([4, 1])
     with header_col:
-        st.title("Verna AI Studio")
+        st.markdown("""
+<div class="verna-ai-heading">
+  <h1 class="verna-ai-title">Verna AI Studio</h1>
+  <p class="verna-ai-subtitle">Your Smart Ledger &amp; Business Assistant</p>
+</div>
+""", unsafe_allow_html=True)
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
@@ -1709,7 +1803,13 @@ main.block-container {
 
     with st.container(key="rag_chat_history"):
         if not st.session_state["chat_history"]:
-            st.info("नमस्कार! मी Verna AI आहे. तुमच्या दुकानाची उधारी, स्टॉक, खर्च किंवा विक्रीबद्दल विचारा.")
+            st.markdown("""
+<section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
+  <div class="verna-ai-greeting-inner">
+    <p>Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+  </div>
+</section>
+""", unsafe_allow_html=True)
 
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
@@ -1751,7 +1851,6 @@ main.block-container {
     if st.session_state["chat_history"] and st.session_state["chat_history"][-1]["role"] == "user":
         last_user_msg = st.session_state["chat_history"][-1]["text"]
         
-        is_db_action = False
         action_status_msg = ""
         if any(kw in last_user_msg for kw in ["उधारी जोड", "उधारी लिही", "खात्यात जोड", "उधारी नोंदव"]):
             words = last_user_msg.split()
@@ -1766,7 +1865,6 @@ main.block-container {
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (cust_name, "9999999999", amt, "उधारी बाकी (Given Credit)", time.strftime("%Y-%m-%d"), time.strftime("%Y-%m-%d"), last_user_msg))
                     conn.commit()
-                    is_db_action = True
                     action_status_msg = f"customer_khata मध्ये {cust_name} साठी रुपये {amt} ची नवीन उधारी नोंद सेव्ह करण्यात आली आहे!"
             except Exception as ex:
                 action_status_msg = f"डेटाबेस सेव्ह त्रुटी: {ex}"
@@ -1799,76 +1897,70 @@ main.block-container {
         - College: Arvind Gavali College of Engineering, Satara.
         - Database Context:
         {db_context}
+        - Database Action Result:
+        {action_status_msg or "No database action was performed."}
         
         [CONVERSATION HISTORY]:
         {past_turns}
         
-        [STRICT RULES]:
-        1. Detect the language of the user prompt/question below.
-        2. Reply strictly in the SAME LANGUAGE as the user's prompt.
-        3. Answer PRECISELY, CONCISELY, and DIRECTLY. Give ONLY the exact information requested. Do NOT add extra explanations or unasked details.
-        4. When stating mobile numbers or digits, format them with clear spacing or hyphens (e.g., 9999-999-999) so that text-to-speech reads and pronounces every single digit clearly.
-        5. Ensure perfect formatting, clear line breaks, and bullet points to prevent text overlapping and ensure 100% legibility.
-        6. CRITICAL: If the user asks in Marathi, ONLY write names in Devanagari script (संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक). DO NOT add English translations or brackets. NEVER write "संकेत किर्दत (Sanket Kirdat)" - write ONLY "संकेत किर्दत".
-        7. Do NOT use symbols like 'Rs', 'RS' or '₹'. Always write the word 'रुपये' (or 'Rupees' if replying in English).
-        8. CRITICAL: Never include citation tags or source indexes in your response text under any circumstances. Keep the text clean and natural.
+        [LANGUAGE AND RESPONSE RULES — HIGHEST PRIORITY]:
+        1. Detect the language of the latest user prompt itself: English, Marathi, or Hindi. Do not infer the reply language from the conversation history, database context, or this instruction.
+        2. Write the entire reply strictly in that detected language: English prompts get English replies, Marathi prompts get Marathi replies, and Hindi prompts get Hindi replies. For a genuinely mixed-language prompt, use the language used most in the user's own words.
+        3. Do not provide translations, bilingual explanations, language labels, or extra greetings in another language. Do not switch languages mid-reply. Keep proper names, product names, and unavoidable technical tokens unchanged, but write all explanatory text in the detected language.
+        4. Use Latin script for English and Devanagari for Marathi or Hindi. To distinguish Marathi from Hindi, use the vocabulary and grammar of the user's prompt; Devanagari script alone does not determine the language.
+        5. Treat the database context and database action result as facts to explain in the detected language, even if those facts are written in another language.
+        6. Answer precisely and concisely, with short paragraphs or bullets that display cleanly on desktop and mobile. Do not add unrequested details.
+        7. Format mobile numbers with clear spacing or hyphens (e.g., 9999-999-999). Use 'रुपये' in Marathi or Hindi and 'Rupees' in English; do not use 'Rs', 'RS', or '₹'.
+        8. If replying in Marathi, write names only in Devanagari: संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक. Do not add English transliterations in brackets.
+        9. Never include citation tags or source indexes in the reply.
         """
 
-        if is_db_action:
-            clean_ans = action_status_msg
-            st.session_state["chat_history"].append({"role": "ai", "text": clean_ans, "audio_file": None})
-            st.rerun()
+        if not API_KEY.strip():
+            ai_logger.error("Gemini response generation skipped because GEMINI_API_KEY is not configured.")
+            clean_ans = "Verna AI Error: GEMINI_API_KEY is not configured. Add it to Streamlit secrets or the environment, then restart the app."
         else:
-            if not API_KEY.strip():
-                ai_logger.error("Gemini response generation skipped because GEMINI_API_KEY is not configured.")
-                clean_ans = "Verna AI Error: GEMINI_API_KEY is not configured. Add it to Streamlit secrets or the environment, then restart the app."
-            else:
-                genai.configure(api_key=API_KEY.strip())
-                fast_models = get_active_gemini_models()
+            genai.configure(api_key=API_KEY.strip())
+            fast_models = get_active_gemini_models()
 
-                ai_placeholder = st.empty()
-                success_stream = False
-                last_error = None
+            ai_placeholder = st.empty()
+            success_stream = False
+            last_error = None
 
-                for m_name in fast_models:
-                    model_response = ""
-                    try:
-                        model = genai.GenerativeModel(m_name)
-                        response_stream = model.generate_content([system_prompt, last_user_msg], stream=True)
+            for m_name in fast_models:
+                model_response = ""
+                try:
+                    model = genai.GenerativeModel(m_name)
+                    response_stream = model.generate_content([system_prompt, last_user_msg], stream=True)
 
-                        for chunk in response_stream:
-                            chunk_text = chunk.text
-                            if chunk_text:
-                                model_response += chunk_text
-                                raw_streaming_ans = re.sub(r'रू\.?|ru\.?|₹', 'रुपये', model_response)
-                                raw_streaming_ans = re.sub(r'रुपये\s*रुपये', 'रुपये', raw_streaming_ans)
+                    for chunk in response_stream:
+                        chunk_text = chunk.text
+                        if chunk_text:
+                            model_response += chunk_text
+                            ai_placeholder.markdown(model_response)
 
-                                ai_placeholder.markdown(raw_streaming_ans)
+                    if not model_response.strip():
+                        raise ValueError("Gemini returned no text for this response.")
 
-                        if not model_response.strip():
-                            raise ValueError("Gemini returned no text for this response.")
+                    clean_ans = model_response
+                    success_stream = True
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    ai_logger.error(
+                        "Gemini response generation failed for model %s (%s).",
+                        m_name,
+                        type(exc).__name__,
+                    )
 
-                        clean_ans = re.sub(r'रू\.?|ru\.?|₹', 'रुपये', model_response)
-                        clean_ans = re.sub(r'रुपये\s*रुपये', 'रुपये', clean_ans)
-                        success_stream = True
-                        break
-                    except Exception as exc:
-                        last_error = exc
-                        ai_logger.error(
-                            "Gemini response generation failed for model %s (%s).",
-                            m_name,
-                            type(exc).__name__,
-                        )
-
-                if not success_stream:
-                    if last_error:
-                        error_type = type(last_error).__name__
-                        clean_ans = (
-                            f"Verna AI Error: Gemini requests failed ({error_type}). "
-                            "Check GEMINI_API_KEY, model access, network connectivity, and app.log."
-                        )
-                    else:
-                        clean_ans = "Verna AI Error: No Gemini models are available. Check app.log and model access."
+            if not success_stream:
+                if last_error:
+                    error_type = type(last_error).__name__
+                    clean_ans = (
+                        f"Verna AI Error: Gemini requests failed ({error_type}). "
+                        "Check GEMINI_API_KEY, model access, network connectivity, and app.log."
+                    )
+                else:
+                    clean_ans = "Verna AI Error: No Gemini models are available. Check app.log and model access."
 
             audio_file_path = None
             if enable_voice_output:
