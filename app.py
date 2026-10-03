@@ -1955,6 +1955,20 @@ main.block-container {
             "require fluent Hindi. Do not translate the query or answer into another language "
             "and do not use a default language."
         )
+        assistant_instruction = (
+            "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
+            "project details, people and ownership, or ledger records such as receipts, credit, "
+            "expenses, and stock, use the supplied reference context as the source of truth. "
+            "Do not invent internal project facts or database values. If a requested internal "
+            "fact is absent from the supplied context, say that it is not present in the "
+            "available context instead of guessing. The database context contains at most the "
+            "five most recent rows for each listed ledger table, so do not imply it is a complete "
+            "database search. For unrelated general-knowledge questions (including science, "
+            "history, coding, and general facts), answer helpfully using your general knowledge; "
+            "do not require the answer to appear in the project database. If a question combines "
+            "both, use the supplied context for project-specific facts and general knowledge "
+            "for the rest. Always follow the response-language instruction."
+        )
         generation_config = {
             "temperature": 0.3,
             "max_output_tokens": 1024,
@@ -2004,7 +2018,7 @@ main.block-container {
                 try:
                     model = genai.GenerativeModel(
                         model_name=m_name,
-                        system_instruction=language_instruction,
+                        system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
                         generation_config=generation_config,
                     )
                     response_stream = model.generate_content(
