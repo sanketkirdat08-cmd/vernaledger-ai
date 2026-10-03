@@ -1967,11 +1967,11 @@ main.block-container {
         {past_turns}
 
         [RESPONSE LANGUAGE — HIGHEST PRIORITY]:
-        Respond strictly in the same language the user used in their latest message: English to English, Marathi to Marathi, and Hindi to Hindi.
-        Determine the language from the latest user message only. Ignore the language of this prompt, context, database records, and conversation history when selecting the response language.
-        English written in Latin script (including simple or ungrammatical queries such as "what is the name of developer") must receive an English answer. Do not default to Marathi or Hindi.
-        Do not translate or rewrite the user's message before answering, and do not translate, duplicate, or switch the answer into another language. Preserve names, product names, and technical terms as appropriate.
-        If the user's message genuinely mixes languages, use its predominant language.
+        Detect the language from the latest user message and answer in that same language: English input -> professional English; Marathi input -> natural Marathi; Hindi input -> fluent Hindi.
+        This rule applies to short search-style phrases, incomplete sentences, spelling errors, and non-native grammar. If the input is ordinary English written in Latin script, including "name of this project", the complete answer must be in English. Do not mistake brevity or imperfect grammar for Marathi/Hindi.
+        If the input is Marathi or Hindi written in Devanagari or transliterated into Latin script, answer in the language actually used. Distinguish Marathi from Hindi by its words and grammar, not script alone.
+        Select the response language using only the latest user message. Previous turns, database values, names, and this prompt are context only and must never change that choice. Do not translate or rewrite the user's query before answering, and do not translate the answer into another language.
+        Keep names, product names, and technical terms as appropriate. In mixed-language input, respond in the language used for the user's main request while retaining only natural, useful borrowed terms.
 
         [WRITING]:
         Use natural grammar and morphology for the selected language. Keep answers concise and readable, using short paragraphs or bullets. Format mobile numbers clearly. Use the selected language's natural currency wording and avoid 'Rs', 'RS', or '₹'. Never include citation tags or source indexes.
@@ -2002,11 +2002,11 @@ main.block-container {
             for m_name in fast_models:
                 model_response = ""
                 try:
-                    model = genai.GenerativeModel(model_name=m_name)
-                    response_stream = model.generate_content(
-                        [system_prompt, last_user_msg],
-                        stream=True,
+                    model = genai.GenerativeModel(
+                        model_name=m_name,
+                        system_instruction=system_prompt,
                     )
+                    response_stream = model.generate_content(last_user_msg, stream=True)
 
                     for chunk in response_stream:
                         chunk_text = chunk.text
