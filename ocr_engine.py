@@ -31,6 +31,46 @@ def init_db() -> None:
 
 init_db()
 
+class GeminiAuthenticationError(RuntimeError):
+    """Raised when Gemini rejects the configured API key."""
+
+
+def is_gemini_auth_error(exc: Exception) -> bool:
+    """Return whether a Gemini API exception indicates rejected credentials or access."""
+    if isinstance(exc, GeminiAuthenticationError):
+        return True
+
+    code = getattr(exc, "code", None)
+    if callable(code):
+        try:
+            code = code()
+        except Exception:
+            code = None
+
+    response = getattr(exc, "response", None)
+    status_code = getattr(exc, "status_code", None)
+    if status_code is None and response is not None:
+        status_code = getattr(response, "status_code", None)
+
+    code_name = getattr(code, "name", "")
+    error_text = f"{type(exc).__name__} {code_name} {code} {exc}".casefold()
+    return any(
+        marker in error_text
+        for marker in (
+            "unauthenticated",
+            "unauthorized",
+            "401",
+            "invalid api key",
+            "api_key_invalid",
+            "api key not valid",
+            "permission_denied",
+            "permission denied",
+            "forbidden",
+            "403",
+        )
+    ) or status_code in (401, 403)
+
+
 def extract_valid_json(text: str) -> dict:
     text = re.sub(r'```json\s*', '', text)
     text = re.sub(r'```\s*$', '', text).strip()
@@ -59,7 +99,11 @@ def get_active_gemini_models():
         elif online_models:
             return online_models
     except Exception as exc:
-        logger.warning(f"Dynamic model fetch failed: {exc}")
+        if is_gemini_auth_error(exc):
+            raise GeminiAuthenticationError(
+                "Gemini rejected the configured API key. Verify GEMINI_API_KEY."
+            ) from exc
+        logger.warning("Dynamic model fetch failed (%s); using fallback models.", type(exc).__name__)
     
     return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.0-pro']
 
@@ -221,7 +265,11 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
 
     return validated_data.model_dump()
 
-def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3") -> str | None:
+def generate_marathi_tts(
+    text_marathi: str,
+    output_path: str = "summary.mp3",
+    voice: str = "mr-IN-AarohiNeural",
+) -> str | None:
     try:
         if os.path.exists(output_path):
             try:
@@ -229,10 +277,8 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3") ->
             except PermissionError:
                 output_path = f"summary_{os.urandom(4).hex()}.mp3"
 
-        VOICE = "mr-IN-AarohiNeural"
-
         async def _main():
-            communicate = edge_tts.Communicate(text_marathi, VOICE, rate="+15%")
+            communicate = edge_tts.Communicate(text_marathi, voice, rate="-5%")
             await communicate.save(output_path)
 
         asyncio.run(_main())

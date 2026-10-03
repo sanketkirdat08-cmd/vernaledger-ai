@@ -12,9 +12,23 @@ import time
 import re
 import urllib.parse
 import logging
+import math
+from datetime import date, datetime
+from html import escape
 import google.generativeai as genai
-from ocr_engine import process_receipt_advanced, process_voice_billing_advanced, generate_marathi_tts, get_active_gemini_models
+from ocr_engine import (
+    generate_marathi_tts,
+    get_active_gemini_models,
+    process_receipt_advanced,
+    process_voice_billing_advanced,
+)
 from streamlit_mic_recorder import speech_to_text
+
+st.set_page_config(
+    page_title="VernaLedger AI",
+    page_icon="🤖",
+    layout="centered",
+)
 
 CHAT_INPUT_COMPONENT = components.declare_component(
     "verna_chat_input",
@@ -30,13 +44,79 @@ if not ai_logger.handlers:
     ai_file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     ai_logger.addHandler(ai_file_handler)
     ai_logger.propagate = False
-API_KEY = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
-st.set_page_config(
-    page_title="VernaLedger.AI Merchant Pro v7.5",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+
+
+def load_gemini_api_key() -> str:
+    secret_key = ""
+    secret_error_type = None
+    try:
+        secret_value = st.secrets.get("GEMINI_API_KEY", "")
+        if isinstance(secret_value, str):
+            secret_key = secret_value.strip()
+    except Exception as exc:
+        secret_error_type = type(exc).__name__
+
+    environment_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if secret_key:
+        return secret_key
+    if environment_key:
+        return environment_key
+    if secret_error_type:
+        ai_logger.error(
+            "Could not read Streamlit secrets (%s), and GEMINI_API_KEY is not set in the environment.",
+            secret_error_type,
+        )
+    return ""
+
+
+API_KEY = load_gemini_api_key()
+
+
+def is_gemini_auth_error(exception: Exception) -> bool:
+    """Return whether a Gemini exception indicates authentication or access failure."""
+    error_text = f"{type(exception).__name__} {exception}".casefold()
+    status_code = getattr(exception, "status_code", None)
+    if status_code is None:
+        response = getattr(exception, "response", None)
+        status_code = getattr(response, "status_code", None)
+
+    return (
+        any(
+            marker in error_text
+            for marker in (
+                "unauthenticated",
+                "unauthorized",
+                "api key",
+                "api_key",
+                "permission denied",
+                "permission_denied",
+                "forbidden",
+            )
+        )
+        or status_code in (401, 403)
+    )
+
+
+def get_tts_voice(text: str) -> str:
+    """Choose an Edge TTS voice based on the language of the generated answer."""
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if latin_count > devanagari_count:
+        return "en-IN-NeerjaNeural"
+
+    marathi_markers = (
+        "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
+        "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
+        "विचारू शकता",
+    )
+    hindi_markers = (
+        "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
+        "करता है", "होता है",
+    )
+    marathi_score = sum(text.count(marker) for marker in marathi_markers)
+    hindi_score = sum(text.count(marker) for marker in hindi_markers)
+    return "mr-IN-AarohiNeural" if marathi_score > hindi_score else "hi-IN-SwaraNeural"
+
 
 # --- AI AUTOMATIC RETRY LOGIC ---
 def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
@@ -171,6 +251,1240 @@ def log_activity(username, action):
             conn.rollback()
             logging.error(f"Audit log failed: {e}")
 
+
+KHATA_CREDIT = "उधारी बाकी (Given Credit)"
+KHATA_PAYMENT = "पैसे जमा / हप्ता (Received Payment / Partial)"
+KHATA_TRANSACTION_TYPES = (KHATA_CREDIT, KHATA_PAYMENT)
+KHATA_COLUMNS = [
+    "id", "customer_name", "phone", "amount", "transaction_type",
+    "date", "due_date", "notes",
+]
+
+
+def _khata_text(value):
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
+def load_business_upi_id():
+    try:
+        secret_value = st.secrets.get("BUSINESS_UPI_ID", "")
+    except Exception as exc:
+        ai_logger.warning(
+            "Could not read BUSINESS_UPI_ID from Streamlit secrets (%s).",
+            type(exc).__name__,
+        )
+        secret_value = ""
+    environment_value = os.getenv("BUSINESS_UPI_ID", "")
+    return str(
+        secret_value or environment_value or "sanketkirdat08@okaxis"
+    ).strip()
+
+
+def build_upi_payment_link(upi_id, payee_name, customer_name, amount):
+    normalized_upi_id = str(upi_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}", normalized_upi_id):
+        raise ValueError("व्यवसायाचा UPI ID वैध स्वरूपात कॉन्फिगर केलेला नाही.")
+    try:
+        normalized_amount = float(amount)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("पेमेंट रक्कम वैध नाही.") from exc
+    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
+        raise ValueError("बाकी रक्कम शून्यापेक्षा जास्त असणे आवश्यक आहे.")
+
+    parameters = urllib.parse.urlencode(
+        {
+            "pa": normalized_upi_id,
+            "pn": str(payee_name or "VernaLedger").strip(),
+            "am": f"{normalized_amount:.2f}",
+            "cu": "INR",
+            "tn": f"Khata payment - {str(customer_name or '').strip()}"[:80],
+        },
+        quote_via=urllib.parse.quote,
+    )
+    return f"upi://pay?{parameters}"
+
+
+def _normalize_khata_date(value, field_name):
+    if isinstance(value, datetime):
+        value = value.date()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value.strip(), "%Y-%m-%d").date().isoformat()
+        except ValueError as exc:
+            raise ValueError(f"{field_name} YYYY-MM-DD स्वरूपात असणे आवश्यक आहे.") from exc
+    raise ValueError(f"{field_name} वैध तारीख असणे आवश्यक आहे.")
+
+
+def validate_khata_entry(customer_name, phone, amount, transaction_type, entry_date, due_date, notes):
+    name = _khata_text(customer_name).strip()
+    if not name:
+        raise ValueError("कृपया ग्राहकाचे नाव भरा.")
+    if len(name) > 100:
+        raise ValueError("ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.")
+
+    phone_text = _khata_text(phone).strip()
+    if phone_text and (
+        not re.fullmatch(r"[0-9\s()+-]+", phone_text)
+        or not re.fullmatch(r"[6-9]\d{9}", re.sub(r"[\s()+-]", "", phone_text))
+    ):
+        raise ValueError("फोन नंबर रिकामा ठेवा किंवा वैध 10 अंकी मोबाईल नंबर भरा.")
+    normalized_phone = re.sub(r"[\s()+-]", "", phone_text)
+
+    try:
+        normalized_amount = float(amount)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("रक्कम वैध संख्या असणे आवश्यक आहे.") from exc
+    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
+        raise ValueError("रक्कम शून्यापेक्षा मोठी असणे आवश्यक आहे.")
+
+    if transaction_type not in KHATA_TRANSACTION_TYPES:
+        raise ValueError("व्यवहार प्रकार उपलब्ध पर्यायांपैकी निवडा.")
+
+    normalized_notes = _khata_text(notes).strip()
+    if len(normalized_notes) > 1000:
+        raise ValueError("टीप 1000 अक्षरांपेक्षा मोठी असू शकत नाही.")
+
+    return {
+        "customer_name": name,
+        "phone": normalized_phone,
+        "amount": normalized_amount,
+        "transaction_type": transaction_type,
+        "date": _normalize_khata_date(entry_date, "व्यवहार तारीख"),
+        "due_date": _normalize_khata_date(due_date, "परतफेड तारीख"),
+        "notes": normalized_notes,
+    }
+
+
+def save_khata_transaction(customer_name, phone, amount, transaction_type, entry_date, due_date, notes):
+    entry = validate_khata_entry(
+        customer_name, phone, amount, transaction_type, entry_date, due_date, notes
+    )
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO customer_khata
+                (customer_name, phone, amount, transaction_type, date, due_date, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                entry["customer_name"], entry["phone"], entry["amount"],
+                entry["transaction_type"], entry["date"], entry["due_date"],
+                entry["notes"],
+            ),
+        )
+        return cursor.lastrowid
+
+
+def load_khata_transactions():
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        return pd.read_sql_query(
+            "SELECT id, customer_name, phone, amount, transaction_type, date, due_date, notes "
+            "FROM customer_khata ORDER BY id DESC",
+            conn,
+        )
+
+
+def update_khata_transactions(original_df, edited_df):
+    original_ids = {int(record_id) for record_id in original_df["id"].tolist()}
+    updates = []
+    for _, row in edited_df.iterrows():
+        try:
+            record_id = int(row["id"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("रेकॉर्ड आयडी बदलता येत नाही.") from exc
+        if record_id not in original_ids:
+            raise ValueError("नवीन किंवा अपरिचित रेकॉर्ड बदलता येत नाही.")
+        original_row = original_df.loc[original_df["id"] == record_id].iloc[0]
+        fields = ("customer_name", "phone", "amount", "transaction_type", "date", "due_date", "notes")
+        if all(str(original_row[field] or "") == str(row[field] or "") for field in fields):
+            continue
+        entry = validate_khata_entry(
+            row["customer_name"], row["phone"], row["amount"],
+            row["transaction_type"], row["date"], row["due_date"], row["notes"],
+        )
+        updates.append((entry, record_id))
+
+    if updates:
+        with sqlite3.connect("ledger.db", timeout=10) as conn:
+            conn.executemany(
+                """
+                UPDATE customer_khata
+                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?,
+                    date = ?, due_date = ?, notes = ?
+                WHERE id = ?
+                """,
+                [
+                    (
+                        entry["customer_name"], entry["phone"], entry["amount"],
+                        entry["transaction_type"], entry["date"], entry["due_date"],
+                        entry["notes"], record_id,
+                    )
+                    for entry, record_id in updates
+                ],
+            )
+    return len(updates)
+
+
+def delete_khata_transaction(record_id):
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        cursor = conn.execute("DELETE FROM customer_khata WHERE id = ?", (int(record_id),))
+        return cursor.rowcount > 0
+
+
+def build_khata_risk_report(khata_df):
+    customers = {}
+    today = date.today()
+    for record in khata_df.to_dict("records"):
+        name = _khata_text(record.get("customer_name")).strip()
+        phone = _khata_text(record.get("phone")).strip()
+        key = name.casefold()
+        customer = customers.setdefault(
+            key,
+            {
+                "customer_name": name,
+                "phone": phone,
+                "credit": 0.0,
+                "payments": 0.0,
+                "overdue_credit": 0.0,
+            },
+        )
+        if not customer["phone"] and phone:
+            customer["phone"] = phone
+        try:
+            amount = float(record.get("amount") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(amount):
+            continue
+        if record.get("transaction_type") == KHATA_CREDIT:
+            customer["credit"] += amount
+            try:
+                due_date = datetime.strptime(str(record.get("due_date")), "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                due_date = None
+            if due_date and due_date < today:
+                customer["overdue_credit"] += amount
+        elif record.get("transaction_type") == KHATA_PAYMENT:
+            customer["payments"] += amount
+
+    report = []
+    for customer in customers.values():
+        balance = customer["credit"] - customer["payments"]
+        overdue_balance = min(max(balance, 0.0), customer["overdue_credit"])
+        risk_score = 0
+        if balance > 0:
+            risk_score = min(
+                100,
+                20 + min(int(balance / 100), 40) + (40 if overdue_balance > 0 else 0),
+            )
+        if risk_score >= 70:
+            risk_level = "High Risk (बिकट उधारी)"
+        elif risk_score >= 40:
+            risk_level = "Moderate Risk"
+        else:
+            risk_level = "Safe Customer"
+        report.append(
+            {
+                **customer,
+                "balance": balance,
+                "overdue_balance": overdue_balance,
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+            }
+        )
+    return pd.DataFrame(report)
+
+
+def parse_voice_khata_details(transcript):
+    if not API_KEY:
+        raise ValueError("AI voice parsing साठी Gemini API key कॉन्फिगर केलेली नाही.")
+    genai.configure(api_key=API_KEY)
+    prompt = (
+        "Extract a customer khata transaction from this Marathi, Hindi, or English transcript. "
+        "Return only JSON with customer_name, phone (empty if absent), amount (number or null), "
+        f"transaction_type (exactly {json.dumps(KHATA_CREDIT)} or {json.dumps(KHATA_PAYMENT)}), "
+        f"and notes. Transcript: {json.dumps(transcript, ensure_ascii=False)}"
+    )
+    response = None
+    last_error = None
+    for model_name in get_active_gemini_models():
+        try:
+            model = genai.GenerativeModel(model_name)
+            candidate_response = model.generate_content(prompt)
+            if candidate_response and candidate_response.text:
+                response = candidate_response
+                break
+            last_error = ValueError(f"{model_name} कडून रिकामा प्रतिसाद मिळाला.")
+        except Exception as exc:
+            last_error = exc
+            ai_logger.warning(
+                "Voice khata parsing failed with Gemini model %s (%s).",
+                model_name,
+                type(exc).__name__,
+            )
+    if not response:
+        if last_error:
+            raise RuntimeError(
+                f"उपलब्ध Gemini मॉडेल्स वापरून व्हॉईस तपशील वाचता आले नाहीत: {last_error}"
+            ) from last_error
+        raise ValueError("Gemini API कडून कोणतेही उपलब्ध मॉडेल मिळाले नाही.")
+
+    clean_response = re.sub(
+        r"^```(?:json)?\s*|\s*```$", "", response.text.strip(), flags=re.IGNORECASE
+    )
+    parsed = json.loads(clean_response)
+    if not isinstance(parsed, dict):
+        raise ValueError("AI कडून मिळालेला व्यवहार तपशील योग्य स्वरूपात नाही.")
+    amount = parsed.get("amount")
+    try:
+        amount = float(amount) if amount is not None else 0.0
+    except (TypeError, ValueError):
+        amount = 0.0
+    if not math.isfinite(amount) or amount < 0:
+        amount = 0.0
+    transaction_type = parsed.get("transaction_type")
+    if transaction_type not in KHATA_TRANSACTION_TYPES:
+        transaction_type = KHATA_CREDIT
+    phone = parsed.get("phone")
+    return {
+        "customer_name": str(parsed.get("customer_name") or "").strip(),
+        "phone": str(phone or "").strip(),
+        "amount": amount,
+        "transaction_type": transaction_type,
+        "notes": str(parsed.get("notes") or transcript).strip(),
+    }
+
+
+def render_business_module_styles():
+    st.markdown("""
+    <style>
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+        position: relative;
+        overflow: hidden;
+        min-height: 164px;
+        align-items: center;
+        padding: 30px 34px;
+        margin-bottom: 22px;
+        border: 1px solid rgba(125, 211, 252, 0.24) !important;
+        border-radius: 26px !important;
+        background:
+            radial-gradient(circle at 88% 16%, rgba(34, 211, 238, 0.2), transparent 28%),
+            radial-gradient(circle at 73% 110%, rgba(99, 102, 241, 0.2), transparent 35%),
+            linear-gradient(120deg, rgba(8, 18, 37, 0.98), rgba(14, 31, 55, 0.94) 58%, rgba(12, 27, 49, 0.96)) !important;
+        box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        right: 5%;
+        top: -82px;
+        border: 1px solid rgba(125, 211, 252, 0.13);
+        border-radius: 50%;
+        box-shadow: 0 0 0 20px rgba(125, 211, 252, 0.025), 0 0 0 42px rgba(125, 211, 252, 0.02);
+        pointer-events: none;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.42) !important;
+        box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34), 0 0 34px rgba(34, 211, 238, 0.08) !important;
+    }
+    .business-hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+    }
+    .business-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding: 5px 10px;
+        color: #a5f3fc;
+        background: rgba(34, 211, 238, 0.09);
+        border: 1px solid rgba(103, 232, 249, 0.2);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.25px;
+        text-transform: uppercase;
+    }
+    .business-hero-title {
+        margin: 0 !important;
+        color: #f8fafc !important;
+        font-size: clamp(25px, 3.2vw, 36px) !important;
+        font-weight: 800 !important;
+        letter-spacing: -1.1px;
+        line-height: 1.16 !important;
+    }
+    .business-hero-title span {
+        color: #67e8f9;
+    }
+    .business-hero-subtitle {
+        margin: 9px 0 0 !important;
+        color: #a8b8ce !important;
+        font-size: 13px !important;
+        line-height: 1.65 !important;
+    }
+    .business-hero-mark {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        flex: 0 0 72px;
+        width: 72px;
+        height: 72px;
+        place-items: center;
+        margin-left: 20px;
+        color: #a5f3fc;
+        background: linear-gradient(145deg, rgba(34, 211, 238, 0.19), rgba(99, 102, 241, 0.14));
+        border: 1px solid rgba(103, 232, 249, 0.25);
+        border-radius: 23px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 14px 30px rgba(2, 6, 23, 0.28);
+        font-size: 32px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
+        margin-top: 4px;
+        gap: 8px;
+        padding: 7px;
+        background: rgba(7, 15, 30, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.13);
+        border-radius: 17px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"] {
+        min-height: 43px;
+        padding: 9px 15px;
+        color: #9aabc2;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"]:hover {
+        color: #e2faff;
+        background: rgba(34, 211, 238, 0.07);
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"][aria-selected="true"] {
+        color: #d9fbff;
+        background: linear-gradient(135deg, rgba(8, 145, 178, 0.22), rgba(59, 130, 246, 0.16));
+        border-color: rgba(103, 232, 249, 0.25);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .panel-card {
+        background: linear-gradient(145deg, rgba(11, 20, 37, 0.94), rgba(12, 23, 41, 0.88)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .panel-card:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.26) !important;
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24) !important;
+    }
+    .business-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 8px 0 16px;
+    }
+    .business-section-icon {
+        display: grid;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: #a5f3fc;
+        background: rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(103, 232, 249, 0.17);
+        border-radius: 12px;
+        font-size: 18px;
+    }
+    .business-section-title {
+        margin: 0;
+        color: #edf6ff;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+    }
+    .business-section-caption {
+        margin: 3px 0 0;
+        color: #8294ad;
+        font-size: 11px;
+    }
+    .business-metric-card {
+        min-height: 104px;
+        padding: 16px 17px;
+        background: linear-gradient(145deg, rgba(16, 30, 51, 0.92), rgba(10, 20, 37, 0.9));
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 17px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+    }
+    .business-metric-label {
+        color: #90a2ba;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.75px;
+        text-transform: uppercase;
+    }
+    .business-metric-value {
+        margin-top: 9px;
+        color: #f3f8ff;
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.6px;
+    }
+    .business-metric-note {
+        margin-top: 5px;
+        color: #73869f;
+        font-size: 10px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stForm"] {
+        padding: 18px;
+        background: rgba(5, 13, 27, 0.42);
+        border: 1px solid rgba(148, 163, 184, 0.11);
+        border-radius: 16px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stDataFrame"],
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stDataEditor"] {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stAlert"] {
+        border-radius: 14px;
+    }
+    @media (max-width: 720px) {
+        [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+            min-height: 0;
+            padding: 22px 20px;
+            border-radius: 21px !important;
+        }
+        .business-hero-mark {
+            flex-basis: 52px;
+            width: 52px;
+            height: 52px;
+            margin-left: 10px;
+            border-radius: 16px;
+            font-size: 24px;
+        }
+        .business-hero-subtitle {
+            max-width: 92%;
+            font-size: 12px !important;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
+            gap: 4px;
+            padding: 5px;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [role="tab"] {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [data-testid="stForm"] {
+            padding: 13px;
+        }
+    }
+    </style>
+    <div class="business-suite-page" aria-hidden="true"></div>
+    """, unsafe_allow_html=True)
+
+
+def render_application_design_styles():
+    st.markdown("""
+    <style>
+    body:has(.app-ui-polish-scope) .stApp {
+        background-color: #08111f !important;
+        background-image:
+            radial-gradient(ellipse at 8% 0%, rgba(14, 165, 233, 0.12), transparent 38%),
+            radial-gradient(ellipse at 100% 18%, rgba(99, 102, 241, 0.11), transparent 34%),
+            linear-gradient(145deg, #08111f 0%, #0b1424 54%, #0a1020 100%) !important;
+        color: #e7eef8 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stHeader"] {
+        background: rgba(8, 17, 31, 0.84) !important;
+        border-bottom-color: rgba(148, 163, 184, 0.12) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 1680px !important;
+        margin: 0 auto !important;
+        padding: clamp(1rem, 2.5vw, 2.2rem) clamp(0.8rem, 2.8vw, 2.8rem) 3rem !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
+        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
+        padding: 20px 16px !important;
+    }
+    body:has(.app-ui-polish-scope) .sidebar-title {
+        color: #91a9c7 !important;
+        font-size: 10px !important;
+        letter-spacing: 1.5px !important;
+        margin: 16px 0 10px 4px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 7px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        min-height: 42px !important;
+        padding: 9px 12px !important;
+        background: rgba(17, 31, 51, 0.54) !important;
+        border: 1px solid rgba(148, 163, 184, 0.11) !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: rgba(24, 45, 70, 0.78) !important;
+        border-color: rgba(56, 189, 248, 0.38) !important;
+        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.22) !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(110deg, rgba(14, 165, 233, 0.2), rgba(37, 99, 235, 0.13)) !important;
+        border-color: rgba(56, 189, 248, 0.5) !important;
+        box-shadow: inset 3px 0 #38bdf8 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #d8e4f2 !important;
+        font-size: 12px !important;
+        font-weight: 650 !important;
+    }
+    body:has(.app-ui-polish-scope) .dev-credit-box {
+        background: rgba(15, 29, 48, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.14) !important;
+        border-radius: 14px !important;
+        padding: 12px !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header {
+        position: relative;
+        overflow: hidden;
+        min-height: 132px;
+        padding: clamp(20px, 3vw, 34px) !important;
+        margin-bottom: 22px !important;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.15), transparent 32%),
+            linear-gradient(125deg, rgba(16, 31, 51, 0.96), rgba(12, 23, 40, 0.92)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.17) !important;
+        border-radius: 22px !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.045) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header:hover {
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header h2 {
+        color: #e9f4ff !important;
+        font-size: clamp(20px, 2.2vw, 28px) !important;
+        line-height: 1.25 !important;
+        letter-spacing: -0.035em !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header p {
+        color: #9bb0c9 !important;
+        font-size: clamp(12px, 1.15vw, 14px) !important;
+        line-height: 1.6 !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card {
+        box-sizing: border-box !important;
+        padding: clamp(16px, 2vw, 25px) !important;
+        margin-bottom: 18px !important;
+        background: linear-gradient(145deg, rgba(15, 28, 46, 0.94), rgba(12, 23, 39, 0.94)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.19), inset 0 1px rgba(255, 255, 255, 0.035) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card:hover {
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.23) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) h1,
+    body:has(.app-ui-polish-scope) h2,
+    body:has(.app-ui-polish-scope) h3,
+    body:has(.app-ui-polish-scope) h4 {
+        letter-spacing: -0.025em;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] h4 {
+        color: #dceaf9 !important;
+        font-size: 16px !important;
+        margin-bottom: 14px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+        gap: 6px !important;
+        padding: 6px !important;
+        background: rgba(10, 20, 35, 0.74) !important;
+        border: 1px solid rgba(148, 163, 184, 0.14) !important;
+        border-radius: 15px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+        min-height: 42px !important;
+        padding: 9px 14px !important;
+        color: #9fb2c9 !important;
+        border: 1px solid transparent !important;
+        border-radius: 10px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: #e5f6ff !important;
+        background: linear-gradient(120deg, rgba(14, 165, 233, 0.2), rgba(59, 130, 246, 0.13)) !important;
+        border-color: rgba(56, 189, 248, 0.25) !important;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.06) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea,
+    body:has(.app-ui-polish-scope) [data-baseweb="select"] > div {
+        min-height: 42px;
+        color: #e7eef8 !important;
+        background: rgba(7, 16, 29, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.2) !important;
+        border-radius: 11px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea:focus {
+        border-color: rgba(56, 189, 248, 0.72) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.13) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stWidgetLabel"] p,
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] p {
+        line-height: 1.55;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        min-height: 43px !important;
+        padding: 10px 16px !important;
+        border-radius: 11px !important;
+        box-shadow: 0 6px 16px rgba(2, 8, 23, 0.23) !important;
+        transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button[kind="primary"],
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
+        border: 1px solid rgba(125, 211, 252, 0.28) !important;
+        color: #f8fbff !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button:hover,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button:hover,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button:hover {
+        border-color: rgba(125, 211, 252, 0.58) !important;
+        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.29) !important;
+        transform: translateY(-1px) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMetric"] {
+        padding: 15px 16px;
+        background: rgba(10, 21, 37, 0.74);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
+    body:has(.app-ui-polish-scope) [data-testid="stDataEditor"] {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        background: rgba(10, 19, 33, 0.65);
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stFileUploader"],
+    body:has(.app-ui-polish-scope) [data-testid="stCameraInput"] {
+        background: rgba(9, 19, 33, 0.65) !important;
+        border: 1px dashed rgba(56, 189, 248, 0.42) !important;
+        border-radius: 15px !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stAlert"] {
+        border-radius: 13px !important;
+    }
+    @media (max-width: 900px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            padding: 1.1rem 1rem 2rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: calc(50% - 0.4rem) !important;
+            flex: 1 1 calc(50% - 0.4rem) !important;
+        }
+    }
+    @media (max-width: 640px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.8rem 0.7rem 1.5rem !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header {
+            min-height: 0;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 20px 18px !important;
+            margin-bottom: 16px !important;
+            border-radius: 18px !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header h2 {
+            font-size: 20px !important;
+        }
+        body:has(.app-ui-polish-scope) .panel-card {
+            padding: 16px !important;
+            margin-bottom: 14px !important;
+            border-radius: 16px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+            gap: 4px !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            scrollbar-width: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
+            display: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+            flex: 0 0 auto !important;
+            min-height: 40px !important;
+            padding: 8px 11px !important;
+            font-size: 11px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stFileUploader"] {
+            padding: 12px !important;
+        }
+    }
+    </style>
+    <div class="app-ui-polish-scope" aria-hidden="true"></div>
+    """, unsafe_allow_html=True)
+
+
+def render_customer_khata():
+    if st.session_state.get("user_role") == "Staff":
+        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
+        st.stop()
+
+    render_business_module_styles()
+    st.markdown("""
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · CUSTOMER KHATA</div>
+            <h2 class="business-hero-title">ग्राहक खाते <span>· उधारी वही</span></h2>
+            <p class="business-hero-subtitle">उधारी, हप्ते आणि ग्राहक जोखीम — एकाच स्वच्छ, सोप्या डॅशबोर्डमध्ये.</p>
+        </div>
+        <div class="business-hero-mark" aria-hidden="true">◈</div>
+    </div>
+    """, unsafe_allow_html=True)
+    tab1, tab2, tab3 = st.tabs([
+        "नवीन उधारी / हप्ता नोंद",
+        "उधारी लेजर & AI रिस्क रिपोर्ट",
+        "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)",
+    ])
+
+    with tab1:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन व्यवहार नोंदवा</h3>
+            <p class="business-section-caption">ग्राहकाची उधारी किंवा जमा झालेला हप्ता सुरक्षितपणे नोंदवा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
+        with st.form("khata_form"):
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                customer_name = st.text_input("ग्राहक नाव (Customer Name)", max_chars=100)
+                phone = st.text_input("मोबाईल नंबर (Phone Number - 10 digits)", max_chars=16)
+                amount = st.number_input("रक्कम (Amount)", min_value=0.0, step=10.0)
+            with fc2:
+                transaction_type = st.selectbox("व्यवहार प्रकार (Transaction Type)", KHATA_TRANSACTION_TYPES)
+                entry_date = st.date_input("व्यवहार तारीख (Date)", value=date.today())
+                due_date = st.date_input("परतफेची मुदत तारीख (Due Date)", value=date.today())
+            notes = st.text_area("टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)", max_chars=1000)
+            submitted = st.form_submit_button("खात्यात नोंद सेव्ह करा")
+        if submitted:
+            try:
+                record_id = save_khata_transaction(
+                    customer_name, phone, amount, transaction_type, entry_date, due_date, notes
+                )
+                log_activity(
+                    st.session_state.get("current_username", "admin"),
+                    f"Added Khata ID {record_id}",
+                )
+                st.toast("खाते नोंद अपडेट झाली!", icon="📝")
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+            except sqlite3.Error as exc:
+                logging.exception("Could not save customer khata transaction")
+                st.error(f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab2:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        header_col, refresh_col = st.columns([3, 1])
+        with header_col:
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">◉</div>
+                <div><h3 class="business-section-title">उधारी लेजर आणि जोखीम</h3>
+                <p class="business-section-caption">बाकी रक्कम, मुदत आणि ग्राहक व्यवहारांचा आढावा.</p></div>
+            </div>
+            """, unsafe_allow_html=True)
+        with refresh_col:
+            if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
+                st.rerun()
+        try:
+            khata_df = load_khata_transactions()
+        except sqlite3.Error as exc:
+            logging.exception("Could not load customer khata transactions")
+            st.error(f"लेजर डेटा वाचता आला नाही: {exc}")
+            khata_df = pd.DataFrame(columns=KHATA_COLUMNS)
+
+        risk_report = build_khata_risk_report(khata_df)
+        amounts = pd.to_numeric(khata_df["amount"], errors="coerce").fillna(0)
+        total_balance = float(
+            amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum()
+            - amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum()
+        )
+        st.markdown(
+            f"""
+            <div class="business-metric-card" style="margin-bottom: 16px;">
+                <div class="business-metric-label">एकूण येणे बाकी · Net Udhari</div>
+                <div class="business-metric-value" style="color:#67e8f9;">₹ {total_balance:,.2f}</div>
+                <div class="business-metric-note">जमा हप्ते वजा करून मोजलेली एकूण बाकी</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("हिशोब ऑडिओत ऐका", key="khata_audio_summary") and not khata_df.empty:
+            audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
+            try:
+                audio_file = generate_marathi_tts(audio_summary_text)
+                if audio_file and os.path.exists(audio_file):
+                    st.audio(audio_file, autoplay=True)
+                else:
+                    st.error("ऑडिओ तयार करता आला नाही.")
+            except Exception as exc:
+                logging.exception("Could not generate khata audio summary")
+                st.error(f"ऑडिओ तयार करताना त्रुटी: {exc}")
+
+        search = st.text_input(
+            "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):",
+            placeholder="नाव टाईप करा...",
+            key="khata_search",
+        ).strip()
+        visible_df = khata_df.copy()
+        if search:
+            matches = (
+                visible_df["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | visible_df["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+            )
+            visible_df = visible_df[matches]
+        visible_risk = risk_report
+        if search and not risk_report.empty:
+            visible_risk = risk_report[
+                risk_report["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | risk_report["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+            ]
+
+        st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
+        st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
+        business_upi_id = load_business_upi_id()
+        upi_configured = bool(
+            re.fullmatch(
+                r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
+                business_upi_id,
+            )
+        )
+        if not upi_configured and not visible_risk.empty:
+            st.info(
+                "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये "
+                "BUSINESS_UPI_ID कॉन्फिगर करा."
+            )
+        for _, customer in visible_risk.iterrows():
+            name = _khata_text(customer["customer_name"])
+            customer_phone = _khata_text(customer["phone"])
+            risk_level = customer["risk_level"]
+            risk_color = "#f87171" if risk_level.startswith("High") else (
+                "#f59e0b" if risk_level.startswith("Moderate") else "#00ff87"
+            )
+            st.markdown(
+                f"""
+                <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
+                        <span>{escape(name)} ({escape(customer_phone or "फोन उपलब्ध नाही")})</span>
+                        <span style="color:{risk_color};">{escape(risk_level)} · {int(customer["risk_score"])}/100</span>
+                    </div>
+                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
+                        बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{customer["balance"]:,.2f}</b>
+                        &nbsp; मुदतबाह्य: <b>{customer["overdue_balance"]:,.2f}</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if re.fullmatch(r"[6-9]\d{9}", customer_phone):
+                action_col1, action_col2 = st.columns(2)
+                if customer["balance"] > 0:
+                    message = (
+                        f"नमस्कार {name} जी, तुमच्याकडे VernaLedger दुकान उधारीचे "
+                        f"₹{customer['balance']:,.2f} रुपये बाकी आहेत. धन्यवाद!"
+                    )
+                else:
+                    message = (
+                        f"नमस्कार {name} जी, तुमच्या VernaLedger खात्यात सध्या "
+                        "काही बाकी रक्कम नाही. धन्यवाद!"
+                    )
+                if upi_configured and customer["balance"] > 0:
+                    payment_link = build_upi_payment_link(
+                        business_upi_id,
+                        "VernaLedger",
+                        name,
+                        customer["balance"],
+                    )
+                    message += (
+                        f"\n\nGoogle Pay किंवा इतर UPI अॅपमधून पेमेंट करण्यासाठी लिंक:\n"
+                        f"{payment_link}"
+                    )
+                    whatsapp_label = "WhatsApp पेमेंट लिंक"
+                else:
+                    whatsapp_label = "WhatsApp संदेश"
+                with action_col1:
+                    st.markdown(
+                        f'<a href="https://wa.me/91{customer_phone}?text={urllib.parse.quote(message)}" target="_blank">'
+                        f'<button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">{escape(whatsapp_label)}</button></a>',
+                        unsafe_allow_html=True,
+                    )
+                with action_col2:
+                    st.markdown(
+                        f'<a href="tel:{customer_phone}"><button style="background:linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">थेट कॉल करा</button></a>',
+                        unsafe_allow_html=True,
+                    )
+
+        st.markdown("---")
+        st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
+        if visible_df.empty:
+            st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
+        else:
+            visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
+            record_signature = hashlib.sha256(
+                visible_df[KHATA_COLUMNS].to_json(
+                    orient="split", force_ascii=False
+                ).encode("utf-8")
+            ).hexdigest()
+            edited_df = st.data_editor(
+                visible_df[KHATA_COLUMNS],
+                use_container_width=True,
+                key=f"khata_editable_table_{record_signature}",
+                disabled=["id"],
+                num_rows="fixed",
+            )
+            edit_col, delete_col = st.columns(2)
+            with edit_col:
+                if st.button("उधारी रेकॉर्ड्स अपडेट (Save Edit)", key="save_khata_edits"):
+                    try:
+                        updated_count = update_khata_transactions(visible_df, edited_df)
+                        log_activity(
+                            st.session_state.get("current_username", "admin"),
+                            f"Updated {updated_count} Khata Records",
+                        )
+                        st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
+                        st.rerun()
+                    except ValueError as exc:
+                        st.error(str(exc))
+                    except sqlite3.Error as exc:
+                        logging.exception("Could not update customer khata transactions")
+                        st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
+            with delete_col:
+                delete_id = st.selectbox(
+                    "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
+                    visible_record_ids,
+                    key=f"delete_khata_id_{record_signature}",
+                )
+                if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
+                    try:
+                        if delete_khata_transaction(delete_id):
+                            log_activity(
+                                st.session_state.get("current_username", "admin"),
+                                f"Deleted Khata ID {delete_id}",
+                            )
+                            st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
+                            st.rerun()
+                        else:
+                            st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
+                    except sqlite3.Error as exc:
+                        logging.exception("Could not delete customer khata transaction")
+                        st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab3:
+        if st.session_state.pop("voice_khata_reset", False):
+            for field in (
+                "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
+                "voice_khata_type", "voice_khata_date", "voice_khata_due",
+                "voice_khata_notes",
+            ):
+                st.session_state.pop(field, None)
+        st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">⌁</div>
+            <div><h3 class="business-section-title">बोलून व्यवहार नोंदवा</h3>
+            <p class="business-section-caption">मराठी, हिंदी किंवा इंग्रजीत बोला; सेव्ह करण्यापूर्वी तपशील तपासा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
+            <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
+            <div style="font-size: 12.5px; color: #f8fafc; margin-top: 4px;">Speak or dictate in Marathi, Hindi, or English (उदा: सौरभ कडे २०० रुपये उधारी)</div>
+        </div>
+        """, unsafe_allow_html=True)
+        try:
+            transcript = speech_to_text(
+                start_prompt="बोलून उधारी नोंद करा (माइक दाबा)",
+                stop_prompt="थांबवा आणि फाईल सेव्ह करा",
+                just_once=True,
+                language="mr-IN",
+                key="voice_khata_mic_auto",
+            )
+        except Exception as exc:
+            logging.exception("Voice transcription failed")
+            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+            transcript = None
+
+        if isinstance(transcript, str) and transcript.strip():
+            transcript = transcript.strip()
+            if transcript != st.session_state.get("khata_voice_transcript"):
+                st.session_state["khata_voice_transcript"] = transcript
+                st.session_state.pop("khata_voice_draft", None)
+                for field in (
+                    "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
+                    "voice_khata_type", "voice_khata_date", "voice_khata_due",
+                    "voice_khata_notes",
+                ):
+                    st.session_state.pop(field, None)
+        transcript = st.session_state.get("khata_voice_transcript", "")
+        if transcript:
+            st.markdown("**RAW VOICE TRANSCRIPT:**")
+            st.info(transcript)
+            if st.button("AI द्वारे व्यवहार तपशील ओळखा", key="parse_voice_khata"):
+                try:
+                    draft = parse_voice_khata_details(transcript)
+                    st.session_state["khata_voice_draft"] = draft
+                    st.session_state["voice_khata_name"] = draft["customer_name"]
+                    st.session_state["voice_khata_phone"] = draft["phone"]
+                    st.session_state["voice_khata_amount"] = draft["amount"]
+                    st.session_state["voice_khata_type"] = draft["transaction_type"]
+                    st.session_state["voice_khata_notes"] = draft["notes"]
+                    st.rerun()
+                except (ValueError, json.JSONDecodeError) as exc:
+                    st.error(f"व्हॉईस तपशील ओळखता आले नाहीत: {exc}")
+                except Exception as exc:
+                    logging.exception("AI voice khata parsing failed")
+                    st.error(f"AI व्हॉईस तपशील वाचताना त्रुटी: {exc}")
+
+        with st.form("voice_khata_form"):
+            draft = st.session_state.get("khata_voice_draft", {})
+            voice_type = draft.get("transaction_type", KHATA_CREDIT)
+            voice_type_index = (
+                KHATA_TRANSACTION_TYPES.index(voice_type)
+                if voice_type in KHATA_TRANSACTION_TYPES else 0
+            )
+            voice_defaults = {
+                "voice_khata_name": draft.get("customer_name", ""),
+                "voice_khata_phone": draft.get("phone", ""),
+                "voice_khata_amount": float(draft.get("amount", 0.0)),
+                "voice_khata_type": voice_type,
+                "voice_khata_date": date.today(),
+                "voice_khata_due": date.today(),
+                "voice_khata_notes": draft.get(
+                    "notes", st.session_state.get("khata_voice_transcript", "")
+                ),
+            }
+            for field, default in voice_defaults.items():
+                if field not in st.session_state:
+                    st.session_state[field] = default
+            voice_col1, voice_col2 = st.columns(2)
+            with voice_col1:
+                voice_name = st.text_input(
+                    "ग्राहक नाव (Customer Name)",
+                    max_chars=100,
+                    key="voice_khata_name",
+                )
+                voice_phone = st.text_input(
+                    "मोबाईल नंबर (Phone Number)",
+                    max_chars=16,
+                    key="voice_khata_phone",
+                )
+                voice_amount = st.number_input(
+                    "रक्कम (Amount)",
+                    min_value=0.0,
+                    step=10.0,
+                    key="voice_khata_amount",
+                )
+            with voice_col2:
+                voice_type = st.selectbox(
+                    "व्यवहार प्रकार (Transaction Type)",
+                    KHATA_TRANSACTION_TYPES,
+                    index=voice_type_index,
+                    key="voice_khata_type",
+                )
+                voice_date = st.date_input(
+                    "व्यवहार तारीख (Date)",
+                    key="voice_khata_date",
+                )
+                voice_due = st.date_input(
+                    "परतफेची मुदत तारीख (Due Date)",
+                    key="voice_khata_due",
+                )
+            voice_notes = st.text_area(
+                "टीप / Voice Transcript",
+                max_chars=1000,
+                key="voice_khata_notes",
+            )
+            voice_submitted = st.form_submit_button("Confirm & Save to Database")
+        if voice_submitted:
+            try:
+                record_id = save_khata_transaction(
+                    voice_name, voice_phone, voice_amount, voice_type,
+                    voice_date, voice_due, voice_notes,
+                )
+                log_activity(
+                    st.session_state.get("current_username", "admin"),
+                    f"Voice Khata Added ID {record_id}",
+                )
+                st.session_state.pop("khata_voice_draft", None)
+                st.session_state.pop("khata_voice_transcript", None)
+                st.session_state["voice_khata_reset"] = True
+                st.toast("व्हॉईस खात्यातील नोंद सेव्ह झाली!", icon="📁")
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+            except sqlite3.Error as exc:
+                logging.exception("Could not save voice khata transaction")
+                st.error(f"डेटाबेसमध्ये व्हॉईस नोंद सेव्ह करता आली नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 @st.cache_data(ttl=10)
 def load_receipts_data():
     try:
@@ -201,8 +1515,6 @@ if "logged_in" in st.query_params and st.query_params["logged_in"] == "true":
     st.session_state['logged_in'] = True
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
-if 'offline_queue' not in st.session_state:
-    st.session_state['offline_queue'] = []
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = 'Admin'
 if 'current_username' not in st.session_state:
@@ -525,11 +1837,10 @@ def render_login_portal():
     }}
     [data-testid="stAppViewContainer"], .stApp, section.main, [data-testid="stMain"] {{
         overflow: {overflow_css} !important;
-        background: linear-gradient(rgba(2, 6, 23, 0.85), rgba(3, 7, 18, 0.90)),
-        url('https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=1920&auto=format&fit=crop') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
+        background:
+            radial-gradient(ellipse at 18% 18%, rgba(14, 165, 233, 0.20), transparent 36%),
+            radial-gradient(ellipse at 82% 82%, rgba(99, 102, 241, 0.17), transparent 34%),
+            linear-gradient(145deg, #07111f 0%, #0a1628 52%, #080e1c 100%) !important;
     }}
     section.main {{
         display: flex !important;
@@ -538,16 +1849,41 @@ def render_login_portal():
         min-height: 100vh !important;
         padding: 10px 0 !important;
     }}
-    main.block-container {{
+    [data-testid="stMainBlockContainer"] {{
+        box-sizing: border-box !important;
         width: 90% !important;
-        max-width: 340px !important;
-        padding: 0.8rem 1.2rem !important;
+        max-width: 460px !important;
+        padding: 1.35rem clamp(1.1rem, 5vw, 2rem) !important;
         margin: auto !important;
-        background: linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
-        backdrop-filter: blur(25px) !important;
-        border: 1.5px solid rgba(0, 242, 254, 0.4) !important;
-        border-radius: 18px !important;
-        box-shadow: 0 0 25px rgba(0, 242, 254, 0.2) !important;
+        background: linear-gradient(145deg, rgba(16, 31, 51, 0.96), rgba(10, 21, 37, 0.95)) !important;
+        backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-radius: 24px !important;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255,255,255,0.06) !important;
+    }}
+    [data-testid="stTextInput"] input {{
+        min-height: 44px !important;
+        background: rgba(5, 13, 25, 0.72) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-radius: 11px !important;
+    }}
+    [data-testid="stTextInput"] input:focus {{
+        border-color: rgba(56, 189, 248, 0.75) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14) !important;
+    }}
+    .stButton > button, [data-testid="stFormSubmitButton"] > button {{
+        min-height: 44px !important;
+        border-radius: 11px !important;
+        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
+        box-shadow: 0 8px 22px rgba(2, 8, 23, 0.3) !important;
+    }}
+    @media (max-width: 520px) {{
+        section.main {{ padding: 12px 0 !important; }}
+        [data-testid="stMainBlockContainer"] {{
+            width: calc(100% - 24px) !important;
+            padding: 1.1rem 1rem !important;
+            border-radius: 19px !important;
+        }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -767,14 +2103,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    queue_len = len(st.session_state['offline_queue'])
-    if queue_len > 0:
-        st.markdown(f"""
-        <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; padding: 6px; border-radius: 10px; margin-bottom: 8px; text-align: center;">
-            <span style="font-size: 9.5px; font-weight: 800; color: #f59e0b;">OFFLINE QUEUE: {queue_len} pending</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
     st.markdown("<div class='sidebar-title'>NAVIGATION SUITE</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
@@ -805,6 +2133,9 @@ with st.sidebar:
         st.toast("लॉगआऊट यशस्वी!", icon="🔒")
         time.sleep(0.4)
         st.rerun()
+
+if selected_page != "RAG AI Chat":
+    render_application_design_styles()
 
 # FEATURE 1: OCR SCANNER + MULTI-LANGUAGE VOICE BILLING ---
 if selected_page == "OCR Scanner":
@@ -1029,275 +2360,34 @@ elif selected_page == "Sales & Analytics":
 
 # FEATURE 3: ADVANCED CUSTOMER KHATA ---
 elif selected_page == "Customer Khata (उधारी)":
-    if st.session_state.get('user_role') == 'Staff':
-        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
-        st.stop()
-    st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Customer Khata (उधारी वही)</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Advanced AI Offline Support, AI Risk Scoring, Multi-Language Voice Parsing & Direct Settle</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    tab1, tab2, tab3 = st.tabs(["नवीन उधारी / हप्ता नोंद", "उधारी लेजर & AI रिस्क रिपोर्ट", "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)"])
-    with tab1:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>+ नवीन उधारी किंवा हप्ता नोंद करा</h4>", unsafe_allow_html=True)
-        with st.form("khata_form"):
-            fc1, fc2 = st.columns(2)
-            with fc1:
-                c_name = st.text_input("ग्राहक नाव (Customer Name)")
-                c_phone = st.text_input("मोबाईल नंबर (Phone Number - 10 digits)")
-                c_amount = st.number_input("रक्कम (Amount)", min_value=0.0, step=10.0)
-            with fc2:
-                c_type = st.selectbox("व्यवहार प्रकार (Transaction Type)", ["उधारी बाकी (Given Credit)", "पैसे जमा / हप्ता (Received Payment / Partial)"])
-                c_date = st.text_input("व्यवहार तारीख (Date)", value=time.strftime("%Y-%m-%d"))
-                c_due = st.text_input("परतफेची मुदत तारीख (Due Date)", value=time.strftime("%Y-%m-%d"))
-            c_notes = st.text_area("टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)")
-            submit_khata = st.form_submit_button("खात्यात नोंद सेव्ह करा")
-            if submit_khata:
-                if not c_name.strip() or c_amount <= 0:
-                    st.error("कृपया ग्राहकाचे नाव आणि योग्य रक्कम भरा!")
-                else:
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                            INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """, (c_name.strip(), c_phone.strip(), c_amount, c_type, c_date, c_due, c_notes))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Added Khata for {c_name.strip()} - {c_amount}")
-                        st.success(f"'{c_name}' ची उधारी नोंद यशस्वीरीत्या सेव्ह झाली!")
-                        st.toast("खाते नोंद अपडेट झाली!", icon="📝")
-                        time.sleep(0.4)
-                        st.rerun()
-                    except Exception as ex:
-                        st.session_state['offline_queue'].append({
-                            "name": c_name.strip(), "phone": c_phone.strip(), "amount": c_amount, "type": c_type, "date": c_date, "due": c_due, "notes": c_notes
-                        })
-                        st.warning("डेटाबेस त्रुटीमुळे डेटा ऑफलाइन क्यु (Offline Queue) मध्ये साठवला आहे!")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with tab2:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        rh_col1, rh_col2 = st.columns([3, 1])
-        with rh_col1:
-            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>उधारी लेजर, AI रिस्क, Edit & Quick Settle</h4>", unsafe_allow_html=True)
-        with rh_col2:
-            if st.button("डेटा रिफ्रेश करा", type="primary"):
-                st.toast("लेजर डेटा अपडेट झाला!", icon="🔄")
-                st.rerun()
-        try:
-            with sqlite3.connect("ledger.db") as conn:
-                khata_df = pd.read_sql_query("SELECT * FROM customer_khata ORDER BY id DESC", conn)
-        except Exception:
-            khata_df = pd.DataFrame()
-            
-        if not khata_df.empty:
-            total_udhari = khata_df[khata_df['transaction_type'] == "उधारी बाकी (Given Credit)"]['amount'].sum()
-            total_jama = khata_df[khata_df['transaction_type'].str.contains("पैसे जमा | Received")]['amount'].sum() if 'transaction_type' in khata_df.columns else 0
-            net_balance = total_udhari - total_jama
-            sc1, sc2 = st.columns([1.5, 1])
-            with sc1:
-                st.markdown(f"""
-                <div style="background: rgba(0,242,254,0.1); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 14px;">
-                    <b>एकूण येणे बाकी (Net Udhari):</b> <span style="color:#00ff87; font-size:20px; font-weight:800;">{net_balance:,.2f}</span>
-                </div>
-                """, unsafe_allow_html=True)
-            with sc2:
-                if st.button("हिशोब ऑडिओत ऐका"):
-                    audio_summary_text = f"सध्या एकूण रक्कम रुपये {net_balance:.0f} उधारी येणे बाकी आहे."
-                    aud_file = generate_marathi_tts(audio_summary_text)
-                    if aud_file and os.path.exists(aud_file):
-                        st.audio(aud_file, autoplay=True)
-                        
-            search_cust = st.text_input("ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):", placeholder="नाव टाईप करा...")
-            if search_cust.strip():
-                khata_df = khata_df[khata_df['customer_name'].str.contains(search_cust, case=False, na=False) | khata_df['phone'].str.contains(search_cust, na=False)]
-            st.write("")
-            st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
-            grouped_cust = khata_df.groupby('customer_name').agg({'amount': 'sum', 'phone': 'first'}).reset_index()
-            for idx, row in grouped_cust.iterrows():
-                c_n = row['customer_name']
-                c_amt = row['amount']
-                c_ph = row['phone'] if row['phone'] else "9999999999"
-                risk_badge = "Safe Customer"
-                risk_color = "#00ff87"
-                if c_amt > 2000:
-                    risk_badge = "High Risk (बिकट उधारी)"
-                    risk_color = "#f87171"
-                elif c_amt > 1000:
-                    risk_badge = "Moderate Risk"
-                    risk_color = "#f59e0b"
-                st.markdown(f"""
-                <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
-                        <span>{c_n} ({c_ph})</span>
-                        <span style="color:{risk_color};">{risk_badge}</span>
-                    </div>
-                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
-                        बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{c_amt:,.2f}</b>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                act_col1, act_col2 = st.columns(2)
-                with act_col1:
-                    wa_msg = f"नमस्कार {c_n} जी, तुमच्याकडे VernaLedger दुकान उधारीचे ₹{c_amt:,.2f} रुपये बाकी आहेत. कृपया खालील UPI लिंकवरून त्वरित भरावे. धन्यवाद!"
-                    encoded_msg = urllib.parse.quote(wa_msg)
-                    wa_link = f"https://wa.me/91{c_ph}?text={encoded_msg}"
-                    st.markdown(f'<a href="{wa_link}" target="_blank"><button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width: 100%;">WhatsApp Pay Link</button></a>', unsafe_allow_html=True)
-                with act_col2:
-                    call_link = f"tel:{c_ph}"
-                    st.markdown(f'<a href="{call_link}"><button style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width: 100%;">थेट कॉल करा</button></a>', unsafe_allow_html=True)
-            st.markdown("---")
-            st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
-            edited_khata_df = st.data_editor(
-                khata_df[['id', 'customer_name', 'phone', 'amount', 'transaction_type', 'date', 'due_date', 'notes']],
-                use_container_width=True,
-                key="khata_editable_table"
-            )
-            ec1, ec2 = st.columns(2)
-            with ec1:
-                if st.button("उधारी रेकॉर्ड्स अपडेट (Save Edit)"):
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            for idx, row in edited_khata_df.iterrows():
-                                cursor.execute("""
-                                UPDATE customer_khata
-                                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?, due_date = ?, notes = ?
-                                WHERE id = ?
-                                """, (row['customer_name'], row['phone'], row['amount'], row['transaction_type'], row['due_date'], row['notes'], row['id']))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), "Updated Khata Records")
-                        st.success("उधारी डेटा यशस्वीरीत्या अपडेट झाला!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Update failed: {e}")
-            with ec2:
-                del_k_id = st.number_input("डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)", min_value=1, step=1, key="del_khata_id")
-                if st.button("उधारी नोंद डिलीट करा"):
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM customer_khata WHERE id = ?", (del_k_id,))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Khata ID {del_k_id}")
-                        st.success(f"रेकॉर्ड ID {del_k_id} डिलीट केला!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Deletion failed: {e}")
-        else:
-            st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with tab3:
-        st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>Multi-Language Voice-to-Khata Assistant</h4>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
-            <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
-            <div style="font-size: 12.5px; color: #f8fafc; margin-top: 4px;">Speak or dictate in Marathi, Hindi, or English (उदा: सौरभ कडे २०० रुपये उधारी)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        voice_khata_speech = speech_to_text(start_prompt="बोलून उधारी नोंद करा (माइक दाबा)", stop_prompt="थांबवा आणि फाईल सेव्ह करा", just_once=True, language='mr-IN', key='voice_khata_mic_auto')
-        if voice_khata_speech:
-            st.markdown(f"""
-            <div style="background: rgba(0,242,254,0.1); border: 1px solid #00f2fe; padding: 16px; border-radius: 14px; margin: 15px 0;">
-                <div style="font-size: 11px; font-weight: 800; color: #00f2fe; margin-bottom: 4px;">RAW VOICE TRANSCRIPT:</div>
-                <div style="font-size: 15px; font-weight: 700; color: #ffffff;">"{voice_khata_speech}"</div>
-            </div>
-            """, unsafe_allow_html=True)
-            parsed_name = "Customer"
-            parsed_phone = "9999999999"
-            parsed_amount = 100.0
-            try:
-                genai.configure(api_key=API_KEY)
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                prompt = f"""
-                Extract transaction details from the following sentence (automatically detect if it is Marathi, Hindi, or English) and return ONLY JSON format:
-                Sentence: "{voice_khata_speech}"
-                JSON Format:
-                {{
-                    "customer_name": "Customer name",
-                    "phone": "10-digit mobile number if present, else 9999999999",
-                    "amount": numeric amount as float
-                }}
-                Return ONLY JSON.
-                """
-                resp = generate_ai_content_with_retry(model, prompt)
-                clean_res = resp.text.strip().replace("```json", "").replace("```", "").strip()
-                parsed_data = json.loads(clean_res)
-                parsed_name = parsed_data.get("customer_name", "Customer")
-                digits_only = "".join(re.findall(r'\d', voice_khata_speech))
-                phone_match = re.search(r'[6-9]\d{9}', digits_only)
-                if phone_match:
-                    parsed_phone = phone_match.group(0)
-                elif len(digits_only) >= 10:
-                    parsed_phone = digits_only[-10:]
-                else:
-                    parsed_phone = "9999999999"
-                parsed_amount = float(parsed_data.get("amount", 100.0))
-            except Exception:
-                words = voice_khata_speech.split()
-                parsed_name = words[0] if words else "Customer"
-                digits_only = "".join(re.findall(r'\d', voice_khata_speech))
-                phone_match = re.search(r'[6-9]\d{9}', digits_only)
-                if phone_match:
-                    parsed_phone = phone_match.group(0)
-                elif len(digits_only) >= 10:
-                    parsed_phone = digits_only[-10:]
-                else:
-                    parsed_phone = "9999999999"
-                all_nums = re.findall(r'\d+', voice_khata_speech.replace(parsed_phone, ""))
-                if all_nums:
-                    parsed_amount = float(all_nums[0])
-            st.success(f"AI Parsed -> Name: **{parsed_name}** | Phone: **{parsed_phone}** | Amount: **{parsed_amount}**")
-            if st.button("Confirm & Save to Database", type="primary"):
-                try:
-                    with sqlite3.connect("ledger.db") as conn:
-                        conn.execute("BEGIN TRANSACTION;")
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                        INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (parsed_name, parsed_phone, parsed_amount, "उधारी बाकी (Given Credit)", time.strftime("%Y-%m-%d"), time.strftime("%Y-%m-%d"), voice_khata_speech))
-                        conn.commit()
-                    log_activity(st.session_state.get('current_username', 'admin'), f"Voice Khata Added for {parsed_name}")
-                    st.success("फाईल यशस्वीरीत्या सेव्ह झाली! उधारी लेजर मध्ये डेटा जोडला गेला आहे.")
-                    st.toast("फाईल सेव्ह झाली!", icon="📁")
-                    time.sleep(0.8)
-                    st.rerun()
-                except Exception as ex:
-                    st.session_state['offline_queue'].append({
-                        "name": parsed_name, "phone": parsed_phone, "amount": parsed_amount, "type": "उधारी बाकी (Given Credit)", "date": time.strftime("%Y-%m-%d"), "due": time.strftime("%Y-%m-%d"), "notes": voice_khata_speech
-                    })
-                    st.warning("डेटाबेस त्रुटीमुळे व्हॉईस नोंद ऑफलाइन क्यु (Offline Queue) मध्ये सेव्ह केली आहे!")
-        st.markdown("</div>", unsafe_allow_html=True)
+    render_customer_khata()
 
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Stock & Inventory":
     if st.session_state.get('user_role') == 'Staff':
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला इन्व्हेंटरी पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
+    render_business_module_styles()
     st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Shop Inventory & Stock Tracker</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Monitor Stock Levels & Low Inventory Warnings</p>
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · INVENTORY</div>
+            <h2 class="business-hero-title">स्टॉक आणि <span>इन्व्हेंटरी</span></h2>
+            <p class="business-hero-subtitle">उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.</p>
         </div>
+        <div class="business-hero-mark" aria-hidden="true">▦</div>
     </div>
     """, unsafe_allow_html=True)
     ic1, ic2 = st.columns([1, 1])
     with ic1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन माल/स्टॉक जोडा</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन माल जोडा</h3>
+            <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         with st.form("stock_form"):
             s_name = st.text_input("वस्तूचे नाव (Item Name)")
             s_qty = st.number_input("उपलब्ध नग/साठा (Stock Quantity)", min_value=0.0, step=1.0)
@@ -1325,7 +2415,13 @@ elif selected_page == "Stock & Inventory":
         st.markdown("</div>", unsafe_allow_html=True)
     with ic2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>इन्व्हेंटरी आणि स्टॉक स्टेटस</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">▤</div>
+            <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
+            <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         try:
             with sqlite3.connect("ledger.db") as conn:
                 stock_df = pd.read_sql_query("SELECT * FROM shop_inventory", conn)
@@ -1333,8 +2429,32 @@ elif selected_page == "Stock & Inventory":
             stock_df = pd.DataFrame()
             
         if not stock_df.empty:
-            st.dataframe(stock_df, use_container_width=True)
             low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
+            stock_metric1, stock_metric2 = st.columns(2)
+            with stock_metric1:
+                st.markdown(
+                    f"""
+                    <div class="business-metric-card" style="margin-bottom:14px;">
+                        <div class="business-metric-label">एकूण वस्तू</div>
+                        <div class="business-metric-value">{len(stock_df)}</div>
+                        <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with stock_metric2:
+                low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
+                st.markdown(
+                    f"""
+                    <div class="business-metric-card" style="margin-bottom:14px;">
+                        <div class="business-metric-label">कमी साठा</div>
+                        <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
+                        <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            st.dataframe(stock_df, use_container_width=True)
             if not low_stock_items.empty:
                 low_names = ", ".join(low_stock_items['item_name'].tolist())
                 st.markdown(f"""
@@ -1364,18 +2484,27 @@ elif selected_page == "Business Expenses":
     if st.session_state.get('user_role') == 'Staff':
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला व्यवसाय खर्च पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
+    render_business_module_styles()
     st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Business Expense Management (दुकान खर्च ट्रॅकर)</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Track Shop Rent, Electricity Bill, Salaries & Daily Operational Costs</p>
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · EXPENSES</div>
+            <h2 class="business-hero-title">व्यवसाय खर्च <span>· नोंदवही</span></h2>
+            <p class="business-hero-subtitle">भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.</p>
         </div>
+        <div class="business-hero-mark" aria-hidden="true">₹</div>
     </div>
     """, unsafe_allow_html=True)
     ec1, ec2 = st.columns([1, 1])
     with ec1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन खर्च नोंदवा (Add Expense)</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन खर्च नोंदवा</h3>
+            <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         with st.form("expense_form"):
             e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
             e_amount = st.number_input("खर्च रक्कम (Amount)", min_value=0.0, step=50.0)
@@ -1404,7 +2533,13 @@ elif selected_page == "Business Expenses":
         st.markdown("</div>", unsafe_allow_html=True)
     with ec2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>संपूर्ण खर्च यादी व समरी</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">▤</div>
+            <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
+            <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         try:
             with sqlite3.connect("ledger.db") as conn:
                 exp_df = pd.read_sql_query("SELECT * FROM business_expenses ORDER BY id DESC", conn)
@@ -1413,8 +2548,10 @@ elif selected_page == "Business Expenses":
         if not exp_df.empty:
             total_expenses = exp_df['amount'].sum()
             st.markdown(f"""
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
-                <b>एकूण व्यवसाय खर्च (Total Expenses):</b> <span style="color:#f87171; font-size:18px; font-weight:800;">{total_expenses:,.2f}</span>
+            <div class="business-metric-card" style="margin-bottom:14px;">
+                <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
+                <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
+                <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
             </div>
             """, unsafe_allow_html=True)
             st.dataframe(exp_df, use_container_width=True)
@@ -1669,30 +2806,119 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
-/* 1. Advanced Glassmorphism Header */
+.stApp,
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse at 14% 4%, rgba(14, 165, 233, 0.075), transparent 43%),
+        radial-gradient(ellipse at 88% 32%, rgba(124, 58, 237, 0.065), transparent 46%),
+        linear-gradient(145deg, #0e1117 0%, #101725 52%, #0b1020 100%) !important;
+    color: #f4f7ff !important;
+}
 [data-testid="stHeader"] {
-    background: rgba(14, 17, 23, 0.6) !important;
-    backdrop-filter: blur(15px) !important;
-    -webkit-backdrop-filter: blur(15px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background: rgba(14, 17, 23, 0.72) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+section.main > div.block-container {
+    max-width: 960px;
+    padding: 2.25rem 1.5rem 9rem;
+}
+.verna-ai-title {
+    margin: 0;
+    color: #d9fbff;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.12;
+    text-shadow:
+        0 0 10px rgba(34, 211, 238, 0.82),
+        0 0 26px rgba(34, 211, 238, 0.5),
+        0 0 48px rgba(139, 92, 246, 0.42);
+}
+.verna-ai-heading {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.2rem 0 1.25rem;
+}
+.verna-ai-subtitle {
+    margin: 0;
+    color: #aab8ca;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.015em;
+}
+.verna-ai-greeting {
+    width: min(680px, 100%);
+    margin: 1.25rem auto 1.75rem;
+    padding: 1px;
+    border-radius: 18px;
+    background: linear-gradient(125deg, rgba(103, 170, 190, 0.34), rgba(148, 130, 190, 0.28));
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+}
+.verna-ai-greeting-inner {
+    padding: 1.15rem 1.35rem;
+    border-radius: 17px;
+    background: linear-gradient(135deg, rgba(20, 27, 40, 0.97), rgba(17, 23, 36, 0.97));
+    text-align: center;
+}
+.verna-ai-greeting p {
+    margin: 0;
+    color: #d5deeb;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.st-key-rag_chat_history [data-testid="stChatMessage"] {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.62);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+.st-key-rag_chat_history [data-testid="stMarkdownContainer"] {
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 [data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
-    bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
     transform: translateX(-50%) !important;
-    width: min(760px, calc(100vw - 2rem)) !important;
+    width: min(820px, calc(100vw - 2rem)) !important;
     margin: 0 !important;
     padding: 0 !important;
-    z-index: 1000 !important;
+    z-index: 20 !important;
 }
 main.block-container {
-    padding-bottom: 100px !important;
+    padding-bottom: 9rem !important;
 }
-@media (max-width: 600px) {
+@media (max-width: 640px) {
+    section.main > div.block-container {
+        padding: 1.35rem 0.8rem 8rem;
+    }
+    .verna-ai-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.1rem;
+    }
+    .verna-ai-title {
+        font-size: clamp(1.9rem, 9vw, 2.6rem);
+    }
+    .verna-ai-subtitle {
+        font-size: 0.84rem;
+    }
+    .verna-ai-greeting-inner {
+        padding: 1rem 0.85rem;
+    }
     [data-testid="stCustomComponentV1"] {
-        bottom: max(0.5rem, env(safe-area-inset-bottom)) !important;
-        width: calc(100vw - 1rem) !important;
+        bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
+        width: calc(100vw - 1.25rem) !important;
+    }
+    main.block-container {
+        padding-bottom: 8rem !important;
     }
 }
 </style>
@@ -1700,16 +2926,33 @@ main.block-container {
 
     header_col, toggle_col = st.columns([4, 1])
     with header_col:
-        st.title("Verna AI Studio")
+        st.markdown("""
+<div class="verna-ai-heading">
+  <h1 class="verna-ai-title">Verna AI Studio</h1>
+  <p class="verna-ai-subtitle">Your Smart Ledger &amp; Business Assistant</p>
+</div>
+""", unsafe_allow_html=True)
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+
+    if not API_KEY:
+        st.warning(
+            "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
+            "or the environment to enable AI chat. Never share the key publicly."
+        )
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
     with st.container(key="rag_chat_history"):
         if not st.session_state["chat_history"]:
-            st.info("नमस्कार! मी Verna AI आहे. तुमच्या दुकानाची उधारी, स्टॉक, खर्च किंवा विक्रीबद्दल विचारा.")
+            st.markdown("""
+<section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
+  <div class="verna-ai-greeting-inner">
+    <p>Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+  </div>
+</section>
+""", unsafe_allow_html=True)
 
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
@@ -1736,10 +2979,7 @@ main.block-container {
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
-        corrected_voice = voice_captured
-        corrected_voice = re.sub(r'संकेत\s*(फिरत|किंमत|किरकोळ|किर्रत|किड\s*दत्त)', 'संकेत किर्दत', corrected_voice, flags=re.IGNORECASE)
-        corrected_voice = re.sub(r'कैसर\s*(अतार|अट्टर|अत्तर)', 'कैसर अतार', corrected_voice, flags=re.IGNORECASE)
-        target_prompt = corrected_voice
+        target_prompt = voice_captured
         st.session_state["last_captured_voice"] = voice_captured
     elif prompt and prompt.strip():
         target_prompt = prompt.strip()
@@ -1751,25 +2991,50 @@ main.block-container {
     if st.session_state["chat_history"] and st.session_state["chat_history"][-1]["role"] == "user":
         last_user_msg = st.session_state["chat_history"][-1]["text"]
         
-        is_db_action = False
         action_status_msg = ""
         if any(kw in last_user_msg for kw in ["उधारी जोड", "उधारी लिही", "खात्यात जोड", "उधारी नोंदव"]):
-            words = last_user_msg.split()
-            digits = re.findall(r'\d+', last_user_msg)
-            amt = float(digits[0]) if digits else 100.0
-            cust_name = words[0] if words else "Customer"
             try:
-                with sqlite3.connect("ledger.db") as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                    INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (cust_name, "9999999999", amt, "उधारी बाकी (Given Credit)", time.strftime("%Y-%m-%d"), time.strftime("%Y-%m-%d"), last_user_msg))
-                    conn.commit()
-                    is_db_action = True
-                    action_status_msg = f"customer_khata मध्ये {cust_name} साठी रुपये {amt} ची नवीन उधारी नोंद सेव्ह करण्यात आली आहे!"
-            except Exception as ex:
-                action_status_msg = f"डेटाबेस सेव्ह त्रुटी: {ex}"
+                phone_match = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", last_user_msg)
+                phone = phone_match.group(0) if phone_match else ""
+                amount_text = last_user_msg.replace(phone, "") if phone else last_user_msg
+                amount_matches = re.findall(r"\d+(?:[.,]\d+)?", amount_text)
+                amount = float(amount_matches[0].replace(",", "")) if amount_matches else 0
+                ignored_terms = {
+                    "उधारी", "जोड", "जोडा", "लिही", "लिहा", "खात्यात", "नोंदव",
+                    "नोंदवा", "नोंद", "सेव्ह", "करा", "कडे", "साठी", "रुपये", "रुपया",
+                    "रु", "₹", "credit", "add", "record", "please", "payment", "जमा",
+                    "हप्ता", "पैसे",
+                }
+                customer_parts = [
+                    re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", word)
+                    for word in amount_text.split()
+                    if not re.search(r"\d", word) and word.casefold() not in ignored_terms
+                ]
+                customer_name = " ".join(part for part in customer_parts if part)
+                transaction_type = (
+                    KHATA_PAYMENT
+                    if any(term in last_user_msg.casefold() for term in ("हप्ता", "जमा", "payment"))
+                    else KHATA_CREDIT
+                )
+                if not customer_name or not amount_matches:
+                    action_status_msg = (
+                        "उधारी नोंद सेव्ह झाली नाही. कृपया ग्राहकाचे नाव आणि वैध रक्कम "
+                        "स्पष्टपणे द्या; किंवा Customer Khata फॉर्म वापरा."
+                    )
+                else:
+                    record_id = save_khata_transaction(
+                        customer_name, phone, amount, transaction_type,
+                        date.today(), date.today(), last_user_msg,
+                    )
+                    action_status_msg = (
+                        f"Customer Khata मध्ये {customer_name} साठी रुपये {amount:,.2f} "
+                        f"ची नोंद सेव्ह झाली (रेकॉर्ड {record_id})."
+                    )
+            except ValueError as exc:
+                action_status_msg = f"उधारी नोंद सेव्ह झाली नाही: {exc}"
+            except sqlite3.Error as exc:
+                logging.exception("Could not save khata transaction from AI chat")
+                action_status_msg = f"डेटाबेसमध्ये उधारी नोंद सेव्ह करता आली नाही: {exc}"
 
         db_context = ""
         try:
@@ -1790,96 +3055,154 @@ main.block-container {
 
         past_turns = "\n".join([f"{h['role'].upper()}: {h['text']}" for h in st.session_state["chat_history"][-7:-1]])
         
-        system_prompt = f"""
-        You are 'VernaLedger AI' Assistant.
-        [Context]:
+        language_instruction = (
+            "You are an intelligent AI assistant for VernaLedger AI. Detect the language of "
+            "the latest user query automatically and respond strictly in that same language: "
+            "English queries, including Romanized English, require professional, clear English; "
+            "Marathi queries require natural, grammatically correct Marathi; Hindi queries "
+            "require fluent Hindi. Do not translate the query or answer into another language "
+            "and do not use a default language."
+        )
+        assistant_instruction = (
+            "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
+            "project details, people and ownership, or ledger records such as receipts, credit, "
+            "expenses, and stock, use the supplied reference context as the source of truth. "
+            "Do not invent internal project facts or database values. If a requested internal "
+            "fact is absent from the supplied context, say that it is not present in the "
+            "available context instead of guessing. The database context contains at most the "
+            "five most recent rows for each listed ledger table, so do not imply it is a complete "
+            "database search. For unrelated general-knowledge questions (including science, "
+            "history, coding, and general facts), answer helpfully using your general knowledge; "
+            "do not require the answer to appear in the project database. If a question combines "
+            "both, use the supplied context for project-specific facts and general knowledge "
+            "for the rest. Always follow the response-language instruction."
+        )
+        generation_config = {
+            "temperature": 0.3,
+            "max_output_tokens": 1024,
+        }
+        rag_context = f"""
+        The following are reference facts only. They do not set the response language.
+
+        [Reference context]:
         - Lead Developer: संकेत किर्दत
         - Project Guide: कैसर अतार सर
         - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
         - College: Arvind Gavali College of Engineering, Satara.
         - Database Context:
         {db_context}
+        - Database Action Result:
+        {action_status_msg or "No database action was performed."}
         
-        [CONVERSATION HISTORY]:
+        [Recent conversation context]:
         {past_turns}
-        
-        [STRICT RULES]:
-        1. Detect the language of the user prompt/question below.
-        2. Reply strictly in the SAME LANGUAGE as the user's prompt.
-        3. Answer PRECISELY, CONCISELY, and DIRECTLY. Give ONLY the exact information requested. Do NOT add extra explanations or unasked details.
-        4. When stating mobile numbers or digits, format them with clear spacing or hyphens (e.g., 9999-999-999) so that text-to-speech reads and pronounces every single digit clearly.
-        5. Ensure perfect formatting, clear line breaks, and bullet points to prevent text overlapping and ensure 100% legibility.
-        6. CRITICAL: If the user asks in Marathi, ONLY write names in Devanagari script (संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक). DO NOT add English translations or brackets. NEVER write "संकेत किर्दत (Sanket Kirdat)" - write ONLY "संकेत किर्दत".
-        7. Do NOT use symbols like 'Rs', 'RS' or '₹'. Always write the word 'रुपये' (or 'Rupees' if replying in English).
-        8. CRITICAL: Never include citation tags or source indexes in your response text under any circumstances. Keep the text clean and natural.
+
         """
 
-        if is_db_action:
-            clean_ans = action_status_msg
-            st.session_state["chat_history"].append({"role": "ai", "text": clean_ans, "audio_file": None})
-            st.rerun()
+        clean_ans = ""
+        last_error = None
+        success_stream = False
+        if not API_KEY:
+            ai_logger.error("Gemini response generation skipped because GEMINI_API_KEY is not configured.")
+            clean_ans = (
+                "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
+                "or the environment, then restart the app."
+            )
         else:
-            if not API_KEY.strip():
-                ai_logger.error("Gemini response generation skipped because GEMINI_API_KEY is not configured.")
-                clean_ans = "Verna AI Error: GEMINI_API_KEY is not configured. Add it to Streamlit secrets or the environment, then restart the app."
-            else:
-                genai.configure(api_key=API_KEY.strip())
+            try:
+                genai.configure(api_key=API_KEY)
                 fast_models = get_active_gemini_models()
+            except Exception as exc:
+                fast_models = []
+                last_error = exc
+                ai_logger.error(
+                    "Gemini initialization failed (%s).",
+                    type(exc).__name__,
+                )
 
-                ai_placeholder = st.empty()
-                success_stream = False
-                last_error = None
+            ai_placeholder = st.empty()
+            for m_name in fast_models:
+                model_response = ""
+                try:
+                    model = genai.GenerativeModel(
+                        model_name=m_name,
+                        system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
+                        generation_config=generation_config,
+                    )
+                    response_stream = model.generate_content(
+                        [rag_context, f"[Latest user query — answer this query]\n{last_user_msg}"],
+                        stream=True,
+                    )
 
-                for m_name in fast_models:
-                    model_response = ""
-                    try:
-                        model = genai.GenerativeModel(m_name)
-                        response_stream = model.generate_content([system_prompt, last_user_msg], stream=True)
+                    for chunk in response_stream:
+                        chunk_text = chunk.text
+                        if chunk_text:
+                            model_response += chunk_text
+                            ai_placeholder.markdown(model_response)
 
-                        for chunk in response_stream:
-                            chunk_text = chunk.text
-                            if chunk_text:
-                                model_response += chunk_text
-                                raw_streaming_ans = re.sub(r'रू\.?|ru\.?|₹', 'रुपये', model_response)
-                                raw_streaming_ans = re.sub(r'रुपये\s*रुपये', 'रुपये', raw_streaming_ans)
+                    if not model_response.strip():
+                        raise ValueError("Gemini returned no text for this response.")
 
-                                ai_placeholder.markdown(raw_streaming_ans)
-
-                        if not model_response.strip():
-                            raise ValueError("Gemini returned no text for this response.")
-
-                        clean_ans = re.sub(r'रू\.?|ru\.?|₹', 'रुपये', model_response)
-                        clean_ans = re.sub(r'रुपये\s*रुपये', 'रुपये', clean_ans)
-                        success_stream = True
+                    clean_ans = model_response
+                    success_stream = True
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    ai_logger.error(
+                        "Gemini response generation failed for model %s (%s).",
+                        m_name,
+                        type(exc).__name__,
+                    )
+                    if is_gemini_auth_error(exc):
                         break
-                    except Exception as exc:
-                        last_error = exc
-                        ai_logger.error(
-                            "Gemini response generation failed for model %s (%s).",
-                            m_name,
-                            type(exc).__name__,
-                        )
 
-                if not success_stream:
-                    if last_error:
-                        error_type = type(last_error).__name__
-                        clean_ans = (
-                            f"Verna AI Error: Gemini requests failed ({error_type}). "
-                            "Check GEMINI_API_KEY, model access, network connectivity, and app.log."
-                        )
-                    else:
-                        clean_ans = "Verna AI Error: No Gemini models are available. Check app.log and model access."
+            if not success_stream and not clean_ans:
+                if last_error and is_gemini_auth_error(last_error):
+                    clean_ans = (
+                        "Gemini could not authenticate the configured API key. Verify that GEMINI_API_KEY "
+                        "is a valid, active Google AI Studio key with Gemini API access, then update "
+                        "Streamlit secrets or the environment. Never share the key publicly."
+                    )
+                elif last_error:
+                    clean_ans = (
+                        f"Gemini could not complete the request ({type(last_error).__name__}). "
+                        "Check API access, network connectivity, and app.log."
+                    )
+                else:
+                    clean_ans = "No Gemini models are available. Check API access and app.log."
 
-            audio_file_path = None
-            if enable_voice_output:
-                audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
-                audio_text = re.sub(r'\bAI\b', 'ए आय', audio_text, flags=re.IGNORECASE)
-                audio_text = audio_text.replace("साक्षी भगत", "साक्षी Bhagat")
-                audio_file_path = generate_marathi_tts(audio_text)
+        audio_file_path = None
+        if enable_voice_output and success_stream:
+            audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
+            devanagari_count = len(re.findall(r"[\u0900-\u097f]", audio_text))
+            if devanagari_count:
+                audio_text = re.sub(r"\s*[\(\[][A-Za-z][^\)\]]*[\)\]]", "", audio_text)
 
-            st.session_state["chat_history"].append({
-                "role": "ai",
-                "text": clean_ans,
-                "audio_file": audio_file_path
-            })
-            st.rerun()
+            tts_voice = get_tts_voice(audio_text)
+            if tts_voice.startswith("mr-"):
+                audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+                pronunciation_hints = {
+                    "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
+                    "ढवाळे": "ढव्-ळे",
+                    "ढवळे": "ढव्-ळे",
+                    "गवाली": "गव्-ळी",
+                    "गवळी": "गव्-ळी",
+                    "कैसर": "कै-सर",
+                    "कौसर": "कै-सर",
+                }
+                for name, pronunciation in pronunciation_hints.items():
+                    audio_text = audio_text.replace(name, pronunciation)
+                audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
+
+            audio_text = re.sub(r"[ \t]+", " ", audio_text)
+            audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
+            audio_text = re.sub(r" *([.!?।]) *", r"\1 ", audio_text)
+            audio_text = re.sub(r"\s*\n\s*", ". ", audio_text).strip()
+            audio_file_path = generate_marathi_tts(audio_text, voice=tts_voice)
+
+        st.session_state["chat_history"].append({
+            "role": "ai",
+            "text": clean_ans,
+            "audio_file": audio_file_path
+        })
+        st.rerun()
