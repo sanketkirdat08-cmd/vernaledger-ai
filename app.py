@@ -809,9 +809,16 @@ def render_rag_sidebar_design_styles():
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        max-width: min(19rem, 88vw) !important;
-        min-width: min(14rem, 88vw) !important;
+        box-sizing: border-box !important;
+        width: 18.75rem !important;
+        min-width: 18.75rem !important;
+        max-width: 18.75rem !important;
+        flex: 0 0 18.75rem !important;
         resize: none !important;
+    }
+    [data-testid="stSidebarResizer"] {
+        display: none !important;
+        pointer-events: none !important;
     }
     [data-testid="stSidebar"] > div:first-child {
         height: 100dvh !important;
@@ -837,7 +844,8 @@ def render_rag_sidebar_design_styles():
     [data-testid="stSidebarUserContent"] {
         box-sizing: border-box !important;
         min-height: 0 !important;
-        max-height: calc(100dvh - 60px) !important;
+        max-height: calc(100dvh - 5.25rem) !important;
+        padding: 0.3rem 0.15rem 0.5rem !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
@@ -845,13 +853,24 @@ def render_rag_sidebar_design_styles():
         scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
     }
     [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
-        gap: 0.35rem !important;
+        gap: 0.45rem !important;
+    }
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
+        margin-bottom: 0 !important;
     }
     section[data-testid="stSidebar"] .sidebar-role-badge {
-        margin: 0 0 3px !important;
-        padding: 3px 7px !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 25px !important;
+        width: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 15px 0 0 !important;
+        padding: 4px 8px !important;
         border-radius: 8px !important;
-        line-height: 1.15 !important;
+        line-height: 1.25 !important;
     }
     section[data-testid="stSidebar"] .sidebar-role-badge span {
         font-size: 9px !important;
@@ -862,40 +881,89 @@ def render_rag_sidebar_design_styles():
         gap: 8px !important;
     }
     section[data-testid="stSidebar"] .sidebar-title {
-        margin: 6px 0 5px 3px !important;
+        box-sizing: border-box !important;
+        margin: 4px 0 7px 3px !important;
         font-size: 9px !important;
         letter-spacing: 1px !important;
+        line-height: 1.4 !important;
+        overflow-wrap: anywhere;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] {
-        gap: 4px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 7px !important;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        min-height: 34px !important;
-        padding: 5px 9px !important;
-        background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
-        border: 1px solid rgba(56, 189, 248, 0.22) !important;
-        border-radius: 10px !important;
-        box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 40px !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 8px 11px !important;
+        margin: 0 !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
         transform: none !important;
     }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label p {
-        font-size: 11px !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        border-color: rgba(56, 189, 248, 0.62) !important;
-        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.16), 0 0 20px rgba(34, 211, 238, 0.18) !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(110deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.2)) !important;
-        border-color: rgba(56, 189, 248, 0.75) !important;
-        box-shadow: inset 3px 0 #38bdf8, 0 0 22px rgba(34, 211, 238, 0.2) !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stToggle"] {
+    section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
+        accent-color: #22d3ee !important;
+        flex: 0 0 auto !important;
+        width: 15px !important;
+        height: 15px !important;
         margin: 0 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stToggle"] label p {
+    section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #dceafa !important;
+        font-size: 11.5px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.35 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
+        border-color: rgba(103, 232, 249, 0.75) !important;
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
+        color: #f0fdff !important;
+        transform: translateY(-1px) !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+        border-color: rgba(103, 232, 249, 0.82) !important;
+        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
+        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
+        outline-offset: 2px !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"],
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label,
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        width: 100% !important;
+        min-height: 30px !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 2px 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
         font-size: 11px !important;
         font-weight: 700 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
     }
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
         min-height: 34px !important;
@@ -903,9 +971,12 @@ def render_rag_sidebar_design_styles():
         border-radius: 10px !important;
     }
     section[data-testid="stSidebar"] .dev-credit-box {
+        box-sizing: border-box !important;
+        width: 100% !important;
         padding: 7px 9px !important;
-        margin-top: 3px !important;
+        margin: 4px 0 2px !important;
         border-radius: 10px !important;
+        line-height: 1.35 !important;
     }
     section[data-testid="stSidebar"] .stButton > button {
         min-height: 34px !important;
@@ -913,8 +984,10 @@ def render_rag_sidebar_design_styles():
     }
     @media (max-width: 900px) {
         section[data-testid="stSidebar"][aria-expanded="true"] {
+            width: min(18rem, 82vw) !important;
             max-width: min(18rem, 82vw) !important;
             min-width: min(18rem, 82vw) !important;
+            flex-basis: min(18rem, 82vw) !important;
         }
     }
     </style>
@@ -941,7 +1014,7 @@ def render_application_design_styles():
         width: 100% !important;
         max-width: 1680px !important;
         margin: 0 auto !important;
-        padding: clamp(0.65rem, 1.3vw, 1.1rem) clamp(0.75rem, 2vw, 1.75rem) 1.5rem !important;
+        padding: clamp(0.45rem, 0.9vw, 0.8rem) clamp(0.75rem, 2vw, 1.75rem) 1.1rem !important;
     }
     body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {
         max-width: none !important;
@@ -951,9 +1024,16 @@ def render_application_design_styles():
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        max-width: min(19rem, 88vw) !important;
-        min-width: min(14rem, 88vw) !important;
+        box-sizing: border-box !important;
+        width: 18.75rem !important;
+        min-width: 18.75rem !important;
+        max-width: 18.75rem !important;
+        flex: 0 0 18.75rem !important;
         resize: none !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarResizer"] {
+        display: none !important;
+        pointer-events: none !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
         padding: 6px 10px !important;
@@ -979,7 +1059,8 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] {
         box-sizing: border-box !important;
         min-height: 0 !important;
-        max-height: calc(100dvh - 60px) !important;
+        max-height: calc(100dvh - 5.25rem) !important;
+        padding: 0.3rem 0.15rem 0.5rem !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
@@ -987,13 +1068,24 @@ def render_application_design_styles():
         scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
-        gap: 0.35rem !important;
+        gap: 0.45rem !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
+        margin-bottom: 0 !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge {
-        margin: 0 0 3px !important;
-        padding: 3px 7px !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 25px !important;
+        width: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 15px 0 0 !important;
+        padding: 4px 8px !important;
         border-radius: 8px !important;
-        line-height: 1.15 !important;
+        line-height: 1.25 !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge span {
         font-size: 9px !important;
@@ -1005,43 +1097,89 @@ def render_application_design_styles():
     }
     body:has(.app-ui-polish-scope) .sidebar-title {
         color: #91a9c7 !important;
-        margin: 6px 0 5px 3px !important;
+        box-sizing: border-box !important;
+        margin: 4px 0 7px 3px !important;
         font-size: 9px !important;
         letter-spacing: 1px !important;
+        line-height: 1.4 !important;
+        overflow-wrap: anywhere;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
-        gap: 4px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 7px !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        min-height: 34px !important;
-        padding: 5px 9px !important;
-        background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
-        border: 1px solid rgba(56, 189, 248, 0.22) !important;
-        border-radius: 10px !important;
-        box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 40px !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 8px 11px !important;
+        margin: 0 !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
         transform: none !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        background: rgba(24, 45, 70, 0.78) !important;
-        border-color: rgba(56, 189, 248, 0.62) !important;
-        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.16), 0 0 20px rgba(34, 211, 238, 0.18) !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
+        border-color: rgba(103, 232, 249, 0.75) !important;
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
+        color: #f0fdff !important;
+        transform: translateY(-1px) !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(110deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.2)) !important;
-        border-color: rgba(56, 189, 248, 0.75) !important;
-        box-shadow: inset 3px 0 #38bdf8, 0 0 22px rgba(34, 211, 238, 0.2) !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+        border-color: rgba(103, 232, 249, 0.82) !important;
+        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
     }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
-        color: #d8e4f2 !important;
-        font-size: 11px !important;
-        font-weight: 650 !important;
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
+        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
+        outline-offset: 2px !important;
     }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] {
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
+        accent-color: #22d3ee !important;
+        flex: 0 0 auto !important;
+        width: 15px !important;
+        height: 15px !important;
         margin: 0 !important;
     }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label p {
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #dceafa !important;
+        font-size: 11.5px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.35 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"],
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label,
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        width: 100% !important;
+        min-height: 30px !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 2px 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
         font-size: 11px !important;
         font-weight: 700 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
         min-height: 34px !important;
@@ -1052,8 +1190,11 @@ def render_application_design_styles():
         background: rgba(15, 29, 48, 0.78) !important;
         border-color: rgba(148, 163, 184, 0.14) !important;
         border-radius: 10px !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
         padding: 7px 9px !important;
-        margin-top: 3px !important;
+        margin: 4px 0 2px !important;
+        line-height: 1.35 !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .stButton > button {
         min-height: 34px !important;
@@ -1243,7 +1384,7 @@ def render_application_design_styles():
     }
     @media (max-width: 900px) {
         body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-            padding: 0.7rem 0.8rem 1.3rem !important;
+            padding: 0.55rem 0.7rem 1rem !important;
         }
         body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
             flex-wrap: wrap !important;
@@ -1254,15 +1395,17 @@ def render_application_design_styles():
             flex: 1 1 calc(50% - 0.4rem) !important;
         }
         body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
+            width: min(18rem, 82vw) !important;
             max-width: min(18rem, 82vw) !important;
             min-width: min(18rem, 82vw) !important;
+            flex-basis: min(18rem, 82vw) !important;
         }
     }
     @media (max-width: 640px) {
         body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 0.55rem 0.55rem 1rem !important;
+            padding: 0.45rem 0.55rem 0.85rem !important;
         }
         body:has(.app-ui-polish-scope) .studio-header {
             min-height: 0;
@@ -2179,42 +2322,55 @@ div[data-testid="stDataFrame"] table {
 section[data-testid="stSidebar"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
+    gap: 7px !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(37, 99, 235, 0.14) 48%, rgba(124, 58, 237, 0.16) 100%) !important;
-    border: 1px solid rgba(0, 242, 254, 0.55) !important;
-    padding: 7px 12px !important;
-    border-radius: 12px !important;
-    margin-bottom: 0 !important;
-    min-height: 36px !important;
+    box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 5px 14px rgba(14, 165, 233, 0.16), 0 0 14px rgba(0, 242, 254, 0.18) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+    gap: 10px !important;
+    min-height: 40px !important;
+    padding: 8px 11px !important;
+    margin: 0 !important;
+    background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
+    border: 1px solid rgba(56, 189, 248, 0.2) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
     cursor: pointer !important;
     width: 100% !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-    border-color: #00f2fe !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 18px rgba(14, 165, 233, 0.25), 0 0 22px rgba(0, 242, 254, 0.42) !important;
+    background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
+    border-color: rgba(103, 232, 249, 0.75) !important;
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
+    color: #f0fdff !important;
     transform: translateY(-1px) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.28) 0%, rgba(37, 99, 235, 0.3) 48%, rgba(124, 58, 237, 0.32) 100%) !important;
-    border: 1px solid #00f2fe !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 18px rgba(14, 165, 233, 0.24), 0 0 20px rgba(0, 242, 254, 0.38) !important;
+    background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+    border-color: rgba(103, 232, 249, 0.82) !important;
+    box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
-    outline: none !important;
-    border-color: #00f2fe !important;
-    box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.35), 0 0 18px rgba(0, 242, 254, 0.35) !important;
+    outline: 2px solid rgba(103, 232, 249, 0.72) !important;
+    outline-offset: 2px !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
+    accent-color: #22d3ee !important;
+    flex: 0 0 auto !important;
+    width: 15px !important;
+    height: 15px !important;
+    margin: 0 !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] label p {
-    color: #f1f5f9 !important;
+    color: #dceafa !important;
     font-size: 11.5px !important;
-    font-weight: 700 !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1.35 !important;
     margin: 0 !important;
+    overflow-wrap: anywhere;
 }
 div[data-testid="stFileUploader"] {
     background: linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
@@ -2280,24 +2436,25 @@ div[data-testid="stFileUploader"] section {
         color: #f1f5f9 !important;
         background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(37, 99, 235, 0.18) 48%, rgba(124, 58, 237, 0.2) 100%) !important;
         border: 1px solid rgba(0, 242, 254, 0.7) !important;
-        border-radius: 10px !important;
-        min-height: 42px !important;
-        padding: 9px 12px !important;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 6px 14px rgba(14, 165, 233, 0.2), 0 0 16px rgba(0, 242, 254, 0.28) !important;
+        border-radius: 12px !important;
+        min-height: 40px !important;
+        padding: 8px 11px !important;
+        gap: 10px !important;
+        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label:has(input[type="radio"]:checked),
     section[data-testid="stSidebar"] div.row-widget.stRadio div[role="radiogroup"] label:has(input[type="radio"]:checked),
     section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input[type="radio"]:checked) {
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.34) 0%, rgba(37, 99, 235, 0.36) 48%, rgba(124, 58, 237, 0.38) 100%) !important;
-        border: 1px solid #00f2fe !important;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 7px 16px rgba(14, 165, 233, 0.28), 0 0 20px rgba(0, 242, 254, 0.44) !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+        border-color: rgba(103, 232, 249, 0.82) !important;
+        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label input[type="radio"],
     section[data-testid="stSidebar"] div.row-widget.stRadio div[role="radiogroup"] label input[type="radio"] {
-        accent-color: #00f2fe !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        transform: none !important;
+        accent-color: #22d3ee !important;
+        width: 15px !important;
+        height: 15px !important;
+        margin: 0 !important;
     }
     .stButton>button, .stDownloadButton>button, div[data-testid="stFormSubmitButton"]>button {
         font-size: 12px !important;
@@ -3336,17 +3493,41 @@ elif selected_page == "RAG AI Chat":
     -webkit-backdrop-filter: blur(16px) !important;
     border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
 }
-section.main > div.block-container {
-    max-width: 960px;
-    padding: 2.25rem 1.5rem 9rem;
+[data-testid="stMainBlockContainer"] {
+    box-sizing: border-box !important;
+    width: min(100%, 960px) !important;
+    max-width: 960px !important;
+    min-width: 0 !important;
+    margin-inline: auto !important;
+    padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.5rem) 9rem !important;
+    overflow-x: clip !important;
+}
+[data-testid="stHorizontalBlock"],
+[data-testid="stColumn"] {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+}
+body:has(.verna-ai-heading) [data-testid="stAppViewContainer"] {
+    max-width: 100vw !important;
+    overflow-x: clip !important;
+}
+body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stCheckbox"] {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: center !important;
+}
+body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stElementContainer"]:has([data-testid="stCheckbox"]) {
+    width: 100% !important;
 }
 .verna-ai-title {
     margin: 0;
+    padding: 0 !important;
     color: #d9fbff;
     font-size: clamp(2rem, 5vw, 3.25rem);
     font-weight: 800;
     letter-spacing: -0.045em;
     line-height: 1.12;
+    text-align: center;
     text-shadow:
         0 0 10px rgba(34, 211, 238, 0.82),
         0 0 26px rgba(34, 211, 238, 0.5),
@@ -3354,10 +3535,13 @@ section.main > div.block-container {
 }
 .verna-ai-heading {
     display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
     margin: 0.2rem 0 1.25rem;
+    text-align: center;
 }
 .verna-ai-subtitle {
     margin: 0;
@@ -3365,8 +3549,10 @@ section.main > div.block-container {
     font-size: 0.9rem;
     font-weight: 500;
     letter-spacing: 0.015em;
+    text-align: center;
 }
 .verna-ai-greeting {
+    box-sizing: border-box;
     width: min(680px, 100%);
     margin: 1.25rem auto 1.75rem;
     padding: 1px;
@@ -3387,6 +3573,20 @@ section.main > div.block-container {
     line-height: 1.7;
     overflow-wrap: anywhere;
 }
+.st-key-rag_chat_history {
+    box-sizing: border-box;
+    display: flex;
+    width: min(100%, 760px) !important;
+    max-width: 100% !important;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 auto !important;
+}
+.st-key-rag_chat_history [data-testid="stChatMessage"] {
+    box-sizing: border-box;
+    width: 100%;
+    align-self: center;
+}
 .st-key-rag_chat_history [data-testid="stChatMessage"] {
     border: 1px solid rgba(148, 163, 184, 0.14);
     border-radius: 18px;
@@ -3402,23 +3602,30 @@ section.main > div.block-container {
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
     transform: translateX(-50%) !important;
-    width: min(820px, calc(100vw - 2rem)) !important;
+    width: min(760px, calc(100vw - 2rem)) !important;
+    max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     z-index: 20 !important;
 }
+body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+    left: calc(50% + 9.375rem) !important;
+    width: min(760px, calc(100vw - 18.75rem - 2rem)) !important;
+}
 main.block-container {
     padding-bottom: 9rem !important;
 }
-@media (max-width: 640px) {
-    section.main > div.block-container {
-        padding: 1.35rem 0.8rem 8rem;
+@media (max-width: 900px) and (min-width: 641px) {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+        left: calc(50% + 9rem) !important;
+        width: min(760px, calc(100vw - 18rem - 3rem)) !important;
     }
-    .verna-ai-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.35rem;
-        margin-top: 0.1rem;
+}
+@media (max-width: 640px) {
+    [data-testid="stMainBlockContainer"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 1rem 0.8rem 8rem !important;
     }
     .verna-ai-title {
         font-size: clamp(1.9rem, 9vw, 2.6rem);
@@ -3430,7 +3637,12 @@ main.block-container {
         padding: 1rem 0.85rem;
     }
     [data-testid="stCustomComponentV1"] {
+        left: 50% !important;
         bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
+        width: calc(100vw - 1.25rem) !important;
+    }
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+        left: 50% !important;
         width: calc(100vw - 1.25rem) !important;
     }
     main.block-container {
@@ -3440,14 +3652,13 @@ main.block-container {
 </style>
 """, unsafe_allow_html=True)
 
-    header_col, toggle_col = st.columns([4, 1])
-    with header_col:
-        st.markdown("""
+    st.markdown("""
 <div class="verna-ai-heading">
   <h1 class="verna-ai-title">Verna AI Studio</h1>
   <p class="verna-ai-subtitle">Your Smart Ledger &amp; Business Assistant</p>
 </div>
 """, unsafe_allow_html=True)
+    _, toggle_col, _ = st.columns([1, 2, 1])
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
