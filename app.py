@@ -272,6 +272,45 @@ def _khata_text(value):
     return str(value)
 
 
+def load_business_upi_id():
+    try:
+        secret_value = st.secrets.get("BUSINESS_UPI_ID", "")
+    except Exception as exc:
+        ai_logger.warning(
+            "Could not read BUSINESS_UPI_ID from Streamlit secrets (%s).",
+            type(exc).__name__,
+        )
+        secret_value = ""
+    environment_value = os.getenv("BUSINESS_UPI_ID", "")
+    return str(
+        secret_value or environment_value or "sanketkirdat08@okaxis"
+    ).strip()
+
+
+def build_upi_payment_link(upi_id, payee_name, customer_name, amount):
+    normalized_upi_id = str(upi_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}", normalized_upi_id):
+        raise ValueError("व्यवसायाचा UPI ID वैध स्वरूपात कॉन्फिगर केलेला नाही.")
+    try:
+        normalized_amount = float(amount)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("पेमेंट रक्कम वैध नाही.") from exc
+    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
+        raise ValueError("बाकी रक्कम शून्यापेक्षा जास्त असणे आवश्यक आहे.")
+
+    parameters = urllib.parse.urlencode(
+        {
+            "pa": normalized_upi_id,
+            "pn": str(payee_name or "VernaLedger").strip(),
+            "am": f"{normalized_amount:.2f}",
+            "cu": "INR",
+            "tn": f"Khata payment - {str(customer_name or '').strip()}"[:80],
+        },
+        quote_via=urllib.parse.quote,
+    )
+    return f"upi://pay?{parameters}"
+
+
 def _normalize_khata_date(value, field_name):
     if isinstance(value, datetime):
         value = value.date()
@@ -640,6 +679,18 @@ def render_customer_khata():
 
         st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
         st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
+        business_upi_id = load_business_upi_id()
+        upi_configured = bool(
+            re.fullmatch(
+                r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
+                business_upi_id,
+            )
+        )
+        if not upi_configured and not visible_risk.empty:
+            st.info(
+                "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये "
+                "BUSINESS_UPI_ID कॉन्फिगर करा."
+            )
         for _, customer in visible_risk.iterrows():
             name = _khata_text(customer["customer_name"])
             customer_phone = _khata_text(customer["phone"])
@@ -664,14 +715,34 @@ def render_customer_khata():
             )
             if re.fullmatch(r"[6-9]\d{9}", customer_phone):
                 action_col1, action_col2 = st.columns(2)
-                message = (
-                    f"नमस्कार {name} जी, तुमच्याकडे VernaLedger दुकान उधारीचे "
-                    f"₹{customer['balance']:,.2f} रुपये बाकी आहेत. धन्यवाद!"
-                )
+                if customer["balance"] > 0:
+                    message = (
+                        f"नमस्कार {name} जी, तुमच्याकडे VernaLedger दुकान उधारीचे "
+                        f"₹{customer['balance']:,.2f} रुपये बाकी आहेत. धन्यवाद!"
+                    )
+                else:
+                    message = (
+                        f"नमस्कार {name} जी, तुमच्या VernaLedger खात्यात सध्या "
+                        "काही बाकी रक्कम नाही. धन्यवाद!"
+                    )
+                if upi_configured and customer["balance"] > 0:
+                    payment_link = build_upi_payment_link(
+                        business_upi_id,
+                        "VernaLedger",
+                        name,
+                        customer["balance"],
+                    )
+                    message += (
+                        f"\n\nGoogle Pay किंवा इतर UPI अॅपमधून पेमेंट करण्यासाठी लिंक:\n"
+                        f"{payment_link}"
+                    )
+                    whatsapp_label = "WhatsApp पेमेंट लिंक"
+                else:
+                    whatsapp_label = "WhatsApp संदेश"
                 with action_col1:
                     st.markdown(
                         f'<a href="https://wa.me/91{customer_phone}?text={urllib.parse.quote(message)}" target="_blank">'
-                        '<button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">WhatsApp Pay Link</button></a>',
+                        f'<button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">{escape(whatsapp_label)}</button></a>',
                         unsafe_allow_html=True,
                     )
                 with action_col2:
