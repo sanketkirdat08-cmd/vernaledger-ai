@@ -12,6 +12,9 @@ import time
 import re
 import urllib.parse
 import logging
+import math
+from datetime import date, datetime
+from html import escape
 import google.generativeai as genai
 from ocr_engine import (
     generate_marathi_tts,
@@ -248,6 +251,634 @@ def log_activity(username, action):
             conn.rollback()
             logging.error(f"Audit log failed: {e}")
 
+
+KHATA_CREDIT = "उधारी बाकी (Given Credit)"
+KHATA_PAYMENT = "पैसे जमा / हप्ता (Received Payment / Partial)"
+KHATA_TRANSACTION_TYPES = (KHATA_CREDIT, KHATA_PAYMENT)
+KHATA_COLUMNS = [
+    "id", "customer_name", "phone", "amount", "transaction_type",
+    "date", "due_date", "notes",
+]
+
+
+def _khata_text(value):
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
+def _normalize_khata_date(value, field_name):
+    if isinstance(value, datetime):
+        value = value.date()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value.strip(), "%Y-%m-%d").date().isoformat()
+        except ValueError as exc:
+            raise ValueError(f"{field_name} YYYY-MM-DD स्वरूपात असणे आवश्यक आहे.") from exc
+    raise ValueError(f"{field_name} वैध तारीख असणे आवश्यक आहे.")
+
+
+def validate_khata_entry(customer_name, phone, amount, transaction_type, entry_date, due_date, notes):
+    name = _khata_text(customer_name).strip()
+    if not name:
+        raise ValueError("कृपया ग्राहकाचे नाव भरा.")
+    if len(name) > 100:
+        raise ValueError("ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.")
+
+    phone_text = _khata_text(phone).strip()
+    if phone_text and (
+        not re.fullmatch(r"[0-9\s()+-]+", phone_text)
+        or not re.fullmatch(r"[6-9]\d{9}", re.sub(r"[\s()+-]", "", phone_text))
+    ):
+        raise ValueError("फोन नंबर रिकामा ठेवा किंवा वैध 10 अंकी मोबाईल नंबर भरा.")
+    normalized_phone = re.sub(r"[\s()+-]", "", phone_text)
+
+    try:
+        normalized_amount = float(amount)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("रक्कम वैध संख्या असणे आवश्यक आहे.") from exc
+    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
+        raise ValueError("रक्कम शून्यापेक्षा मोठी असणे आवश्यक आहे.")
+
+    if transaction_type not in KHATA_TRANSACTION_TYPES:
+        raise ValueError("व्यवहार प्रकार उपलब्ध पर्यायांपैकी निवडा.")
+
+    normalized_notes = _khata_text(notes).strip()
+    if len(normalized_notes) > 1000:
+        raise ValueError("टीप 1000 अक्षरांपेक्षा मोठी असू शकत नाही.")
+
+    return {
+        "customer_name": name,
+        "phone": normalized_phone,
+        "amount": normalized_amount,
+        "transaction_type": transaction_type,
+        "date": _normalize_khata_date(entry_date, "व्यवहार तारीख"),
+        "due_date": _normalize_khata_date(due_date, "परतफेड तारीख"),
+        "notes": normalized_notes,
+    }
+
+
+def save_khata_transaction(customer_name, phone, amount, transaction_type, entry_date, due_date, notes):
+    entry = validate_khata_entry(
+        customer_name, phone, amount, transaction_type, entry_date, due_date, notes
+    )
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO customer_khata
+                (customer_name, phone, amount, transaction_type, date, due_date, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                entry["customer_name"], entry["phone"], entry["amount"],
+                entry["transaction_type"], entry["date"], entry["due_date"],
+                entry["notes"],
+            ),
+        )
+        return cursor.lastrowid
+
+
+def load_khata_transactions():
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        return pd.read_sql_query(
+            "SELECT id, customer_name, phone, amount, transaction_type, date, due_date, notes "
+            "FROM customer_khata ORDER BY id DESC",
+            conn,
+        )
+
+
+def update_khata_transactions(original_df, edited_df):
+    original_ids = {int(record_id) for record_id in original_df["id"].tolist()}
+    updates = []
+    for _, row in edited_df.iterrows():
+        try:
+            record_id = int(row["id"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("रेकॉर्ड आयडी बदलता येत नाही.") from exc
+        if record_id not in original_ids:
+            raise ValueError("नवीन किंवा अपरिचित रेकॉर्ड बदलता येत नाही.")
+        original_row = original_df.loc[original_df["id"] == record_id].iloc[0]
+        fields = ("customer_name", "phone", "amount", "transaction_type", "date", "due_date", "notes")
+        if all(str(original_row[field] or "") == str(row[field] or "") for field in fields):
+            continue
+        entry = validate_khata_entry(
+            row["customer_name"], row["phone"], row["amount"],
+            row["transaction_type"], row["date"], row["due_date"], row["notes"],
+        )
+        updates.append((entry, record_id))
+
+    if updates:
+        with sqlite3.connect("ledger.db", timeout=10) as conn:
+            conn.executemany(
+                """
+                UPDATE customer_khata
+                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?,
+                    date = ?, due_date = ?, notes = ?
+                WHERE id = ?
+                """,
+                [
+                    (
+                        entry["customer_name"], entry["phone"], entry["amount"],
+                        entry["transaction_type"], entry["date"], entry["due_date"],
+                        entry["notes"], record_id,
+                    )
+                    for entry, record_id in updates
+                ],
+            )
+    return len(updates)
+
+
+def delete_khata_transaction(record_id):
+    with sqlite3.connect("ledger.db", timeout=10) as conn:
+        cursor = conn.execute("DELETE FROM customer_khata WHERE id = ?", (int(record_id),))
+        return cursor.rowcount > 0
+
+
+def build_khata_risk_report(khata_df):
+    customers = {}
+    today = date.today()
+    for record in khata_df.to_dict("records"):
+        name = _khata_text(record.get("customer_name")).strip()
+        phone = _khata_text(record.get("phone")).strip()
+        key = name.casefold()
+        customer = customers.setdefault(
+            key,
+            {
+                "customer_name": name,
+                "phone": phone,
+                "credit": 0.0,
+                "payments": 0.0,
+                "overdue_credit": 0.0,
+            },
+        )
+        if not customer["phone"] and phone:
+            customer["phone"] = phone
+        try:
+            amount = float(record.get("amount") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(amount):
+            continue
+        if record.get("transaction_type") == KHATA_CREDIT:
+            customer["credit"] += amount
+            try:
+                due_date = datetime.strptime(str(record.get("due_date")), "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                due_date = None
+            if due_date and due_date < today:
+                customer["overdue_credit"] += amount
+        elif record.get("transaction_type") == KHATA_PAYMENT:
+            customer["payments"] += amount
+
+    report = []
+    for customer in customers.values():
+        balance = customer["credit"] - customer["payments"]
+        overdue_balance = min(max(balance, 0.0), customer["overdue_credit"])
+        risk_score = 0
+        if balance > 0:
+            risk_score = min(
+                100,
+                20 + min(int(balance / 100), 40) + (40 if overdue_balance > 0 else 0),
+            )
+        if risk_score >= 70:
+            risk_level = "High Risk (बिकट उधारी)"
+        elif risk_score >= 40:
+            risk_level = "Moderate Risk"
+        else:
+            risk_level = "Safe Customer"
+        report.append(
+            {
+                **customer,
+                "balance": balance,
+                "overdue_balance": overdue_balance,
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+            }
+        )
+    return pd.DataFrame(report)
+
+
+def parse_voice_khata_details(transcript):
+    if not API_KEY:
+        raise ValueError("AI voice parsing साठी Gemini API key कॉन्फिगर केलेली नाही.")
+    genai.configure(api_key=API_KEY)
+    prompt = (
+        "Extract a customer khata transaction from this Marathi, Hindi, or English transcript. "
+        "Return only JSON with customer_name, phone (empty if absent), amount (number or null), "
+        f"transaction_type (exactly {json.dumps(KHATA_CREDIT)} or {json.dumps(KHATA_PAYMENT)}), "
+        f"and notes. Transcript: {json.dumps(transcript, ensure_ascii=False)}"
+    )
+    response = None
+    last_error = None
+    for model_name in get_active_gemini_models():
+        try:
+            model = genai.GenerativeModel(model_name)
+            candidate_response = model.generate_content(prompt)
+            if candidate_response and candidate_response.text:
+                response = candidate_response
+                break
+            last_error = ValueError(f"{model_name} कडून रिकामा प्रतिसाद मिळाला.")
+        except Exception as exc:
+            last_error = exc
+            ai_logger.warning(
+                "Voice khata parsing failed with Gemini model %s (%s).",
+                model_name,
+                type(exc).__name__,
+            )
+    if not response:
+        if last_error:
+            raise RuntimeError(
+                f"उपलब्ध Gemini मॉडेल्स वापरून व्हॉईस तपशील वाचता आले नाहीत: {last_error}"
+            ) from last_error
+        raise ValueError("Gemini API कडून कोणतेही उपलब्ध मॉडेल मिळाले नाही.")
+
+    clean_response = re.sub(
+        r"^```(?:json)?\s*|\s*```$", "", response.text.strip(), flags=re.IGNORECASE
+    )
+    parsed = json.loads(clean_response)
+    if not isinstance(parsed, dict):
+        raise ValueError("AI कडून मिळालेला व्यवहार तपशील योग्य स्वरूपात नाही.")
+    amount = parsed.get("amount")
+    try:
+        amount = float(amount) if amount is not None else 0.0
+    except (TypeError, ValueError):
+        amount = 0.0
+    if not math.isfinite(amount) or amount < 0:
+        amount = 0.0
+    transaction_type = parsed.get("transaction_type")
+    if transaction_type not in KHATA_TRANSACTION_TYPES:
+        transaction_type = KHATA_CREDIT
+    phone = parsed.get("phone")
+    return {
+        "customer_name": str(parsed.get("customer_name") or "").strip(),
+        "phone": str(phone or "").strip(),
+        "amount": amount,
+        "transaction_type": transaction_type,
+        "notes": str(parsed.get("notes") or transcript).strip(),
+    }
+
+
+def render_customer_khata():
+    if st.session_state.get("user_role") == "Staff":
+        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
+        st.stop()
+
+    st.markdown("""
+    <div class="studio-header">
+        <div>
+            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Customer Khata (उधारी वही)</h2>
+            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Secure Credit Tracking, Local Risk Scoring, Multi-Language Voice Parsing & Direct Settle</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    tab1, tab2, tab3 = st.tabs([
+        "नवीन उधारी / हप्ता नोंद",
+        "उधारी लेजर & AI रिस्क रिपोर्ट",
+        "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)",
+    ])
+
+    with tab1:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>+ नवीन उधारी किंवा हप्ता नोंद करा</h4>", unsafe_allow_html=True)
+        with st.form("khata_form"):
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                customer_name = st.text_input("ग्राहक नाव (Customer Name)", max_chars=100)
+                phone = st.text_input("मोबाईल नंबर (Phone Number - 10 digits)", max_chars=16)
+                amount = st.number_input("रक्कम (Amount)", min_value=0.0, step=10.0)
+            with fc2:
+                transaction_type = st.selectbox("व्यवहार प्रकार (Transaction Type)", KHATA_TRANSACTION_TYPES)
+                entry_date = st.date_input("व्यवहार तारीख (Date)", value=date.today())
+                due_date = st.date_input("परतफेची मुदत तारीख (Due Date)", value=date.today())
+            notes = st.text_area("टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)", max_chars=1000)
+            submitted = st.form_submit_button("खात्यात नोंद सेव्ह करा")
+        if submitted:
+            try:
+                record_id = save_khata_transaction(
+                    customer_name, phone, amount, transaction_type, entry_date, due_date, notes
+                )
+                log_activity(
+                    st.session_state.get("current_username", "admin"),
+                    f"Added Khata ID {record_id}",
+                )
+                st.toast("खाते नोंद अपडेट झाली!", icon="📝")
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+            except sqlite3.Error as exc:
+                logging.exception("Could not save customer khata transaction")
+                st.error(f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab2:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        header_col, refresh_col = st.columns([3, 1])
+        with header_col:
+            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>उधारी लेजर, AI रिस्क, Edit & Quick Settle</h4>", unsafe_allow_html=True)
+        with refresh_col:
+            if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
+                st.rerun()
+        try:
+            khata_df = load_khata_transactions()
+        except sqlite3.Error as exc:
+            logging.exception("Could not load customer khata transactions")
+            st.error(f"लेजर डेटा वाचता आला नाही: {exc}")
+            khata_df = pd.DataFrame(columns=KHATA_COLUMNS)
+
+        risk_report = build_khata_risk_report(khata_df)
+        amounts = pd.to_numeric(khata_df["amount"], errors="coerce").fillna(0)
+        total_balance = float(
+            amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum()
+            - amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum()
+        )
+        st.markdown(
+            f"""
+            <div style="background: rgba(0,242,254,0.1); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 14px;">
+                <b>एकूण येणे बाकी (Net Udhari):</b>
+                <span style="color:#00ff87; font-size:20px; font-weight:800;">{total_balance:,.2f}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("हिशोब ऑडिओत ऐका", key="khata_audio_summary") and not khata_df.empty:
+            audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
+            try:
+                audio_file = generate_marathi_tts(audio_summary_text)
+                if audio_file and os.path.exists(audio_file):
+                    st.audio(audio_file, autoplay=True)
+                else:
+                    st.error("ऑडिओ तयार करता आला नाही.")
+            except Exception as exc:
+                logging.exception("Could not generate khata audio summary")
+                st.error(f"ऑडिओ तयार करताना त्रुटी: {exc}")
+
+        search = st.text_input(
+            "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):",
+            placeholder="नाव टाईप करा...",
+            key="khata_search",
+        ).strip()
+        visible_df = khata_df.copy()
+        if search:
+            matches = (
+                visible_df["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | visible_df["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+            )
+            visible_df = visible_df[matches]
+        visible_risk = risk_report
+        if search and not risk_report.empty:
+            visible_risk = risk_report[
+                risk_report["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | risk_report["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+            ]
+
+        st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
+        st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
+        for _, customer in visible_risk.iterrows():
+            name = _khata_text(customer["customer_name"])
+            customer_phone = _khata_text(customer["phone"])
+            risk_level = customer["risk_level"]
+            risk_color = "#f87171" if risk_level.startswith("High") else (
+                "#f59e0b" if risk_level.startswith("Moderate") else "#00ff87"
+            )
+            st.markdown(
+                f"""
+                <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
+                        <span>{escape(name)} ({escape(customer_phone or "फोन उपलब्ध नाही")})</span>
+                        <span style="color:{risk_color};">{escape(risk_level)} · {int(customer["risk_score"])}/100</span>
+                    </div>
+                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
+                        बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{customer["balance"]:,.2f}</b>
+                        &nbsp; मुदतबाह्य: <b>{customer["overdue_balance"]:,.2f}</b>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if re.fullmatch(r"[6-9]\d{9}", customer_phone):
+                action_col1, action_col2 = st.columns(2)
+                message = (
+                    f"नमस्कार {name} जी, तुमच्याकडे VernaLedger दुकान उधारीचे "
+                    f"₹{customer['balance']:,.2f} रुपये बाकी आहेत. धन्यवाद!"
+                )
+                with action_col1:
+                    st.markdown(
+                        f'<a href="https://wa.me/91{customer_phone}?text={urllib.parse.quote(message)}" target="_blank">'
+                        '<button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">WhatsApp Pay Link</button></a>',
+                        unsafe_allow_html=True,
+                    )
+                with action_col2:
+                    st.markdown(
+                        f'<a href="tel:{customer_phone}"><button style="background:linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width:100%;">थेट कॉल करा</button></a>',
+                        unsafe_allow_html=True,
+                    )
+
+        st.markdown("---")
+        st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
+        if visible_df.empty:
+            st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
+        else:
+            visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
+            record_signature = hashlib.sha256(
+                visible_df[KHATA_COLUMNS].to_json(
+                    orient="split", force_ascii=False
+                ).encode("utf-8")
+            ).hexdigest()
+            edited_df = st.data_editor(
+                visible_df[KHATA_COLUMNS],
+                use_container_width=True,
+                key=f"khata_editable_table_{record_signature}",
+                disabled=["id"],
+                num_rows="fixed",
+            )
+            edit_col, delete_col = st.columns(2)
+            with edit_col:
+                if st.button("उधारी रेकॉर्ड्स अपडेट (Save Edit)", key="save_khata_edits"):
+                    try:
+                        updated_count = update_khata_transactions(visible_df, edited_df)
+                        log_activity(
+                            st.session_state.get("current_username", "admin"),
+                            f"Updated {updated_count} Khata Records",
+                        )
+                        st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
+                        st.rerun()
+                    except ValueError as exc:
+                        st.error(str(exc))
+                    except sqlite3.Error as exc:
+                        logging.exception("Could not update customer khata transactions")
+                        st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
+            with delete_col:
+                delete_id = st.selectbox(
+                    "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
+                    visible_record_ids,
+                    key=f"delete_khata_id_{record_signature}",
+                )
+                if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
+                    try:
+                        if delete_khata_transaction(delete_id):
+                            log_activity(
+                                st.session_state.get("current_username", "admin"),
+                                f"Deleted Khata ID {delete_id}",
+                            )
+                            st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
+                            st.rerun()
+                        else:
+                            st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
+                    except sqlite3.Error as exc:
+                        logging.exception("Could not delete customer khata transaction")
+                        st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab3:
+        if st.session_state.pop("voice_khata_reset", False):
+            for field in (
+                "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
+                "voice_khata_type", "voice_khata_date", "voice_khata_due",
+                "voice_khata_notes",
+            ):
+                st.session_state.pop(field, None)
+        st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>Multi-Language Voice-to-Khata Assistant</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
+            <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
+            <div style="font-size: 12.5px; color: #f8fafc; margin-top: 4px;">Speak or dictate in Marathi, Hindi, or English (उदा: सौरभ कडे २०० रुपये उधारी)</div>
+        </div>
+        """, unsafe_allow_html=True)
+        try:
+            transcript = speech_to_text(
+                start_prompt="बोलून उधारी नोंद करा (माइक दाबा)",
+                stop_prompt="थांबवा आणि फाईल सेव्ह करा",
+                just_once=True,
+                language="mr-IN",
+                key="voice_khata_mic_auto",
+            )
+        except Exception as exc:
+            logging.exception("Voice transcription failed")
+            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+            transcript = None
+
+        if isinstance(transcript, str) and transcript.strip():
+            transcript = transcript.strip()
+            if transcript != st.session_state.get("khata_voice_transcript"):
+                st.session_state["khata_voice_transcript"] = transcript
+                st.session_state.pop("khata_voice_draft", None)
+                for field in (
+                    "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
+                    "voice_khata_type", "voice_khata_date", "voice_khata_due",
+                    "voice_khata_notes",
+                ):
+                    st.session_state.pop(field, None)
+        transcript = st.session_state.get("khata_voice_transcript", "")
+        if transcript:
+            st.markdown("**RAW VOICE TRANSCRIPT:**")
+            st.info(transcript)
+            if st.button("AI द्वारे व्यवहार तपशील ओळखा", key="parse_voice_khata"):
+                try:
+                    draft = parse_voice_khata_details(transcript)
+                    st.session_state["khata_voice_draft"] = draft
+                    st.session_state["voice_khata_name"] = draft["customer_name"]
+                    st.session_state["voice_khata_phone"] = draft["phone"]
+                    st.session_state["voice_khata_amount"] = draft["amount"]
+                    st.session_state["voice_khata_type"] = draft["transaction_type"]
+                    st.session_state["voice_khata_notes"] = draft["notes"]
+                    st.rerun()
+                except (ValueError, json.JSONDecodeError) as exc:
+                    st.error(f"व्हॉईस तपशील ओळखता आले नाहीत: {exc}")
+                except Exception as exc:
+                    logging.exception("AI voice khata parsing failed")
+                    st.error(f"AI व्हॉईस तपशील वाचताना त्रुटी: {exc}")
+
+        with st.form("voice_khata_form"):
+            draft = st.session_state.get("khata_voice_draft", {})
+            voice_type = draft.get("transaction_type", KHATA_CREDIT)
+            voice_type_index = (
+                KHATA_TRANSACTION_TYPES.index(voice_type)
+                if voice_type in KHATA_TRANSACTION_TYPES else 0
+            )
+            voice_defaults = {
+                "voice_khata_name": draft.get("customer_name", ""),
+                "voice_khata_phone": draft.get("phone", ""),
+                "voice_khata_amount": float(draft.get("amount", 0.0)),
+                "voice_khata_type": voice_type,
+                "voice_khata_date": date.today(),
+                "voice_khata_due": date.today(),
+                "voice_khata_notes": draft.get(
+                    "notes", st.session_state.get("khata_voice_transcript", "")
+                ),
+            }
+            for field, default in voice_defaults.items():
+                if field not in st.session_state:
+                    st.session_state[field] = default
+            voice_col1, voice_col2 = st.columns(2)
+            with voice_col1:
+                voice_name = st.text_input(
+                    "ग्राहक नाव (Customer Name)",
+                    max_chars=100,
+                    key="voice_khata_name",
+                )
+                voice_phone = st.text_input(
+                    "मोबाईल नंबर (Phone Number)",
+                    max_chars=16,
+                    key="voice_khata_phone",
+                )
+                voice_amount = st.number_input(
+                    "रक्कम (Amount)",
+                    min_value=0.0,
+                    step=10.0,
+                    key="voice_khata_amount",
+                )
+            with voice_col2:
+                voice_type = st.selectbox(
+                    "व्यवहार प्रकार (Transaction Type)",
+                    KHATA_TRANSACTION_TYPES,
+                    index=voice_type_index,
+                    key="voice_khata_type",
+                )
+                voice_date = st.date_input(
+                    "व्यवहार तारीख (Date)",
+                    key="voice_khata_date",
+                )
+                voice_due = st.date_input(
+                    "परतफेची मुदत तारीख (Due Date)",
+                    key="voice_khata_due",
+                )
+            voice_notes = st.text_area(
+                "टीप / Voice Transcript",
+                max_chars=1000,
+                key="voice_khata_notes",
+            )
+            voice_submitted = st.form_submit_button("Confirm & Save to Database")
+        if voice_submitted:
+            try:
+                record_id = save_khata_transaction(
+                    voice_name, voice_phone, voice_amount, voice_type,
+                    voice_date, voice_due, voice_notes,
+                )
+                log_activity(
+                    st.session_state.get("current_username", "admin"),
+                    f"Voice Khata Added ID {record_id}",
+                )
+                st.session_state.pop("khata_voice_draft", None)
+                st.session_state.pop("khata_voice_transcript", None)
+                st.session_state["voice_khata_reset"] = True
+                st.toast("व्हॉईस खात्यातील नोंद सेव्ह झाली!", icon="📁")
+                st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+            except sqlite3.Error as exc:
+                logging.exception("Could not save voice khata transaction")
+                st.error(f"डेटाबेसमध्ये व्हॉईस नोंद सेव्ह करता आली नाही: {exc}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
 @st.cache_data(ttl=10)
 def load_receipts_data():
     try:
@@ -278,8 +909,6 @@ if "logged_in" in st.query_params and st.query_params["logged_in"] == "true":
     st.session_state['logged_in'] = True
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
-if 'offline_queue' not in st.session_state:
-    st.session_state['offline_queue'] = []
 if 'user_role' not in st.session_state:
     st.session_state['user_role'] = 'Admin'
 if 'current_username' not in st.session_state:
@@ -844,14 +1473,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    queue_len = len(st.session_state['offline_queue'])
-    if queue_len > 0:
-        st.markdown(f"""
-        <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; padding: 6px; border-radius: 10px; margin-bottom: 8px; text-align: center;">
-            <span style="font-size: 9.5px; font-weight: 800; color: #f59e0b;">OFFLINE QUEUE: {queue_len} pending</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
     st.markdown("<div class='sidebar-title'>NAVIGATION SUITE</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
@@ -1106,257 +1727,7 @@ elif selected_page == "Sales & Analytics":
 
 # FEATURE 3: ADVANCED CUSTOMER KHATA ---
 elif selected_page == "Customer Khata (उधारी)":
-    if st.session_state.get('user_role') == 'Staff':
-        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
-        st.stop()
-    st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Customer Khata (उधारी वही)</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Advanced AI Offline Support, AI Risk Scoring, Multi-Language Voice Parsing & Direct Settle</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    tab1, tab2, tab3 = st.tabs(["नवीन उधारी / हप्ता नोंद", "उधारी लेजर & AI रिस्क रिपोर्ट", "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)"])
-    with tab1:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>+ नवीन उधारी किंवा हप्ता नोंद करा</h4>", unsafe_allow_html=True)
-        with st.form("khata_form"):
-            fc1, fc2 = st.columns(2)
-            with fc1:
-                c_name = st.text_input("ग्राहक नाव (Customer Name)")
-                c_phone = st.text_input("मोबाईल नंबर (Phone Number - 10 digits)")
-                c_amount = st.number_input("रक्कम (Amount)", min_value=0.0, step=10.0)
-            with fc2:
-                c_type = st.selectbox("व्यवहार प्रकार (Transaction Type)", ["उधारी बाकी (Given Credit)", "पैसे जमा / हप्ता (Received Payment / Partial)"])
-                c_date = st.text_input("व्यवहार तारीख (Date)", value=time.strftime("%Y-%m-%d"))
-                c_due = st.text_input("परतफेची मुदत तारीख (Due Date)", value=time.strftime("%Y-%m-%d"))
-            c_notes = st.text_area("टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)")
-            submit_khata = st.form_submit_button("खात्यात नोंद सेव्ह करा")
-            if submit_khata:
-                if not c_name.strip() or c_amount <= 0:
-                    st.error("कृपया ग्राहकाचे नाव आणि योग्य रक्कम भरा!")
-                else:
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                            INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """, (c_name.strip(), c_phone.strip(), c_amount, c_type, c_date, c_due, c_notes))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Added Khata for {c_name.strip()} - {c_amount}")
-                        st.success(f"'{c_name}' ची उधारी नोंद यशस्वीरीत्या सेव्ह झाली!")
-                        st.toast("खाते नोंद अपडेट झाली!", icon="📝")
-                        time.sleep(0.4)
-                        st.rerun()
-                    except Exception as ex:
-                        st.session_state['offline_queue'].append({
-                            "name": c_name.strip(), "phone": c_phone.strip(), "amount": c_amount, "type": c_type, "date": c_date, "due": c_due, "notes": c_notes
-                        })
-                        st.warning("डेटाबेस त्रुटीमुळे डेटा ऑफलाइन क्यु (Offline Queue) मध्ये साठवला आहे!")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with tab2:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        rh_col1, rh_col2 = st.columns([3, 1])
-        with rh_col1:
-            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>उधारी लेजर, AI रिस्क, Edit & Quick Settle</h4>", unsafe_allow_html=True)
-        with rh_col2:
-            if st.button("डेटा रिफ्रेश करा", type="primary"):
-                st.toast("लेजर डेटा अपडेट झाला!", icon="🔄")
-                st.rerun()
-        try:
-            with sqlite3.connect("ledger.db") as conn:
-                khata_df = pd.read_sql_query("SELECT * FROM customer_khata ORDER BY id DESC", conn)
-        except Exception:
-            khata_df = pd.DataFrame()
-            
-        if not khata_df.empty:
-            total_udhari = khata_df[khata_df['transaction_type'] == "उधारी बाकी (Given Credit)"]['amount'].sum()
-            total_jama = khata_df[khata_df['transaction_type'].str.contains("पैसे जमा | Received")]['amount'].sum() if 'transaction_type' in khata_df.columns else 0
-            net_balance = total_udhari - total_jama
-            sc1, sc2 = st.columns([1.5, 1])
-            with sc1:
-                st.markdown(f"""
-                <div style="background: rgba(0,242,254,0.1); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 14px;">
-                    <b>एकूण येणे बाकी (Net Udhari):</b> <span style="color:#00ff87; font-size:20px; font-weight:800;">{net_balance:,.2f}</span>
-                </div>
-                """, unsafe_allow_html=True)
-            with sc2:
-                if st.button("हिशोब ऑडिओत ऐका"):
-                    audio_summary_text = f"सध्या एकूण रक्कम रुपये {net_balance:.0f} उधारी येणे बाकी आहे."
-                    aud_file = generate_marathi_tts(audio_summary_text)
-                    if aud_file and os.path.exists(aud_file):
-                        st.audio(aud_file, autoplay=True)
-                        
-            search_cust = st.text_input("ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):", placeholder="नाव टाईप करा...")
-            if search_cust.strip():
-                khata_df = khata_df[khata_df['customer_name'].str.contains(search_cust, case=False, na=False) | khata_df['phone'].str.contains(search_cust, na=False)]
-            st.write("")
-            st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
-            grouped_cust = khata_df.groupby('customer_name').agg({'amount': 'sum', 'phone': 'first'}).reset_index()
-            for idx, row in grouped_cust.iterrows():
-                c_n = row['customer_name']
-                c_amt = row['amount']
-                c_ph = row['phone'] if row['phone'] else "9999999999"
-                risk_badge = "Safe Customer"
-                risk_color = "#00ff87"
-                if c_amt > 2000:
-                    risk_badge = "High Risk (बिकट उधारी)"
-                    risk_color = "#f87171"
-                elif c_amt > 1000:
-                    risk_badge = "Moderate Risk"
-                    risk_color = "#f59e0b"
-                st.markdown(f"""
-                <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
-                        <span>{c_n} ({c_ph})</span>
-                        <span style="color:{risk_color};">{risk_badge}</span>
-                    </div>
-                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
-                        बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{c_amt:,.2f}</b>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                act_col1, act_col2 = st.columns(2)
-                with act_col1:
-                    wa_msg = f"नमस्कार {c_n} जी, तुमच्याकडे VernaLedger दुकान उधारीचे ₹{c_amt:,.2f} रुपये बाकी आहेत. कृपया खालील UPI लिंकवरून त्वरित भरावे. धन्यवाद!"
-                    encoded_msg = urllib.parse.quote(wa_msg)
-                    wa_link = f"https://wa.me/91{c_ph}?text={encoded_msg}"
-                    st.markdown(f'<a href="{wa_link}" target="_blank"><button style="background:linear-gradient(135deg, #25d366 0%, #128c7e 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width: 100%;">WhatsApp Pay Link</button></a>', unsafe_allow_html=True)
-                with act_col2:
-                    call_link = f"tel:{c_ph}"
-                    st.markdown(f'<a href="{call_link}"><button style="background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color:white; border:none; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; width: 100%;">थेट कॉल करा</button></a>', unsafe_allow_html=True)
-            st.markdown("---")
-            st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
-            edited_khata_df = st.data_editor(
-                khata_df[['id', 'customer_name', 'phone', 'amount', 'transaction_type', 'date', 'due_date', 'notes']],
-                use_container_width=True,
-                key="khata_editable_table"
-            )
-            ec1, ec2 = st.columns(2)
-            with ec1:
-                if st.button("उधारी रेकॉर्ड्स अपडेट (Save Edit)"):
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            for idx, row in edited_khata_df.iterrows():
-                                cursor.execute("""
-                                UPDATE customer_khata
-                                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?, due_date = ?, notes = ?
-                                WHERE id = ?
-                                """, (row['customer_name'], row['phone'], row['amount'], row['transaction_type'], row['due_date'], row['notes'], row['id']))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), "Updated Khata Records")
-                        st.success("उधारी डेटा यशस्वीरीत्या अपडेट झाला!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Update failed: {e}")
-            with ec2:
-                del_k_id = st.number_input("डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)", min_value=1, step=1, key="del_khata_id")
-                if st.button("उधारी नोंद डिलीट करा"):
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM customer_khata WHERE id = ?", (del_k_id,))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Khata ID {del_k_id}")
-                        st.success(f"रेकॉर्ड ID {del_k_id} डिलीट केला!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Deletion failed: {e}")
-        else:
-            st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with tab3:
-        st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>Multi-Language Voice-to-Khata Assistant</h4>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
-            <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
-            <div style="font-size: 12.5px; color: #f8fafc; margin-top: 4px;">Speak or dictate in Marathi, Hindi, or English (उदा: सौरभ कडे २०० रुपये उधारी)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        voice_khata_speech = speech_to_text(start_prompt="बोलून उधारी नोंद करा (माइक दाबा)", stop_prompt="थांबवा आणि फाईल सेव्ह करा", just_once=True, language='mr-IN', key='voice_khata_mic_auto')
-        if voice_khata_speech:
-            st.markdown(f"""
-            <div style="background: rgba(0,242,254,0.1); border: 1px solid #00f2fe; padding: 16px; border-radius: 14px; margin: 15px 0;">
-                <div style="font-size: 11px; font-weight: 800; color: #00f2fe; margin-bottom: 4px;">RAW VOICE TRANSCRIPT:</div>
-                <div style="font-size: 15px; font-weight: 700; color: #ffffff;">"{voice_khata_speech}"</div>
-            </div>
-            """, unsafe_allow_html=True)
-            parsed_name = "Customer"
-            parsed_phone = "9999999999"
-            parsed_amount = 100.0
-            try:
-                genai.configure(api_key=API_KEY)
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                prompt = f"""
-                Extract transaction details from the following sentence (automatically detect if it is Marathi, Hindi, or English) and return ONLY JSON format:
-                Sentence: "{voice_khata_speech}"
-                JSON Format:
-                {{
-                    "customer_name": "Customer name",
-                    "phone": "10-digit mobile number if present, else 9999999999",
-                    "amount": numeric amount as float
-                }}
-                Return ONLY JSON.
-                """
-                resp = generate_ai_content_with_retry(model, prompt)
-                clean_res = resp.text.strip().replace("```json", "").replace("```", "").strip()
-                parsed_data = json.loads(clean_res)
-                parsed_name = parsed_data.get("customer_name", "Customer")
-                digits_only = "".join(re.findall(r'\d', voice_khata_speech))
-                phone_match = re.search(r'[6-9]\d{9}', digits_only)
-                if phone_match:
-                    parsed_phone = phone_match.group(0)
-                elif len(digits_only) >= 10:
-                    parsed_phone = digits_only[-10:]
-                else:
-                    parsed_phone = "9999999999"
-                parsed_amount = float(parsed_data.get("amount", 100.0))
-            except Exception:
-                words = voice_khata_speech.split()
-                parsed_name = words[0] if words else "Customer"
-                digits_only = "".join(re.findall(r'\d', voice_khata_speech))
-                phone_match = re.search(r'[6-9]\d{9}', digits_only)
-                if phone_match:
-                    parsed_phone = phone_match.group(0)
-                elif len(digits_only) >= 10:
-                    parsed_phone = digits_only[-10:]
-                else:
-                    parsed_phone = "9999999999"
-                all_nums = re.findall(r'\d+', voice_khata_speech.replace(parsed_phone, ""))
-                if all_nums:
-                    parsed_amount = float(all_nums[0])
-            st.success(f"AI Parsed -> Name: **{parsed_name}** | Phone: **{parsed_phone}** | Amount: **{parsed_amount}**")
-            if st.button("Confirm & Save to Database", type="primary"):
-                try:
-                    with sqlite3.connect("ledger.db") as conn:
-                        conn.execute("BEGIN TRANSACTION;")
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                        INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (parsed_name, parsed_phone, parsed_amount, "उधारी बाकी (Given Credit)", time.strftime("%Y-%m-%d"), time.strftime("%Y-%m-%d"), voice_khata_speech))
-                        conn.commit()
-                    log_activity(st.session_state.get('current_username', 'admin'), f"Voice Khata Added for {parsed_name}")
-                    st.success("फाईल यशस्वीरीत्या सेव्ह झाली! उधारी लेजर मध्ये डेटा जोडला गेला आहे.")
-                    st.toast("फाईल सेव्ह झाली!", icon="📁")
-                    time.sleep(0.8)
-                    st.rerun()
-                except Exception as ex:
-                    st.session_state['offline_queue'].append({
-                        "name": parsed_name, "phone": parsed_phone, "amount": parsed_amount, "type": "उधारी बाकी (Given Credit)", "date": time.strftime("%Y-%m-%d"), "due": time.strftime("%Y-%m-%d"), "notes": voice_khata_speech
-                    })
-                    st.warning("डेटाबेस त्रुटीमुळे व्हॉईस नोंद ऑफलाइन क्यु (Offline Queue) मध्ये सेव्ह केली आहे!")
-        st.markdown("</div>", unsafe_allow_html=True)
+    render_customer_khata()
 
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Stock & Inventory":
@@ -1933,21 +2304,48 @@ main.block-container {
         
         action_status_msg = ""
         if any(kw in last_user_msg for kw in ["उधारी जोड", "उधारी लिही", "खात्यात जोड", "उधारी नोंदव"]):
-            words = last_user_msg.split()
-            digits = re.findall(r'\d+', last_user_msg)
-            amt = float(digits[0]) if digits else 100.0
-            cust_name = words[0] if words else "Customer"
             try:
-                with sqlite3.connect("ledger.db") as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                    INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (cust_name, "9999999999", amt, "उधारी बाकी (Given Credit)", time.strftime("%Y-%m-%d"), time.strftime("%Y-%m-%d"), last_user_msg))
-                    conn.commit()
-                    action_status_msg = f"customer_khata मध्ये {cust_name} साठी रुपये {amt} ची नवीन उधारी नोंद सेव्ह करण्यात आली आहे!"
-            except Exception as ex:
-                action_status_msg = f"डेटाबेस सेव्ह त्रुटी: {ex}"
+                phone_match = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", last_user_msg)
+                phone = phone_match.group(0) if phone_match else ""
+                amount_text = last_user_msg.replace(phone, "") if phone else last_user_msg
+                amount_matches = re.findall(r"\d+(?:[.,]\d+)?", amount_text)
+                amount = float(amount_matches[0].replace(",", "")) if amount_matches else 0
+                ignored_terms = {
+                    "उधारी", "जोड", "जोडा", "लिही", "लिहा", "खात्यात", "नोंदव",
+                    "नोंदवा", "नोंद", "सेव्ह", "करा", "कडे", "साठी", "रुपये", "रुपया",
+                    "रु", "₹", "credit", "add", "record", "please", "payment", "जमा",
+                    "हप्ता", "पैसे",
+                }
+                customer_parts = [
+                    re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", word)
+                    for word in amount_text.split()
+                    if not re.search(r"\d", word) and word.casefold() not in ignored_terms
+                ]
+                customer_name = " ".join(part for part in customer_parts if part)
+                transaction_type = (
+                    KHATA_PAYMENT
+                    if any(term in last_user_msg.casefold() for term in ("हप्ता", "जमा", "payment"))
+                    else KHATA_CREDIT
+                )
+                if not customer_name or not amount_matches:
+                    action_status_msg = (
+                        "उधारी नोंद सेव्ह झाली नाही. कृपया ग्राहकाचे नाव आणि वैध रक्कम "
+                        "स्पष्टपणे द्या; किंवा Customer Khata फॉर्म वापरा."
+                    )
+                else:
+                    record_id = save_khata_transaction(
+                        customer_name, phone, amount, transaction_type,
+                        date.today(), date.today(), last_user_msg,
+                    )
+                    action_status_msg = (
+                        f"Customer Khata मध्ये {customer_name} साठी रुपये {amount:,.2f} "
+                        f"ची नोंद सेव्ह झाली (रेकॉर्ड {record_id})."
+                    )
+            except ValueError as exc:
+                action_status_msg = f"उधारी नोंद सेव्ह झाली नाही: {exc}"
+            except sqlite3.Error as exc:
+                logging.exception("Could not save khata transaction from AI chat")
+                action_status_msg = f"डेटाबेसमध्ये उधारी नोंद सेव्ह करता आली नाही: {exc}"
 
         db_context = ""
         try:
