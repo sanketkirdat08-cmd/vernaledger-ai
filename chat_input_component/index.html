@@ -161,8 +161,8 @@
   </style>
 </head>
 <body>
-  <div class="chat-bar" role="group" aria-label="Chat message">
-    <button class="mic-button" id="mic-button" type="button" aria-label="Speak your message" aria-pressed="false" title="Speak your message">
+  <div class="chat-bar" role="group" aria-label="चॅट संदेश">
+    <button class="mic-button" id="mic-button" type="button" aria-label="बोलून संदेश द्या" aria-pressed="false" title="बोलून संदेश द्या">
       <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="2" width="6" height="12" rx="3"></rect>
         <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"></path>
@@ -172,11 +172,11 @@
       class="message-input"
       id="message-input"
       type="text"
-      placeholder="Ask in English, मराठी, or हिंदी..."
-      aria-label="Ask in English, Marathi, or Hindi"
+      placeholder="मराठी, इंग्रजी किंवा हिंदीत विचारा..."
+      aria-label="मराठी, इंग्रजी किंवा हिंदीत विचारा..."
       autocomplete="off"
     >
-    <button class="send-button" id="send-button" type="button" aria-label="Send message" title="Send message">
+    <button class="send-button" id="send-button" type="button" aria-label="संदेश पाठवा" title="संदेश पाठवा">
       <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M5 12h14M13 6l6 6-6 6"></path>
       </svg>
@@ -190,6 +190,54 @@
     const micStatus = document.getElementById("mic-status");
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
+    let currentLanguage = "mr";
+
+    const uiCopy = {
+      mr: {
+        group: "चॅट संदेश",
+        speak: "बोलून संदेश द्या",
+        send: "संदेश पाठवा",
+        placeholder: "मराठी, इंग्रजी किंवा हिंदीत विचारा...",
+        unsupported: "या ब्राउझरमध्ये आवाज ओळखण्याची सुविधा उपलब्ध नाही.",
+        listening: "ऐकत आहे",
+        denied: "मायक्रोफोन वापरण्याची परवानगी नाकारली.",
+        failed: "आवाज ओळख सुरू करता आली नाही.",
+        recognitionError: "आवाज ओळख त्रुटी"
+      },
+      en: {
+        group: "Chat message",
+        speak: "Speak your message",
+        send: "Send message",
+        placeholder: "Ask in English, Marathi, or Hindi...",
+        unsupported: "Speech recognition is not supported in this browser.",
+        listening: "Listening",
+        denied: "Microphone access was denied.",
+        failed: "Unable to start speech recognition.",
+        recognitionError: "Speech recognition error"
+      }
+    };
+
+    function applyLanguage(language) {
+      currentLanguage = language === "en" ? "en" : "mr";
+      const copy = uiCopy[currentLanguage];
+      document.documentElement.lang = currentLanguage === "en" ? "en" : "mr";
+      document.querySelector(".chat-bar").setAttribute("aria-label", copy.group);
+      micButton.setAttribute("aria-label", copy.speak);
+      micButton.title = copy.speak;
+      sendButton.setAttribute("aria-label", copy.send);
+      sendButton.title = copy.send;
+      input.placeholder = copy.placeholder;
+      input.setAttribute("aria-label", copy.placeholder);
+      if (Object.values(uiCopy).some((languageCopy) => languageCopy.listening === micStatus.textContent)) {
+        micStatus.textContent = copy.listening;
+      }
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "streamlit:render") {
+        applyLanguage(event.data.args?.language);
+      }
+    });
 
     function sendToStreamlit(value) {
       window.parent.postMessage({
@@ -224,7 +272,7 @@
 
     micButton.addEventListener("click", () => {
       if (!SpeechRecognition) {
-        micStatus.textContent = "Speech recognition is not supported in this browser.";
+        micStatus.textContent = uiCopy[currentLanguage].unsupported;
         micButton.title = micStatus.textContent;
         return;
       }
@@ -237,8 +285,9 @@
       recognition = new SpeechRecognition();
       recognition.interimResults = false;
       recognition.continuous = false;
+      recognition.lang = currentLanguage === "en" ? "en-IN" : "mr-IN";
       micButton.setAttribute("aria-pressed", "true");
-      micStatus.textContent = "Listening";
+      micStatus.textContent = uiCopy[currentLanguage].listening;
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim();
@@ -253,15 +302,15 @@
 
       recognition.onerror = (event) => {
         micStatus.textContent = event.error === "not-allowed"
-          ? "Microphone access was denied."
-          : `Speech recognition error: ${event.error}`;
+          ? uiCopy[currentLanguage].denied
+          : `${uiCopy[currentLanguage].recognitionError}: ${event.error}`;
         micButton.title = micStatus.textContent;
       };
 
       recognition.onend = () => {
         recognition = null;
         micButton.setAttribute("aria-pressed", "false");
-        if (micStatus.textContent === "Listening") {
+        if (micStatus.textContent === uiCopy[currentLanguage].listening) {
           micStatus.textContent = "";
         }
       };
@@ -271,7 +320,7 @@
       } catch (error) {
         recognition = null;
         micButton.setAttribute("aria-pressed", "false");
-        micStatus.textContent = "Unable to start speech recognition.";
+        micStatus.textContent = uiCopy[currentLanguage].failed;
         micButton.title = micStatus.textContent;
       }
     });

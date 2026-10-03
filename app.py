@@ -799,6 +799,60 @@ def render_business_module_styles():
     """, unsafe_allow_html=True)
 
 
+def render_rag_sidebar_design_styles():
+    _streamlit_ui.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
+        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+        max-width: min(20rem, 88vw) !important;
+        min-width: min(15rem, 88vw) !important;
+        resize: none !important;
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        height: 100dvh !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stSidebarContent"] {
+        height: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 7px !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        min-height: 42px !important;
+        padding: 9px 12px !important;
+        background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
+        transform: none !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        border-color: rgba(56, 189, 248, 0.62) !important;
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.16), 0 0 20px rgba(34, 211, 238, 0.18) !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(110deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.2)) !important;
+        border-color: rgba(56, 189, 248, 0.75) !important;
+        box-shadow: inset 3px 0 #38bdf8, 0 0 22px rgba(34, 211, 238, 0.2) !important;
+    }
+    @media (max-width: 900px) {
+        section[data-testid="stSidebar"] {
+            max-width: 88vw !important;
+            min-width: 88vw !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 def render_application_design_styles():
     st.markdown("""
     <style>
@@ -825,9 +879,22 @@ def render_application_design_styles():
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+        max-width: min(20rem, 88vw) !important;
+        min-width: min(15rem, 88vw) !important;
+        resize: none !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
         padding: 20px 16px !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarContent"] {
+        height: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
     }
     body:has(.app-ui-polish-scope) .sidebar-title {
         color: #91a9c7 !important;
@@ -841,21 +908,21 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
         min-height: 42px !important;
         padding: 9px 12px !important;
-        background: rgba(17, 31, 51, 0.54) !important;
-        border: 1px solid rgba(148, 163, 184, 0.11) !important;
+        background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
         border-radius: 12px !important;
-        box-shadow: none !important;
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
         transform: none !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
         background: rgba(24, 45, 70, 0.78) !important;
-        border-color: rgba(56, 189, 248, 0.38) !important;
-        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.22) !important;
+        border-color: rgba(56, 189, 248, 0.62) !important;
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.16), 0 0 20px rgba(34, 211, 238, 0.18) !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(110deg, rgba(14, 165, 233, 0.2), rgba(37, 99, 235, 0.13)) !important;
-        border-color: rgba(56, 189, 248, 0.5) !important;
-        box-shadow: inset 3px 0 #38bdf8 !important;
+        background: linear-gradient(110deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.2)) !important;
+        border-color: rgba(56, 189, 248, 0.75) !important;
+        box-shadow: inset 3px 0 #38bdf8, 0 0 22px rgba(34, 211, 238, 0.2) !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
         color: #d8e4f2 !important;
@@ -1014,6 +1081,42 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) [data-testid="stAlert"] {
         border-radius: 13px !important;
     }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"],
+    body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"],
+    body:has(.app-ui-polish-scope) [data-testid="stColumn"] {
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+        overflow-x: clip;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry {
+        padding: 12px 15px;
+        margin: 4px 0 12px;
+        background: linear-gradient(115deg, rgba(8, 145, 178, 0.12), rgba(59, 130, 246, 0.08));
+        border: 1px solid rgba(103, 232, 249, 0.2);
+        border-radius: 13px;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry-title {
+        color: #d9fbff;
+        font-size: 13px;
+        font-weight: 800;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry-caption {
+        margin-top: 3px;
+        color: #9fb2c9;
+        font-size: 11px;
+        line-height: 1.45;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
+        height: 27px;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stForm"] {
+        padding: 15px;
+        background: rgba(5, 13, 27, 0.36);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 15px;
+    }
     @media (max-width: 900px) {
         body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
             padding: 1.1rem 1rem 2rem !important;
@@ -1025,6 +1128,10 @@ def render_application_design_styles():
         body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
             min-width: calc(50% - 0.4rem) !important;
             flex: 1 1 calc(50% - 0.4rem) !important;
+        }
+        body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
+            max-width: 88vw !important;
+            min-width: 88vw !important;
         }
     }
     @media (max-width: 640px) {
@@ -1071,6 +1178,9 @@ def render_application_design_styles():
         body:has(.app-ui-polish-scope) [data-testid="stFileUploader"] {
             padding: 12px !important;
         }
+        body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
+            display: none;
+        }
     }
     </style>
     <div class="app-ui-polish-scope" aria-hidden="true"></div>
@@ -1086,39 +1196,135 @@ def render_customer_khata():
     st.markdown("""
     <div class="studio-header business-module-hero">
         <div class="business-hero-content">
-            <div class="business-eyebrow">✦ BUSINESS MODULES · CUSTOMER KHATA</div>
-            <h2 class="business-hero-title">ग्राहक खाते <span>· उधारी वही</span></h2>
-            <p class="business-hero-subtitle">उधारी, हप्ते आणि ग्राहक जोखीम — एकाच स्वच्छ, सोप्या डॅशबोर्डमध्ये.</p>
+            <div class="business-eyebrow">✦ Business Modules &gt; Customer Khata</div>
+            <h2 class="business-hero-title">Customer Khata - Credit Ledger</h2>
         </div>
         <div class="business-hero-mark" aria-hidden="true">◈</div>
     </div>
     """, unsafe_allow_html=True)
-    tab1, tab2, tab3 = st.tabs([
-        "नवीन उधारी / हप्ता नोंद",
-        "उधारी लेजर & AI रिस्क रिपोर्ट",
-        "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)",
-    ])
+    tab1, tab2 = st.tabs(["नवीन उधारी / हप्ता नोंद", "उधारी लेजर & AI रिस्क रिपोर्ट"])
 
     with tab1:
+        if st.session_state.pop("khata_form_reset", False):
+            for field in (
+                "khata_form_customer_name",
+                "khata_form_phone",
+                "khata_form_amount",
+                "khata_form_type",
+                "khata_form_entry_date",
+                "khata_form_due_date",
+                "khata_form_notes",
+                "khata_ai_transcript",
+                "khata_voice_draft",
+            ):
+                st.session_state.pop(field, None)
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         st.markdown("""
         <div class="business-section-heading">
             <div class="business-section-icon">＋</div>
             <div><h3 class="business-section-title">नवीन व्यवहार नोंदवा</h3>
-            <p class="business-section-caption">ग्राहकाची उधारी किंवा जमा झालेला हप्ता सुरक्षितपणे नोंदवा.</p></div>
+            <p class="business-section-caption">ग्राहकाची उधारी किंवा जमा झालेला हप्ता नोंदवा.</p></div>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("""
+        <div class="khata-ai-entry">
+            <div class="khata-ai-entry-title">⌁ AI व्हॉइस किंवा मजकूर नोंद</div>
+            <div class="khata-ai-entry-caption">बोला किंवा व्यवहाराचे वाक्य लिहा; AI तपशील फॉर्ममध्ये भरेल. सेव्ह करण्यापूर्वी तपासा.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        try:
+            transcript = speech_to_text(
+                start_prompt="बोलून व्यवहाराचा तपशील सांगा",
+                stop_prompt="बोलणे थांबवा",
+                just_once=True,
+                language="mr-IN",
+                key="khata_unified_voice_input",
+            )
+        except Exception as exc:
+            logging.exception("Voice transcription failed for customer khata")
+            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+            transcript = None
+        if isinstance(transcript, str) and transcript.strip():
+            st.session_state["khata_ai_transcript"] = transcript.strip()
+
+        transcript_col, parse_col = st.columns([4, 1])
+        with transcript_col:
+            st.text_area(
+                "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
+                key="khata_ai_transcript",
+                height=72,
+                max_chars=1000,
+                placeholder="उदा. सौरभकडे २०० रुपये उधारी",
+            )
+        with parse_col:
+            st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
+            parse_voice = st.button(
+                "AI तपशील भरा",
+                key="parse_unified_khata_voice",
+                type="secondary",
+                use_container_width=True,
+            )
+        if parse_voice:
+            transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
+            if not transcript_text:
+                st.warning("आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
+            else:
+                try:
+                    draft = parse_voice_khata_details(transcript_text)
+                    st.session_state["khata_voice_draft"] = draft
+                    st.session_state["khata_form_customer_name"] = draft["customer_name"]
+                    st.session_state["khata_form_phone"] = draft["phone"]
+                    st.session_state["khata_form_amount"] = draft["amount"]
+                    st.session_state["khata_form_type"] = draft["transaction_type"]
+                    st.session_state["khata_form_notes"] = draft["notes"]
+                    st.toast("AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
+                    st.rerun()
+                except (ValueError, json.JSONDecodeError) as exc:
+                    st.error(f"AI तपशील ओळखता आले नाहीत: {exc}")
+                except Exception as exc:
+                    logging.exception("AI voice khata parsing failed")
+                    st.error(f"AI तपशील वाचताना त्रुटी: {exc}")
+
         with st.form("khata_form"):
             fc1, fc2 = st.columns(2)
             with fc1:
-                customer_name = st.text_input("ग्राहक नाव (Customer Name)", max_chars=100)
-                phone = st.text_input("मोबाईल नंबर (Phone Number - 10 digits)", max_chars=16)
-                amount = st.number_input("रक्कम (Amount)", min_value=0.0, step=10.0)
+                customer_name = st.text_input(
+                    "ग्राहक नाव (Customer Name)",
+                    max_chars=100,
+                    key="khata_form_customer_name",
+                )
+                phone = st.text_input(
+                    "मोबाईल नंबर (Phone Number - 10 digits)",
+                    max_chars=16,
+                    key="khata_form_phone",
+                )
+                amount = st.number_input(
+                    "रक्कम (Amount)",
+                    min_value=0.0,
+                    step=10.0,
+                    key="khata_form_amount",
+                )
             with fc2:
-                transaction_type = st.selectbox("व्यवहार प्रकार (Transaction Type)", KHATA_TRANSACTION_TYPES)
-                entry_date = st.date_input("व्यवहार तारीख (Date)", value=date.today())
-                due_date = st.date_input("परतफेची मुदत तारीख (Due Date)", value=date.today())
-            notes = st.text_area("टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)", max_chars=1000)
+                transaction_type = st.selectbox(
+                    "व्यवहार प्रकार (Transaction Type)",
+                    KHATA_TRANSACTION_TYPES,
+                    key="khata_form_type",
+                )
+                entry_date = st.date_input(
+                    "व्यवहार तारीख (Date)",
+                    value=date.today(),
+                    key="khata_form_entry_date",
+                )
+                due_date = st.date_input(
+                    "परतफेची मुदत तारीख (Due Date)",
+                    value=date.today(),
+                    key="khata_form_due_date",
+                )
+            notes = st.text_area(
+                "टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)",
+                max_chars=1000,
+                key="khata_form_notes",
+            )
             submitted = st.form_submit_button("खात्यात नोंद सेव्ह करा")
         if submitted:
             try:
@@ -1129,6 +1335,7 @@ def render_customer_khata():
                     st.session_state.get("current_username", "admin"),
                     f"Added Khata ID {record_id}",
                 )
+                st.session_state["khata_form_reset"] = True
                 st.toast("खाते नोंद अपडेट झाली!", icon="📝")
                 st.rerun()
             except ValueError as exc:
@@ -1336,155 +1543,6 @@ def render_customer_khata():
                         st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with tab3:
-        if st.session_state.pop("voice_khata_reset", False):
-            for field in (
-                "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
-                "voice_khata_type", "voice_khata_date", "voice_khata_due",
-                "voice_khata_notes",
-            ):
-                st.session_state.pop(field, None)
-        st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">⌁</div>
-            <div><h3 class="business-section-title">बोलून व्यवहार नोंदवा</h3>
-            <p class="business-section-caption">मराठी, हिंदी किंवा इंग्रजीत बोला; सेव्ह करण्यापूर्वी तपशील तपासा.</p></div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("""
-        <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
-            <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
-            <div style="font-size: 12.5px; color: #f8fafc; margin-top: 4px;">Speak or dictate in Marathi, Hindi, or English (उदा: सौरभ कडे २०० रुपये उधारी)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        try:
-            transcript = speech_to_text(
-                start_prompt="बोलून उधारी नोंद करा (माइक दाबा)",
-                stop_prompt="थांबवा आणि फाईल सेव्ह करा",
-                just_once=True,
-                language="mr-IN",
-                key="voice_khata_mic_auto",
-            )
-        except Exception as exc:
-            logging.exception("Voice transcription failed")
-            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
-            transcript = None
-
-        if isinstance(transcript, str) and transcript.strip():
-            transcript = transcript.strip()
-            if transcript != st.session_state.get("khata_voice_transcript"):
-                st.session_state["khata_voice_transcript"] = transcript
-                st.session_state.pop("khata_voice_draft", None)
-                for field in (
-                    "voice_khata_name", "voice_khata_phone", "voice_khata_amount",
-                    "voice_khata_type", "voice_khata_date", "voice_khata_due",
-                    "voice_khata_notes",
-                ):
-                    st.session_state.pop(field, None)
-        transcript = st.session_state.get("khata_voice_transcript", "")
-        if transcript:
-            st.markdown("**RAW VOICE TRANSCRIPT:**")
-            st.info(transcript)
-            if st.button("AI द्वारे व्यवहार तपशील ओळखा", key="parse_voice_khata"):
-                try:
-                    draft = parse_voice_khata_details(transcript)
-                    st.session_state["khata_voice_draft"] = draft
-                    st.session_state["voice_khata_name"] = draft["customer_name"]
-                    st.session_state["voice_khata_phone"] = draft["phone"]
-                    st.session_state["voice_khata_amount"] = draft["amount"]
-                    st.session_state["voice_khata_type"] = draft["transaction_type"]
-                    st.session_state["voice_khata_notes"] = draft["notes"]
-                    st.rerun()
-                except (ValueError, json.JSONDecodeError) as exc:
-                    st.error(f"व्हॉईस तपशील ओळखता आले नाहीत: {exc}")
-                except Exception as exc:
-                    logging.exception("AI voice khata parsing failed")
-                    st.error(f"AI व्हॉईस तपशील वाचताना त्रुटी: {exc}")
-
-        with st.form("voice_khata_form"):
-            draft = st.session_state.get("khata_voice_draft", {})
-            voice_type = draft.get("transaction_type", KHATA_CREDIT)
-            voice_type_index = (
-                KHATA_TRANSACTION_TYPES.index(voice_type)
-                if voice_type in KHATA_TRANSACTION_TYPES else 0
-            )
-            voice_defaults = {
-                "voice_khata_name": draft.get("customer_name", ""),
-                "voice_khata_phone": draft.get("phone", ""),
-                "voice_khata_amount": float(draft.get("amount", 0.0)),
-                "voice_khata_type": voice_type,
-                "voice_khata_date": date.today(),
-                "voice_khata_due": date.today(),
-                "voice_khata_notes": draft.get(
-                    "notes", st.session_state.get("khata_voice_transcript", "")
-                ),
-            }
-            for field, default in voice_defaults.items():
-                if field not in st.session_state:
-                    st.session_state[field] = default
-            voice_col1, voice_col2 = st.columns(2)
-            with voice_col1:
-                voice_name = st.text_input(
-                    "ग्राहक नाव (Customer Name)",
-                    max_chars=100,
-                    key="voice_khata_name",
-                )
-                voice_phone = st.text_input(
-                    "मोबाईल नंबर (Phone Number)",
-                    max_chars=16,
-                    key="voice_khata_phone",
-                )
-                voice_amount = st.number_input(
-                    "रक्कम (Amount)",
-                    min_value=0.0,
-                    step=10.0,
-                    key="voice_khata_amount",
-                )
-            with voice_col2:
-                voice_type = st.selectbox(
-                    "व्यवहार प्रकार (Transaction Type)",
-                    KHATA_TRANSACTION_TYPES,
-                    index=voice_type_index,
-                    key="voice_khata_type",
-                )
-                voice_date = st.date_input(
-                    "व्यवहार तारीख (Date)",
-                    key="voice_khata_date",
-                )
-                voice_due = st.date_input(
-                    "परतफेची मुदत तारीख (Due Date)",
-                    key="voice_khata_due",
-                )
-            voice_notes = st.text_area(
-                "टीप / Voice Transcript",
-                max_chars=1000,
-                key="voice_khata_notes",
-            )
-            voice_submitted = st.form_submit_button("Confirm & Save to Database")
-        if voice_submitted:
-            try:
-                record_id = save_khata_transaction(
-                    voice_name, voice_phone, voice_amount, voice_type,
-                    voice_date, voice_due, voice_notes,
-                )
-                log_activity(
-                    st.session_state.get("current_username", "admin"),
-                    f"Voice Khata Added ID {record_id}",
-                )
-                st.session_state.pop("khata_voice_draft", None)
-                st.session_state.pop("khata_voice_transcript", None)
-                st.session_state["voice_khata_reset"] = True
-                st.toast("व्हॉईस खात्यातील नोंद सेव्ह झाली!", icon="📁")
-                st.rerun()
-            except ValueError as exc:
-                st.error(str(exc))
-            except sqlite3.Error as exc:
-                logging.exception("Could not save voice khata transaction")
-                st.error(f"डेटाबेसमध्ये व्हॉईस नोंद सेव्ह करता आली नाही: {exc}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
 @st.cache_data(ttl=10)
 def load_receipts_data():
     try:
@@ -1523,6 +1581,326 @@ if 'forgot_pass_mode' not in st.session_state:
     st.session_state['forgot_pass_mode'] = False
 if 'input_method' not in st.session_state:
     st.session_state['input_method'] = 'Upload File'
+if "ui_language" not in st.session_state:
+    st.session_state["ui_language"] = "mr"
+
+
+_UI_TRANSLATION_PAIRS = {
+    "Language / भाषा": "भाषा",
+    "Login": "लॉगिन",
+    "Admin Sign Up": "प्रशासक नोंदणी",
+    "Auth Mode": "प्रवेश प्रकार",
+    "Navigation": "नेव्हिगेशन",
+    "Username": "वापरकर्ता नाव",
+    "Password": "पासवर्ड",
+    "Confirm Password": "पासवर्डची पुष्टी",
+    "Mobile Number": "मोबाईल नंबर",
+    "Admin Username": "प्रशासक वापरकर्ता नाव",
+    "Admin Password": "प्रशासक पासवर्ड",
+    "Auto-Login Persistent Session": "मला लॉग इन ठेवा",
+    "Access VernaLedger Studio": "VernaLedger सुरू करा",
+    "Create Master Admin": "मास्टर प्रशासक तयार करा",
+    "10-digit mobile number": "१० अंकी मोबाईल नंबर",
+    "Choose admin username": "प्रशासकाचे वापरकर्ता नाव निवडा",
+    "Confirm password": "पासवर्ड पुन्हा लिहा",
+    "Enter password": "पासवर्ड लिहा",
+    "Enter username (e.g. admin)": "वापरकर्ता नाव लिहा (उदा. admin)",
+    "Min 6 chars": "किमान ६ अक्षरे",
+    "Min 6 chars password": "किमान ६ अक्षरांचा पासवर्ड",
+    "Re-enter password": "पासवर्ड पुन्हा भरा",
+    "OCR Scanner": "OCR स्कॅनर",
+    "Sales & Analytics": "विक्री आणि विश्लेषण",
+    "Business Modules": "व्यवसाय विभाग",
+    "Ledger Database": "लेजर डेटाबेस",
+    "RAG AI Chat": "RAG AI चॅट",
+    "Staff Management": "स्टाफ व्यवस्थापन",
+    "Customer Khata": "ग्राहक खाते",
+    "Stock & Inventory": "स्टॉक आणि इन्व्हेंटरी",
+    "Business Expenses": "व्यवसाय खर्च",
+    "Navigation Suite": "नेव्हिगेशन",
+    "NAVIGATION SUITE": "नेव्हिगेशन",
+    "✦ BUSINESS MODULES · EXPENSES": "✦ व्यवसाय विभाग · खर्च",
+    "✦ BUSINESS MODULES · INVENTORY": "✦ व्यवसाय विभाग · इन्व्हेंटरी",
+    "MERCHANT SUITE PRO": "व्यवसाय व्यवस्थापन",
+    "Next-Gen Merchant & AI Financial Suite": "नव्या पिढीचे व्यापारी आणि AI आर्थिक व्यासपीठ",
+    "Verna Pro Multi-Language Studio (Auto-Detect Language)": "Verna Pro बहुभाषिक स्टुडिओ (भाषा आपोआप ओळखा)",
+    "Marathi Audio Summary": "मराठी ऑडिओ सारांश",
+    "📥 Backups & Report Downloads": "📥 बॅकअप आणि अहवाल डाउनलोड",
+    "Initial Admin Registration": "प्रारंभिक प्रशासक नोंदणी",
+    "Project Developers": "प्रकल्प विकासक",
+    "Logout System": "लॉगआउट",
+    "ROLE: ADMIN": "भूमिका: प्रशासक",
+    "ROLE: STAFF": "भूमिका: कर्मचारी",
+    "Customer Khata (उधारी)": "ग्राहक खाते",
+    "नवीन उधारी / हप्ता नोंद": "नवीन व्यवहार",
+    "उधारी लेजर & AI रिस्क रिपोर्ट": "लेजर आणि AI जोखीम अहवाल",
+    "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)": "AI व्हॉइस नोंद",
+    "Customer Khata - Credit Ledger": "ग्राहक खाते - उधारी वही",
+    "नवीन व्यवहार नोंदवा": "Add a new transaction",
+    "ग्राहकाची उधारी किंवा जमा झालेला हप्ता सुरक्षितपणे नोंदवा.": "Safely record customer credit or a received installment.",
+    "ग्राहक नाव (Customer Name)": "ग्राहकाचे नाव",
+    "मोबाईल नंबर (Phone Number - 10 digits)": "मोबाईल नंबर (१० अंक)",
+    "मोबाईल नंबर (Phone Number)": "मोबाईल नंबर",
+    "मोबाईल नंबर (Phone)": "मोबाईल नंबर",
+    "रक्कम (Amount)": "रक्कम",
+    "व्यवहार प्रकार (Transaction Type)": "व्यवहाराचा प्रकार",
+    "व्यवहार तारीख (Date)": "व्यवहाराची तारीख",
+    "परतफेची मुदत तारीख (Due Date)": "देय तारीख",
+    "टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)": "टीप / वस्तूंचा तपशील",
+    "खात्यात नोंद सेव्ह करा": "Save transaction",
+    "⌁ AI व्हॉइस किंवा मजकूर नोंद": "⌁ AI voice or text entry",
+    "बोला किंवा व्यवहाराचे वाक्य लिहा; AI तपशील फॉर्ममध्ये भरेल. सेव्ह करण्यापूर्वी तपासा.": "Speak or type a transaction; AI will fill the form. Review it before saving.",
+    "डेटा रिफ्रेश करा": "Refresh data",
+    "हिशोब ऑडिओत ऐका": "Play audio summary",
+    "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):": "Search by customer name or phone:",
+    "नाव टाईप करा...": "Enter a name...",
+    "ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call": "Customer credit, AI risk, WhatsApp and calls",
+    "रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.": "Risk scores are calculated locally from outstanding balances and overdue credit.",
+    "एकूण येणे बाकी · Net Udhari": "Total outstanding balance",
+    "जमा हप्ते वजा करून मोजलेली एकूण बाकी": "Outstanding amount after received payments",
+    "WhatsApp पेमेंट लिंक": "WhatsApp payment link",
+    "WhatsApp संदेश": "WhatsApp message",
+    "थेट कॉल करा": "Call customer",
+    "संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle": "All credit transactions · edit or settle",
+    "उधारी रेकॉर्ड्स अपडेट (Save Edit)": "Save record edits",
+    "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)": "Record ID to delete",
+    "उधारी नोंद डिलीट करा": "Delete credit record",
+    "रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.": "Record not found. Refresh the ledger.",
+    "कृपया ग्राहकाचे नाव भरा.": "Enter the customer name.",
+    "ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.": "Customer name cannot exceed 100 characters.",
+    "रक्कम शून्यापेक्षा मोठी असणे आवश्यक आहे.": "Amount must be greater than zero.",
+    "रक्कम वैध संख्या असणे आवश्यक आहे.": "Enter a valid amount.",
+    "व्यवहार प्रकार उपलब्ध पर्यायांपैकी निवडा.": "Select a valid transaction type.",
+    "टीप 1000 अक्षरांपेक्षा मोठी असू शकत नाही.": "Notes cannot exceed 1,000 characters.",
+    "ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.": "Customer name cannot exceed 100 characters.",
+    "फोन नंबर रिकामा ठेवा किंवा वैध 10 अंकी मोबाईल नंबर भरा.": "Leave the phone number blank or enter a valid 10-digit mobile number.",
+    "डेटाबेसमध्ये नोंद सेव्ह करता आली नाही:": "Could not save the database record:",
+    "नोंद सेव्ह करता आली नाही:": "Could not save the record:",
+    "रेकॉर्ड अपडेट करता आले नाहीत:": "Could not update records:",
+    "रेकॉर्ड डिलीट करता आला नाही:": "Could not delete the record:",
+    "खाते नोंद अपडेट झाली!": "Ledger entry saved!",
+    "व्हॉईस खात्यातील नोंद सेव्ह झाली!": "Voice transaction saved!",
+    "प्रतिबंधीत क्षेत्रः": "Restricted area:",
+    "कामागार/स्टाफला": "staff members are not allowed to access",
+    "उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!": "the customer credit page.",
+    "इन्व्हेंटरी पेजवर प्रवेश करण्याची परवानगी नाही!": "the inventory page.",
+    "व्यवसाय खर्च पेजवर प्रवेश करण्याची परवानगी नाही!": "the business expenses page.",
+    "OCR Scanner & Multi-Language Voice Billing": "OCR स्कॅनर आणि बहुभाषिक व्हॉईस बिलिंग",
+    "Instant Digital POS Receipt Parsing & Audio Confirmation": "पावत्या स्कॅन करा आणि आवाजाद्वारे बिल नोंदवा",
+    "POS ONLINE": "POS सुरू आहे",
+    "Input Mode": "इनपुट प्रकार",
+    "ड्युप्लिकेट पावती असल्यास जबरदस्तीने सेव्ह करा (Force Save)": "Save duplicate receipts anyway",
+    "Upload File": "फाइल अपलोड करा",
+    "Live Camera": "थेट कॅमेरा",
+    "Voice Bill": "व्हॉइस बिल",
+    "Take photo": "फोटो घ्या",
+    "Choose Receipts": "पावत्या निवडा",
+    "प्रोग्रेस सुरू आहे... व्हॉईसवरून बिल तयार होत आहे.": "Processing voice input and preparing the bill...",
+    "व्हॉईस बिल यशस्वीरीत्या तयार होऊन डेटाबेसमध्ये सेव्ह झाले !": "Voice bill processed and saved successfully!",
+    "व्हॉईस बिल सेव्ह झाले!": "Voice bill saved!",
+    "Process Receipt(s)": "पावती प्रक्रिया करा",
+    "Successfully processed": "यशस्वी प्रक्रिया:",
+    "पावती यशस्वीरीत्या स्कॅन झाली!": "Receipt scanned successfully!",
+    "कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.": "Select at least one receipt or take a photo.",
+    "Extracted Items & Summary": "काढलेल्या वस्तू आणि सारांश",
+    "Scan receipt(s) or use Multi-Language Voice Bill to display extracted items & summary.": "Scan a receipt or use voice billing to see extracted items and the summary.",
+    "Daily Sales & Merchant Analytics": "दैनिक विक्री आणि व्यवसाय विश्लेषण",
+    "Daily Revenue, Ticket Size, Category & Custom Period Reports": "दैनिक उत्पन्न, सरासरी बिल आणि कालावधी अहवाल",
+    "कस्टम अहवाल आणि कालावधी फिल्टर (Custom Period Filters)": "अहवाल कालावधी फिल्टर",
+    "अहवाल कालावधी निवडा (Select Report Period):": "अहवालाचा कालावधी निवडा:",
+    "All Time (संपूर्ण वेळ)": "सर्व कालावधी",
+    "Daily (आजचा दिवस)": "आज",
+    "Weekly (चालू आठवडा)": "या आठवड्यात",
+    "Monthly (चालू महिना)": "या महिन्यात",
+    "TOTAL REVENUE / SALES": "एकूण विक्री",
+    "TOTAL BILLS/ORDERS": "एकूण बिले / ऑर्डर",
+    "AVG TICKET SIZE": "सरासरी बिल रक्कम",
+    "TOP PERFORMING SHOP": "आघाडीचे दुकान",
+    "Category Breakdown": "वर्गनिहाय विक्री",
+    "Shop Revenue Overview": "दुकाननिहाय उत्पन्न",
+    "स्टॉक आणि इन्व्हेंटरी": "Stock & Inventory",
+    "उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.": "View available stock, low inventory and item status at a glance.",
+    "स्टॉक सेव्ह करा": "Save stock",
+    "वस्तूचे नाव (Item Name)": "वस्तूचे नाव",
+    "उपलब्ध नग/साठा (Stock Quantity)": "उपलब्ध साठा",
+    "मोजमाप एकक (Unit e.g. kg, pcs, ltr)": "मोजमापाचे एकक (उदा. kg, नग, ltr)",
+    "किमान वार्निंग लिमिट (Low Stock Alert Limit)": "कमी साठ्याची सूचना मर्यादा",
+    "स्टॉक आयटम डिलिट करा": "Delete stock item",
+    "डिलिट करण्यासाठी स्टॉक ID": "Stock ID to delete",
+    "कोणताही स्टॉक जोडलेला नाही.": "No stock items have been added.",
+    "नवीन माल जोडा": "Add inventory item",
+    "वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.": "Enter the item name, quantity and low-stock limit.",
+    "साठ्याचा आढावा": "Inventory overview",
+    "वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.": "Items in stock and items to reorder.",
+    "व्यवसाय खर्च · नोंदवही": "Business Expenses",
+    "भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.": "Track rent, utilities, payroll and everyday business costs.",
+    "नवीन खर्च नोंदवा": "Add an expense",
+    "खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.": "Enter the expense type, amount and date.",
+    "खर्चाचे शीर्षक (Expense Title e.g. Light Bill)": "खर्चाचे शीर्षक (उदा. वीज बिल)",
+    "खर्च रक्कम (Amount)": "खर्चाची रक्कम",
+    "खर्चाचा प्रकार (Category)": "खर्चाचा प्रकार",
+    "तारीख (Date)": "तारीख",
+    "तपशील / टीप (Notes)": "तपशील / टीप",
+    "खर्च सेव्ह करा": "Save expense",
+    "एकूण व्यवसाय खर्च": "Total business expenses",
+    "डिलिट करण्यासाठी खर्च ID": "Expense ID to delete",
+    "खर्च नोंद डिलीट करा": "Delete expense record",
+    "कोणताही खर्च नोंदवलेला नाही.": "No expenses have been recorded.",
+    "Admin Staff Management & Audit Logs": "स्टाफ व्यवस्थापन आणि ऑडिट लॉग",
+    "Create Staff Accounts & View Complete System Activity Audit Trail": "स्टाफ खाती तयार करा आणि प्रणालीतील हालचाली पहा",
+    "स्टाफ मॅनेजमेंट": "स्टाफ व्यवस्थापन",
+    "सिस्टीम ऑडिट लॉग्ज (Activity Logs)": "सिस्टीम ऑडिट लॉग",
+    "नवीन स्टाफ किंवा अॅडमिन जोडा": "नवीन स्टाफ किंवा प्रशासक जोडा",
+    "युजरनेम (Username)": "वापरकर्ता नाव",
+    "मोबाईल नंबर (Phone Number)": "मोबाईल नंबर",
+    "पासवर्ड (Password - किमान ६ अंक)": "पासवर्ड (किमान ६ अक्षरे)",
+    "भूमिका (Role)": "भूमिका",
+    "अकाऊंट तयार करा": "Create account",
+    "नोंदणीकृत युझर्सची यादी": "नोंदणीकृत वापरकर्ते",
+    "डिलिट करण्यासाठी युजरनेम टाईप करा (Username to delete)": "हटवण्यासाठी वापरकर्ता नाव लिहा",
+    "युजर डिलीट करा": "वापरकर्ता हटवा",
+    "मुख्य मास्टर अॅडमिन युजर डिलीट करता येणार नाही!": "The master administrator account cannot be deleted.",
+    "कोणतेही ऑडिट लॉग्ज उपलब्ध नाहीत.": "No audit logs are available.",
+    "ऑडिट लॉग्ज लोड करण्यात त्रुटी.": "Could not load audit logs.",
+    "Ledger Database & Multi-Language Export": "लेजर डेटाबेस आणि अहवाल डाउनलोड",
+    "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads": "डेटा, प्रगत फिल्टर आणि अहवाल डाउनलोड",
+    "Select Shop / Vendor": "दुकान / विक्रेता निवडा",
+    "Select Category": "वर्ग निवडा",
+    "Quick Search": "जलद शोध",
+    "Search anything...": "काहीही शोधा...",
+    "➕": "➕",
+    "नवीन रो यशस्वीरीत्या जोडली गेली!": "नवीन नोंद जोडली!",
+    "दुकान निवडून डाउनलोड करा (Select Shop)": "डाउनलोडसाठी दुकान निवडा",
+    "पावतीची भाषा निवडा:": "पावतीची भाषा निवडा:",
+    "पावतीची भाषा निवडा": "पावतीची भाषा निवडा",
+    "पासून (Start Date)": "सुरुवातीची तारीख",
+    "पर्यंत (End Date)": "शेवटची तारीख",
+    "Export Clean CSV": "CSV डाउनलोड करा",
+    "Ledger database is empty.": "लेजर डेटाबेस रिकामा आहे.",
+    "Welcome to Verna AI": "Verna AI मध्ये स्वागत आहे",
+    "Verna AI Studio": "Verna AI Studio",
+    "Your Smart Ledger &amp; Business Assistant": "तुमचा स्मार्ट लेजर आणि व्यवसाय सहाय्यक",
+    "Voice Output": "आवाजात उत्तर",
+    "ऑडिओ उत्तर चालू किंवा बंद करा": "आवाजातील उत्तरे सुरू किंवा बंद करा",
+    "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets or the environment to enable AI chat. Never share the key publicly.": "Gemini कॉन्फिगर केलेले नाही. AI चॅट सुरू करण्यासाठी Streamlit secrets किंवा environment मध्ये GEMINI_API_KEY जोडा. ही key सार्वजनिक करू नका.",
+    "Hello! Ask me anything about your shop ledger, stock, or expenses.": "नमस्कार! दुकानाचा लेजर, साठा किंवा खर्च याबद्दल प्रश्न विचारा.",
+    "Chat message": "चॅट संदेश",
+    "Speak your message": "बोलून संदेश द्या",
+    "Send message": "संदेश पाठवा",
+    "Ask in English, Marathi, or Hindi": "मराठी, इंग्रजी किंवा हिंदीत विचारा",
+    "Ask in English, मराठी, or हिंदी...": "मराठी, इंग्रजी किंवा हिंदीत विचारा...",
+    "Speech recognition is not supported in this browser.": "या ब्राउझरमध्ये आवाज ओळखण्याची सुविधा उपलब्ध नाही.",
+    "Listening": "ऐकत आहे",
+    "Microphone access was denied.": "मायक्रोफोन वापरण्याची परवानगी नाकारली.",
+    "Unable to start speech recognition.": "आवाज ओळख सुरू करता आली नाही.",
+    "English": "English",
+    "Select an option": "पर्याय निवडा",
+    "All Shops/Vendors": "सर्व दुकाने / विक्रेते",
+    "All Categories": "सर्व वर्ग",
+    "Staff (कामगार/कॅशियर - Limited Access)": "कर्मचारी (मर्यादित प्रवेश)",
+    "Admin (मालक - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
+    "दुकान भाडे (Shop Rent)": "दुकान भाडे",
+    "वीज बिल (Electricity Bill)": "वीज बिल",
+    "स्टाफ पगार (Staff Salary)": "स्टाफ पगार",
+    "वाहतूक (Transport)": "वाहतूक",
+    "इतर (Other)": "इतर",
+}
+
+
+def _translate_ui_text(value):
+    if not isinstance(value, str):
+        return value
+    language = st.session_state.get("ui_language", "mr")
+    devanagari_pattern = re.compile(r"[\u0900-\u097f]")
+    if language == "en":
+        replacements = []
+        for source, target in _UI_TRANSLATION_PAIRS.items():
+            source_has_devanagari = bool(devanagari_pattern.search(source))
+            target_has_devanagari = bool(devanagari_pattern.search(target))
+            if source_has_devanagari and not target_has_devanagari:
+                replacements.append((source, target))
+            elif not source_has_devanagari and target_has_devanagari:
+                replacements.append((target, source))
+            elif source_has_devanagari and target_has_devanagari:
+                english_label = re.search(r"\(([^()]*)\)", source)
+                if english_label and not devanagari_pattern.search(english_label.group(1)):
+                    replacements.append((source, english_label.group(1).strip()))
+    else:
+        replacements = []
+        for source, target in _UI_TRANSLATION_PAIRS.items():
+            source_has_devanagari = bool(devanagari_pattern.search(source))
+            target_has_devanagari = bool(devanagari_pattern.search(target))
+            if target_has_devanagari:
+                replacements.append((source, target))
+            elif source_has_devanagari:
+                replacements.append((target, source))
+    translated = value
+    for source, target in sorted(replacements, key=lambda pair: len(pair[0]), reverse=True):
+        translated = translated.replace(source, target)
+    return translated
+
+
+class _LocalizedStreamlitProxy:
+    _TEXT_METHODS = {
+        "title", "header", "subheader", "caption", "write", "info", "success",
+        "warning", "error", "toast", "button", "text_input", "text_area",
+        "selectbox", "radio", "checkbox", "form_submit_button",
+        "download_button", "metric", "date_input", "number_input",
+        "file_uploader", "camera_input", "toggle", "spinner", "expander",
+    }
+    _OPTION_METHODS = {"selectbox", "radio", "multiselect", "select_slider"}
+
+    def __init__(self, streamlit_module):
+        self._streamlit_module = streamlit_module
+
+    def __getattr__(self, name):
+        original = getattr(self._streamlit_module, name)
+        if name not in self._TEXT_METHODS | self._OPTION_METHODS | {"markdown", "tabs", "dataframe", "data_editor"}:
+            return original
+
+        def localized_call(*args, **kwargs):
+            if name == "markdown" and args:
+                args = (_translate_ui_text(args[0]), *args[1:])
+            elif name == "tabs" and args:
+                args = ([_translate_ui_text(label) for label in args[0]], *args[1:])
+            elif name in self._TEXT_METHODS and args:
+                args = (_translate_ui_text(args[0]), *args[1:])
+
+            for keyword in ("help", "placeholder"):
+                if isinstance(kwargs.get(keyword), str):
+                    kwargs[keyword] = _translate_ui_text(kwargs[keyword])
+
+            if name in self._OPTION_METHODS:
+                formatter = kwargs.get("format_func", str)
+                kwargs["format_func"] = lambda option: _translate_ui_text(formatter(option))
+
+            if name in {"dataframe", "data_editor"} and args and isinstance(args[0], pd.DataFrame):
+                column_config = dict(kwargs.get("column_config") or {})
+                for column in args[0].columns:
+                    label = _translate_ui_text(str(column))
+                    if label != str(column) and column not in column_config:
+                        column_config[column] = self._streamlit_module.column_config.Column(label=label)
+                if column_config:
+                    kwargs["column_config"] = column_config
+
+            return original(*args, **kwargs)
+
+        return localized_call
+
+
+def _render_language_toggle():
+    _streamlit_ui.radio(
+        "भाषा" if st.session_state.get("ui_language", "mr") == "mr" else "Language",
+        options=("mr", "en"),
+        format_func=lambda language: "मराठी" if language == "mr" else "English",
+        horizontal=True,
+        key="ui_language",
+    )
+
+
+_streamlit_ui = st
+st = _LocalizedStreamlitProxy(_streamlit_ui)
+
 
 def render_custom_logo(size="large"):
     if size == "large":
@@ -1888,6 +2266,7 @@ def render_login_portal():
     </style>
     """, unsafe_allow_html=True)
     
+    _render_language_toggle()
     render_custom_logo("compact")
     st.markdown("""
     <div style="text-align: center; margin-bottom: 6px;">
@@ -2094,6 +2473,7 @@ df = load_receipts_data()
 
 # SIDEBAR NAVIGATION ---
 with st.sidebar:
+    _render_language_toggle()
     render_custom_logo("small")
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
@@ -2136,6 +2516,8 @@ with st.sidebar:
 
 if selected_page != "RAG AI Chat":
     render_application_design_styles()
+else:
+    render_rag_sidebar_design_styles()
 
 # FEATURE 1: OCR SCANNER + MULTI-LANGUAGE VOICE BILLING ---
 if selected_page == "OCR Scanner":
@@ -2957,11 +3339,15 @@ main.block-container {
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
             with st.chat_message(message_role):
-                st.markdown(chat["text"])
+                _streamlit_ui.markdown(chat["text"])
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
 
-    chat_input_event = CHAT_INPUT_COMPONENT(key="verna_chat_input_component", default=None)
+    chat_input_event = CHAT_INPUT_COMPONENT(
+        key="verna_chat_input_component",
+        default=None,
+        language=st.session_state.get("ui_language", "mr"),
+    )
     prompt = None
     voice_captured = None
     if (
