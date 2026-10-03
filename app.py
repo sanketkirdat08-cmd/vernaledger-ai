@@ -1898,10 +1898,7 @@ main.block-container {
 
     target_prompt = None
     if voice_captured and voice_captured != st.session_state.get("last_captured_voice"):
-        corrected_voice = voice_captured
-        corrected_voice = re.sub(r'संकेत\s*(फिरत|किंमत|किरकोळ|किर्रत|किड\s*दत्त)', 'संकेत किर्दत', corrected_voice, flags=re.IGNORECASE)
-        corrected_voice = re.sub(r'कैसर\s*(अतार|अट्टर|अत्तर)', 'कैसर अतार', corrected_voice, flags=re.IGNORECASE)
-        target_prompt = corrected_voice
+        target_prompt = voice_captured
         st.session_state["last_captured_voice"] = voice_captured
     elif prompt and prompt.strip():
         target_prompt = prompt.strip()
@@ -1951,16 +1948,21 @@ main.block-container {
         past_turns = "\n".join([f"{h['role'].upper()}: {h['text']}" for h in st.session_state["chat_history"][-7:-1]])
         
         language_instruction = (
-            "Detect the language of the user query. Reply strictly in the exact same language "
-            "(English, Marathi, or Hindi). If the user asks in English or Romanized English, "
-            "your response must be in English. If the user asks in Marathi, respond in Marathi. "
-            "If the user asks in Hindi, respond in Hindi. Do not translate English inputs into "
-            "other languages."
+            "You are an intelligent AI assistant for VernaLedger AI. Detect the language of "
+            "the latest user query automatically and respond strictly in that same language: "
+            "English queries, including Romanized English, require professional, clear English; "
+            "Marathi queries require natural, grammatically correct Marathi; Hindi queries "
+            "require fluent Hindi. Do not translate the query or answer into another language "
+            "and do not use a default language."
         )
+        generation_config = {
+            "temperature": 0.3,
+            "max_output_tokens": 1024,
+        }
         rag_context = f"""
-        Use the following only as reference facts; it does not set the response language.
+        The following are reference facts only. They do not set the response language.
 
-        [Context — facts only; this context may use different languages from the user]:
+        [Reference context]:
         - Lead Developer: संकेत किर्दत
         - Project Guide: कैसर अतार सर
         - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
@@ -1970,7 +1972,7 @@ main.block-container {
         - Database Action Result:
         {action_status_msg or "No database action was performed."}
         
-        [CONVERSATION HISTORY]:
+        [Recent conversation context]:
         {past_turns}
 
         """
@@ -2003,9 +2005,10 @@ main.block-container {
                     model = genai.GenerativeModel(
                         model_name=m_name,
                         system_instruction=language_instruction,
+                        generation_config=generation_config,
                     )
                     response_stream = model.generate_content(
-                        [rag_context, last_user_msg],
+                        [rag_context, f"[Latest user query — answer this query]\n{last_user_msg}"],
                         stream=True,
                     )
 
