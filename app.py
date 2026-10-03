@@ -570,10 +570,10 @@ def render_business_module_styles():
     [data-testid="stMain"]:has(.business-suite-page) .studio-header {
         position: relative;
         overflow: hidden;
-        min-height: 164px;
+        min-height: 126px;
         align-items: center;
-        padding: 30px 34px;
-        margin-bottom: 22px;
+        padding: 22px 26px;
+        margin-bottom: 15px;
         border: 1px solid rgba(125, 211, 252, 0.24) !important;
         border-radius: 26px !important;
         background:
@@ -681,6 +681,9 @@ def render_business_module_styles():
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
     }
     [data-testid="stMain"]:has(.business-suite-page) .panel-card {
+        box-sizing: border-box;
+        padding: clamp(13px, 1.4vw, 18px) !important;
+        margin-bottom: 13px !important;
         background: linear-gradient(145deg, rgba(11, 20, 37, 0.94), rgba(12, 23, 41, 0.88)) !important;
         border: 1px solid rgba(148, 163, 184, 0.15) !important;
         border-radius: 20px !important;
@@ -750,7 +753,7 @@ def render_business_module_styles():
         font-size: 10px;
     }
     [data-testid="stMain"]:has(.business-suite-page) [data-testid="stForm"] {
-        padding: 18px;
+        padding: 13px;
         background: rgba(5, 13, 27, 0.42);
         border: 1px solid rgba(148, 163, 184, 0.11);
         border-radius: 16px;
@@ -767,7 +770,7 @@ def render_business_module_styles():
     @media (max-width: 720px) {
         [data-testid="stMain"]:has(.business-suite-page) .studio-header {
             min-height: 0;
-            padding: 22px 20px;
+            padding: 18px 16px;
             border-radius: 21px !important;
         }
         .business-hero-mark {
@@ -806,33 +809,77 @@ def render_rag_sidebar_design_styles():
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        max-width: min(20rem, 88vw) !important;
-        min-width: min(15rem, 88vw) !important;
+        max-width: min(19rem, 88vw) !important;
+        min-width: min(14rem, 88vw) !important;
         resize: none !important;
     }
     [data-testid="stSidebar"] > div:first-child {
         height: 100dvh !important;
         overflow: hidden !important;
+        padding: 6px 10px !important;
+    }
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        flex: 0 0 0 !important;
+        overflow: hidden !important;
     }
     [data-testid="stSidebarContent"] {
         height: 100% !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
         scrollbar-width: thin;
         scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
     }
+    [data-testid="stSidebarUserContent"] {
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 60px) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
+        gap: 0.35rem !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-role-badge {
+        margin: 0 0 3px !important;
+        padding: 3px 7px !important;
+        border-radius: 8px !important;
+        line-height: 1.15 !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-role-badge span {
+        font-size: 9px !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-brand {
+        margin-bottom: 1px !important;
+        padding: 0 !important;
+        gap: 8px !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-title {
+        margin: 6px 0 5px 3px !important;
+        font-size: 9px !important;
+        letter-spacing: 1px !important;
+    }
     section[data-testid="stSidebar"] div[role="radiogroup"] {
-        gap: 7px !important;
+        gap: 4px !important;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        min-height: 42px !important;
-        padding: 9px 12px !important;
+        min-height: 34px !important;
+        padding: 5px 9px !important;
         background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
         border: 1px solid rgba(56, 189, 248, 0.22) !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
         transform: none !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        font-size: 11px !important;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
         border-color: rgba(56, 189, 248, 0.62) !important;
@@ -843,10 +890,31 @@ def render_rag_sidebar_design_styles():
         border-color: rgba(56, 189, 248, 0.75) !important;
         box-shadow: inset 3px 0 #38bdf8, 0 0 22px rgba(34, 211, 238, 0.2) !important;
     }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] {
+        margin: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label p {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        min-height: 34px !important;
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        border-radius: 10px !important;
+    }
+    section[data-testid="stSidebar"] .dev-credit-box {
+        padding: 7px 9px !important;
+        margin-top: 3px !important;
+        border-radius: 10px !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button {
+        min-height: 34px !important;
+        padding: 6px 9px !important;
+    }
     @media (max-width: 900px) {
-        section[data-testid="stSidebar"] {
-            max-width: 88vw !important;
-            min-width: 88vw !important;
+        section[data-testid="stSidebar"][aria-expanded="true"] {
+            max-width: min(18rem, 82vw) !important;
+            min-width: min(18rem, 82vw) !important;
         }
     }
     </style>
@@ -873,44 +941,83 @@ def render_application_design_styles():
         width: 100% !important;
         max-width: 1680px !important;
         margin: 0 auto !important;
-        padding: clamp(1rem, 2.5vw, 2.2rem) clamp(0.8rem, 2.8vw, 2.8rem) 3rem !important;
+        padding: clamp(0.65rem, 1.3vw, 1.1rem) clamp(0.75rem, 2vw, 1.75rem) 1.5rem !important;
+    }
+    body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {
+        max-width: none !important;
+        width: 100% !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        max-width: min(20rem, 88vw) !important;
-        min-width: min(15rem, 88vw) !important;
+        max-width: min(19rem, 88vw) !important;
+        min-width: min(14rem, 88vw) !important;
         resize: none !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
-        padding: 20px 16px !important;
+        padding: 6px 10px !important;
         height: 100dvh !important;
+        overflow: hidden !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="false"] {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        flex: 0 0 0 !important;
         overflow: hidden !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebarContent"] {
         height: 100% !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
         overscroll-behavior: contain;
         scrollbar-width: thin;
         scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
     }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] {
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 60px) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
+        gap: 0.35rem !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge {
+        margin: 0 0 3px !important;
+        padding: 3px 7px !important;
+        border-radius: 8px !important;
+        line-height: 1.15 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge span {
+        font-size: 9px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-brand {
+        margin-bottom: 1px !important;
+        padding: 0 !important;
+        gap: 8px !important;
+    }
     body:has(.app-ui-polish-scope) .sidebar-title {
         color: #91a9c7 !important;
-        font-size: 10px !important;
-        letter-spacing: 1.5px !important;
-        margin: 16px 0 10px 4px !important;
+        margin: 6px 0 5px 3px !important;
+        font-size: 9px !important;
+        letter-spacing: 1px !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
-        gap: 7px !important;
+        gap: 4px !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        min-height: 42px !important;
-        padding: 9px 12px !important;
+        min-height: 34px !important;
+        padding: 5px 9px !important;
         background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(37, 99, 235, 0.08)) !important;
         border: 1px solid rgba(56, 189, 248, 0.22) !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         box-shadow: 0 0 12px rgba(34, 211, 238, 0.06) !important;
         transform: none !important;
     }
@@ -926,21 +1033,38 @@ def render_application_design_styles():
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
         color: #d8e4f2 !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 650 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] {
+        margin: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label p {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        min-height: 34px !important;
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        border-radius: 10px !important;
     }
     body:has(.app-ui-polish-scope) .dev-credit-box {
         background: rgba(15, 29, 48, 0.78) !important;
         border-color: rgba(148, 163, 184, 0.14) !important;
-        border-radius: 14px !important;
-        padding: 12px !important;
+        border-radius: 10px !important;
+        padding: 7px 9px !important;
+        margin-top: 3px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .stButton > button {
+        min-height: 34px !important;
+        padding: 6px 9px !important;
     }
     body:has(.app-ui-polish-scope) .studio-header {
         position: relative;
         overflow: hidden;
-        min-height: 132px;
-        padding: clamp(20px, 3vw, 34px) !important;
-        margin-bottom: 22px !important;
+        min-height: 118px;
+        padding: clamp(16px, 2vw, 25px) !important;
+        margin-bottom: 15px !important;
         background:
             radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.15), transparent 32%),
             linear-gradient(125deg, rgba(16, 31, 51, 0.96), rgba(12, 23, 40, 0.92)) !important;
@@ -966,8 +1090,8 @@ def render_application_design_styles():
     }
     body:has(.app-ui-polish-scope) .panel-card {
         box-sizing: border-box !important;
-        padding: clamp(16px, 2vw, 25px) !important;
-        margin-bottom: 18px !important;
+        padding: clamp(13px, 1.4vw, 18px) !important;
+        margin-bottom: 13px !important;
         background: linear-gradient(145deg, rgba(15, 28, 46, 0.94), rgba(12, 23, 39, 0.94)) !important;
         border: 1px solid rgba(148, 163, 184, 0.15) !important;
         border-radius: 18px !important;
@@ -1112,14 +1236,14 @@ def render_application_design_styles():
         height: 27px;
     }
     body:has(.app-ui-polish-scope) [data-testid="stForm"] {
-        padding: 15px;
+        padding: 13px;
         background: rgba(5, 13, 27, 0.36);
         border: 1px solid rgba(148, 163, 184, 0.1);
         border-radius: 15px;
     }
     @media (max-width: 900px) {
         body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-            padding: 1.1rem 1rem 2rem !important;
+            padding: 0.7rem 0.8rem 1.3rem !important;
         }
         body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
             flex-wrap: wrap !important;
@@ -1129,31 +1253,31 @@ def render_application_design_styles():
             min-width: calc(50% - 0.4rem) !important;
             flex: 1 1 calc(50% - 0.4rem) !important;
         }
-        body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
-            max-width: 88vw !important;
-            min-width: 88vw !important;
+        body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
+            max-width: min(18rem, 82vw) !important;
+            min-width: min(18rem, 82vw) !important;
         }
     }
     @media (max-width: 640px) {
         body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 0.8rem 0.7rem 1.5rem !important;
+            padding: 0.55rem 0.55rem 1rem !important;
         }
         body:has(.app-ui-polish-scope) .studio-header {
             min-height: 0;
             gap: 12px;
             align-items: flex-start;
-            padding: 20px 18px !important;
-            margin-bottom: 16px !important;
+            padding: 14px 13px !important;
+            margin-bottom: 12px !important;
             border-radius: 18px !important;
         }
         body:has(.app-ui-polish-scope) .studio-header h2 {
             font-size: 20px !important;
         }
         body:has(.app-ui-polish-scope) .panel-card {
-            padding: 16px !important;
-            margin-bottom: 14px !important;
+            padding: 13px !important;
+            margin-bottom: 10px !important;
             border-radius: 16px !important;
         }
         body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
@@ -1192,7 +1316,6 @@ def render_customer_khata():
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
 
-    render_business_module_styles()
     st.markdown("""
     <div class="studio-header business-module-hero">
         <div class="business-hero-content">
@@ -1587,6 +1710,8 @@ if "ui_language" not in st.session_state:
 
 _UI_TRANSLATION_PAIRS = {
     "Language / भाषा": "भाषा",
+    "Use English": "English वापरा",
+    "चालू: English · बंद: मराठी": "On: English · Off: Marathi",
     "Login": "लॉगिन",
     "Admin Sign Up": "प्रशासक नोंदणी",
     "Auth Mode": "प्रवेश प्रकार",
@@ -1888,13 +2013,19 @@ class _LocalizedStreamlitProxy:
         return localized_call
 
 
+def _sync_language_from_toggle():
+    st.session_state["ui_language"] = (
+        "en" if st.session_state.get("ui_language_english", False) else "mr"
+    )
+
+
 def _render_language_toggle():
-    _streamlit_ui.radio(
-        "भाषा" if st.session_state.get("ui_language", "mr") == "mr" else "Language",
-        options=("mr", "en"),
-        format_func=lambda language: "मराठी" if language == "mr" else "English",
-        horizontal=True,
-        key="ui_language",
+    _streamlit_ui.toggle(
+        _translate_ui_text("Use English"),
+        value=st.session_state.get("ui_language", "mr") == "en",
+        key="ui_language_english",
+        help=_translate_ui_text("चालू: English · बंद: मराठी"),
+        on_change=_sync_language_from_toggle,
     )
 
 
@@ -1925,7 +2056,7 @@ def render_custom_logo(size="large"):
         """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 4px 0;">
+        <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 4px 0;">
             <div style="background: linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%); padding: 7px; border-radius: 10px; box-shadow: 0 0 12px rgba(0, 242, 254, 0.5); flex-shrink: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -2478,7 +2609,7 @@ with st.sidebar:
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
     st.markdown(f"""
-    <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 6px 10px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 12px {role_badge_color}33;">
+    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 6px 10px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 12px {role_badge_color}33;">
         <span style="font-size: 10px; font-weight: 800; color: {role_badge_color};">ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
@@ -2516,6 +2647,7 @@ with st.sidebar:
 
 if selected_page != "RAG AI Chat":
     render_application_design_styles()
+    render_business_module_styles()
 else:
     render_rag_sidebar_design_styles()
 
@@ -3182,7 +3314,9 @@ elif selected_page == "Ledger Database":
             
             st.markdown("</div>", unsafe_allow_html=True)
     else:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         st.info("Ledger database is empty.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 8: RAG AI CHATBOT ---
 elif selected_page == "RAG AI Chat":
