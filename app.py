@@ -1965,18 +1965,16 @@ main.block-container {
         [CONVERSATION HISTORY]:
         {past_turns}
         
-        [LANGUAGE AND RESPONSE RULES — HIGHEST PRIORITY]:
-        1. Detect the language of the latest user prompt itself: English, Marathi, or Hindi. Do not infer the reply language from the conversation history, database context, or this instruction.
-        2. Write the entire reply strictly in that detected language: English prompts get English replies, Marathi prompts get Marathi replies, and Hindi prompts get Hindi replies. For a genuinely mixed-language prompt, use the language used most in the user's own words.
-        3. Do not provide translations, bilingual explanations, language labels, or extra greetings in another language. Do not switch languages mid-reply. Keep proper names, product names, and unavoidable technical tokens unchanged, but write all explanatory text in the detected language.
-        4. Use Latin script for English and Devanagari for Marathi or Hindi. To distinguish Marathi from Hindi, use the vocabulary and grammar of the user's prompt; Devanagari script alone does not determine the language.
-        5. Treat the database context and database action result as facts to explain in the detected language, even if those facts are written in another language.
+        [LANGUAGE AND RESPONSE GUIDANCE]:
+        1. Identify the language of the latest user message from its wording and context, distinguishing Marathi from Hindi even when both use Devanagari. Do not infer it from the conversation history, database context, or these instructions.
+        2. Respond naturally in the language the user used: use professional English for English requests, fluent Marathi for Marathi requests, and fluent Hindi for Hindi requests. When a message is genuinely mixed or code-switched, follow its predominant language while allowing familiar technical terms or natural code-switching where useful; do not force awkward single-language phrasing.
+        3. Use the script normally associated with the chosen language, while preserving names, product names, and technical terms in their familiar form. Avoid unnecessary translations or duplicating the answer in multiple languages unless the user requests them.
+        4. Use correct grammar, spelling, idiom, word order, agreement, and morphology for the response language. In Marathi, inflect verb stems and use postpositions naturally; do not mechanically append fragments such as 'येन' or 'पये'. Prefer natural phrases such as 'विचारण्यास' or 'विचारू शकता' and 'ठरू शकते'; use 'रुपये' only as the currency word after an amount. In Hindi, use appropriate postpositions, verb agreement, and gender/number forms; in English, use standard professional grammar.
+        5. Treat the database context and database action result as facts, and explain them in the language and style appropriate to the user's message.
         6. Answer precisely and concisely, with short paragraphs or bullets that display cleanly on desktop and mobile. Do not add unrequested details.
-        7. Format mobile numbers with clear spacing or hyphens (e.g., 9999-999-999). Use 'रुपये' in Marathi or Hindi and 'Rupees' in English; do not use 'Rs', 'RS', or '₹'.
-        8. If replying in Marathi, write names only in Devanagari: संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक. Do not add English transliterations in brackets.
-        9. When replying in Marathi, use standard Marathi grammar and morphology. Inflect verbs and attach postpositions according to Marathi grammar; never create words by mechanically adding 'येन' or 'पये' to a verb stem. Use natural forms such as 'विचारण्यास' or 'विचारू शकता' (not 'विचारूपयेन'), and 'ठरू शकते' (not 'ठरूपये'). Use 'रुपये' only as the currency word after an amount, never as a verb suffix.
-        10. Before sending a Marathi reply, check that verb endings and postpositions are natural and grammatically complete; rewrite any malformed or concatenated forms.
-        11. Never include citation tags or source indexes in the reply.
+        7. Format mobile numbers with clear spacing or hyphens (e.g., 9999-999-999). Use a natural currency term for the response language; do not use 'Rs', 'RS', or '₹'.
+        8. When replying in Marathi, write these names in Devanagari: संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
+        9. Never include citation tags or source indexes in the reply.
         """
 
         clean_ans = ""
