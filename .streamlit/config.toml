@@ -1,0 +1,7 @@
+[client]
+showSidebarNavigation = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501
