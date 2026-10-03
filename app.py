@@ -16,7 +16,6 @@ import google.generativeai as genai
 from ocr_engine import (
     generate_marathi_tts,
     get_active_gemini_models,
-    is_gemini_auth_error,
     process_receipt_advanced,
     process_voice_billing_advanced,
 )
@@ -68,6 +67,32 @@ def load_gemini_api_key() -> str:
 
 
 API_KEY = load_gemini_api_key()
+
+
+def is_gemini_auth_error(exception: Exception) -> bool:
+    """Return whether a Gemini exception indicates authentication or access failure."""
+    error_text = f"{type(exception).__name__} {exception}".casefold()
+    status_code = getattr(exception, "status_code", None)
+    if status_code is None:
+        response = getattr(exception, "response", None)
+        status_code = getattr(response, "status_code", None)
+
+    return (
+        any(
+            marker in error_text
+            for marker in (
+                "unauthenticated",
+                "unauthorized",
+                "api key",
+                "api_key",
+                "permission denied",
+                "permission_denied",
+                "forbidden",
+            )
+        )
+        or status_code in (401, 403)
+    )
+
 
 # --- AI AUTOMATIC RETRY LOGIC ---
 def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
