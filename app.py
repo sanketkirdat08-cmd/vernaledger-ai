@@ -564,17 +564,255 @@ def parse_voice_khata_details(transcript):
     }
 
 
+def render_business_module_styles():
+    st.markdown("""
+    <style>
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+        position: relative;
+        overflow: hidden;
+        min-height: 164px;
+        align-items: center;
+        padding: 30px 34px;
+        margin-bottom: 22px;
+        border: 1px solid rgba(125, 211, 252, 0.24) !important;
+        border-radius: 26px !important;
+        background:
+            radial-gradient(circle at 88% 16%, rgba(34, 211, 238, 0.2), transparent 28%),
+            radial-gradient(circle at 73% 110%, rgba(99, 102, 241, 0.2), transparent 35%),
+            linear-gradient(120deg, rgba(8, 18, 37, 0.98), rgba(14, 31, 55, 0.94) 58%, rgba(12, 27, 49, 0.96)) !important;
+        box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        right: 5%;
+        top: -82px;
+        border: 1px solid rgba(125, 211, 252, 0.13);
+        border-radius: 50%;
+        box-shadow: 0 0 0 20px rgba(125, 211, 252, 0.025), 0 0 0 42px rgba(125, 211, 252, 0.02);
+        pointer-events: none;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.42) !important;
+        box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34), 0 0 34px rgba(34, 211, 238, 0.08) !important;
+    }
+    .business-hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+    }
+    .business-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding: 5px 10px;
+        color: #a5f3fc;
+        background: rgba(34, 211, 238, 0.09);
+        border: 1px solid rgba(103, 232, 249, 0.2);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.25px;
+        text-transform: uppercase;
+    }
+    .business-hero-title {
+        margin: 0 !important;
+        color: #f8fafc !important;
+        font-size: clamp(25px, 3.2vw, 36px) !important;
+        font-weight: 800 !important;
+        letter-spacing: -1.1px;
+        line-height: 1.16 !important;
+    }
+    .business-hero-title span {
+        color: #67e8f9;
+    }
+    .business-hero-subtitle {
+        margin: 9px 0 0 !important;
+        color: #a8b8ce !important;
+        font-size: 13px !important;
+        line-height: 1.65 !important;
+    }
+    .business-hero-mark {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        flex: 0 0 72px;
+        width: 72px;
+        height: 72px;
+        place-items: center;
+        margin-left: 20px;
+        color: #a5f3fc;
+        background: linear-gradient(145deg, rgba(34, 211, 238, 0.19), rgba(99, 102, 241, 0.14));
+        border: 1px solid rgba(103, 232, 249, 0.25);
+        border-radius: 23px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 14px 30px rgba(2, 6, 23, 0.28);
+        font-size: 32px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
+        margin-top: 4px;
+        gap: 8px;
+        padding: 7px;
+        background: rgba(7, 15, 30, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.13);
+        border-radius: 17px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"] {
+        min-height: 43px;
+        padding: 9px 15px;
+        color: #9aabc2;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"]:hover {
+        color: #e2faff;
+        background: rgba(34, 211, 238, 0.07);
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [role="tab"][aria-selected="true"] {
+        color: #d9fbff;
+        background: linear-gradient(135deg, rgba(8, 145, 178, 0.22), rgba(59, 130, 246, 0.16));
+        border-color: rgba(103, 232, 249, 0.25);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .panel-card {
+        background: linear-gradient(145deg, rgba(11, 20, 37, 0.94), rgba(12, 23, 41, 0.88)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .panel-card:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.26) !important;
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24) !important;
+    }
+    .business-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 8px 0 16px;
+    }
+    .business-section-icon {
+        display: grid;
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: #a5f3fc;
+        background: rgba(34, 211, 238, 0.1);
+        border: 1px solid rgba(103, 232, 249, 0.17);
+        border-radius: 12px;
+        font-size: 18px;
+    }
+    .business-section-title {
+        margin: 0;
+        color: #edf6ff;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+    }
+    .business-section-caption {
+        margin: 3px 0 0;
+        color: #8294ad;
+        font-size: 11px;
+    }
+    .business-metric-card {
+        min-height: 104px;
+        padding: 16px 17px;
+        background: linear-gradient(145deg, rgba(16, 30, 51, 0.92), rgba(10, 20, 37, 0.9));
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 17px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+    }
+    .business-metric-label {
+        color: #90a2ba;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.75px;
+        text-transform: uppercase;
+    }
+    .business-metric-value {
+        margin-top: 9px;
+        color: #f3f8ff;
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.6px;
+    }
+    .business-metric-note {
+        margin-top: 5px;
+        color: #73869f;
+        font-size: 10px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stForm"] {
+        padding: 18px;
+        background: rgba(5, 13, 27, 0.42);
+        border: 1px solid rgba(148, 163, 184, 0.11);
+        border-radius: 16px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stDataFrame"],
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stDataEditor"] {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) [data-testid="stAlert"] {
+        border-radius: 14px;
+    }
+    @media (max-width: 720px) {
+        [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+            min-height: 0;
+            padding: 22px 20px;
+            border-radius: 21px !important;
+        }
+        .business-hero-mark {
+            flex-basis: 52px;
+            width: 52px;
+            height: 52px;
+            margin-left: 10px;
+            border-radius: 16px;
+            font-size: 24px;
+        }
+        .business-hero-subtitle {
+            max-width: 92%;
+            font-size: 12px !important;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
+            gap: 4px;
+            padding: 5px;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [role="tab"] {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        [data-testid="stMain"]:has(.business-suite-page) [data-testid="stForm"] {
+            padding: 13px;
+        }
+    }
+    </style>
+    <div class="business-suite-page" aria-hidden="true"></div>
+    """, unsafe_allow_html=True)
+
+
 def render_customer_khata():
     if st.session_state.get("user_role") == "Staff":
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
 
+    render_business_module_styles()
     st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Customer Khata (उधारी वही)</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Secure Credit Tracking, Local Risk Scoring, Multi-Language Voice Parsing & Direct Settle</p>
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · CUSTOMER KHATA</div>
+            <h2 class="business-hero-title">ग्राहक खाते <span>· उधारी वही</span></h2>
+            <p class="business-hero-subtitle">उधारी, हप्ते आणि ग्राहक जोखीम — एकाच स्वच्छ, सोप्या डॅशबोर्डमध्ये.</p>
         </div>
+        <div class="business-hero-mark" aria-hidden="true">◈</div>
     </div>
     """, unsafe_allow_html=True)
     tab1, tab2, tab3 = st.tabs([
@@ -585,7 +823,13 @@ def render_customer_khata():
 
     with tab1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>+ नवीन उधारी किंवा हप्ता नोंद करा</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन व्यवहार नोंदवा</h3>
+            <p class="business-section-caption">ग्राहकाची उधारी किंवा जमा झालेला हप्ता सुरक्षितपणे नोंदवा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         with st.form("khata_form"):
             fc1, fc2 = st.columns(2)
             with fc1:
@@ -620,7 +864,13 @@ def render_customer_khata():
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         header_col, refresh_col = st.columns([3, 1])
         with header_col:
-            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>उधारी लेजर, AI रिस्क, Edit & Quick Settle</h4>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">◉</div>
+                <div><h3 class="business-section-title">उधारी लेजर आणि जोखीम</h3>
+                <p class="business-section-caption">बाकी रक्कम, मुदत आणि ग्राहक व्यवहारांचा आढावा.</p></div>
+            </div>
+            """, unsafe_allow_html=True)
         with refresh_col:
             if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
                 st.rerun()
@@ -639,9 +889,10 @@ def render_customer_khata():
         )
         st.markdown(
             f"""
-            <div style="background: rgba(0,242,254,0.1); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 14px;">
-                <b>एकूण येणे बाकी (Net Udhari):</b>
-                <span style="color:#00ff87; font-size:20px; font-weight:800;">{total_balance:,.2f}</span>
+            <div class="business-metric-card" style="margin-bottom: 16px;">
+                <div class="business-metric-label">एकूण येणे बाकी · Net Udhari</div>
+                <div class="business-metric-value" style="color:#67e8f9;">₹ {total_balance:,.2f}</div>
+                <div class="business-metric-note">जमा हप्ते वजा करून मोजलेली एकूण बाकी</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -816,7 +1067,13 @@ def render_customer_khata():
             ):
                 st.session_state.pop(field, None)
         st.markdown("<div class='panel-card' style='border: 1px solid rgba(0,242,254,0.3);'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>Multi-Language Voice-to-Khata Assistant</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">⌁</div>
+            <div><h3 class="business-section-title">बोलून व्यवहार नोंदवा</h3>
+            <p class="business-section-caption">मराठी, हिंदी किंवा इंग्रजीत बोला; सेव्ह करण्यापूर्वी तपशील तपासा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         st.markdown("""
         <div style="background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center;">
             <div style="font-size: 15px; font-weight: 800; color: #00f2fe;">MULTI-LANGUAGE VOICE ENGINE ACTIVE (Auto-Detect Language)</div>
@@ -1805,18 +2062,27 @@ elif selected_page == "Stock & Inventory":
     if st.session_state.get('user_role') == 'Staff':
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला इन्व्हेंटरी पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
+    render_business_module_styles()
     st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Shop Inventory & Stock Tracker</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Monitor Stock Levels & Low Inventory Warnings</p>
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · INVENTORY</div>
+            <h2 class="business-hero-title">स्टॉक आणि <span>इन्व्हेंटरी</span></h2>
+            <p class="business-hero-subtitle">उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.</p>
         </div>
+        <div class="business-hero-mark" aria-hidden="true">▦</div>
     </div>
     """, unsafe_allow_html=True)
     ic1, ic2 = st.columns([1, 1])
     with ic1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन माल/स्टॉक जोडा</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन माल जोडा</h3>
+            <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         with st.form("stock_form"):
             s_name = st.text_input("वस्तूचे नाव (Item Name)")
             s_qty = st.number_input("उपलब्ध नग/साठा (Stock Quantity)", min_value=0.0, step=1.0)
@@ -1844,7 +2110,13 @@ elif selected_page == "Stock & Inventory":
         st.markdown("</div>", unsafe_allow_html=True)
     with ic2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>इन्व्हेंटरी आणि स्टॉक स्टेटस</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">▤</div>
+            <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
+            <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         try:
             with sqlite3.connect("ledger.db") as conn:
                 stock_df = pd.read_sql_query("SELECT * FROM shop_inventory", conn)
@@ -1852,8 +2124,32 @@ elif selected_page == "Stock & Inventory":
             stock_df = pd.DataFrame()
             
         if not stock_df.empty:
-            st.dataframe(stock_df, use_container_width=True)
             low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
+            stock_metric1, stock_metric2 = st.columns(2)
+            with stock_metric1:
+                st.markdown(
+                    f"""
+                    <div class="business-metric-card" style="margin-bottom:14px;">
+                        <div class="business-metric-label">एकूण वस्तू</div>
+                        <div class="business-metric-value">{len(stock_df)}</div>
+                        <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with stock_metric2:
+                low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
+                st.markdown(
+                    f"""
+                    <div class="business-metric-card" style="margin-bottom:14px;">
+                        <div class="business-metric-label">कमी साठा</div>
+                        <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
+                        <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            st.dataframe(stock_df, use_container_width=True)
             if not low_stock_items.empty:
                 low_names = ", ".join(low_stock_items['item_name'].tolist())
                 st.markdown(f"""
@@ -1883,18 +2179,27 @@ elif selected_page == "Business Expenses":
     if st.session_state.get('user_role') == 'Staff':
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला व्यवसाय खर्च पेजवर प्रवेश करण्याची परवानगी नाही!")
         st.stop()
+    render_business_module_styles()
     st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Business Expense Management (दुकान खर्च ट्रॅकर)</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Track Shop Rent, Electricity Bill, Salaries & Daily Operational Costs</p>
+    <div class="studio-header business-module-hero">
+        <div class="business-hero-content">
+            <div class="business-eyebrow">✦ BUSINESS MODULES · EXPENSES</div>
+            <h2 class="business-hero-title">व्यवसाय खर्च <span>· नोंदवही</span></h2>
+            <p class="business-hero-subtitle">भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.</p>
         </div>
+        <div class="business-hero-mark" aria-hidden="true">₹</div>
     </div>
     """, unsafe_allow_html=True)
     ec1, ec2 = st.columns([1, 1])
     with ec1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन खर्च नोंदवा (Add Expense)</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">＋</div>
+            <div><h3 class="business-section-title">नवीन खर्च नोंदवा</h3>
+            <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         with st.form("expense_form"):
             e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
             e_amount = st.number_input("खर्च रक्कम (Amount)", min_value=0.0, step=50.0)
@@ -1923,7 +2228,13 @@ elif selected_page == "Business Expenses":
         st.markdown("</div>", unsafe_allow_html=True)
     with ec2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>संपूर्ण खर्च यादी व समरी</h4>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">▤</div>
+            <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
+            <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
+        </div>
+        """, unsafe_allow_html=True)
         try:
             with sqlite3.connect("ledger.db") as conn:
                 exp_df = pd.read_sql_query("SELECT * FROM business_expenses ORDER BY id DESC", conn)
@@ -1932,8 +2243,10 @@ elif selected_page == "Business Expenses":
         if not exp_df.empty:
             total_expenses = exp_df['amount'].sum()
             st.markdown(f"""
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 12px; margin-bottom: 14px;">
-                <b>एकूण व्यवसाय खर्च (Total Expenses):</b> <span style="color:#f87171; font-size:18px; font-weight:800;">{total_expenses:,.2f}</span>
+            <div class="business-metric-card" style="margin-bottom:14px;">
+                <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
+                <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
+                <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
             </div>
             """, unsafe_allow_html=True)
             st.dataframe(exp_df, use_container_width=True)
