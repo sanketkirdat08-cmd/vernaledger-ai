@@ -27,7 +27,7 @@ from streamlit_mic_recorder import speech_to_text
 st.set_page_config(
     page_title="VernaLedger AI",
     page_icon="🤖",
-    layout="centered",
+    layout="wide",
 )
 
 CHAT_INPUT_COMPONENT = components.declare_component(
@@ -1409,6 +1409,7 @@ def render_application_design_styles():
         }
         body:has(.app-ui-polish-scope) .studio-header {
             min-height: 0;
+            flex-wrap: wrap;
             gap: 12px;
             align-items: flex-start;
             padding: 14px 13px !important;
@@ -1419,9 +1420,16 @@ def render_application_design_styles():
             font-size: 20px !important;
         }
         body:has(.app-ui-polish-scope) .panel-card {
+            box-sizing: border-box;
             padding: 13px !important;
             margin-bottom: 10px !important;
             border-radius: 16px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
+        body:has(.app-ui-polish-scope) [data-testid="stDataEditor"],
+        body:has(.app-ui-polish-scope) [data-testid="stPlotlyChart"] {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
         }
         body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
             min-width: 100% !important;
