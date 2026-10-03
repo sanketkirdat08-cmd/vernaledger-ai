@@ -2067,7 +2067,18 @@ main.block-container {
         if enable_voice_output and success_stream:
             audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
             audio_text = re.sub(r'\bAI\b', 'ए आय', audio_text, flags=re.IGNORECASE)
-            audio_text = audio_text.replace("साक्षी भगत", "साक्षी Bhagat")
+            pronunciation_hints = {
+                "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
+                "ढवाळे": "ढव्-ळे",
+                "ढवळे": "ढव्-ळे",
+                "गवाली": "गव्-ळी",
+                "गवळी": "गव्-ळी",
+                "कैसर": "कै-सर",
+                "कौसर": "कै-सर",
+            }
+            for name, pronunciation in pronunciation_hints.items():
+                audio_text = audio_text.replace(name, pronunciation)
+            audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
             audio_file_path = generate_marathi_tts(audio_text)
 
         st.session_state["chat_history"].append({
