@@ -13,7 +13,13 @@ import re
 import urllib.parse
 import logging
 import google.generativeai as genai
-from ocr_engine import process_receipt_advanced, process_voice_billing_advanced, generate_marathi_tts, get_active_gemini_models
+from ocr_engine import (
+    generate_marathi_tts,
+    get_active_gemini_models,
+    is_gemini_auth_error,
+    process_receipt_advanced,
+    process_voice_billing_advanced,
+)
 from streamlit_mic_recorder import speech_to_text
 
 st.set_page_config(
@@ -36,7 +42,32 @@ if not ai_logger.handlers:
     ai_file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     ai_logger.addHandler(ai_file_handler)
     ai_logger.propagate = False
-API_KEY = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
+
+
+def load_gemini_api_key() -> str:
+    secret_key = ""
+    secret_error_type = None
+    try:
+        secret_value = st.secrets.get("GEMINI_API_KEY", "")
+        if isinstance(secret_value, str):
+            secret_key = secret_value.strip()
+    except Exception as exc:
+        secret_error_type = type(exc).__name__
+
+    environment_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if secret_key:
+        return secret_key
+    if environment_key:
+        return environment_key
+    if secret_error_type:
+        ai_logger.error(
+            "Could not read Streamlit secrets (%s), and GEMINI_API_KEY is not set in the environment.",
+            secret_error_type,
+        )
+    return ""
+
+
+API_KEY = load_gemini_api_key()
 
 # --- AI AUTOMATIC RETRY LOGIC ---
 def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
@@ -1798,6 +1829,12 @@ main.block-container {
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
+    if not API_KEY:
+        st.warning(
+            "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
+            "or the environment to enable AI chat. Never share the key publicly."
+        )
+
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
@@ -1915,21 +1952,32 @@ main.block-container {
         9. Never include citation tags or source indexes in the reply.
         """
 
-        if not API_KEY.strip():
+        clean_ans = ""
+        last_error = None
+        success_stream = False
+        if not API_KEY:
             ai_logger.error("Gemini response generation skipped because GEMINI_API_KEY is not configured.")
-            clean_ans = "Verna AI Error: GEMINI_API_KEY is not configured. Add it to Streamlit secrets or the environment, then restart the app."
+            clean_ans = (
+                "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
+                "or the environment, then restart the app."
+            )
         else:
-            genai.configure(api_key=API_KEY.strip())
-            fast_models = get_active_gemini_models()
+            try:
+                genai.configure(api_key=API_KEY)
+                fast_models = get_active_gemini_models()
+            except Exception as exc:
+                fast_models = []
+                last_error = exc
+                ai_logger.error(
+                    "Gemini initialization failed (%s).",
+                    type(exc).__name__,
+                )
 
             ai_placeholder = st.empty()
-            success_stream = False
-            last_error = None
-
             for m_name in fast_models:
                 model_response = ""
                 try:
-                    model = genai.GenerativeModel(m_name)
+                    model = genai.GenerativeModel(model_name=m_name)
                     response_stream = model.generate_content([system_prompt, last_user_msg], stream=True)
 
                     for chunk in response_stream:
@@ -1951,27 +1999,34 @@ main.block-container {
                         m_name,
                         type(exc).__name__,
                     )
+                    if is_gemini_auth_error(exc):
+                        break
 
-            if not success_stream:
-                if last_error:
-                    error_type = type(last_error).__name__
+            if not success_stream and not clean_ans:
+                if last_error and is_gemini_auth_error(last_error):
                     clean_ans = (
-                        f"Verna AI Error: Gemini requests failed ({error_type}). "
-                        "Check GEMINI_API_KEY, model access, network connectivity, and app.log."
+                        "Gemini could not authenticate the configured API key. Verify that GEMINI_API_KEY "
+                        "is a valid, active Google AI Studio key with Gemini API access, then update "
+                        "Streamlit secrets or the environment. Never share the key publicly."
+                    )
+                elif last_error:
+                    clean_ans = (
+                        f"Gemini could not complete the request ({type(last_error).__name__}). "
+                        "Check API access, network connectivity, and app.log."
                     )
                 else:
-                    clean_ans = "Verna AI Error: No Gemini models are available. Check app.log and model access."
+                    clean_ans = "No Gemini models are available. Check API access and app.log."
 
-            audio_file_path = None
-            if enable_voice_output:
-                audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
-                audio_text = re.sub(r'\bAI\b', 'ए आय', audio_text, flags=re.IGNORECASE)
-                audio_text = audio_text.replace("साक्षी भगत", "साक्षी Bhagat")
-                audio_file_path = generate_marathi_tts(audio_text)
+        audio_file_path = None
+        if enable_voice_output and success_stream:
+            audio_text = clean_ans.replace("*", "").replace("#", "").replace("`", "")
+            audio_text = re.sub(r'\bAI\b', 'ए आय', audio_text, flags=re.IGNORECASE)
+            audio_text = audio_text.replace("साक्षी भगत", "साक्षी Bhagat")
+            audio_file_path = generate_marathi_tts(audio_text)
 
-            st.session_state["chat_history"].append({
-                "role": "ai",
-                "text": clean_ans,
-                "audio_file": audio_file_path
-            })
-            st.rerun()
+        st.session_state["chat_history"].append({
+            "role": "ai",
+            "text": clean_ans,
+            "audio_file": audio_file_path
+        })
+        st.rerun()
