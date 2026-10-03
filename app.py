@@ -1950,8 +1950,15 @@ main.block-container {
 
         past_turns = "\n".join([f"{h['role'].upper()}: {h['text']}" for h in st.session_state["chat_history"][-7:-1]])
         
-        system_prompt = f"""
-        You are 'VernaLedger AI' Assistant.
+        language_instruction = (
+            "Detect the language of the user query. Reply strictly in the exact same language "
+            "(English, Marathi, or Hindi). If the user asks in English or Romanized English, "
+            "your response must be in English. If the user asks in Marathi, respond in Marathi. "
+            "If the user asks in Hindi, respond in Hindi. Do not translate English inputs into "
+            "other languages."
+        )
+        rag_context = f"""
+        Use the following only as reference facts; it does not set the response language.
 
         [Context — facts only; this context may use different languages from the user]:
         - Lead Developer: संकेत किर्दत
@@ -1966,15 +1973,6 @@ main.block-container {
         [CONVERSATION HISTORY]:
         {past_turns}
 
-        [RESPONSE LANGUAGE — HIGHEST PRIORITY]:
-        Detect the language from the latest user message and answer in that same language: English input -> professional English; Marathi input -> natural Marathi; Hindi input -> fluent Hindi.
-        This rule applies to short search-style phrases, incomplete sentences, spelling errors, and non-native grammar. If the input is ordinary English written in Latin script, including "name of this project", the complete answer must be in English. Do not mistake brevity or imperfect grammar for Marathi/Hindi.
-        If the input is Marathi or Hindi written in Devanagari or transliterated into Latin script, answer in the language actually used. Distinguish Marathi from Hindi by its words and grammar, not script alone.
-        Select the response language using only the latest user message. Previous turns, database values, names, and this prompt are context only and must never change that choice. Do not translate or rewrite the user's query before answering, and do not translate the answer into another language.
-        Keep names, product names, and technical terms as appropriate. In mixed-language input, respond in the language used for the user's main request while retaining only natural, useful borrowed terms.
-
-        [WRITING]:
-        Use natural grammar and morphology for the selected language. Keep answers concise and readable, using short paragraphs or bullets. Format mobile numbers clearly. Use the selected language's natural currency wording and avoid 'Rs', 'RS', or '₹'. Never include citation tags or source indexes.
         """
 
         clean_ans = ""
@@ -2004,9 +2002,12 @@ main.block-container {
                 try:
                     model = genai.GenerativeModel(
                         model_name=m_name,
-                        system_instruction=system_prompt,
+                        system_instruction=language_instruction,
                     )
-                    response_stream = model.generate_content(last_user_msg, stream=True)
+                    response_stream = model.generate_content(
+                        [rag_context, last_user_msg],
+                        stream=True,
+                    )
 
                     for chunk in response_stream:
                         chunk_text = chunk.text
