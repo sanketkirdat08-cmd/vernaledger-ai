@@ -799,6 +799,284 @@ def render_business_module_styles():
     """, unsafe_allow_html=True)
 
 
+def render_application_design_styles():
+    st.markdown("""
+    <style>
+    body:has(.app-ui-polish-scope) .stApp {
+        background-color: #08111f !important;
+        background-image:
+            radial-gradient(ellipse at 8% 0%, rgba(14, 165, 233, 0.12), transparent 38%),
+            radial-gradient(ellipse at 100% 18%, rgba(99, 102, 241, 0.11), transparent 34%),
+            linear-gradient(145deg, #08111f 0%, #0b1424 54%, #0a1020 100%) !important;
+        color: #e7eef8 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stHeader"] {
+        background: rgba(8, 17, 31, 0.84) !important;
+        border-bottom-color: rgba(148, 163, 184, 0.12) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 1680px !important;
+        margin: 0 auto !important;
+        padding: clamp(1rem, 2.5vw, 2.2rem) clamp(0.8rem, 2.8vw, 2.8rem) 3rem !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
+        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
+        padding: 20px 16px !important;
+    }
+    body:has(.app-ui-polish-scope) .sidebar-title {
+        color: #91a9c7 !important;
+        font-size: 10px !important;
+        letter-spacing: 1.5px !important;
+        margin: 16px 0 10px 4px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 7px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        min-height: 42px !important;
+        padding: 9px 12px !important;
+        background: rgba(17, 31, 51, 0.54) !important;
+        border: 1px solid rgba(148, 163, 184, 0.11) !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: rgba(24, 45, 70, 0.78) !important;
+        border-color: rgba(56, 189, 248, 0.38) !important;
+        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.22) !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(110deg, rgba(14, 165, 233, 0.2), rgba(37, 99, 235, 0.13)) !important;
+        border-color: rgba(56, 189, 248, 0.5) !important;
+        box-shadow: inset 3px 0 #38bdf8 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #d8e4f2 !important;
+        font-size: 12px !important;
+        font-weight: 650 !important;
+    }
+    body:has(.app-ui-polish-scope) .dev-credit-box {
+        background: rgba(15, 29, 48, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.14) !important;
+        border-radius: 14px !important;
+        padding: 12px !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header {
+        position: relative;
+        overflow: hidden;
+        min-height: 132px;
+        padding: clamp(20px, 3vw, 34px) !important;
+        margin-bottom: 22px !important;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.15), transparent 32%),
+            linear-gradient(125deg, rgba(16, 31, 51, 0.96), rgba(12, 23, 40, 0.92)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.17) !important;
+        border-radius: 22px !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.045) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header:hover {
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header h2 {
+        color: #e9f4ff !important;
+        font-size: clamp(20px, 2.2vw, 28px) !important;
+        line-height: 1.25 !important;
+        letter-spacing: -0.035em !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header p {
+        color: #9bb0c9 !important;
+        font-size: clamp(12px, 1.15vw, 14px) !important;
+        line-height: 1.6 !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card {
+        box-sizing: border-box !important;
+        padding: clamp(16px, 2vw, 25px) !important;
+        margin-bottom: 18px !important;
+        background: linear-gradient(145deg, rgba(15, 28, 46, 0.94), rgba(12, 23, 39, 0.94)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.19), inset 0 1px rgba(255, 255, 255, 0.035) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card:hover {
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.23) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) h1,
+    body:has(.app-ui-polish-scope) h2,
+    body:has(.app-ui-polish-scope) h3,
+    body:has(.app-ui-polish-scope) h4 {
+        letter-spacing: -0.025em;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] h4 {
+        color: #dceaf9 !important;
+        font-size: 16px !important;
+        margin-bottom: 14px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+        gap: 6px !important;
+        padding: 6px !important;
+        background: rgba(10, 20, 35, 0.74) !important;
+        border: 1px solid rgba(148, 163, 184, 0.14) !important;
+        border-radius: 15px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+        min-height: 42px !important;
+        padding: 9px 14px !important;
+        color: #9fb2c9 !important;
+        border: 1px solid transparent !important;
+        border-radius: 10px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: #e5f6ff !important;
+        background: linear-gradient(120deg, rgba(14, 165, 233, 0.2), rgba(59, 130, 246, 0.13)) !important;
+        border-color: rgba(56, 189, 248, 0.25) !important;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.06) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea,
+    body:has(.app-ui-polish-scope) [data-baseweb="select"] > div {
+        min-height: 42px;
+        color: #e7eef8 !important;
+        background: rgba(7, 16, 29, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.2) !important;
+        border-radius: 11px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea:focus {
+        border-color: rgba(56, 189, 248, 0.72) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.13) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stWidgetLabel"] p,
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] p {
+        line-height: 1.55;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        min-height: 43px !important;
+        padding: 10px 16px !important;
+        border-radius: 11px !important;
+        box-shadow: 0 6px 16px rgba(2, 8, 23, 0.23) !important;
+        transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button[kind="primary"],
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
+        border: 1px solid rgba(125, 211, 252, 0.28) !important;
+        color: #f8fbff !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button:hover,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button:hover,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button:hover {
+        border-color: rgba(125, 211, 252, 0.58) !important;
+        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.29) !important;
+        transform: translateY(-1px) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMetric"] {
+        padding: 15px 16px;
+        background: rgba(10, 21, 37, 0.74);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
+    body:has(.app-ui-polish-scope) [data-testid="stDataEditor"] {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        background: rgba(10, 19, 33, 0.65);
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stFileUploader"],
+    body:has(.app-ui-polish-scope) [data-testid="stCameraInput"] {
+        background: rgba(9, 19, 33, 0.65) !important;
+        border: 1px dashed rgba(56, 189, 248, 0.42) !important;
+        border-radius: 15px !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stAlert"] {
+        border-radius: 13px !important;
+    }
+    @media (max-width: 900px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            padding: 1.1rem 1rem 2rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: calc(50% - 0.4rem) !important;
+            flex: 1 1 calc(50% - 0.4rem) !important;
+        }
+    }
+    @media (max-width: 640px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.8rem 0.7rem 1.5rem !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header {
+            min-height: 0;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 20px 18px !important;
+            margin-bottom: 16px !important;
+            border-radius: 18px !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header h2 {
+            font-size: 20px !important;
+        }
+        body:has(.app-ui-polish-scope) .panel-card {
+            padding: 16px !important;
+            margin-bottom: 14px !important;
+            border-radius: 16px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+            gap: 4px !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            scrollbar-width: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
+            display: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+            flex: 0 0 auto !important;
+            min-height: 40px !important;
+            padding: 8px 11px !important;
+            font-size: 11px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stFileUploader"] {
+            padding: 12px !important;
+        }
+    }
+    </style>
+    <div class="app-ui-polish-scope" aria-hidden="true"></div>
+    """, unsafe_allow_html=True)
+
+
 def render_customer_khata():
     if st.session_state.get("user_role") == "Staff":
         st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
@@ -1559,11 +1837,10 @@ def render_login_portal():
     }}
     [data-testid="stAppViewContainer"], .stApp, section.main, [data-testid="stMain"] {{
         overflow: {overflow_css} !important;
-        background: linear-gradient(rgba(2, 6, 23, 0.85), rgba(3, 7, 18, 0.90)),
-        url('https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=1920&auto=format&fit=crop') !important;
-        background-size: cover !important;
-        background-position: center !important;
-        background-attachment: fixed !important;
+        background:
+            radial-gradient(ellipse at 18% 18%, rgba(14, 165, 233, 0.20), transparent 36%),
+            radial-gradient(ellipse at 82% 82%, rgba(99, 102, 241, 0.17), transparent 34%),
+            linear-gradient(145deg, #07111f 0%, #0a1628 52%, #080e1c 100%) !important;
     }}
     section.main {{
         display: flex !important;
@@ -1572,16 +1849,41 @@ def render_login_portal():
         min-height: 100vh !important;
         padding: 10px 0 !important;
     }}
-    main.block-container {{
+    [data-testid="stMainBlockContainer"] {{
+        box-sizing: border-box !important;
         width: 90% !important;
-        max-width: 340px !important;
-        padding: 0.8rem 1.2rem !important;
+        max-width: 460px !important;
+        padding: 1.35rem clamp(1.1rem, 5vw, 2rem) !important;
         margin: auto !important;
-        background: linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
-        backdrop-filter: blur(25px) !important;
-        border: 1.5px solid rgba(0, 242, 254, 0.4) !important;
-        border-radius: 18px !important;
-        box-shadow: 0 0 25px rgba(0, 242, 254, 0.2) !important;
+        background: linear-gradient(145deg, rgba(16, 31, 51, 0.96), rgba(10, 21, 37, 0.95)) !important;
+        backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-radius: 24px !important;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255,255,255,0.06) !important;
+    }}
+    [data-testid="stTextInput"] input {{
+        min-height: 44px !important;
+        background: rgba(5, 13, 25, 0.72) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-radius: 11px !important;
+    }}
+    [data-testid="stTextInput"] input:focus {{
+        border-color: rgba(56, 189, 248, 0.75) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14) !important;
+    }}
+    .stButton > button, [data-testid="stFormSubmitButton"] > button {{
+        min-height: 44px !important;
+        border-radius: 11px !important;
+        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
+        box-shadow: 0 8px 22px rgba(2, 8, 23, 0.3) !important;
+    }}
+    @media (max-width: 520px) {{
+        section.main {{ padding: 12px 0 !important; }}
+        [data-testid="stMainBlockContainer"] {{
+            width: calc(100% - 24px) !important;
+            padding: 1.1rem 1rem !important;
+            border-radius: 19px !important;
+        }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -1831,6 +2133,9 @@ with st.sidebar:
         st.toast("लॉगआऊट यशस्वी!", icon="🔒")
         time.sleep(0.4)
         st.rerun()
+
+if selected_page != "RAG AI Chat":
+    render_application_design_styles()
 
 # FEATURE 1: OCR SCANNER + MULTI-LANGUAGE VOICE BILLING ---
 if selected_page == "OCR Scanner":
