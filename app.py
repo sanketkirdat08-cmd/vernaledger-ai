@@ -1974,7 +1974,9 @@ main.block-container {
         6. Answer precisely and concisely, with short paragraphs or bullets that display cleanly on desktop and mobile. Do not add unrequested details.
         7. Format mobile numbers with clear spacing or hyphens (e.g., 9999-999-999). Use 'रुपये' in Marathi or Hindi and 'Rupees' in English; do not use 'Rs', 'RS', or '₹'.
         8. If replying in Marathi, write names only in Devanagari: संकेत किर्दत, कैसर अतार, साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक. Do not add English transliterations in brackets.
-        9. Never include citation tags or source indexes in the reply.
+        9. When replying in Marathi, use standard Marathi grammar and morphology. Inflect verbs and attach postpositions according to Marathi grammar; never create words by mechanically adding 'येन' or 'पये' to a verb stem. Use natural forms such as 'विचारण्यास' or 'विचारू शकता' (not 'विचारूपयेन'), and 'ठरू शकते' (not 'ठरूपये'). Use 'रुपये' only as the currency word after an amount, never as a verb suffix.
+        10. Before sending a Marathi reply, check that verb endings and postpositions are natural and grammatically complete; rewrite any malformed or concatenated forms.
+        11. Never include citation tags or source indexes in the reply.
         """
 
         clean_ans = ""
