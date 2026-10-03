@@ -16,6 +16,12 @@ import google.generativeai as genai
 from ocr_engine import process_receipt_advanced, process_voice_billing_advanced, generate_marathi_tts, get_active_gemini_models
 from streamlit_mic_recorder import speech_to_text
 
+st.set_page_config(
+    page_title="VernaLedger AI",
+    page_icon="🤖",
+    layout="centered",
+)
+
 CHAT_INPUT_COMPONENT = components.declare_component(
     "verna_chat_input",
     path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat_input_component"),
@@ -31,12 +37,6 @@ if not ai_logger.handlers:
     ai_logger.addHandler(ai_file_handler)
     ai_logger.propagate = False
 API_KEY = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
-st.set_page_config(
-    page_title="VernaLedger.AI Merchant Pro v7.5",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # --- AI AUTOMATIC RETRY LOGIC ---
 def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
