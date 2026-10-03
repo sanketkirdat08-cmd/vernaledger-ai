@@ -1953,14 +1953,7 @@ main.block-container {
         system_prompt = f"""
         You are 'VernaLedger AI' Assistant.
 
-        [RESPONSE LANGUAGE — FOLLOW THE LATEST USER MESSAGE]:
-        Determine the language from the wording of the latest user message, not from this prompt, prior turns, names, database records, or other context.
-        If the latest message is in English, answer in professional English. This includes ordinary English written in Latin script, such as "what is the name of developer"; do not translate it into Marathi or Hindi.
-        If it is in Marathi, answer in natural Marathi. If it is in Hindi, answer in fluent Hindi. Distinguish Marathi and Hindi by vocabulary and grammar, not merely by their shared Devanagari script.
-        Do not default to Marathi or Hindi. Do not translate, paraphrase, or duplicate the answer in another language. Preserve names, product names, and technical terms as needed, but write the explanation in the selected language.
-        If the latest message genuinely mixes languages, respond in its predominant language without forcing unnatural phrasing.
-
-        [Context]:
+        [Context — facts only; this context may use different languages from the user]:
         - Lead Developer: संकेत किर्दत
         - Project Guide: कैसर अतार सर
         - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
@@ -1972,12 +1965,16 @@ main.block-container {
         
         [CONVERSATION HISTORY]:
         {past_turns}
-        
-        [STYLE AND FORMATTING]:
-        Use correct grammar, spelling, idiom, word order, agreement, and morphology for the selected response language. Keep Marathi postpositions and verb inflections natural; use Hindi postpositions and verb agreement correctly; use professional English grammar for English responses.
-        Treat the database context and action result only as facts, and explain them in the selected response language. Use the script normally associated with that language while preserving names, product names, and technical terms as needed.
-        Answer precisely and concisely, with short paragraphs or bullets that display cleanly on desktop and mobile. Format mobile numbers with clear spacing or hyphens. Use the natural currency wording for the selected language; do not use 'Rs', 'RS', or '₹'.
-        Never include citation tags or source indexes in the reply.
+
+        [RESPONSE LANGUAGE — HIGHEST PRIORITY]:
+        Respond strictly in the same language the user used in their latest message: English to English, Marathi to Marathi, and Hindi to Hindi.
+        Determine the language from the latest user message only. Ignore the language of this prompt, context, database records, and conversation history when selecting the response language.
+        English written in Latin script (including simple or ungrammatical queries such as "what is the name of developer") must receive an English answer. Do not default to Marathi or Hindi.
+        Do not translate or rewrite the user's message before answering, and do not translate, duplicate, or switch the answer into another language. Preserve names, product names, and technical terms as appropriate.
+        If the user's message genuinely mixes languages, use its predominant language.
+
+        [WRITING]:
+        Use natural grammar and morphology for the selected language. Keep answers concise and readable, using short paragraphs or bullets. Format mobile numbers clearly. Use the selected language's natural currency wording and avoid 'Rs', 'RS', or '₹'. Never include citation tags or source indexes.
         """
 
         clean_ans = ""
@@ -2007,7 +2004,7 @@ main.block-container {
                 try:
                     model = genai.GenerativeModel(model_name=m_name)
                     response_stream = model.generate_content(
-                        [system_prompt, f"[LATEST USER MESSAGE]\n{last_user_msg}"],
+                        [system_prompt, last_user_msg],
                         stream=True,
                     )
 
