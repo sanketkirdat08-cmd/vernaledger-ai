@@ -602,6 +602,23 @@ def render_business_module_styles():
     st.markdown("""
     <style>
 
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
+
     [data-testid="stMain"]:has(.business-suite-page) .studio-header {
         position: relative;
         overflow: hidden;
@@ -841,6 +858,23 @@ def render_rag_sidebar_design_styles():
     _streamlit_ui.markdown("""
     <style>
 
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
+
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
@@ -1037,19 +1071,30 @@ def render_application_design_styles():
         font_css = """
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&display=swap');
         
-        .stApp, .stApp p, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6, 
-        .stApp span, .stApp label, .stApp div, .stApp button, .stApp input {
-            font-family: 'Hind', 'Baloo 2', sans-serif;
-        }
         
-        /* Exempt icons */
-        .material-symbols-outlined, [class*="icon"], i, svg {
-            font-family: 'Material Symbols Outlined' !important;
-        }
+        
+        
         """
 
     st.markdown("""
     <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
 
     """ + font_css + """
     body:has(.app-ui-polish-scope) .stApp, .block-container {
@@ -2387,6 +2432,23 @@ def render_custom_logo(size="large"):
 st.markdown("""
 <style>
 
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
+
 @import url('https://fonts.googleapis.com/css?family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @keyframes pulseGlow {
     0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
@@ -2397,9 +2459,7 @@ st.markdown("""
     70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(0, 255, 135, 0); }
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 135, 0); }
 }
-html, body, p, div:not(.st-emotion-cache-1jbc098), span:not([class*="material"]), h1, h2, h3, h4, h5, h6, li, label, button, input {
-    font-family: 'Plus Jakarta Sans', 'Mukta', -apple-system, sans-serif !important;
-}
+
 .stApp, .block-container {
     background-color: #020617 !important;
     background-image: 
@@ -2668,6 +2728,23 @@ def render_login_portal():
     overflow_css = "auto" if is_reset_page else "hidden"
     st.markdown(f"""
     <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
 
     header, [data-testid="stHeader"] {{ display: none !important; }}
     html, body {{
@@ -3698,6 +3775,23 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
 
 .stApp,
 [data-testid="stAppViewContainer"] {
