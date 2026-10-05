@@ -601,6 +601,19 @@ def parse_voice_khata_details(transcript):
 def render_business_module_styles():
     st.markdown("""
     <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
     [data-testid="stMain"]:has(.business-suite-page) .studio-header {
         position: relative;
         overflow: hidden;
@@ -839,6 +852,19 @@ def render_business_module_styles():
 def render_rag_sidebar_design_styles():
     _streamlit_ui.markdown("""
     <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
@@ -1048,6 +1074,19 @@ def render_application_design_styles():
 
     st.markdown("""
     <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
     """ + font_css + """
     body:has(.app-ui-polish-scope) .stApp, .block-container {
         background-color: #08111f !important;
@@ -2383,6 +2422,19 @@ def render_custom_logo(size="large"):
 # --- PERFECT DYNAMIC & FULL-WIDTH RESPONSIVE CSS ---
 st.markdown("""
 <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
 @import url('https://fonts.googleapis.com/css?family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @keyframes pulseGlow {
     0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
@@ -2393,7 +2445,7 @@ st.markdown("""
     70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(0, 255, 135, 0); }
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 135, 0); }
 }
-html, body, [class*="css"] {
+html, body, p, div:not(.st-emotion-cache-1jbc098), span:not([class*="material"]), h1, h2, h3, h4, h5, h6, li, label, button, input {
     font-family: 'Plus Jakarta Sans', 'Mukta', -apple-system, sans-serif !important;
 }
 .stApp, .block-container {
@@ -2664,6 +2716,19 @@ def render_login_portal():
     overflow_css = "auto" if is_reset_page else "hidden"
     st.markdown(f"""
     <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
     header, [data-testid="stHeader"] {{ display: none !important; }}
     html, body {{
         overflow: {overflow_css} !important;
@@ -3693,6 +3758,19 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
+
+    /* Force material icons to render properly, preventing 'keyboard_double_arrow_right' raw text bug */
+    .material-icons, .material-symbols-outlined, .material-symbols-rounded, [class*="material-symbols"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        word-wrap: normal !important;
+        white-space: nowrap !important;
+        direction: ltr !important;
+    }
+
 .stApp,
 [data-testid="stAppViewContainer"] {
     background:
