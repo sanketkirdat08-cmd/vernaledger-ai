@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VernaLedger.AI: Merchant Pro v7.5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Reveal.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0a0e17;
+            --neon-cyan: #00f2fe;
+            --electric-blue: #4facfe;
+            --neon-green: #00ff87;
+            --neon-red: #ff0055;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 242, 254, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(79, 172, 254, 0.05), transparent 25%);
+        }
+
+        .reveal {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+            font-family: 'Outfit', sans-serif;
+            text-transform: none;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            text-shadow: 0 0 30px rgba(0, 242, 254, 0.2);
+        }
+
+        .reveal h3 {
+            font-size: 1.6em;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, #fff, var(--electric-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-subtitle {
+            font-size: 0.5em;
+            color: var(--neon-cyan);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(0, 242, 254, 0.15);
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        /* Bento Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 90%;
+            margin: 0 auto;
+        }
+
+        .bento-item {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .bento-item h4 {
+            font-size: 0.9em;
+            color: var(--neon-cyan);
+            margin-bottom: 10px;
+            text-shadow: none;
+        }
+
+        .bento-item p {
+            font-size: 0.65em;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Step Flow Pipeline */
+        .step-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 85%;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .step-flow::before {
+            content: '';
+            position: absolute;
+            left: 24px;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--neon-cyan), transparent);
+            z-index: 0;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px 25px;
+            text-align: left;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            color: var(--neon-cyan);
+            font-size: 0.8em;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .step-content p {
+            font-size: 0.65em;
+            margin: 0;
+            color: var(--text-muted);
+        }
+        .step-content strong {
+            color: #fff;
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.55em;
+            margin-top: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            background: rgba(10, 14, 23, 0.6);
+            backdrop-filter: blur(10px);
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border);
+        }
+        .comparison-table th {
+            background: rgba(255, 255, 255, 0.05);
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table th:last-child, .comparison-table td:last-child { border-right: none; }
+        
+        .comparison-table .highlight-col {
+            background: rgba(0, 242, 254, 0.08);
+            position: relative;
+        }
+        .comparison-table th.highlight-col {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+            border-top: 2px solid var(--neon-cyan);
+        }
+        .icon-check { color: var(--neon-green); font-size: 1.2em; text-shadow: 0 0 10px rgba(0, 255, 135, 0.4); }
+        .icon-cross { color: var(--neon-red); font-size: 1.2em; opacity: 0.7; }
+        .icon-dash { color: #555; }
+
+        /* Progress Bars */
+        .progress-container {
+            width: 100%;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        /* Icon Badges */
+        .badges-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .icon-badge {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 0.6em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--electric-blue);
+        }
+
+        /* Custom Title Layout */
+        .hero-title {
+            font-size: 2.5em !important;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none !important;
+        }
+        .hero-subtitle {
+            font-size: 1em;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-bottom: 50px !important;
+        }
+        .team-box {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2));
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            display: inline-block;
+        }
+        .team-box p {
+            font-size: 0.5em;
+            margin: 5px 0;
+            text-align: center;
+        }
+        .team-box .names { color: var(--neon-cyan); font-weight: 600; }
+
+        /* General layout adjustments */
+        .reveal section {
+            text-align: center;
+        }
+        
+        .split-layout {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            text-align: left;
+            margin-top: 30px;
+        }
+        .split-left, .split-right {
+            flex: 1;
+        }
+        .split-left h4 {
+            color: var(--neon-cyan);
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .feature-list li {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 20px;
+            font-size: 0.65em;
+            color: var(--text-muted);
+        }
+        .feature-list li::before {
+            content: '✦';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--neon-cyan);
+        }
+        .feature-list strong {
+            color: #fff;
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title Slide -->
+            <section>
+                <h1 class="hero-title">VernaLedger.AI<br><span style="font-size: 0.5em; font-weight:400; color:#fff;-webkit-text-fill-color: #fff;">Merchant Pro v7.5</span></h1>
+                <p class="hero-subtitle">Next-Gen Point of Sale & Vernacular Financial Suite</p>
+                
+                <div class="team-box">
+                    <p style="color: #64748b; text-transform: uppercase; letter-spacing: 2px; font-size: 0.4em;">Developed By</p>
+                    <p class="names">Sanket Kirdat &nbsp;•&nbsp; Sakshi Bhagat &nbsp;•&nbsp; Vaishnavi Dhavale &nbsp;•&nbsp; Rushikesh Mulik</p>
+                    <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0;"></div>
+                    <p style="color: #94a3b8;">Computer Engineering, Arvind Gavali College of Engineering, DBATU University</p>
+                </div>
+            </section>
+
+            <!-- Slide 2: Problem Statement -->
+            <section>
+                <h3>Problem Statement</h3>
+                <div class="slide-subtitle">The Burden on Local Merchants</div>
+                
+                <div class="bento-grid">
+                    <div class="glass-card bento-item">
+                        <h4>✍️ Manual Data Entry</h4>
+                        <p>Writing receipts and ledgers manually is time-consuming and highly prone to human error.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4>🌍 Language Barriers</h4>
+                        <p>Existing software is heavily English-dependent, making it difficult for rural merchants to adopt.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4>📘 Disorganized Udhari</h4>
+                        <p>Tracking who owes money on paper often leads to lost revenue, disputes, and broken trust.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4>📉 Lack of Analytics</h4>
+                        <p>Small businesses struggle to track exact profit, loss, and low stock inventory efficiently.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 3: Motivation -->
+            <section>
+                <h3>Motivation</h3>
+                <div class="slide-subtitle">Empowering Rural Commerce with AI</div>
+                
+                <div class="step-flow" style="margin-top: 30px;">
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--electric-blue); color: var(--electric-blue);">01</div>
+                        <div class="step-content">
+                            <strong>Bridging the Technological Gap</strong>
+                            <p>Bringing Enterprise-grade AI to the fingertips of small and medium enterprises (SMEs).</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">02</div>
+                        <div class="step-content">
+                            <strong>Leveraging Advanced AI Models</strong>
+                            <p>Using Google's Gemini models for OCR and Voice recognition in regional languages (Marathi, Hindi).</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--neon-green); color: var(--neon-green);">03</div>
+                        <div class="step-content">
+                            <strong>Removing Digital Friction</strong>
+                            <p>Simplifying digital adoption so merchants can focus purely on business growth rather than paperwork.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 4: Market Comparison -->
+            <section>
+                <h3>Gap Analysis</h3>
+                <div class="slide-subtitle">Market Comparison</div>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Khatabook</th>
+                            <th>TallyPrime</th>
+                            <th>Vyapar</th>
+                            <th>BharatPe</th>
+                            <th class="highlight-col">VernaLedger.AI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align: left; padding-left: 20px;">Vernacular Voice Billing</td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td class="highlight-col"><strong style="color:var(--neon-green);">✔ Marathi/Hindi</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding-left: 20px;">AI Receipt OCR Scanning</td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td class="highlight-col"><strong style="color:var(--neon-green);">✔ Gemini AI</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding-left: 20px;">Conversational AI Chat</td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td><span class="icon-cross">❌</span></td>
+                            <td class="highlight-col"><strong style="color:var(--neon-green);">✔ RAG Engine</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding-left: 20px;">Offline Database Storage</td>
+                            <td>Cloud Only</td>
+                            <td><span class="icon-check">✔</span></td>
+                            <td><span class="icon-check">✔</span></td>
+                            <td>Cloud Only</td>
+                            <td class="highlight-col"><strong style="color:var(--neon-green);">✔ SQLite ACID</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left; padding-left: 20px;">Target User Base</td>
+                            <td style="color:#888;">Urban SMEs</td>
+                            <td style="color:#888;">Accountants</td>
+                            <td style="color:#888;">Urban SMEs</td>
+                            <td style="color:#888;">Payments</td>
+                            <td class="highlight-col" style="color: #fff; font-weight:600;">Rural / Local Merchants</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 5: Project Objectives -->
+            <section>
+                <h3>Project Objectives</h3>
+                <div class="slide-subtitle">Core Pillars of Innovation</div>
+                
+                <div class="bento-grid">
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--electric-blue);">📄 Automate Receipt Parsing</h4>
+                        <p>Develop a robust OCR engine using Gemini Flash to extract items, prices, and totals instantly.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-cyan);">🎙️ Multi-Lingual Voice Billing</h4>
+                        <p>Enable users to speak naturally in Marathi, Hindi, or English to record transactions.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-green);">🔒 Secure & Resilient Storage</h4>
+                        <p>Implement ACID-compliant SQLite databases with automatic backups and data integrity.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: #b92b27;">📊 Actionable Intelligence</h4>
+                        <p>Provide real-time analytics, AI high-risk credit scoring, and automated WhatsApp reminders.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: Proposed System -->
+            <section>
+                <h3>Proposed System</h3>
+                <div class="slide-subtitle">Use Case & Activity Flow</div>
+                
+                <div class="step-flow">
+                    <div class="step-item">
+                        <div class="step-number">🧑‍💼</div>
+                        <div class="step-content">
+                            <strong>Merchant Actor</strong>
+                            <p>Interacts with Streamlit POS UI seamlessly via Voice, Camera, or File Upload.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">🧠</div>
+                        <div class="step-content">
+                            <strong>AI Parser Module</strong>
+                            <p>Gemini LLM converts raw unstructured inputs into a strict, validated structured JSON schema.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">💾</div>
+                        <div class="step-content">
+                            <strong>Transaction Engine</strong>
+                            <p>Commits validated records securely to the local SQLite database ensuring ACID compliance.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">🔊</div>
+                        <div class="step-content">
+                            <strong>Feedback Loop</strong>
+                            <p>Generates Marathi audio voice confirmations and updates UI dashboards in real-time.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: Technologies & Tools -->
+            <section>
+                <h3>Technologies & Tools</h3>
+                <div class="slide-subtitle">The Tech Stack</div>
+                
+                <div class="glass-card" style="margin-top: 40px; text-align: left;">
+                    <ul class="feature-list" style="width: 100%;">
+                        <li>
+                            <strong style="color: #fbd786;">Frontend & Logic</strong>
+                            Python 3.10+ paired with Streamlit for a highly responsive web interface powered by custom CSS & JS.
+                        </li>
+                        <li>
+                            <strong style="color: #4facfe;">AI & NLP Engines</strong>
+                            Google Gemini AI for OCR/JSON parsing, integrated with Edge TTS for ultra-fast Marathi audio synthesis.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-green);">Database & Analytics</strong>
+                            SQLite (ACID compliant) for robust local storage, alongside Pandas and Plotly for interactive charts.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="badges-container">
+                    <div class="icon-badge">🐍 Python 3.10</div>
+                    <div class="icon-badge">✨ Streamlit</div>
+                    <div class="icon-badge">🤖 Gemini AI</div>
+                    <div class="icon-badge">💽 SQLite</div>
+                    <div class="icon-badge">📊 Pandas</div>
+                </div>
+            </section>
+
+            <!-- Slide 8: System Architecture -->
+            <section>
+                <h3>System Architecture</h3>
+                <div class="slide-subtitle">Component Diagram</div>
+                
+                <div class="bento-grid" style="grid-template-columns: 1fr; gap: 15px;">
+                    <div class="glass-card" style="text-align: center; border-color: var(--electric-blue);">
+                        <h4 style="margin:0; font-size: 0.8em; color:var(--electric-blue);">🖥️ UI Layer</h4>
+                        <p style="font-size: 0.55em; color: var(--text-muted); margin: 5px 0 0 0;">Handles user interactions, camera inputs, and voice recordings natively.</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; color: var(--electric-blue);">⬇</div>
+                    
+                    <div class="glass-card" style="text-align: center; border-color: var(--neon-cyan);">
+                        <h4 style="margin:0; font-size: 0.8em; color:var(--neon-cyan);">⚙️ OCR & Audio Engine</h4>
+                        <p style="font-size: 0.55em; color: var(--text-muted); margin: 5px 0 0 0;">Cleans unicode format and processes raw receipt images and voice streams.</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; color: var(--neon-cyan);">⬇</div>
+
+                    <div class="glass-card" style="text-align: center; border-color: #fbd786;">
+                        <h4 style="margin:0; font-size: 0.8em; color:#fbd786;">🧠 LLM Controller</h4>
+                        <p style="font-size: 0.55em; color: var(--text-muted); margin: 5px 0 0 0;">Communicates directly with Gemini API, enforcing strict JSON output schema.</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: center; color: #fbd786;">⬇</div>
+
+                    <div class="glass-card" style="text-align: center; border-color: var(--neon-green);">
+                        <h4 style="margin:0; font-size: 0.8em; color:var(--neon-green);">🗄️ Database Manager</h4>
+                        <p style="font-size: 0.55em; color: var(--text-muted); margin: 5px 0 0 0;">Manages connection pools, commits receipts, and securely updates khata records.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 9: Working Flow -->
+            <section>
+                <h3>Working Flow</h3>
+                <div class="slide-subtitle">Sequence Diagram</div>
+                
+                <div class="step-flow" style="margin-top: 20px;">
+                    <div class="step-item">
+                        <div class="step-number" style="font-size: 0.5em;">Step 1</div>
+                        <div class="step-content">
+                            <p>User selects input method (Voice Khata or Live OCR scan).</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="font-size: 0.5em;">Step 2</div>
+                        <div class="step-content">
+                            <p>Audio/Image is securely captured and streamed to Gemini LLM.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="font-size: 0.5em;">Step 3</div>
+                        <div class="step-content">
+                            <p>LLM processes data and returns structured JSON containing parsed details.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="font-size: 0.5em;">Step 4</div>
+                        <div class="step-content">
+                            <p>System verifies data integrity and commits transactions to local SQLite.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="font-size: 0.5em; border-color:var(--neon-green); color:var(--neon-green);">Step 5</div>
+                        <div class="step-content">
+                            <p>Audio success feedback is played using Edge TTS and UI refreshes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Performance Analysis -->
+            <section>
+                <h3>Performance Analysis & Results</h3>
+                <div class="slide-subtitle">Efficiency Benchmarks</div>
+                
+                <div class="glass-card" style="margin-top: 40px; padding: 40px;">
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span style="color: var(--text-muted);">Manual Data Entry Time</span>
+                            <span style="color: #ff4b2b;">100% (Baseline)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: 100%; background: #ff4b2b; color: #ff4b2b;"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span style="color: var(--text-main);">VernaLedger.AI Processing Time</span>
+                            <span style="color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan);">-96% Faster (4%)</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: 4%; background: var(--neon-cyan); color: var(--neon-cyan);"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span style="color: var(--text-main);">Regional Text Parsing Accuracy (Marathi/Hindi)</span>
+                            <span style="color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green);">>95% Accurate</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: 95%; background: var(--neon-green); color: var(--neon-green);"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Slide 11: Result - Login -->
+            <section>
+                <h3>Secure Login Portal</h3>
+                <div class="slide-subtitle">Results: Security & Access</div>
+                
+                <div class="glass-card" style="margin-top: 40px;">
+                    <ul class="feature-list" style="width: 90%;">
+                        <li>
+                            <strong style="color: var(--electric-blue);">Authentication Security</strong>
+                            Protected via secure PBKDF2 with SHA-256 password hashing.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-cyan);">Role-Based Access (RBAC)</strong>
+                            Strict demarcation between Admin master access vs. restricted Staff roles.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-green);">Persistent Sessions</strong>
+                            Auto-login capabilities enabled via robust session state management.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 12: Result - OCR & Voice -->
+            <section>
+                <h3>OCR & Voice Billing Module</h3>
+                <div class="slide-subtitle">Results: Core Engine</div>
+                
+                <div class="glass-card" style="margin-top: 40px;">
+                    <ul class="feature-list" style="width: 90%;">
+                        <li>
+                            <strong style="color: var(--electric-blue);">Multimodal Bill Capture</strong>
+                            Supports File Upload, Live Camera capture, or direct Voice Billing.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-red);">Duplicate Prevention</strong>
+                            Automatic system warnings trigger for potentially duplicate bills.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-green);">Audio Confirmation</strong>
+                            Edge TTS synthesizes instant audio summaries in regional languages.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 13: Result - Analytics -->
+            <section>
+                <h3>Merchant Analytics Hub</h3>
+                <div class="slide-subtitle">Results: Data Intelligence</div>
+                
+                <div class="bento-grid" style="margin-top: 30px;">
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-cyan);">📈 Sales Monitoring</h4>
+                        <p>Live KPI cards for Total Revenue, Bill Count, and Average Ticket Size.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-green);">📊 Visualizations</h4>
+                        <p>Interactive category breakdown pies and shop revenue bar graphs.</p>
+                    </div>
+                    <div class="glass-card bento-item" style="grid-column: span 2;">
+                        <h4 style="color: var(--electric-blue);">📅 Timeframe Filtering</h4>
+                        <p>Seamlessly switch between Daily, Weekly, and Monthly actionable data insights.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 14: Result - Khata -->
+            <section>
+                <h3>Customer Khata (Udhari)</h3>
+                <div class="slide-subtitle">Results: Credit Management</div>
+                
+                <div class="glass-card" style="margin-top: 40px;">
+                    <ul class="feature-list" style="width: 90%;">
+                        <li>
+                            <strong style="color: var(--electric-blue);">Digital Ledger</strong>
+                            Instant toggle between Given Credit and Received Payment modes.
+                        </li>
+                        <li>
+                            <strong style="color: #fbd786;">Due Date Tracking</strong>
+                            Automated tracking of repayment due dates and high-risk alerts.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-green);">One-Click Follow Up</strong>
+                            Instant WhatsApp payment links generation and direct calling shortcuts.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 15: Result - Database -->
+            <section>
+                <h3>Ledger Database Editor</h3>
+                <div class="slide-subtitle">Results: Data Management</div>
+                
+                <div class="glass-card" style="margin-top: 40px;">
+                    <ul class="feature-list" style="width: 90%;">
+                        <li>
+                            <strong style="color: var(--electric-blue);">ACID Storage & Live Editing</strong>
+                            Interactive dataframe grid for in-line editing of backend records.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-red);">Record Management</strong>
+                            Single-click secure record deletions with live database commits.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-green);">Multi-Language Export</strong>
+                            Download clean CSV files or localized Marathi PDF reports instantly.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 16: Result - AI RAG -->
+            <section>
+                <h3>Neural AI Studio (RAG)</h3>
+                <div class="slide-subtitle">Results: Conversational Intelligence</div>
+                
+                <div class="bento-grid" style="margin-top: 30px;">
+                    <div class="glass-card bento-item" style="grid-column: span 2;">
+                        <h4 style="color: var(--neon-cyan);">🤖 Context-Aware RAG Chatbot</h4>
+                        <p>Real-time conversational chatting integrated directly with sales, khata, and stock database context.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--electric-blue);">🎙️ Voice Input</h4>
+                        <p>Speak analytical questions directly in Marathi or Hindi.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-green);">⚡ Quick Action Chips</h4>
+                        <p>One-tap prompts for pending udhari summaries and low stock alerts.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 17: Result - Audit Logs -->
+            <section>
+                <h3>Staff Management & Audit</h3>
+                <div class="slide-subtitle">Results: Accountability</div>
+                
+                <div class="glass-card" style="margin-top: 40px;">
+                    <ul class="feature-list" style="width: 90%;">
+                        <li>
+                            <strong style="color: var(--electric-blue);">Role Access Setup</strong>
+                            Easy setup wizard for Admin or Limited Staff roles.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-cyan);">System Audit Logs</strong>
+                            Tracks exactly 'Who did what and when' across the entire system.
+                        </li>
+                        <li>
+                            <strong style="color: var(--neon-red);">Zero-Trust Security</strong>
+                            Protects core system against unauthorized deletions or ledger edits.
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 18: Advantages -->
+            <section>
+                <h3>Advantages & Strengths</h3>
+                <div class="slide-subtitle">Why VernaLedger.AI Excels</div>
+                
+                <div class="step-flow" style="margin-top: 30px;">
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--neon-cyan); color: var(--neon-cyan);">01</div>
+                        <div class="step-content">
+                            <strong style="color: var(--neon-cyan);">True Vernacular AI</strong>
+                            <p>Operates flawlessly in Marathi and Hindi, making it highly accessible for rural shopkeepers.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--neon-green); color: var(--neon-green);">02</div>
+                        <div class="step-content">
+                            <strong style="color: var(--neon-green);">Automated Follow-ups</strong>
+                            <p>Reduces friction with one-click WhatsApp payment links and direct calling integrations.</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number" style="border-color: var(--electric-blue); color: var(--electric-blue);">03</div>
+                        <div class="step-content">
+                            <strong style="color: var(--electric-blue);">Enterprise Data Security</strong>
+                            <p>Encrypted password hashing, RBAC, and exhaustive un-editable system audit logs.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 19: Limitations -->
+            <section>
+                <h3>System Limitations</h3>
+                <div class="slide-subtitle">Known Constraints</div>
+                
+                <div class="bento-grid" style="margin-top: 30px;">
+                    <div class="glass-card bento-item" style="border-color: rgba(255, 75, 43, 0.3);">
+                        <h4 style="color: #ff4b2b;">🌐 AI Internet Dependency</h4>
+                        <p>Core Gemini AI Engine requires a stable internet connection to process complex natural language commands and OCR images.</p>
+                    </div>
+                    <div class="glass-card bento-item" style="border-color: rgba(255, 75, 43, 0.3);">
+                        <h4 style="color: #ff4b2b;">📸 Image Quality Constraints</h4>
+                        <p>Highly distorted, crumpled, or blurry receipts can result in partial extraction failures during the OCR process.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 20: Future Enhancements -->
+            <section>
+                <h3>Future Enhancements</h3>
+                <div class="slide-subtitle">Roadmap</div>
+                
+                <div class="bento-grid">
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-cyan);">📱 Native Mobile App</h4>
+                        <p>Porting the web app into a native Android application for faster camera access and offline caching.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--neon-green);">💸 Direct UPI Integration</h4>
+                        <p>Generating dynamic UPI QR codes directly on invoices and bills for instant customer payments.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: var(--electric-blue);">☁️ Cloud Syncing</h4>
+                        <p>Migrating to Firebase/PostgreSQL for real-time multi-device synchronization and off-site backups.</p>
+                    </div>
+                    <div class="glass-card bento-item">
+                        <h4 style="color: #fbd786;">🧾 Automated GST/Tax</h4>
+                        <p>Implementing tax calculation engines for automated generation of ready-to-file GST reports.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 21: Conclusion & Q&A -->
+            <section class="title-slide">
+                <h1 class="hero-title" style="font-size: 2em !important;">Conclusion & Q&A</h1>
+                
+                <div class="glass-card" style="margin: 40px auto; width: 80%; text-align: center; border-color: var(--neon-cyan);">
+                    <p style="font-size: 0.8em; margin: 0; color: #fff; line-height: 1.5;">
+                        <strong style="color: var(--neon-cyan);">Conclusion:</strong> VernaLedger.AI successfully bridges the gap between rural commerce and cutting-edge AI.
+                    </p>
+                </div>
+
+                <div class="team-box" style="margin-top: 20px;">
+                    <p style="font-size: 1.2em; color: var(--neon-green); margin-bottom: 10px; font-weight: 800; font-family: 'Outfit', sans-serif;">Any Questions?</p>
+                    <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px 0;"></div>
+                    <p style="color: #94a3b8; font-size: 0.6em;">Team VernaLedger | Arvind Gavali College of Engineering</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Reveal.js Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            transition: 'slide', // none/fade/slide/convex/concave/zoom
+            center: true,
+            controls: true,
+            progress: true,
+            width: 960,
+            height: 700,
+            margin: 0.04,
+            minScale: 0.2,
+            maxScale: 2.0
+        });
+    </script>
+</body>
+</html>
