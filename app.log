@@ -272,3 +272,9 @@
 2026-10-03 11:08:23,284 - ERROR - Gemini response generation failed for model gemini-2.5-flash-preview-tts (ResourceExhausted).
 2026-10-03 11:08:23,648 - ERROR - Gemini response generation failed for model gemini-2.5-pro-preview-tts (ResourceExhausted).
 2026-10-03 11:08:23,992 - ERROR - Gemini response generation failed for model gemini-flash-latest (ResourceExhausted).
+2026-10-06 01:36:21,429 - ERROR - Gemini response generation failed for model gemini-2.0-flash (Unauthenticated).
+2026-10-06 01:36:41,089 - ERROR - Gemini response generation failed for model gemini-2.0-flash (Unauthenticated).
+2026-10-06 01:39:08,854 - ERROR - Gemini response generation failed for model gemini-2.5-flash (NotFound).
+2026-10-06 01:39:09,264 - ERROR - Gemini response generation failed for model gemini-2.5-pro (NotFound).
+2026-10-06 01:39:09,981 - ERROR - Gemini response generation failed for model gemini-2.5-flash-preview-tts (InvalidArgument).
+2026-10-06 01:39:10,393 - ERROR - Gemini response generation failed for model gemini-2.5-pro-preview-tts (ResourceExhausted).
