@@ -1049,7 +1049,7 @@ def render_application_design_styles():
     st.markdown("""
     <style>
     """ + font_css + """
-    body:has(.app-ui-polish-scope) .stApp {
+    body:has(.app-ui-polish-scope) .stApp, .block-container {
         background-color: #08111f !important;
         background-image:
             radial-gradient(ellipse at 8% 0%, rgba(14, 165, 233, 0.12), transparent 38%),
@@ -2335,7 +2335,7 @@ def _render_language_toggle():
         _translate_ui_text("Use English"),
         value=st.session_state.get("ui_language", "mr") == "en",
         key="ui_language_english",
-        help=_translate_ui_text("चालू: English · बंद: मराठी"),
+        
         on_change=_sync_language_from_toggle,
     )
 
@@ -2396,7 +2396,7 @@ st.markdown("""
 html, body, [class*="css"] {
     font-family: 'Plus Jakarta Sans', 'Mukta', -apple-system, sans-serif !important;
 }
-.stApp {
+.stApp, .block-container {
     background-color: #020617 !important;
     background-image: 
         radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.15) 0%, transparent 45%),
