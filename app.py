@@ -4044,7 +4044,10 @@ main.block-container {
             with st.chat_message(message_role, avatar='\U0001f916' if message_role == 'assistant' else '\U0001f464'):
                 _streamlit_ui.markdown(chat["text"])
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
-                    st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
+                    do_play = False
+                    if idx == len(st.session_state["chat_history"]) - 1:
+                        do_play = st.session_state.pop("play_latest_audio", False)
+                    st.audio(chat["audio_file"], autoplay=do_play)
 
     chat_input_event = CHAT_INPUT_COMPONENT(
         key="verna_chat_input_component",
@@ -4294,4 +4297,5 @@ main.block-container {
             "text": clean_ans,
             "audio_file": audio_file_path
         })
+        st.session_state["play_latest_audio"] = True
         st.rerun()
