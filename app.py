@@ -3017,6 +3017,15 @@ with st.sidebar:
     [data-testid="stSidebar"] {
         background: rgba(10, 15, 30, 0.95) !important;
         border-right: 1px solid rgba(0, 242, 254, 0.2);
+        overflow: hidden !important;
+    }
+    [data-testid="stSidebarUserContent"] {
+        overflow-y: hidden !important;
+        padding-bottom: 0 !important;
+    }
+    [data-testid="stSidebar"] ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
     }
     .stRadio > div {
         gap: 15px;
