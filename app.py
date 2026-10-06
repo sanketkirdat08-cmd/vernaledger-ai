@@ -3018,10 +3018,17 @@ with st.sidebar:
         background: rgba(10, 15, 30, 0.95) !important;
         border-right: 1px solid rgba(0, 242, 254, 0.2);
         overflow: hidden !important;
+        min-width: 270px !important;
+        max-width: 270px !important;
+        resize: none !important;
     }
     [data-testid="stSidebarUserContent"] {
         overflow-y: hidden !important;
         padding-bottom: 0 !important;
+    }
+    /* Hide the sidebar resizer drag handle */
+    [data-testid="stSidebarResizer"] {
+        display: none !important;
     }
     [data-testid="stSidebar"] ::-webkit-scrollbar {
         width: 0px;
