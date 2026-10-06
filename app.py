@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import sqlite3
 import os
+import base64
 import json
 import hashlib
 import shutil
@@ -2732,6 +2733,16 @@ div[data-testid="stFileUploader"] section {
 def render_login_portal():
     is_reset_page = st.session_state.get('forgot_pass_mode', False)
     overflow_css = "auto" if is_reset_page else "hidden"
+    
+    bg_image_css = ""
+    try:
+        with open("assets/vernaledger_bg.jpg", "rb") as f_img:
+            data = f_img.read()
+            b64_img = base64.b64encode(data).decode("utf-8")
+            bg_image_css = f"background-image: url('data:image/jpeg;base64,{b64_img}') !important; background-size: cover !important; background-position: center !important;"
+    except Exception:
+        bg_image_css = "background: radial-gradient(ellipse at 18% 18%, rgba(14, 165, 233, 0.20), transparent 36%), radial-gradient(ellipse at 82% 82%, rgba(99, 102, 241, 0.17), transparent 34%), linear-gradient(145deg, #07111f 0%, #0a1628 52%, #080e1c 100%) !important;"
+
     st.markdown(f"""
     <style>
 
@@ -2759,10 +2770,7 @@ def render_login_portal():
     }}
     [data-testid="stAppViewContainer"], .stApp, section.main, [data-testid="stMain"] {{
         overflow: {overflow_css} !important;
-        background:
-            radial-gradient(ellipse at 18% 18%, rgba(14, 165, 233, 0.20), transparent 36%),
-            radial-gradient(ellipse at 82% 82%, rgba(99, 102, 241, 0.17), transparent 34%),
-            linear-gradient(145deg, #07111f 0%, #0a1628 52%, #080e1c 100%) !important;
+        {bg_image_css}
     }}
     section.main {{
         display: flex !important;
