@@ -1862,12 +1862,12 @@ def render_customer_khata():
                     whatsapp_label = "WhatsApp संदेश"
                     
                 with action_col1:
-                    st.link_button(whatsapp_label, f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}", use_container_width=True)
+                    st.link_button(whatsapp_label, f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}")
                 with action_col2:
-                    st.link_button("थेट कॉल करा", f"tel:{customer_phone}", use_container_width=True)
+                    st.link_button("थेट कॉल करा", f"tel:{customer_phone}")
                 if action_col3 and upi_configured and customer["balance"] > 0:
                     with action_col3:
-                        st.link_button("Direct UPI Pay", payment_link, use_container_width=True)
+                        st.link_button("Direct UPI Pay", payment_link)
 
         st.markdown("---")
         st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
@@ -3171,15 +3171,15 @@ if selected_page == "OCR Scanner":
         
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
-            if st.button("Upload File", type="primary" if st.session_state['input_method'] == "Upload File" else "secondary", use_container_width=True):
+            if st.button("Upload File", type="primary" if st.session_state['input_method'] == "Upload File" else "secondary"):
                 st.session_state['input_method'] = "Upload File"
                 st.rerun()
         with m_col2:
-            if st.button("Live Camera", type="primary" if st.session_state['input_method'] == "Live Camera" else "secondary", use_container_width=True):
+            if st.button("Live Camera", type="primary" if st.session_state['input_method'] == "Live Camera" else "secondary"):
                 st.session_state['input_method'] = "Live Camera"
                 st.rerun()
         with m_col3:
-            if st.button("Voice Bill", type="primary" if st.session_state['input_method'] == "Multi-Language Voice Bill" else "secondary", use_container_width=True):
+            if st.button("Voice Bill", type="primary" if st.session_state['input_method'] == "Multi-Language Voice Bill" else "secondary"):
                 st.session_state['input_method'] = "Multi-Language Voice Bill"
                 st.rerun()
                 
@@ -3740,7 +3740,7 @@ elif selected_page == "Ledger Database":
             with h_col_title:
                 st.markdown("#### 📋 Ledger Database Sheet")
             with h_col_plus:
-                if st.button("➕", help="नवीन रो जोडा (Add New Row)", use_container_width=True):
+                if st.button("➕", help="नवीन रो जोडा (Add New Row)"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -3772,7 +3772,7 @@ elif selected_page == "Ledger Database":
             
             selected_ids = edited_sheet_df[edited_sheet_df['Select'] == True]['id'].tolist()
             if selected_ids:
-                if st.button(f"🗑️ निवडलेले records डिलीट करा ({len(selected_ids)})", type="primary", use_container_width=True):
+                if st.button(f"🗑️ निवडलेले records डिलीट करा ({len(selected_ids)})", type="primary"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -3799,8 +3799,7 @@ elif selected_page == "Ledger Database":
                     data=db_bytes,
                     file_name="vernaledger_backup.db",
                     mime="application/octet-stream",
-                    help="सध्याचा संपूर्ण डेटाबेस एका क्लिकवर सुरक्षित डाऊनलोड करा.",
-                    use_container_width=True
+                    help="सध्याचा संपूर्ण डेटाबेस एका क्लिकवर सुरक्षित डाऊनलोड करा."
                 )
             
             st.markdown("---")
@@ -3836,8 +3835,8 @@ elif selected_page == "Ledger Database":
                 csv_df = csv_df.drop(columns=['raw_json'])
                 
             csv_data = csv_df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("Export Clean CSV", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv", use_container_width=True)
-            st.download_button(f"Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html", use_container_width=True)
+            st.download_button("Export Clean CSV", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv")
+            st.download_button(f"Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html")
             
             st.markdown("</div>", unsafe_allow_html=True)
     else:
