@@ -3028,12 +3028,12 @@ with st.sidebar:
         background: transparent;
     }
     .stRadio > div {
-        gap: 15px;
+        gap: 5px;
     }
     .stRadio label {
-        font-size: 16px !important;
+        font-size: 14px !important;
         font-weight: 600 !important;
-        padding: 10px 15px;
+        padding: 6px 10px;
         border-radius: 8px;
         transition: 0.3s;
     }
@@ -3082,12 +3082,12 @@ with st.sidebar:
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
     st.markdown(f"""
-    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 15px {role_badge_color}44;">
-        <span style="font-size: 12px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
+    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 4px 8px; border-radius: 4px; margin-bottom: 10px; text-align: center; box-shadow: 0 0 5px {role_badge_color}44;">
+        <span style="font-size: 10px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='font-size:12px; color:#8892b0; font-weight:bold; margin-bottom:10px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:10px; color:#8892b0; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
     else:
@@ -3095,12 +3095,12 @@ with st.sidebar:
         
     selected_page = st.radio("Navigation", nav_options, label_visibility="collapsed")
     
-    st.markdown("<hr style='border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin: 10px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
     
     st.markdown('''
-    <div class="dev-credit-box" style="margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; border-left:3px solid #00f2fe;">
-        <div style="font-size: 9px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 3px;">Project Developers</div>
-        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+    <div class="dev-credit-box" style="margin-bottom:10px; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px; border-left:3px solid #00f2fe;">
+        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 2px;">Project Developers</div>
+        <div style="font-size: 9px; font-weight: 700; color: #ffffff; line-height: 1.2;">
             Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
         </div>
     </div>
