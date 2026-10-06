@@ -1562,18 +1562,32 @@ def render_application_design_styles():
     """, unsafe_allow_html=True)
 
 
+def render_page_header(title, subtitle, icon="✨"):
+    st.markdown(f"""
+    <div style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(13, 19, 33, 0.8) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 242, 254, 0.25);
+        border-radius: 14px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    ">
+        <div>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #00f2fe; letter-spacing: -0.5px;">{title}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">{subtitle}</p>
+        </div>
+        <div style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,242,254,0.3));">{icon}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 def render_customer_khata():
     # Staff can now access this
 
-    st.markdown("""
-    <div class="studio-header business-module-hero">
-        <div class="business-hero-content">
-            <div class="business-eyebrow">✦ Business Modules &gt; Customer Khata</div>
-            <h2 class="business-hero-title">Customer Khata - Credit Ledger</h2>
-        </div>
-        <div class="business-hero-mark" aria-hidden="true">◈</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_page_header("Customer Khata - Credit Ledger", "Manage your customer credits and installments efficiently.", "📖")
     tab1, tab2 = st.tabs(["New Credit / Installment Entry", "Credit Ledger & AI Risk Report"])
 
     with tab1:
@@ -1713,10 +1727,6 @@ def render_customer_khata():
 
     with tab2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='display:flex; justify-content:flex-end; margin-bottom: 10px;'>", unsafe_allow_html=True)
-        if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
         try:
             khata_df = load_khata_transactions()
         except sqlite3.Error as exc:
@@ -1730,28 +1740,35 @@ def render_customer_khata():
             amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum()
             - amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum()
         )
-        st.markdown(
-            f"""
-            <div class="business-metric-card" style="margin-bottom: 16px;">
-                <div class="business-metric-label">एकूण येणे बाकी · Net Udhari</div>
-                <div class="business-metric-value" style="color:#67e8f9;">₹ {total_balance:,.2f}</div>
-                <div class="business-metric-note">जमा हप्ते वजा करून मोजलेली एकूण बाकी</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("हिशोब ऑडिओत ऐका", key="khata_audio_summary") and not khata_df.empty:
-            audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
-            try:
-                audio_file = generate_marathi_tts(audio_summary_text)
-                if audio_file and os.path.exists(audio_file):
-                    st.audio(audio_file, autoplay=True)
-                else:
-                    st.error("ऑडिओ तयार करता आला नाही.")
-            except Exception as exc:
-                logging.exception("Could not generate khata audio summary")
-                st.error(f"ऑडिओ तयार करताना Error: {exc}")
+        
+        # Compact top section
+        top_col1, top_col2 = st.columns([1.5, 1])
+        with top_col1:
+            st.markdown(
+                f'''
+                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
+                    <div style="font-size: 13px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">एकूण येणे बाकी · Net Udhari</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #67e8f9; margin-top: 4px;">₹ {total_balance:,.2f}</div>
+                </div>
+                ''',
+                unsafe_allow_html=True,
+            )
+        with top_col2:
+            if st.button("🔄 रिफ्रेश करा", type="primary", key="refresh_khata", use_container_width=True):
+                st.rerun()
+            if st.button("🔊 ऑडिओ सारांश", key="khata_audio_summary", use_container_width=True) and not khata_df.empty:
+                audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
+                try:
+                    audio_file = generate_marathi_tts(audio_summary_text)
+                    if audio_file and os.path.exists(audio_file):
+                        st.audio(audio_file, autoplay=True)
+                    else:
+                        st.error("ऑडिओ तयार करता आला नाही.")
+                except Exception as exc:
+                    logging.exception("Could not generate khata audio summary")
+                    st.error(f"ऑडिओ तयार करताना Error: {exc}")
 
+        st.write("")
         search = st.text_input(
             "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):",
             placeholder="नाव टाईप करा...",
@@ -1771,141 +1788,147 @@ def render_customer_khata():
                 | risk_report["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
             ]
 
-        st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
-        st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
-        business_upi_id = load_business_upi_id()
-        upi_configured = bool(
-            re.fullmatch(
-                r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
-                business_upi_id,
-            )
-        )
-        if not upi_configured and not visible_risk.empty:
-            st.info(
-                "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये "
-                "BUSINESS_UPI_ID कॉन्फिगर करा."
-            )
-        for _, customer in visible_risk.iterrows():
-            name = _khata_text(customer["customer_name"])
-            customer_phone = _khata_text(customer["phone"])
-            risk_level = customer["risk_level"]
-            risk_color = "#f87171" if risk_level.startswith("High") else (
-                "#f59e0b" if risk_level.startswith("Moderate") else "#00ff87"
-            )
-            st.markdown(
-                f"""
-                <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
-                        <span>{escape(name)} ({escape(customer_phone or "फोन उपलब्ध नाही")})</span>
-                        <span style="color:{risk_color};">{escape(risk_level)} · {int(customer["risk_score"])}/100</span>
-                    </div>
-                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
-                        बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{customer["balance"]:,.2f}</b>
-                        &nbsp; मुदतबाह्य: <b>{customer["overdue_balance"]:,.2f}</b>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            clean_phone = re.sub(r"\D", "", customer_phone)
-            if len(clean_phone) >= 10:
-                if len(clean_phone) == 10:
-                    clean_phone = "91" + clean_phone
-                elif len(clean_phone) == 11 and clean_phone.startswith("0"):
-                    clean_phone = "91" + clean_phone[1:]
-                    
-                if upi_configured and customer["balance"] > 0:
-                    action_col1, action_col2, action_col3 = st.columns(3)
-                else:
-                    action_col1, action_col2 = st.columns(2)
-                    action_col3 = None
-                    
-                if customer["balance"] > 0:
-                    message = (
-                        f"नमस्कार {name} जी, तुमच्याकडे VernaLedger दुकान उधारीचे "
-                        f"₹{customer['balance']:,.2f} रुपये बाकी आहेत. धन्यवाद!"
-                    )
-                else:
-                    message = (
-                        f"नमस्कार {name} जी, तुमच्या VernaLedger खात्यात सध्या "
-                        "काही बाकी रक्कम नाही. धन्यवाद!"
-                    )
-                if upi_configured and customer["balance"] > 0:
-                    payment_link = build_upi_payment_link(
-                        business_upi_id,
-                        "VernaLedger",
-                        name,
-                        customer["balance"],
-                    )
-                    message += (
-                        f"\n\nGoogle Pay किंवा इतर UPI अॅपमधून पेमेंट करण्यासाठी लिंक:\n"
-                        f"{payment_link}"
-                    )
-                    whatsapp_label = "WhatsApp + पेमेंट"
-                else:
-                    whatsapp_label = "WhatsApp संदेश"
-                    
-                with action_col1:
-                    st.link_button(whatsapp_label, f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}")
-                with action_col2:
-                    st.link_button("थेट कॉल करा", f"tel:{customer_phone}")
-                if action_col3 and upi_configured and customer["balance"] > 0:
-                    with action_col3:
-                        st.link_button("Direct UPI Pay", payment_link)
-
-        st.markdown("---")
-        st.markdown("##### संपूर्ण उधारी व्यवहारांची यादी व Edit / Settle")
-        if visible_df.empty:
-            st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
-        else:
-            visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
-            record_signature = hashlib.sha256(
-                visible_df[KHATA_COLUMNS].to_json(
-                    orient="split", force_ascii=False
-                ).encode("utf-8")
-            ).hexdigest()
-            edited_df = st.data_editor(
-                visible_df[KHATA_COLUMNS],
-                
-                key=f"khata_editable_table_{record_signature}",
-                disabled=["id"],
-                num_rows="fixed",
-            )
-            edit_col, delete_col = st.columns(2)
-            with edit_col:
-                if st.button("उधारी records अपडेट (Save Edit)", key="save_khata_edits"):
-                    try:
-                        updated_count = update_khata_transactions(visible_df, edited_df)
-                        log_activity(
-                            st.session_state.get("current_username", "admin"),
-                            f"Updated {updated_count} Khata Records",
-                        )
-                        st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
-                        st.rerun()
-                    except ValueError as exc:
-                        st.error(str(exc))
-                    except sqlite3.Error as exc:
-                        logging.exception("Could not update customer khata transactions")
-                        st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
-            with delete_col:
-                delete_id = st.selectbox(
-                    "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
-                    visible_record_ids,
-                    key=f"delete_khata_id_{record_signature}",
+        sub_t1, sub_t2 = st.tabs(["📊 AI Risk & Actions", "✏️ Edit Ledger Database"])
+        
+        with sub_t1:
+            st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
+            st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
+            business_upi_id = load_business_upi_id()
+            upi_configured = bool(
+                re.fullmatch(
+                    r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
+                    business_upi_id,
                 )
-                if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
-                    try:
-                        if delete_khata_transaction(delete_id):
+            )
+            if not upi_configured and not visible_risk.empty:
+                st.info(
+                    "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये "
+                    "BUSINESS_UPI_ID कॉन्फिगर करा."
+                )
+            
+            # Use expander for AI Risk to make it more compact
+            with st.expander("📊 View Customer Risk & Send Reminders", expanded=True):
+                for _, customer in visible_risk.iterrows():
+                    name = _khata_text(customer["customer_name"])
+                    customer_phone = _khata_text(customer["phone"])
+                    risk_level = customer["risk_level"]
+                    risk_color = "#f87171" if risk_level.startswith("High") else (
+                        "#f59e0b" if risk_level.startswith("Moderate") else "#00ff87"
+                    )
+                    st.markdown(
+                        f'''
+                        <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
+                                <span>{escape(name)} ({escape(customer_phone or "फोन उपलब्ध नाही")})</span>
+                                <span style="color:{risk_color};">{escape(risk_level)} · {int(customer["risk_score"])}/100</span>
+                            </div>
+                            <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
+                                बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{customer["balance"]:,.2f}</b>
+                                &nbsp; मुदतबाह्य: <b>{customer["overdue_balance"]:,.2f}</b>
+                            </div>
+                        </div>
+                        ''',
+                        unsafe_allow_html=True,
+                    )
+                    clean_phone = re.sub(r"\D", "", customer_phone)
+                    if len(clean_phone) >= 10:
+                        if len(clean_phone) == 10:
+                            clean_phone = "91" + clean_phone
+                        elif len(clean_phone) == 11 and clean_phone.startswith("0"):
+                            clean_phone = "91" + clean_phone[1:]
+                            
+                        if upi_configured and customer["balance"] > 0:
+                            action_col1, action_col2, action_col3 = st.columns(3)
+                        else:
+                            action_col1, action_col2 = st.columns(2)
+                            action_col3 = None
+                            
+                        if customer["balance"] > 0:
+                            message = (
+                                f"नमस्कार {name} जी, आपल्या दुकानाचे VernaLedger कडील "
+                                f"₹{customer['balance']:,.2f} उधारी येणे बाकी आहे. कृपया लवकर जमा करा!"
+                            )
+                        else:
+                            message = (
+                                f"नमस्कार {name} जी, आपल्या VernaLedger खात्यावर सध्या "
+                                "कोणतीही बाकी उधारी नाही. धन्यवाद!"
+                            )
+                        if upi_configured and customer["balance"] > 0:
+                            payment_link = build_upi_payment_link(
+                                business_upi_id,
+                                "VernaLedger",
+                                name,
+                                customer["balance"],
+                            )
+                            message += (
+                                f"\n\nGoogle Pay किंवा इतर UPI अॅपमधून पेमेंट करण्यासाठी लिंक:\n"
+                                f"{payment_link}"
+                            )
+                            whatsapp_label = "WhatsApp + पेमेंट"
+                        else:
+                            whatsapp_label = "WhatsApp संदेश"
+                            
+                        with action_col1:
+                            st.link_button(whatsapp_label, f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}")
+                        with action_col2:
+                            st.link_button("थेट कॉल करा", f"tel:{customer_phone}")
+                        if action_col3 and upi_configured and customer["balance"] > 0:
+                            with action_col3:
+                                st.link_button("Direct UPI Pay", payment_link)
+
+        with sub_t2:
+            st.markdown("##### ✏️ जुने रेकॉर्ड्स आणि उधारी Edit / Settle")
+            if visible_df.empty:
+                st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
+            else:
+                visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
+                record_signature = hashlib.sha256(
+                    visible_df[KHATA_COLUMNS].to_json(
+                        orient="split", force_ascii=False
+                    ).encode("utf-8")
+                ).hexdigest()
+                edited_df = st.data_editor(
+                    visible_df[KHATA_COLUMNS],
+                    
+                    key=f"khata_editable_table_{record_signature}",
+                    disabled=["id"],
+                    num_rows="fixed",
+                )
+                edit_col, delete_col = st.columns(2)
+                with edit_col:
+                    if st.button("उधारी records अपडेट (Save Edit)", key="save_khata_edits"):
+                        try:
+                            updated_count = update_khata_transactions(visible_df, edited_df)
                             log_activity(
                                 st.session_state.get("current_username", "admin"),
-                                f"Deleted Khata ID {delete_id}",
+                                f"Updated {updated_count} Khata Records",
                             )
-                            st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
+                            st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
                             st.rerun()
-                        else:
-                            st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
-                    except sqlite3.Error as exc:
-                        logging.exception("Could not delete customer khata transaction")
+                        except ValueError as exc:
+                            st.error(str(exc))
+                        except sqlite3.Error as exc:
+                            logging.exception("Could not update customer khata transactions")
+                            st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
+                with delete_col:
+                    delete_id = st.selectbox(
+                        "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
+                        visible_record_ids,
+                        key=f"delete_khata_id_{record_signature}",
+                    )
+                    if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
+                        try:
+                            if delete_khata_transaction(delete_id):
+                                log_activity(
+                                    st.session_state.get("current_username", "admin"),
+                                    f"Deleted Khata ID {delete_id}",
+                                )
+                                st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
+                                st.rerun()
+                            else:
+                                st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
+                        except sqlite3.Error as exc:
+                            logging.exception("Could not delete customer khata transaction")
                         st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -2289,7 +2312,7 @@ def _translate_ui_text(value):
         # FINAL FALLBACK for English: if there's still Devanagari in the value, aggressively strip it if it has an English parenthetical!
         if devanagari_pattern.search(value):
             # Extract parentheticals (e.g. "मराठी (English text)" -> "English text")
-            clean_val = re.sub(r'[ऀ-ॿ]+[^ऀ-ॿ(]*\(([^()]+)\)', r'\1', value)
+            clean_val = re.sub(r'[\u0900-\u097f]+[^\u0900-\u097f\(]*\(([^()]+)\)', r'\1', value)
             if clean_val != value: return clean_val
             
     else:
@@ -2365,7 +2388,6 @@ def _sync_language_from_toggle():
 def _render_language_toggle():
     _streamlit_ui.toggle(
         _translate_ui_text("Use English"),
-        value=st.session_state.get("ui_language", "mr") == "en",
         key="ui_language_english",
         
         on_change=_sync_language_from_toggle,
@@ -3112,60 +3134,12 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 if selected_page == "OCR Scanner":
-    st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">OCR Scanner & Multi-Language Voice Billing</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Instant Digital POS Receipt Parsing & Audio Confirmation</p>
-        </div>
-        <div class="live-pulse-badge">
-            <div class="pulse-dot"></div>
-            POS ONLINE
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_page_header("OCR Scanner & Voice Billing", "Instant Digital POS Receipt Parsing & Audio Confirmation", "📷")
 
-    # KPI Widgets
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        tot_exp = f"{df['grand_total'].sum():,.2f}" if not df.empty else "0.00"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL REVENUE / SALES</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
-    with k2:
-        tot_rec = len(df) if not df.empty else 0
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL BILLS/ORDERS</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
-    with k3:
-        avg_exp = f"{df['grand_total'].mean():,.2f}" if not df.empty else "0.00"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>AVG TICKET SIZE</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
-    with k4:
-        top_v = df.groupby('vendor_name')['grand_total'].sum().idxmax() if not df.empty and 'vendor_name' in df.columns else "N/A"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOP PERFORMING SHOP</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
-
-    # Quick Cashflow / Udhar Summary (Khatabook Style)
-    try:
-        dash_khata_df = load_khata_transactions()
-        dash_risk_report = build_khata_risk_report(dash_khata_df)
-        total_unpaid = dash_risk_report["balance"].sum() if not dash_risk_report.empty else 0.0
-        total_collected = dash_khata_df[dash_khata_df["transaction_type"] == KHATA_PAYMENT]["amount"].sum() if not dash_khata_df.empty else 0.0
-        total_overdue = dash_risk_report["overdue_balance"].sum() if not dash_risk_report.empty else 0.0
-    except Exception:
-        total_unpaid = total_collected = total_overdue = 0.0
-
-    st.markdown("##### ⚡ Quick Cashflow / Udhar Summary")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>✅ CASH RECOVERED</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>⏳ PENDING UDHAR</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>🚨 OVERDUE (AT RISK)</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
-
-
-    
     col_u, col_p = st.columns([1.1, 0.9])
     with col_u:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-size: 16px;'>Input Mode</h4>", unsafe_allow_html=True)
-        force_save_option = st.checkbox("ड्युप्लिकेट पावती असल्यास जबरदस्तीने सेव्ह करा (Force Save)", value=False)
+        force_save_option = st.checkbox("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)", value=False)
         
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
@@ -3185,7 +3159,7 @@ if selected_page == "OCR Scanner":
         up_files = []
         up_cam = None
         if input_method == "Live Camera":
-            up_cam = st.camera_input("Take photo")
+            up_cam = st.camera_input("Take photo", label_visibility="collapsed")
         elif input_method == "Upload File":
             up_files = st.file_uploader("Choose Receipts", type=["jpg", "jpeg", "png"], accept_multiple_files=True, label_visibility="collapsed")
             if up_files:
@@ -3197,9 +3171,8 @@ if selected_page == "OCR Scanner":
                     st.markdown(f"<div style='font-size: 12px; color: #94a3b8; font-weight: 600;'>+ {len(up_files)-5} more receipts ready...</div>", unsafe_allow_html=True)
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
-            <div style="background: rgba(0,242,254,0.08); border: 1px solid #00f2fe; padding: 14px; border-radius: 14px; text-align: center; margin-bottom: 15px;">
-                <div style="font-size: 15px; font-weight: 800; color: #00f2fe; margin-bottom: 4px;">Verna Pro Multi-Language Studio (Auto-Detect Language)</div>
-                <div style="font-size: 12px; color: #f8fafc;">Speak in Marathi, Hindi, or English (उदा: Store name, items & price)</div>
+            <div style="background: rgba(0,242,254,0.08); border: 1px solid #00f2fe; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 13px; font-weight: bold; color: #00f2fe;">🎙️ Voice Billing (Marathi, Hindi, English)</div>
             </div>
             """, unsafe_allow_html=True)
             spoken_bill = speech_to_text(start_prompt="बोलणे सुरू करा (माइक दाबा)", stop_prompt="थांबवा आणि बिल सेव्ह करा", just_once=True, language='mr-IN', key='voice_billing_mic_auto')
@@ -3297,7 +3270,7 @@ if selected_page == "OCR Scanner":
         
     with col_p:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-size: 16px;'>Extracted Items & Summary</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-size: 14px;'>📋 Summary</h4>", unsafe_allow_html=True)
         batch_data = st.session_state.get('processed_batch', [])
         if batch_data:
             if len(batch_data) == 1:
@@ -3314,7 +3287,7 @@ if selected_page == "OCR Scanner":
                 if not items_df.empty:
                     st.dataframe(items_df, use_container_width=True)
                     
-                    if st.button('📦 Auto-Update to Smart Inventory', key='inv_sync_single'):
+                    if st.button('📦 Update Inventory', key='inv_sync_single'):
                         try:
                             import sqlite3
                             with sqlite3.connect('ledger.db') as conn:
@@ -3343,7 +3316,7 @@ if selected_page == "OCR Scanner":
                         if not items_df.empty:
                             st.dataframe(items_df, use_container_width=True)
                             
-                        if st.button('📦 Auto-Update to Smart Inventory', key=f'inv_sync_{idx}'):
+                        if st.button('📦 Update Inventory', key=f'inv_sync_{idx}'):
                             try:
                                 import sqlite3
                                 with sqlite3.connect('ledger.db') as conn:
@@ -3378,7 +3351,7 @@ if selected_page == "OCR Scanner":
             inv_html += f"</table><h3 style='text-align:right; margin-top:20px;'>Grand Total: ₹{tot:,.2f}</h3></body></html>"
             
             st.download_button(
-                label="📄 Download Invoice (PDF/HTML)",
+                label="📄 Download Invoice",
                 data=inv_html,
                 file_name=f"Invoice_{v_disp.replace(' ', '_')}.html",
                 mime="text/html",
@@ -3402,15 +3375,7 @@ elif selected_page == "Customer Khata":
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Business Operations":
     render_business_module_styles()
-    st.markdown("""
-    <div class="studio-header business-module-hero" style="margin-bottom: 15px;">
-        <div class="business-hero-content">
-            <div class="business-eyebrow">✦ BUSINESS MODULES</div>
-            <h2 class="business-hero-title">Business <span>Operations</span></h2>
-            <p class="business-hero-subtitle">इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_page_header("Business Operations", "इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.", "💼")
 
     tab_stock, tab_expenses = st.tabs(["📦 Stock & Inventory", "💸 Business Expenses"])
     
@@ -3606,14 +3571,7 @@ elif selected_page == "Staff Management":
     if st.session_state.get('user_role') == 'Staff':
         st.error("Restricted Area: Staff not allowed on Staff Management page!")
         st.stop()
-    st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Admin Staff Management & Audit Logs</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Create Staff Accounts & View Complete System Activity Audit Trail</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_page_header("Admin Staff Management", "Create Staff Accounts & View Complete System Activity Audit Trail", "👥")
     tab_st1, tab_st2 = st.tabs(["Staff Management", "System Audit Logs"])
     with tab_st1:
         sc1, sc2 = st.columns([1, 1])
@@ -3686,14 +3644,45 @@ elif selected_page == "Staff Management":
 
 # FEATURE 7: LEDGER DATABASE ---
 elif selected_page == "Ledger Database":
-    st.markdown("""
-    <div class="studio-header">
-        <div>
-            <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #00f2fe;">Ledger Database & Multi-Language Export</h2>
-            <p style="margin:4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_page_header("Ledger Database & Export", "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads", "📊")
+
+    # KPI Widgets
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        tot_exp = f"{df['grand_total'].sum():,.2f}" if not df.empty else "0.00"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL REVENUE / SALES</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
+    with k2:
+        tot_rec = len(df) if not df.empty else 0
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL BILLS/ORDERS</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
+    with k3:
+        avg_exp = f"{df['grand_total'].mean():,.2f}" if not df.empty else "0.00"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>AVG TICKET SIZE</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
+    with k4:
+        top_v = df.groupby('vendor_name')['grand_total'].sum().idxmax() if not df.empty and 'vendor_name' in df.columns else "N/A"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOP PERFORMING SHOP</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
+
+    # Quick Cashflow / Udhar Summary (Khatabook Style)
+    try:
+        dash_khata_df = load_khata_transactions()
+        dash_risk_report = build_khata_risk_report(dash_khata_df)
+        total_unpaid = dash_risk_report["balance"].sum() if not dash_risk_report.empty else 0.0
+        total_collected = dash_khata_df[dash_khata_df["transaction_type"] == KHATA_PAYMENT]["amount"].sum() if not dash_khata_df.empty else 0.0
+        total_overdue = dash_risk_report["overdue_balance"].sum() if not dash_risk_report.empty else 0.0
+    except Exception:
+        total_unpaid = total_collected = total_overdue = 0.0
+
+    st.markdown("##### ⚡ Quick Cashflow / Udhar Summary")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>✅ CASH RECOVERED</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>⏳ PENDING UDHAR</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>🚨 OVERDUE (AT RISK)</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
+
+
+    
+
     
     if not df.empty:
         col_db_left, col_db_right = st.columns([1.2, 0.8])
@@ -4026,12 +4015,7 @@ main.block-container {
 </style>
 """, unsafe_allow_html=True)
 
-    st.markdown("""
-<div class="verna-ai-heading">
-  <h1 class="verna-ai-title">✨ Verna AI</h1>
-  <p class="verna-ai-subtitle">Your Smart Ledger &amp; Business Assistant</p>
-</div>
-""", unsafe_allow_html=True)
+    render_page_header("Verna AI Chatbot", "Your Smart Ledger & Business Assistant", "✨")
     _, toggle_col, _ = st.columns([1, 2, 1])
     with toggle_col:
         enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
