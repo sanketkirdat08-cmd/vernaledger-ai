@@ -3185,6 +3185,13 @@ if selected_page == "OCR Scanner":
             up_cam = st.camera_input("Take photo")
         elif input_method == "Upload File":
             up_files = st.file_uploader("Choose Receipts", type=["jpg", "jpeg", "png"], accept_multiple_files=True, label_visibility="collapsed")
+            if up_files:
+                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 10px; margin-top: 10px;'>📸 Uploaded Previews:</div>", unsafe_allow_html=True)
+                cols = st.columns(min(len(up_files), 5))
+                for idx, uf in enumerate(up_files[:5]):
+                    cols[idx].image(uf, use_container_width=True, caption=f"({idx+1})")
+                if len(up_files) > 5:
+                    st.markdown(f"<div style='font-size: 12px; color: #94a3b8; font-weight: 600;'>+ {len(up_files)-5} more receipts ready...</div>", unsafe_allow_html=True)
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
             <div style="background: rgba(0,242,254,0.08); border: 1px solid #00f2fe; padding: 14px; border-radius: 14px; text-align: center; margin-bottom: 15px;">
@@ -3220,26 +3227,49 @@ if selected_page == "OCR Scanner":
                 processed_batch = []
                 warning_messages = []
                 total_f = len(target_files)
-                for idx, single_file in enumerate(target_files):
-                    status_text.text(f"पावती विश्लेषित करत आहे ({idx+1}/{total_f})...")
-                    progress_bar.progress((idx+1)/total_f)
+                import concurrent.futures
+                
+                def process_single_file(idx, single_file):
                     temp_f = f"temp_{os.urandom(4).hex()}.png"
                     try:
                         with open(temp_f, "wb") as f:
                             f.write(single_file.getbuffer())
                         data = process_receipt_advanced(temp_f, API_KEY, force_save=force_save_option)
-                        processed_batch.append(data)
                         if os.path.exists(temp_f):
                             os.remove(temp_f)
+                        return (idx, data, None)
                     except Exception as e:
                         if os.path.exists(temp_f):
                             os.remove(temp_f)
                         err_str = str(e)
-                        if "Duplicate Warning:" in err_str:
-                            clean_err = err_str.split("Duplicate Warning:")[-1].strip()
-                            warning_messages.append(f"पावती क्र. {idx+1} ({single_file.name}): {clean_err}")
-                        else:
-                            warning_messages.append(f"पावती क्र. {idx+1} ({single_file.name}): {err_str}")
+                        return (idx, None, (single_file.name, err_str))
+
+                with st.spinner(f"🚀 AI is processing {total_f} receipts simultaneously... Please wait!"):
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=min(total_f, 10)) as executor:
+                        futures = {executor.submit(process_single_file, i, f): i for i, f in enumerate(target_files)}
+                        
+                        results = []
+                        completed_count = 0
+                        for future in concurrent.futures.as_completed(futures):
+                            results.append(future.result())
+                            completed_count += 1
+                            progress_bar.progress(completed_count / total_f)
+                            status_text.text(f"⚡ पावती स्कॅन होत आहे ({completed_count}/{total_f})...")
+                            
+                        # Sort by original index to maintain order
+                        results.sort(key=lambda x: x[0])
+                        
+                        for idx, data, err in results:
+                            if data:
+                                processed_batch.append(data)
+                            if err:
+                                fname, err_str = err
+                                if "Duplicate Warning:" in err_str:
+                                    clean_err = err_str.split("Duplicate Warning:")[-1].strip()
+                                    warning_messages.append(f"⚠️ {fname}: {clean_err}")
+                                else:
+                                    warning_messages.append(f"❌ {fname}: {err_str}")
+                
                 progress_bar.empty()
                 status_text.empty()
                 if processed_batch:
