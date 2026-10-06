@@ -45,23 +45,8 @@ def extract_valid_json(text: str) -> dict:
     return json.loads(text)
 
 def get_active_gemini_models():
-    """४०४ एरर कायमची रोखण्यासाठी ॲक्टिव्ह मॉडेल्स आपोआप शोधणारे लॉजिक"""
-    try:
-        online_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_name = m.name.replace("models/", "")
-                online_models.append(model_name)
-        
-        filtered = [m for m in online_models if 'flash' in m or 'pro' in m]
-        if filtered:
-            return filtered
-        elif online_models:
-            return online_models
-    except Exception as exc:
-        logger.warning(f"Dynamic model fetch failed: {exc}")
-    
-    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.0-pro']
+    """Returns the absolute fastest models first, skipping the slow list_models API call to save 1s per request."""
+    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-pro-exp', 'gemini-1.5-pro', 'gemini-1.0-pro']
 
 def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
@@ -72,15 +57,19 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
 
     prompt = """
     You are an expert document OCR scanner for Marathi/Hindi handwritten and printed ledgers/receipts.
-    Task:
+    CRITICAL MATHEMATICAL TASK:
     1. Extract the Vendor/Shop Name at the top in Marathi script.
     2. Extract ALL item rows listed in the table or list.
     3. For each row, parse accurately:
        item_name: Name of item.
-       quantity: Specify numeric quantity along with exact measurement unit if present (e.g. '10 kg', '1 ltr', '500 gm', '10 nos', '2 packets', '1 piece').
-       rate: Price per unit in rupees (e.g., 20.0).
-       total_price: Total amount for this line item in rupees (e.g., 200.0).
-    4. Calculate or extract grand total in rupees.
+       quantity: Specify numeric quantity along with exact measurement unit (e.g. '10 kg', '1 ltr'). Remove commas from numbers. If no unit, just the number.
+       rate: Price per unit in numeric rupees (e.g. 20.0). Remove commas.
+       total_price: Total amount for this line item in rupees.
+    
+    VERIFICATION RULES:
+    - You MUST mathematically verify that: (quantity numeric part) * rate = total_price.
+    - If the math on the receipt is wrong or unreadable, YOU MUST CORRECT IT. Set total_price = quantity * rate.
+    - You MUST mathematically verify that grand_total = SUM(all item total_price). Do NOT blindly copy a wrong total from the image.
 
     Output strictly in this JSON structure:
     {
@@ -94,7 +83,7 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
     }
     Return ONLY valid JSON object.
     """
-
+    
     models_to_try = get_active_gemini_models()
     response = None
     last_error = None
@@ -167,14 +156,14 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
     genai.configure(api_key=api_key)
     
     prompt = f"""
-    You are an expert Marathi financial assistant. Convert the following spoken Marathi text into a structured receipt JSON object.
-
+    You are an expert Marathi financial assistant and math wizard. Convert the following spoken text into a structured receipt JSON object.
     Spoken Input: "{voice_text}"
 
-    Task:
-    1. Extract Vendor/Shop Name if mentioned, otherwise set to "व्हॉईस बिल (Local Shop)".
-    2. Extract all item names, quantity, rate per unit, and calculated total_price for each item.
-    3. Compute or extract the grand_total.
+    CRITICAL MATHEMATICAL TASK:
+    1. Extract Vendor/Shop Name if mentioned, otherwise set to "अनामित (Local Shop)".
+    2. Extract all item names, quantity, rate per unit, and calculate total_price for each item.
+    3. YOU MUST mathematically calculate: total_price = quantity * rate for EVERY item.
+    4. YOU MUST mathematically calculate: grand_total = SUM(all item total_price).
 
     Strict JSON Output Format:
     {{
@@ -188,7 +177,7 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
     }}
     Return ONLY valid JSON object.
     """
-
+    
     models_to_try = get_active_gemini_models()
     res = None
     last_error = None
