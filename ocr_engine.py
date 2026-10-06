@@ -62,7 +62,7 @@ def get_active_gemini_models():
         flash_models.sort(reverse=True)
         pro_models.sort(reverse=True)
         
-        best = flash_models + pro_models
+        best = pro_models + flash_models
         if best:
             return best
         return online_models

@@ -3297,32 +3297,43 @@ if selected_page == "OCR Scanner":
         st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-size: 16px;'>Extracted Items & Summary</h4>", unsafe_allow_html=True)
         batch_data = st.session_state.get('processed_batch', [])
         if batch_data:
-            for idx, p_item in enumerate(batch_data):
+            if len(batch_data) == 1:
+                p_item = batch_data[0]
                 v_disp = decode_unicode(p_item.get('vendor_name'))
                 tot = p_item.get('grand_total', 0)
-                st.markdown(f"**पावती #{idx+1} - Shop:** {v_disp} | **Total:** *{tot:,.2f}*")
-            st.markdown("---")
-            st.markdown("#### Marathi Audio Summary")
-            if len(batch_data) > 1:
-                vendor_names_list = [decode_unicode(item.get('vendor_name', 'दुकान')) for item in batch_data]
-                audio_text = "स्कॅन केलेल्या पावत्यांची दुकाने: " + ", ".join(vendor_names_list)
+                items_raw = p_item.get('items', [])
+                
+                st.markdown(f"**Shop Name:** {v_disp}")
+                st.markdown(f"**Grand Total:** <h2 style='color:#00ff87; margin:0;'>₹{tot:,.2f}</h2>", unsafe_allow_html=True)
+                
+                import pandas as pd
+                items_df = pd.DataFrame(items_raw)
+                if not items_df.empty:
+                    st.dataframe(items_df, use_container_width=True)
+                    
+                audio_text = f"{v_disp} कडून खरेदी केलेली पावती. एकूण रक्कम {tot} रुपये."
+                aud_path = generate_marathi_tts(audio_text)
+                if aud_path and os.path.exists(aud_path):
+                    st.audio(aud_path)
             else:
-                single_v = decode_unicode(batch_data[0].get('vendor_name'))
-                single_tot = batch_data[0].get('grand_total', 0)
-                audio_text = f"{single_v} कडील पावतीची एकूण रक्कम रुपये {single_tot} आहे."
-            aud_path = generate_marathi_tts(audio_text)
-            if aud_path and os.path.exists(aud_path):
-                st.audio(aud_path)
-        elif 'processed_data' in st.session_state:
-            items_raw = st.session_state['processed_data'].get('items', [])
-            items_df = pd.DataFrame(items_raw)
-            if not items_df.empty:
-                st.dataframe(items_df, use_container_width=True)
-            v_disp = decode_unicode(st.session_state['processed_data'].get('vendor_name'))
-            tot = st.session_state['processed_data'].get('grand_total', 0)
-            st.markdown(f"**Shop Name:** {v_disp}")
-            st.markdown(f"**Grand Total:** <h2 style='color:#00ff87; margin:0;'>{tot:,.2f}</h2>", unsafe_allow_html=True)
-
+                st.markdown(f"**Processed {len(batch_data)} Receipts Successfully**")
+                for idx, p_item in enumerate(batch_data):
+                    v_disp = decode_unicode(p_item.get('vendor_name'))
+                    tot = p_item.get('grand_total', 0)
+                    with st.expander(f"🧾 Receipt #{idx+1} - {v_disp} (₹{tot:,.2f})"):
+                        import pandas as pd
+                        items_df = pd.DataFrame(p_item.get('items', []))
+                        if not items_df.empty:
+                            st.dataframe(items_df, use_container_width=True)
+                            
+                st.markdown("---")
+                st.markdown("#### Marathi Audio Summary")
+                vendor_names_list = [decode_unicode(item.get('vendor_name', 'अनामित')) for item in batch_data]
+                audio_text = "तुमच्या स्कॅन केलेल्या पावत्यांची दुकाने: " + ", ".join(vendor_names_list)
+                aud_path = generate_marathi_tts(audio_text)
+                if aud_path and os.path.exists(aud_path):
+                    st.audio(aud_path)
+                    
             # Instant Invoice Download
             inv_html = f"""
             <html><body style='font-family:sans-serif; padding:20px; color:#333;'>
