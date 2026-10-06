@@ -3085,7 +3085,7 @@ with st.sidebar:
     ''', unsafe_allow_html=True)
     
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
-    if st.button("🚪 Logout System"):
+    if st.button("\U0001f6aa Logout System"):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
         st.session_state.clear()
         st.rerun()
@@ -4063,7 +4063,7 @@ main.block-container {
 
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
-            with st.chat_message(message_role, avatar='🤖' if message_role == 'assistant' else '👤'):
+            with st.chat_message(message_role, avatar='\U0001f916' if message_role == 'assistant' else '\U0001f464'):
                 _streamlit_ui.markdown(chat["text"])
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
