@@ -45,8 +45,29 @@ def extract_valid_json(text: str) -> dict:
     return json.loads(text)
 
 def get_active_gemini_models():
-    """Returns the absolute fastest models first, skipping the slow list_models API call to save 1s per request."""
-    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-pro-exp', 'gemini-1.5-pro', 'gemini-1.0-pro']
+    """Dynamically fetch the best available Gemini model."""
+    try:
+        import google.generativeai as genai
+        online_models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_name = m.name.replace('models/', '')
+                online_models.append(model_name)
+        
+        # Priority: flash models, then pro models
+        flash_models = [m for m in online_models if 'flash' in m]
+        pro_models = [m for m in online_models if 'pro' in m]
+        
+        # Sort descending to get highest version number first (e.g., 3.5 > 2.5)
+        flash_models.sort(reverse=True)
+        pro_models.sort(reverse=True)
+        
+        best = flash_models + pro_models
+        if best:
+            return best
+        return online_models
+    except Exception as exc:
+        return ['gemini-3.5-flash', 'gemini-2.5-flash']
 
 def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
