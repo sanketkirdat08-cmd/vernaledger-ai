@@ -3068,7 +3068,7 @@ with st.sidebar:
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
     else:
-        nav_options = ["OCR Scanner", "Business Modules", "Ledger Database", "RAG AI Chat", "Staff Management"]
+        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Ledger Database", "RAG AI Chat", "Staff Management"]
         
     selected_page = st.radio("Navigation", nav_options, label_visibility="collapsed")
     
