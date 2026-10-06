@@ -1591,13 +1591,7 @@ def render_customer_khata():
             ):
                 st.session_state.pop(field, None)
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">＋</div>
-            <div><h3 class="business-section-title">Add a new transaction</h3>
-            <p class="business-section-caption">Safely record customer credit or a received installment.</p></div>
-        </div>
-        """, unsafe_allow_html=True)
+
         st.markdown("""
         <div class="khata-ai-entry">
             <div class="khata-ai-entry-title">⌁ AI व्हॉइस किंवा मजकूर नोंद</div>
@@ -1719,18 +1713,10 @@ def render_customer_khata():
 
     with tab2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        header_col, refresh_col = st.columns([3, 1])
-        with header_col:
-            st.markdown("""
-            <div class="business-section-heading">
-                <div class="business-section-icon">◉</div>
-                <div><h3 class="business-section-title">उधारी लेजर आणि जोखीम</h3>
-                <p class="business-section-caption">बाकी रक्कम, मुदत आणि ग्राहक व्यवहारांचा आढावा.</p></div>
-            </div>
-            """, unsafe_allow_html=True)
-        with refresh_col:
-            if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
-                st.rerun()
+        st.markdown("<div style='display:flex; justify-content:flex-end; margin-bottom: 10px;'>", unsafe_allow_html=True)
+        if st.button("डेटा रिफ्रेश करा", type="primary", key="refresh_khata"):
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
         try:
             khata_df = load_khata_transactions()
         except sqlite3.Error as exc:
@@ -3430,16 +3416,7 @@ elif selected_page == "Business Operations":
     
     with tab_stock:
         # Staff can now access this
-        st.markdown("""
-        <div class="studio-header business-module-hero">
-            <div class="business-hero-content">
-                <div class="business-eyebrow">✦ BUSINESS MODULES · INVENTORY</div>
-                <h2 class="business-hero-title">Stock & <span>Inventory</span></h2>
-                <p class="business-hero-subtitle">उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.</p>
-            </div>
-            <div class="business-hero-mark" aria-hidden="true">▦</div>
-        </div>
-        """, unsafe_allow_html=True)
+
         ic1, ic2 = st.columns([1, 1])
         with ic1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
@@ -3546,16 +3523,7 @@ elif selected_page == "Business Operations":
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
         # Staff can now access this
-        st.markdown("""
-        <div class="studio-header business-module-hero">
-            <div class="business-hero-content">
-                <div class="business-eyebrow">✦ BUSINESS MODULES · EXPENSES</div>
-                <h2 class="business-hero-title">व्यवसाय खर्च <span>· नोंदवही</span></h2>
-                <p class="business-hero-subtitle">भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.</p>
-            </div>
-            <div class="business-hero-mark" aria-hidden="true">₹</div>
-        </div>
-        """, unsafe_allow_html=True)
+
         ec1, ec2 = st.columns([1, 1])
         with ec1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
