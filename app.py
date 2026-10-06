@@ -1636,7 +1636,7 @@ def render_customer_khata():
                 "AI तपशील भरा",
                 key="parse_unified_khata_voice",
                 type="secondary",
-                use_container_width=True,
+                
             )
         if parse_voice:
             transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
@@ -1882,7 +1882,7 @@ def render_customer_khata():
             ).hexdigest()
             edited_df = st.data_editor(
                 visible_df[KHATA_COLUMNS],
-                use_container_width=True,
+                
                 key=f"khata_editable_table_{record_signature}",
                 disabled=["id"],
                 num_rows="fixed",
@@ -3011,103 +3011,82 @@ df = load_receipts_data()
 
 # SIDEBAR NAVIGATION ---
 with st.sidebar:
+    st.markdown('''
+    <style>
+    /* Sleek Sidebar CSS */
+    [data-testid="stSidebar"] {
+        background: rgba(10, 15, 30, 0.95) !important;
+        border-right: 1px solid rgba(0, 242, 254, 0.2);
+    }
+    .stRadio > div {
+        gap: 15px;
+    }
+    .stRadio label {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        padding: 10px 15px;
+        border-radius: 8px;
+        transition: 0.3s;
+    }
+    /* Red Logout Button */
+    div.stButton > button:contains("Logout System") {
+        background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4) !important;
+        transition: 0.3s;
+    }
+    div.stButton > button:contains("Logout System"):hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6) !important;
+    }
+    </style>
+    ''', unsafe_allow_html=True)
+
     _render_language_toggle()
     render_custom_logo("small")
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
     st.markdown(f"""
-    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 6px 10px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 12px {role_badge_color}33;">
-        <span style="font-size: 10px; font-weight: 800; color: {role_badge_color};">ROLE: {current_role.upper()}</span>
+    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 15px {role_badge_color}44;">
+        <span style="font-size: 12px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div class='sidebar-title'>NAVIGATION SUITE</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:12px; color:#8892b0; font-weight:bold; margin-bottom:10px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
-        default_page = st.query_params.get("page", st.session_state.get("selected_page", "OCR Scanner"))
-        if default_page not in nav_options: default_page = "OCR Scanner"
-        
-        def _on_nav_change_staff():
-            val = st.session_state.get("nav_radio_staff", "OCR Scanner")
-            st.session_state["selected_page"] = val
-            st.query_params["page"] = val
-
-        if "nav_radio_staff" not in st.session_state:
-            st.session_state["nav_radio_staff"] = default_page
-            
-        selected_page = st.radio("Navigation", nav_options, key="nav_radio_staff", on_change=_on_nav_change_staff, label_visibility="collapsed")
-        # Ensure fallback assignment if first load
-        if "selected_page" not in st.session_state: st.session_state["selected_page"] = selected_page
     else:
         nav_options = ["OCR Scanner", "Business Modules", "Ledger Database", "RAG AI Chat", "Staff Management"]
-        default_page = st.query_params.get("page", st.session_state.get("selected_page", "OCR Scanner"))
-        # Map old Sales & Analytics to OCR Scanner to avoid errors
-        if default_page == "Sales & Analytics": default_page = "OCR Scanner"
-        if default_page not in nav_options and default_page not in ["Customer Khata", "Stock & Inventory", "Business Expenses"]: default_page = "OCR Scanner"
         
-        main_page_val = "Business Modules" if default_page in ["Customer Khata", "Stock & Inventory", "Business Expenses"] else default_page
-        if main_page_val not in nav_options: main_page_val = "OCR Scanner"
-        
-        def _on_nav_change_admin():
-            val = st.session_state.get("nav_radio_admin", "OCR Scanner")
-            st.session_state["selected_page"] = val
-            st.query_params["page"] = val
-            
-        if "nav_radio_admin" not in st.session_state:
-            st.session_state["nav_radio_admin"] = main_page_val
-            
-        selected_main_page = st.radio("Navigation", nav_options, key="nav_radio_admin", on_change=_on_nav_change_admin, label_visibility="collapsed")
-        
-        # In case the first load misses state
-        if "selected_page" not in st.session_state: st.session_state["selected_page"] = selected_main_page
-        
-        if selected_main_page == "Business Modules":
-            def _on_sub_change():
-                val = st.session_state.get("nav_sub_admin", "Customer Khata")
-                st.session_state["business_dropdown"] = val
-                st.session_state["selected_page"] = val
-                st.query_params["subpage"] = val
-                st.query_params["page"] = val
-                
-            sub_options = ["Customer Khata", "Stock & Inventory", "Business Expenses"]
-            default_sub = st.query_params.get("subpage", st.session_state.get("business_dropdown", "Customer Khata"))
-            if default_sub not in sub_options: default_sub = "Customer Khata"
-            
-            if "nav_sub_admin" not in st.session_state:
-                st.session_state["nav_sub_admin"] = default_sub
-                
-            dropdown_choice = st.selectbox("Select Business Module:", sub_options, key="nav_sub_admin", on_change=_on_sub_change)
-            selected_page = dropdown_choice
-            if "selected_page" not in st.session_state or st.session_state["selected_page"] != selected_page:
-                st.session_state["selected_page"] = selected_page
-        else:
-            selected_page = selected_main_page
-            
-    st.markdown("""
-    <div class="dev-credit-box">
-        <div style="font-size: 9px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 3px;">Project Developers</div>
-        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
-            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    selected_page = st.radio("Navigation", nav_options, label_visibility="collapsed")
     
-    if st.button("Logout System"):
+    st.markdown("<hr style='border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
+    
+    # Custom Logout button container to apply CSS safely if :contains fails
+    st.markdown('<div class="logout-container">', unsafe_allow_html=True)
+    if st.button("🚪 Logout System"):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
-        st.session_state['logged_in'] = False
-        st.session_state['remember_me'] = False
-        st.query_params.clear()
-        st.toast("लॉगआऊट यशस्वी!", icon="🔒")
-        time.sleep(0.4)
+        st.session_state.clear()
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-if selected_page != "RAG AI Chat":
-    render_application_design_styles()
-    render_business_module_styles()
-else:
-    render_rag_sidebar_design_styles()
+    # Force the logout button red if CSS :contains fails on older browsers
+    st.markdown('''
+    <style>
+    .logout-container .stButton > button {
+        background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        width: 100% !important;
+    }
+    </style>
+    ''', unsafe_allow_html=True)
 
-# FEATURE 1: OCR SCANNER + MULTI-LANGUAGE VOICE BILLING ---
 if selected_page == "OCR Scanner":
     st.markdown("""
     <div class="studio-header">
@@ -3189,7 +3168,7 @@ if selected_page == "OCR Scanner":
                 st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 10px; margin-top: 10px;'>📸 Uploaded Previews:</div>", unsafe_allow_html=True)
                 cols = st.columns(min(len(up_files), 5))
                 for idx, uf in enumerate(up_files[:5]):
-                    cols[idx].image(uf, use_container_width=True, caption=f"({idx+1})")
+                    cols[idx].image(uf,  caption=f"({idx+1})")
                 if len(up_files) > 5:
                     st.markdown(f"<div style='font-size: 12px; color: #94a3b8; font-weight: 600;'>+ {len(up_files)-5} more receipts ready...</div>", unsafe_allow_html=True)
         elif input_method == "Multi-Language Voice Bill":
@@ -3379,7 +3358,7 @@ if selected_page == "OCR Scanner":
                 data=inv_html,
                 file_name=f"Invoice_{v_disp.replace(' ', '_')}.html",
                 mime="text/html",
-                use_container_width=True,
+                
                 type="primary"
             )
 
@@ -3490,7 +3469,7 @@ elif selected_page == "Stock & Inventory":
                 )
             display_df = stock_df.copy()
             display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.dataframe(display_df,  hide_index=True)
             if not low_stock_items.empty:
                 low_names = ", ".join(low_stock_items['item_name'].tolist())
                 st.markdown(f"""
@@ -3763,7 +3742,7 @@ elif selected_page == "Ledger Database":
             sheet_preview_df['Items Summary'] = display_df['raw_json'].apply(get_items_clean_summary) if 'raw_json' in display_df.columns else "N/A"
             sheet_preview_df.insert(0, "Select", False)
             
-            edited_sheet_df = st.data_editor(sheet_preview_df, use_container_width=True, key="ledger_checkbox_table")
+            edited_sheet_df = st.data_editor(sheet_preview_df,  key="ledger_checkbox_table")
             
             selected_ids = edited_sheet_df[edited_sheet_df['Select'] == True]['id'].tolist()
             if selected_ids:
@@ -4059,14 +4038,14 @@ main.block-container {
             st.markdown("""
 <section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
   <div class="verna-ai-greeting-inner">
-    <p>Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+    <h1 style="font-size:40px; margin-bottom:5px;">✨ Verna AI</h1><p style="color:#00f2fe; font-size:16px;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
   </div>
 </section>
 """, unsafe_allow_html=True)
 
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
-            with st.chat_message(message_role):
+            with st.chat_message(message_role, avatar='🤖' if message_role == 'assistant' else '👤'):
                 _streamlit_ui.markdown(chat["text"])
                 if enable_voice_output and chat.get("audio_file") and os.path.exists(chat["audio_file"]):
                     st.audio(chat["audio_file"], autoplay=(idx == len(st.session_state["chat_history"])-1))
