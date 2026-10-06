@@ -3094,9 +3094,9 @@ with st.sidebar:
     
     st.markdown("<div style='font-size:10px; color:#8892b0; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
-        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Business Expenses", "RAG AI Chat"]
+        nav_options = ["OCR Scanner", "Customer Khata", "Business Operations", "RAG AI Chat"]
     else:
-        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Business Expenses", "Ledger Database", "RAG AI Chat", "Staff Management"]
+        nav_options = ["OCR Scanner", "Customer Khata", "Business Operations", "Ledger Database", "RAG AI Chat", "Staff Management"]
         
     default_page = st.query_params.get("page", "OCR Scanner")
     if default_page not in nav_options:
@@ -3414,213 +3414,225 @@ elif selected_page == "Customer Khata":
     render_customer_khata()
 
 # FEATURE 4: STOCK & INVENTORY ---
-elif selected_page == "Stock & Inventory":
-    # Staff can now access this
+elif selected_page == "Business Operations":
     render_business_module_styles()
     st.markdown("""
-    <div class="studio-header business-module-hero">
+    <div class="studio-header business-module-hero" style="margin-bottom: 15px;">
         <div class="business-hero-content">
-            <div class="business-eyebrow">✦ BUSINESS MODULES · INVENTORY</div>
-            <h2 class="business-hero-title">Stock & <span>Inventory</span></h2>
-            <p class="business-hero-subtitle">उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.</p>
+            <div class="business-eyebrow">✦ BUSINESS MODULES</div>
+            <h2 class="business-hero-title">Business <span>Operations</span></h2>
+            <p class="business-hero-subtitle">इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.</p>
         </div>
-        <div class="business-hero-mark" aria-hidden="true">▦</div>
     </div>
     """, unsafe_allow_html=True)
-    ic1, ic2 = st.columns([1, 1])
-    with ic1:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">＋</div>
-            <div><h3 class="business-section-title">Add New Stock</h3>
-            <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
-        </div>
-        """, unsafe_allow_html=True)
-        with st.form("stock_form"):
-            s_name = st.text_input("Item Name")
-            s_qty = st.number_input("Stock Quantity", min_value=0.0, step=1.0)
-            s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)", value="kg")
-            s_limit = st.number_input("Low Stock Alert Limit", min_value=0.0, step=1.0, value=5.0)
-            submit_stock = st.form_submit_button("Save Stock")
-            if submit_stock:
-                if not s_name.strip():
-                    st.error("Please enter item name!")
-                else:
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                            INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit)
-                            VALUES (?, ?, ?, ?)
-                            """, (s_name.strip(), s_qty, s_unit.strip(), s_limit))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
-                        st.success(f"Stock '{s_name}' successfully added!")
-                        st.rerun()
-                    except Exception as ex:
-                        st.error(f"Error: {ex}")
-        st.markdown("</div>", unsafe_allow_html=True)
-    with ic2:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">▤</div>
-            <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
-            <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
-        </div>
-        """, unsafe_allow_html=True)
-        try:
-            with sqlite3.connect("ledger.db") as conn:
-                stock_df = pd.read_sql_query("SELECT * FROM shop_inventory", conn)
-        except Exception:
-            stock_df = pd.DataFrame()
-            
-        if not stock_df.empty:
-            low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
-            stock_metric1, stock_metric2 = st.columns(2)
-            with stock_metric1:
-                st.markdown(
-                    f"""
-                    <div class="business-metric-card" style="margin-bottom:14px;">
-                        <div class="business-metric-label">एकूण वस्तू</div>
-                        <div class="business-metric-value">{len(stock_df)}</div>
-                        <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            with stock_metric2:
-                low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
-                st.markdown(
-                    f"""
-                    <div class="business-metric-card" style="margin-bottom:14px;">
-                        <div class="business-metric-label">कमी साठा</div>
-                        <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
-                        <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            display_df = stock_df.copy()
-            display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
-            st.dataframe(display_df,  hide_index=True)
-            if not low_stock_items.empty:
-                low_names = ", ".join(low_stock_items['item_name'].tolist())
-                st.markdown(f"""
-                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 12px; border-radius: 12px; margin-top: 14px; color: #f87171;">
-                    <b>लो स्टॉक वार्निंग (Low Stock Alert):</b> खालील वस्तू संपत आल्या आहेत: <b>{low_names}</b>
-                </div>
-                """, unsafe_allow_html=True)
-            del_s_id = st.number_input("डिलिट करण्यासाठी स्टॉक ID", min_value=1, step=1, key="del_stock_id")
-            if st.button("Delete Stock Item"):
-                try:
-                    with sqlite3.connect("ledger.db") as conn:
-                        conn.execute("BEGIN TRANSACTION;")
-                        cursor = conn.cursor()
-                        cursor.execute("DELETE FROM shop_inventory WHERE id=?", (del_s_id,))
-                        conn.commit()
-                    log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Stock ID {del_s_id}")
-                    st.success(f"Stock ID {del_s_id} deleted!")
-                    st.rerun()
-                except Exception as ex:
-                    st.error(f"Error: {ex}")
-        else:
-            st.info("कोणताही स्टॉक जोडलेला नाही.")
-        st.markdown("</div>", unsafe_allow_html=True)
 
-# FEATURE 5: BUSINESS EXPENSES TRACKER ---
-elif selected_page == "Business Expenses":
-    # Staff can now access this
-    render_business_module_styles()
-    st.markdown("""
-    <div class="studio-header business-module-hero">
-        <div class="business-hero-content">
-            <div class="business-eyebrow">✦ BUSINESS MODULES · EXPENSES</div>
-            <h2 class="business-hero-title">व्यवसाय खर्च <span>· नोंदवही</span></h2>
-            <p class="business-hero-subtitle">भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.</p>
-        </div>
-        <div class="business-hero-mark" aria-hidden="true">₹</div>
-    </div>
-    """, unsafe_allow_html=True)
-    ec1, ec2 = st.columns([1, 1])
-    with ec1:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+    tab_stock, tab_expenses = st.tabs(["📦 Stock & Inventory", "💸 Business Expenses"])
+    
+    with tab_stock:
+        # Staff can now access this
         st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">＋</div>
-            <div><h3 class="business-section-title">Record New Expense</h3>
-            <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
+        <div class="studio-header business-module-hero">
+            <div class="business-hero-content">
+                <div class="business-eyebrow">✦ BUSINESS MODULES · INVENTORY</div>
+                <h2 class="business-hero-title">Stock & <span>Inventory</span></h2>
+                <p class="business-hero-subtitle">उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.</p>
+            </div>
+            <div class="business-hero-mark" aria-hidden="true">▦</div>
         </div>
         """, unsafe_allow_html=True)
-        with st.form("expense_form"):
-            e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
-            e_amount = st.number_input("Expense Amount", min_value=0.0, step=50.0)
-            e_cat = st.selectbox("खर्चाचा प्रकार (Category)", ["Shop Rent", "वीज बिल (Electricity)", "कर्मचारी पगार (Staff Salary)", "Transport", "Miscellaneous"])
-            e_date = st.text_input("Date", value=time.strftime("%Y-%m-%d"))
-            e_notes = st.text_area("तपशील / टीप (Notes)")
-            submit_exp = st.form_submit_button("खर्च सेव्ह करा")
-            if submit_exp:
-                if not e_title.strip() or e_amount <= 0:
-                    st.error("कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
-                else:
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("""
-                            INSERT INTO business_expenses (expense_title, amount, category, date, notes)
-                            VALUES (?, ?, ?, ?, ?)
-                            """, (e_title.strip(), e_amount, e_cat, e_date, e_notes))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Added Expense {e_title.strip()} - {e_amount}")
-                        st.success(f"Expense '{e_title}' successfully recorded!")
-                        st.rerun()
-                    except Exception as ex:
-                        st.error(f"Error: {ex}")
-        st.markdown("</div>", unsafe_allow_html=True)
-    with ec2:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">▤</div>
-            <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
-            <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
-        </div>
-        """, unsafe_allow_html=True)
-        try:
-            with sqlite3.connect("ledger.db") as conn:
-                exp_df = pd.read_sql_query("SELECT * FROM business_expenses ORDER BY id DESC", conn)
-        except Exception:
-            exp_df = pd.DataFrame()
-        if not exp_df.empty:
-            total_expenses = exp_df['amount'].sum()
-            st.markdown(f"""
-            <div class="business-metric-card" style="margin-bottom:14px;">
-                <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
-                <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
-                <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
+        ic1, ic2 = st.columns([1, 1])
+        with ic1:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">＋</div>
+                <div><h3 class="business-section-title">Add New Stock</h3>
+                <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
             </div>
             """, unsafe_allow_html=True)
-            st.dataframe(exp_df, use_container_width=True)
-            del_exp_id = st.number_input("Expense ID to delete", min_value=1, step=1, key="del_exp_id")
-            if st.button("Delete Expense Record"):
-                try:
-                    with sqlite3.connect("ledger.db") as conn:
-                        conn.execute("BEGIN TRANSACTION;")
-                        cursor = conn.cursor()
-                        cursor.execute("DELETE FROM business_expenses WHERE id=?", (del_exp_id,))
-                        conn.commit()
-                    log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Expense ID {del_exp_id}")
-                    st.success(f"Expense ID {del_exp_id} deleted!")
-                    st.rerun()
-                except Exception as ex:
-                    st.error(f"Error: {ex}")
-        else:
-            st.info("No expenses recorded.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
+            with st.form("stock_form"):
+                s_name = st.text_input("Item Name")
+                s_qty = st.number_input("Stock Quantity", min_value=0.0, step=1.0)
+                s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)", value="kg")
+                s_limit = st.number_input("Low Stock Alert Limit", min_value=0.0, step=1.0, value=5.0)
+                submit_stock = st.form_submit_button("Save Stock")
+                if submit_stock:
+                    if not s_name.strip():
+                        st.error("Please enter item name!")
+                    else:
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("BEGIN TRANSACTION;")
+                                cursor = conn.cursor()
+                                cursor.execute("""
+                                INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit)
+                                VALUES (?, ?, ?, ?)
+                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit))
+                                conn.commit()
+                            log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
+                            st.success(f"Stock '{s_name}' successfully added!")
+                            st.rerun()
+                        except Exception as ex:
+                            st.error(f"Error: {ex}")
+            st.markdown("</div>", unsafe_allow_html=True)
+        with ic2:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">▤</div>
+                <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
+                <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
+            </div>
+            """, unsafe_allow_html=True)
+            try:
+                with sqlite3.connect("ledger.db") as conn:
+                    stock_df = pd.read_sql_query("SELECT * FROM shop_inventory", conn)
+            except Exception:
+                stock_df = pd.DataFrame()
+                
+            if not stock_df.empty:
+                low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
+                stock_metric1, stock_metric2 = st.columns(2)
+                with stock_metric1:
+                    st.markdown(
+                        f"""
+                        <div class="business-metric-card" style="margin-bottom:14px;">
+                            <div class="business-metric-label">एकूण वस्तू</div>
+                            <div class="business-metric-value">{len(stock_df)}</div>
+                            <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with stock_metric2:
+                    low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
+                    st.markdown(
+                        f"""
+                        <div class="business-metric-card" style="margin-bottom:14px;">
+                            <div class="business-metric-label">कमी साठा</div>
+                            <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
+                            <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                display_df = stock_df.copy()
+                display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
+                st.dataframe(display_df,  hide_index=True)
+                if not low_stock_items.empty:
+                    low_names = ", ".join(low_stock_items['item_name'].tolist())
+                    st.markdown(f"""
+                    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 12px; border-radius: 12px; margin-top: 14px; color: #f87171;">
+                        <b>लो स्टॉक वार्निंग (Low Stock Alert):</b> खालील वस्तू संपत आल्या आहेत: <b>{low_names}</b>
+                    </div>
+                    """, unsafe_allow_html=True)
+                del_s_id = st.number_input("डिलिट करण्यासाठी स्टॉक ID", min_value=1, step=1, key="del_stock_id")
+                if st.button("Delete Stock Item"):
+                    try:
+                        with sqlite3.connect("ledger.db") as conn:
+                            conn.execute("BEGIN TRANSACTION;")
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM shop_inventory WHERE id=?", (del_s_id,))
+                            conn.commit()
+                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Stock ID {del_s_id}")
+                        st.success(f"Stock ID {del_s_id} deleted!")
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"Error: {ex}")
+            else:
+                st.info("कोणताही स्टॉक जोडलेला नाही.")
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+# FEATURE 5: BUSINESS EXPENSES TRACKER ---
+    with tab_expenses:
+        # Staff can now access this
+        st.markdown("""
+        <div class="studio-header business-module-hero">
+            <div class="business-hero-content">
+                <div class="business-eyebrow">✦ BUSINESS MODULES · EXPENSES</div>
+                <h2 class="business-hero-title">व्यवसाय खर्च <span>· नोंदवही</span></h2>
+                <p class="business-hero-subtitle">भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.</p>
+            </div>
+            <div class="business-hero-mark" aria-hidden="true">₹</div>
+        </div>
+        """, unsafe_allow_html=True)
+        ec1, ec2 = st.columns([1, 1])
+        with ec1:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">＋</div>
+                <div><h3 class="business-section-title">Record New Expense</h3>
+                <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
+            </div>
+            """, unsafe_allow_html=True)
+            with st.form("expense_form"):
+                e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
+                e_amount = st.number_input("Expense Amount", min_value=0.0, step=50.0)
+                e_cat = st.selectbox("खर्चाचा प्रकार (Category)", ["Shop Rent", "वीज बिल (Electricity)", "कर्मचारी पगार (Staff Salary)", "Transport", "Miscellaneous"])
+                e_date = st.text_input("Date", value=time.strftime("%Y-%m-%d"))
+                e_notes = st.text_area("तपशील / टीप (Notes)")
+                submit_exp = st.form_submit_button("खर्च सेव्ह करा")
+                if submit_exp:
+                    if not e_title.strip() or e_amount <= 0:
+                        st.error("कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
+                    else:
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("BEGIN TRANSACTION;")
+                                cursor = conn.cursor()
+                                cursor.execute("""
+                                INSERT INTO business_expenses (expense_title, amount, category, date, notes)
+                                VALUES (?, ?, ?, ?, ?)
+                                """, (e_title.strip(), e_amount, e_cat, e_date, e_notes))
+                                conn.commit()
+                            log_activity(st.session_state.get('current_username', 'admin'), f"Added Expense {e_title.strip()} - {e_amount}")
+                            st.success(f"Expense '{e_title}' successfully recorded!")
+                            st.rerun()
+                        except Exception as ex:
+                            st.error(f"Error: {ex}")
+            st.markdown("</div>", unsafe_allow_html=True)
+        with ec2:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="business-section-heading">
+                <div class="business-section-icon">▤</div>
+                <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
+                <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
+            </div>
+            """, unsafe_allow_html=True)
+            try:
+                with sqlite3.connect("ledger.db") as conn:
+                    exp_df = pd.read_sql_query("SELECT * FROM business_expenses ORDER BY id DESC", conn)
+            except Exception:
+                exp_df = pd.DataFrame()
+            if not exp_df.empty:
+                total_expenses = exp_df['amount'].sum()
+                st.markdown(f"""
+                <div class="business-metric-card" style="margin-bottom:14px;">
+                    <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
+                    <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
+                    <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.dataframe(exp_df, use_container_width=True)
+                del_exp_id = st.number_input("Expense ID to delete", min_value=1, step=1, key="del_exp_id")
+                if st.button("Delete Expense Record"):
+                    try:
+                        with sqlite3.connect("ledger.db") as conn:
+                            conn.execute("BEGIN TRANSACTION;")
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM business_expenses WHERE id=?", (del_exp_id,))
+                            conn.commit()
+                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Expense ID {del_exp_id}")
+                        st.success(f"Expense ID {del_exp_id} deleted!")
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"Error: {ex}")
+            else:
+                st.info("No expenses recorded.")
+            st.markdown("</div>", unsafe_allow_html=True)
+    
 # FEATURE 6: ADMIN STAFF MANAGEMENT ---
 elif selected_page == "Staff Management":
     if st.session_state.get('user_role') == 'Staff':
