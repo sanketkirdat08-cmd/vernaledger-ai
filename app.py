@@ -1563,9 +1563,7 @@ def render_application_design_styles():
 
 
 def render_customer_khata():
-    if st.session_state.get("user_role") == "Staff":
-        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला उधारी मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!")
-        st.stop()
+    # Staff can now access this
 
     st.markdown("""
     <div class="studio-header business-module-hero">
@@ -3096,11 +3094,18 @@ with st.sidebar:
     
     st.markdown("<div style='font-size:10px; color:#8892b0; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
-        nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
+        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Business Expenses", "RAG AI Chat"]
     else:
-        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Ledger Database", "RAG AI Chat", "Staff Management"]
+        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Business Expenses", "Ledger Database", "RAG AI Chat", "Staff Management"]
         
-    selected_page = st.radio("Navigation", nav_options, label_visibility="collapsed")
+    default_page = st.query_params.get("page", "OCR Scanner")
+    if default_page not in nav_options:
+        default_page = nav_options[0]
+        
+    selected_page = st.radio("Navigation", nav_options, index=nav_options.index(default_page), label_visibility="collapsed")
+    if selected_page != st.query_params.get("page"):
+        st.query_params["page"] = selected_page
+        st.rerun()
     
     st.markdown("<hr style='margin: 10px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
     
@@ -3410,9 +3415,7 @@ elif selected_page == "Customer Khata":
 
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Stock & Inventory":
-    if st.session_state.get('user_role') == 'Staff':
-        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला इन्व्हेंटरी पेजवर प्रवेश करण्याची परवानगी नाही!")
-        st.stop()
+    # Staff can now access this
     render_business_module_styles()
     st.markdown("""
     <div class="studio-header business-module-hero">
@@ -3529,9 +3532,7 @@ elif selected_page == "Stock & Inventory":
 
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
 elif selected_page == "Business Expenses":
-    if st.session_state.get('user_role') == 'Staff':
-        st.error("प्रतिबंधीत क्षेत्रः कामागार/स्टाफला व्यवसाय खर्च पेजवर प्रवेश करण्याची परवानगी नाही!")
-        st.stop()
+    # Staff can now access this
     render_business_module_styles()
     st.markdown("""
     <div class="studio-header business-module-hero">
