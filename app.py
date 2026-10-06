@@ -603,19 +603,19 @@ def render_business_module_styles():
     <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
@@ -859,19 +859,19 @@ def render_rag_sidebar_design_styles():
     <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
@@ -1080,19 +1080,19 @@ def render_application_design_styles():
     <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
@@ -2433,19 +2433,19 @@ st.markdown("""
 <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
@@ -2730,19 +2730,19 @@ def render_login_portal():
     <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
@@ -3777,19 +3777,19 @@ elif selected_page == "RAG AI Chat":
 <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
 
