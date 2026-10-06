@@ -3311,6 +3311,20 @@ if selected_page == "OCR Scanner":
                 if not items_df.empty:
                     st.dataframe(items_df, use_container_width=True)
                     
+                    if st.button('📦 Auto-Update to Smart Inventory', key='inv_sync_single'):
+                        try:
+                            import sqlite3
+                            with sqlite3.connect('ledger.db') as conn:
+                                cursor = conn.cursor()
+                                for item in items_raw:
+                                    q = str(item.get('qty', '1')).split()[0]
+                                    if not q.isdigit(): q = 1
+                                    cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                conn.commit()
+                            st.toast('📦 Stock automatically updated!')
+                            st.success('Inventory synced successfully!')
+                        except Exception as e: st.error(str(e))
+                        
                 audio_text = f"{v_disp} कडून खरेदी केलेली पावती. एकूण रक्कम {tot} रुपये."
                 aud_path = generate_marathi_tts(audio_text)
                 if aud_path and os.path.exists(aud_path):
@@ -3325,6 +3339,20 @@ if selected_page == "OCR Scanner":
                         items_df = pd.DataFrame(p_item.get('items', []))
                         if not items_df.empty:
                             st.dataframe(items_df, use_container_width=True)
+                            
+                        if st.button('📦 Auto-Update to Smart Inventory', key=f'inv_sync_{idx}'):
+                            try:
+                                import sqlite3
+                                with sqlite3.connect('ledger.db') as conn:
+                                    cursor = conn.cursor()
+                                    for item in p_item.get('items', []):
+                                        q = str(item.get('qty', '1')).split()[0]
+                                        if not q.isdigit(): q = 1
+                                        cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                    conn.commit()
+                                st.toast('📦 Stock automatically updated!')
+                                st.success('Inventory synced successfully!')
+                            except Exception as e: st.error(str(e))
                             
                 st.markdown("---")
                 st.markdown("#### Marathi Audio Summary")
