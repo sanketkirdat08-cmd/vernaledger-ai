@@ -221,7 +221,7 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
 
     return validated_data.model_dump()
 
-def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3") -> str | None:
+def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", voice: str = "mr-IN-AarohiNeural") -> str | None:
     try:
         if os.path.exists(output_path):
             try:
@@ -229,10 +229,8 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3") ->
             except PermissionError:
                 output_path = f"summary_{os.urandom(4).hex()}.mp3"
 
-        VOICE = "mr-IN-AarohiNeural"
-
         async def _main():
-            communicate = edge_tts.Communicate(text_marathi, VOICE, rate="+15%")
+            communicate = edge_tts.Communicate(text_marathi, voice, rate="+15%")
             await communicate.save(output_path)
 
         asyncio.run(_main())
