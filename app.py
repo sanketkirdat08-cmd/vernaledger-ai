@@ -3075,6 +3075,15 @@ with st.sidebar:
     st.markdown("<hr style='border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
     
     # Custom Logout button container to apply CSS safely if :contains fails
+    st.markdown('''
+    <div class="dev-credit-box" style="margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; border-left:3px solid #00f2fe;">
+        <div style="font-size: 9px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 3px;">Project Developers</div>
+        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+    
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
     if st.button("🚪 Logout System"):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
