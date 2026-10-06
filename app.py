@@ -3916,16 +3916,15 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
 .verna-ai-title {
     margin: 0;
     padding: 0 !important;
-    color: #d9fbff;
-    font-size: clamp(2rem, 5vw, 3.25rem);
-    font-weight: 800;
-    letter-spacing: -0.045em;
-    line-height: 1.12;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     text-align: center;
-    text-shadow:
-        0 0 10px rgba(34, 211, 238, 0.82),
-        0 0 26px rgba(34, 211, 238, 0.5),
-        0 0 48px rgba(139, 92, 246, 0.42);
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #f093fb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0px 4px 30px rgba(0, 242, 254, 0.3);
 }
 .verna-ai-heading {
     display: flex;
@@ -4048,7 +4047,7 @@ main.block-container {
 
     st.markdown("""
 <div class="verna-ai-heading">
-  <h1 class="verna-ai-title">Verna AI Studio</h1>
+  <h1 class="verna-ai-title">✨ Verna AI</h1>
   <p class="verna-ai-subtitle">Your Smart Ledger &amp; Business Assistant</p>
 </div>
 """, unsafe_allow_html=True)
@@ -4070,7 +4069,7 @@ main.block-container {
             st.markdown("""
 <section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
   <div class="verna-ai-greeting-inner">
-    <h1 style="font-size:40px; margin-bottom:5px;">✨ Verna AI</h1><p style="color:#00f2fe; font-size:16px;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
   </div>
 </section>
 """, unsafe_allow_html=True)
