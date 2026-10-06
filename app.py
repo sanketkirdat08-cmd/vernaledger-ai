@@ -3010,105 +3010,56 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
 df = load_receipts_data()
 
 # SIDEBAR NAVIGATION ---
+from streamlit_option_menu import option_menu
+
 with st.sidebar:
     _render_language_toggle()
     render_custom_logo("small")
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
     st.markdown(f"""
-    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 6px 10px; border-radius: 10px; margin-bottom: 8px; text-align: center; box-shadow: 0 0 12px {role_badge_color}33;">
-        <span style="font-size: 10px; font-weight: 800; color: {role_badge_color};">ROLE: {current_role.upper()}</span>
+    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 6px 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; box-shadow: 0 0 12px {role_badge_color}33;">
+        <span style="font-size: 11px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div class='sidebar-title'>NAVIGATION SUITE</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
-        default_page = st.query_params.get("page", st.session_state.get("selected_page", "OCR Scanner"))
-        if default_page not in nav_options: default_page = "OCR Scanner"
-        
-        def _on_nav_change_staff():
-            val = st.session_state.get("nav_radio_staff", "OCR Scanner")
-            st.session_state["selected_page"] = val
-            st.query_params["page"] = val
-
-        if "nav_radio_staff" not in st.session_state:
-            st.session_state["nav_radio_staff"] = default_page
-            
-        selected_page = st.radio("Navigation", nav_options, key="nav_radio_staff", on_change=_on_nav_change_staff, label_visibility="collapsed")
-        # Ensure fallback assignment if first load
-        if "selected_page" not in st.session_state: st.session_state["selected_page"] = selected_page
+        icons = ["camera", "database", "robot"]
     else:
-        nav_options = ["OCR Scanner", "Business Modules", "Ledger Database", "RAG AI Chat", "Staff Management"]
-        default_page = st.query_params.get("page", st.session_state.get("selected_page", "OCR Scanner"))
-        # Map old Sales & Analytics to OCR Scanner to avoid errors
-        if default_page == "Sales & Analytics": default_page = "OCR Scanner"
-        if default_page not in nav_options and default_page not in ["Customer Khata", "Stock & Inventory", "Business Expenses"]: default_page = "OCR Scanner"
+        nav_options = ["OCR Scanner", "Smart Udhaari", "Inventory Stock", "Ledger Database", "RAG AI Chat", "Staff Management"]
+        icons = ["camera-fill", "journal-text", "box-seam", "database-fill", "robot", "people-fill"]
         
-        main_page_val = "Business Modules" if default_page in ["Customer Khata", "Stock & Inventory", "Business Expenses"] else default_page
-        if main_page_val not in nav_options: main_page_val = "OCR Scanner"
-        
-        def _on_nav_change_admin():
-            val = st.session_state.get("nav_radio_admin", "OCR Scanner")
-            st.session_state["selected_page"] = val
-            st.query_params["page"] = val
-            
-        if "nav_radio_admin" not in st.session_state:
-            st.session_state["nav_radio_admin"] = main_page_val
-            
-        selected_main_page = st.radio("Navigation", nav_options, key="nav_radio_admin", on_change=_on_nav_change_admin, label_visibility="collapsed")
-        
-        # In case the first load misses state
-        if "selected_page" not in st.session_state: st.session_state["selected_page"] = selected_main_page
-        
-        if selected_main_page == "Business Modules":
-            def _on_sub_change():
-                val = st.session_state.get("nav_sub_admin", "Customer Khata")
-                st.session_state["business_dropdown"] = val
-                st.session_state["selected_page"] = val
-                st.query_params["subpage"] = val
-                st.query_params["page"] = val
-                
-            sub_options = ["Customer Khata", "Stock & Inventory", "Business Expenses"]
-            default_sub = st.query_params.get("subpage", st.session_state.get("business_dropdown", "Customer Khata"))
-            if default_sub not in sub_options: default_sub = "Customer Khata"
-            
-            if "nav_sub_admin" not in st.session_state:
-                st.session_state["nav_sub_admin"] = default_sub
-                
-            dropdown_choice = st.selectbox("Select Business Module:", sub_options, key="nav_sub_admin", on_change=_on_sub_change)
-            selected_page = dropdown_choice
-            if "selected_page" not in st.session_state or st.session_state["selected_page"] != selected_page:
-                st.session_state["selected_page"] = selected_page
-        else:
-            selected_page = selected_main_page
-            
-    st.markdown("""
-    <div class="dev-credit-box">
-        <div style="font-size: 9px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 3px;">Project Developers</div>
-        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
-            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    selected_page = option_menu(
+        menu_title="VernaLedger",
+        options=nav_options,
+        icons=icons,
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "0!important", "background-color": "transparent"},
+            "icon": {"color": "#00f2fe", "font-size": "16px"}, 
+            "nav-link": {"font-size": "14px", "text-align": "left", "margin":"5px", "color":"#e2e8f0", "border-radius":"8px", "--hover-color": "rgba(0, 242, 254, 0.1)"},
+            "nav-link-selected": {"background-color": "rgba(0, 242, 254, 0.2)", "color": "#00f2fe", "font-weight":"bold", "border":"1px solid rgba(0,242,254,0.3)", "box-shadow": "0 0 10px rgba(0,242,254,0.2)"},
+        }
+    )
     
-    if st.button("Logout System"):
+    st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+    if st.button("🚪 Logout / Exit Studio", use_container_width=True):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
-        st.session_state['logged_in'] = False
-        st.session_state['remember_me'] = False
-        st.query_params.clear()
-        st.toast("लॉगआऊट यशस्वी!", icon="🔒")
-        time.sleep(0.4)
+        st.session_state.clear()
         st.rerun()
 
-if selected_page != "RAG AI Chat":
-    render_application_design_styles()
-    render_business_module_styles()
-else:
-    render_rag_sidebar_design_styles()
+st.markdown("</div>", unsafe_allow_html=True)
 
-# FEATURE 1: OCR SCANNER + MULTI-LANGUAGE VOICE BILLING ---
-if selected_page == "OCR Scanner":
+# Remap the new beautiful option names to the existing backend routing keys
+backend_page_mapping = {
+    "Smart Udhaari": "Customer Khata",
+    "Inventory Stock": "Stock & Inventory"
+}
+actual_page = backend_page_mapping.get(selected_page, selected_page)
+
+if actual_page == "OCR Scanner":
     st.markdown("""
     <div class="studio-header">
         <div>
@@ -3311,6 +3262,20 @@ if selected_page == "OCR Scanner":
                 if not items_df.empty:
                     st.dataframe(items_df, use_container_width=True)
                     
+                    if st.button('📦 Auto-Update to Smart Inventory', key='inv_sync_single'):
+                        try:
+                            import sqlite3
+                            with sqlite3.connect('ledger.db') as conn:
+                                cursor = conn.cursor()
+                                for item in items_raw:
+                                    q = str(item.get('qty', '1')).split()[0]
+                                    if not q.isdigit(): q = 1
+                                    cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                conn.commit()
+                            st.toast('📦 Stock automatically updated!')
+                            st.success('Inventory synced successfully!')
+                        except Exception as e: st.error(str(e))
+                        
                 audio_text = f"{v_disp} कडून खरेदी केलेली पावती. एकूण रक्कम {tot} रुपये."
                 aud_path = generate_marathi_tts(audio_text)
                 if aud_path and os.path.exists(aud_path):
@@ -3325,6 +3290,20 @@ if selected_page == "OCR Scanner":
                         items_df = pd.DataFrame(p_item.get('items', []))
                         if not items_df.empty:
                             st.dataframe(items_df, use_container_width=True)
+                            
+                        if st.button('📦 Auto-Update to Smart Inventory', key=f'inv_sync_{idx}'):
+                            try:
+                                import sqlite3
+                                with sqlite3.connect('ledger.db') as conn:
+                                    cursor = conn.cursor()
+                                    for item in p_item.get('items', []):
+                                        q = str(item.get('qty', '1')).split()[0]
+                                        if not q.isdigit(): q = 1
+                                        cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                    conn.commit()
+                                st.toast('📦 Stock automatically updated!')
+                                st.success('Inventory synced successfully!')
+                            except Exception as e: st.error(str(e))
                             
                 st.markdown("---")
                 st.markdown("#### Marathi Audio Summary")
