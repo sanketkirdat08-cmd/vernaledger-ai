@@ -3038,7 +3038,8 @@ with st.sidebar:
         transition: 0.3s;
     }
     /* Red Logout Button */
-    div.stButton > button:contains("Logout System") {
+    /* Red Logout Button by targeting Sidebar Button directly */
+    [data-testid="stSidebar"] [data-testid="stButton"] button {
         background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
         color: white !important;
         border: none !important;
@@ -3046,62 +3047,33 @@ with st.sidebar:
         font-weight: bold !important;
         box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4) !important;
         transition: 0.3s;
-    }
-    div.stButton > button:contains("Logout System"):hover {
-        transform: scale(1.02);
-        box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6) !important;
-    }
-    </style>
-    ''', unsafe_allow_html=True)
-
-    _render_language_toggle()
-    render_custom_logo("small")
-    current_role = st.session_state.get('user_role', 'Admin')
-    role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
-    st.markdown(f"""
-    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 8px 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 15px {role_badge_color}44;">
-        <span style="font-size: 12px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='font-size:12px; color:#8892b0; font-weight:bold; margin-bottom:10px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
-    if current_role == 'Staff':
-        nav_options = ["OCR Scanner", "Ledger Database", "RAG AI Chat"]
-    else:
-        nav_options = ["OCR Scanner", "Customer Khata", "Stock & Inventory", "Ledger Database", "RAG AI Chat", "Staff Management"]
-        
-    selected_page = st.radio("Navigation", nav_options, label_visibility="collapsed")
-    
-    st.markdown("<hr style='border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
-    
-    # Custom Logout button container to apply CSS safely if :contains fails
-    st.markdown('''
-    <div class="dev-credit-box" style="margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; border-left:3px solid #00f2fe;">
-        <div style="font-size: 9px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 3px;">Project Developers</div>
-        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
-            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
-    
-    st.markdown('<div class="logout-container">', unsafe_allow_html=True)
-    if st.button("\U0001f6aa Logout System"):
-        log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
-        st.session_state.clear()
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Force the logout button red if CSS :contains fails on older browsers
-    st.markdown('''
-    <style>
-    .logout-container .stButton > button {
-        background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
         width: 100% !important;
     }
+    [data-testid="stSidebar"] [data-testid="stButton"] button:hover {
+        transform: scale(1.02) !important;
+        box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6) !important;
+    }
+    
+    /* Completely hide scrollbars */
+    [data-testid="stSidebar"] {
+        overflow: hidden !important;
+    }
+    [data-testid="stSidebarUserContent"] {
+        overflow: hidden !important;
+        padding-bottom: 0px !important;
+    }
+    [data-testid="stSidebar"] > div {
+        overflow: hidden !important;
+    }
+    .os-viewport {
+        overflow: hidden !important;
+    }
+    ::-webkit-scrollbar {
+        display: none !important;
+        width: 0px !important;
+        background: transparent !important;
+    }
+    
     </style>
     ''', unsafe_allow_html=True)
 
