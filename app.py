@@ -1115,12 +1115,12 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
         box-sizing: border-box !important;
         width: 100% !important;
-        max-width: 1680px !important;
+        max-width: 100% !important;
         margin: 0 auto !important;
         padding: clamp(0.45rem, 0.9vw, 0.8rem) clamp(0.75rem, 2vw, 1.75rem) 1.1rem !important;
     }
     body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {
-        max-width: none !important;
+        max-width: 100% !important;
         width: 100% !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
