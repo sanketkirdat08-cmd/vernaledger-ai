@@ -3044,13 +3044,22 @@ with st.sidebar:
     st.markdown('''
     <style>
     /* Sleek Sidebar CSS */
-    [data-testid="stSidebar"] {
+    section[data-testid="stSidebar"][aria-expanded="true"] {
         background: rgba(10, 15, 30, 0.95) !important;
         border-right: 1px solid rgba(0, 242, 254, 0.2);
         overflow: hidden !important;
+        width: 270px !important;
         min-width: 270px !important;
         max-width: 270px !important;
+        flex: 0 0 270px !important;
         resize: none !important;
+    }
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        flex: 0 0 0 !important;
+        overflow: hidden !important;
     }
     [data-testid="stSidebarUserContent"] {
         overflow-y: hidden !important;
