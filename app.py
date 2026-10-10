@@ -2449,7 +2449,7 @@ def render_custom_logo(size="large"):
             </div>
             <div style="line-height: 1.2;">
                 <span style="font-size: 16px; font-weight: 800; background: linear-gradient(135deg, #00f2fe 0%, #00ff87 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: block; text-shadow: 0 0 8px rgba(0,242,254,0.4);">VernaLedger.AI</span>
-                <span style="font-size: 9px; font-weight: 700; color: #94a3b8; display: block; letter-spacing: 0.5px;">SMART TERMINAL</span>
+                <span style="font-size: 9px; font-weight: 700; color: #94a3b8; display: block; letter-spacing: 0.5px;">AI FINANCIAL SUITE</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
