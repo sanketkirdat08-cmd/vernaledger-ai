@@ -3855,19 +3855,19 @@ elif selected_page == "RAG AI Chat":
 <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
+    .stApp {
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
+    }
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
+    svg, svg * {
         font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
+    }
     /* --- END SAFE FONT --- */
     
     [data-testid="stMainBlockContainer"] {
@@ -3952,7 +3952,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
 .st-key-rag_chat_history {
     box-sizing: border-box;
     display: flex;
-    width: min(100%, 760px) !important;
+    width: 100% !important;
     max-width: 100% !important;
     flex-direction: column;
     align-items: center;
@@ -3978,7 +3978,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
     transform: translateX(-50%) !important;
-    width: min(760px, calc(100vw - 2rem)) !important;
+    width: calc(100vw - 3rem) !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -3986,7 +3986,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
 }
 body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
     left: calc(50% + 9.375rem) !important;
-    width: min(760px, calc(100vw - 18.75rem - 2rem)) !important;
+    width: calc(100vw - 18.75rem - 3rem) !important;
 }
 main.block-container {
     padding-bottom: 9rem !important;
@@ -3994,7 +3994,7 @@ main.block-container {
 @media (max-width: 900px) and (min-width: 641px) {
     body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: calc(50% + 9rem) !important;
-        width: min(760px, calc(100vw - 18rem - 3rem)) !important;
+        width: calc(100vw - 18rem - 3rem) !important;
     }
 }
 @media (max-width: 640px) {
