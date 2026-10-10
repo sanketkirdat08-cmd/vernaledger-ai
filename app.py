@@ -2437,18 +2437,22 @@ def render_custom_logo(size="large"):
     else:
         st.markdown("""
         <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 4px 0;">
-            <div style="background: linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%); padding: 7px; border-radius: 10px; box-shadow: 0 0 12px rgba(0, 242, 254, 0.5); flex-shrink: 0;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            <div style="background: linear-gradient(135deg, #00f2fe 0%, #3b82f6 50%, #8b5cf6 100%); padding: 7px; border-radius: 10px; box-shadow: 0 0 12px rgba(0, 242, 254, 0.5); flex-shrink: 0;">
+                <svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"></path>
+                    <path d="M10 11 L16 22 L22 11" stroke="white" stroke-width="2.5"></path>
+                    <path d="M9 16 H23" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                    <circle cx="16" cy="22" r="2" fill="#00ff87" stroke="white" stroke-width="1"></circle>
+                    <circle cx="10" cy="11" r="1.5" fill="white" stroke="none"></circle>
+                    <circle cx="22" cy="11" r="1.5" fill="white" stroke="none"></circle>
                 </svg>
             </div>
             <div style="line-height: 1.2;">
                 <span style="font-size: 16px; font-weight: 800; background: linear-gradient(135deg, #00f2fe 0%, #00ff87 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: block; text-shadow: 0 0 8px rgba(0,242,254,0.4);">VernaLedger.AI</span>
-                <span style="font-size: 8px; color: #00f2fe; display: block; font-weight: 700; letter-spacing: 1.1px; margin-top: 2px;">MERCHANT SUITE PRO</span>
+                <span style="font-size: 9px; font-weight: 700; color: #94a3b8; display: block; letter-spacing: 0.5px;">SMART TERMINAL</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
-
 # --- PERFECT DYNAMIC & FULL-WIDTH RESPONSIVE CSS ---
 st.markdown("""
 <style>
