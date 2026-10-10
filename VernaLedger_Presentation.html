@@ -342,15 +342,21 @@
         }
         .floating-screenshot {
             width: 100%;
-            border-radius: 16px;
-            border: 2px solid transparent;
+            border-radius: 20px;
+            border: 1.5px solid rgba(0, 242, 254, 0.35);
             transform: rotateY(-15deg) rotateX(5deg) scale(0.95);
             transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+            filter: drop-shadow(0 25px 45px rgba(0,0,0,0.6));
+            background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75));
+            backdrop-filter: blur(16px);
+            padding: 2px;
+            box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), inset 0 -1px 2px rgba(14,165,233,0.1);
         }
         .floating-screenshot:hover {
             transform: rotateY(0deg) rotateX(0deg) scale(1.05);
-            filter: drop-shadow(0 30px 50px rgba(0,0,0,0.8));
+            border-color: rgba(56, 189, 248, 0.8);
+            filter: drop-shadow(0 30px 60px rgba(0,242,254,0.3));
+            box-shadow: 0 0 30px rgba(0,242,254,0.2), inset 0 1px rgba(255, 255, 255, 0.2);
             z-index: 10;
         }
     </style>
@@ -629,32 +635,12 @@
                     <li><strong style="color: var(--neon-cyan);">Authentication Security</strong>Protected via secure PBKDF2 with SHA-256 password hashing.</li>
                     <li><strong style="color: var(--neon-purple);">Role-Based Access (RBAC)</strong>Strict demarcation between Admin master access vs. restricted Staff roles.</li>
                     <li><strong style="color: var(--neon-green);">Persistent Sessions</strong>Auto-login capabilities enabled via robust session state management.</li>
-                    <li><strong style="color: var(--neon-cyan);">Premium Glassmorphic UI</strong>Stunning aesthetic with blurred backdrops, multi-layered gradients, and glowing borders.</li>
+                    <li><strong style="color: var(--neon-cyan);">Premium Glassmorphic UI</strong>Stunning aesthetic with blurred backdrops, multi-layered gradients, and glowing borders across all panels.</li>
                 </ul>
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - Login Portal</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="margin: auto; width: 60%; background: linear-gradient(145deg, rgba(2,6,23,0.7), rgba(15,23,42,0.6)); backdrop-filter: blur(10px); border: 1px solid rgba(56,189,248,0.4); border-radius: 20px; padding: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(56,189,248,0.1); text-align: center;">
-    <h3 style="margin:0 0 5px 0; color:#00f2fe; font-size:16px;">VernaLedger.AI</h3>
-    <p style="margin:0 0 15px 0; color:#94a3b8; font-size:9px;">AI FINANCIAL SUITE</p>
-    <div style="height: 30px; background: rgba(5,13,25,0.8); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; margin-bottom: 10px;"></div>
-    <div style="height: 30px; background: rgba(5,13,25,0.8); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; margin-bottom: 15px;"></div>
-    <div style="height: 35px; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 8px;"></div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/login.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -670,37 +656,12 @@
                     <li><strong style="color: var(--neon-green);">Multimodal Bill Capture</strong>Supports File Upload, Live Camera capture, or direct Voice Billing.</li>
                     <li><strong style="color: var(--neon-cyan);">Duplicate Prevention</strong>Automatic system warnings trigger for potentially duplicate bills.</li>
                     <li><strong style="color: var(--neon-purple);">Audio Confirmation</strong>Edge TTS synthesizes instant audio summaries in regional languages.</li>
-                    <li><strong style="color: var(--neon-red);">Interactive Data Preview</strong>Extracted OCR or Voice data can be instantly previewed and edited in a live data grid before updating inventory.</li>
+                    <li><strong style="color: var(--neon-red);">Interactive Data Preview</strong>Extracted OCR or Voice data can be instantly previewed and edited in a live grid before finalizing.</li>
                 </ul>
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - OCR & Voice Scanner</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="flex: 1; background: rgba(15,23,42,0.6); border: 1px solid rgba(56,189,248,0.2); border-radius: 12px; padding: 10px; display:flex; flex-direction:column; gap:10px;">
-    <div style="height: 40px; border: 1px dashed #00f2fe; border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#00f2fe; font-size:10px;">Upload Receipt</div>
-    <div style="height: 40px; background: rgba(0,242,254,0.1); border: 1px solid #00f2fe; border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#00f2fe; font-size:10px;">🎙️ Voice Billing</div>
-    <div style="flex:1; background: rgba(0,0,0,0.3); border-radius: 8px;"></div>
-</div>
-<div style="flex: 1.2; background: rgba(15,23,42,0.6); border: 1px solid rgba(56,189,248,0.2); border-radius: 12px; padding: 10px;">
-    <div style="font-size:12px; color:#00f2fe; margin-bottom:10px;">📋 Summary (Editable)</div>
-    <div style="height: 20px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:4px;"></div>
-    <div style="height: 20px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:4px;"></div>
-    <div style="height: 20px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:4px;"></div>
-    <div style="height: 30px; background: #00ff87; border-radius: 6px; margin-top:15px; opacity:0.8;"></div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/ocr.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -727,38 +688,7 @@
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - Analytics Hub</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="width:100%; display:flex; flex-direction:column; gap:10px;">
-    <div style="display:flex; gap:10px; height:60px;">
-        <div style="flex:1; background:rgba(15,23,42,0.8); border:1px solid #00f2fe; border-radius:10px;"></div>
-        <div style="flex:1; background:rgba(15,23,42,0.8); border:1px solid #b026ff; border-radius:10px;"></div>
-        <div style="flex:1; background:rgba(15,23,42,0.8); border:1px solid #00ff87; border-radius:10px;"></div>
-    </div>
-    <div style="display:flex; gap:10px; flex:1;">
-        <div style="flex:2; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:10px; position:relative; overflow:hidden;">
-            <div style="position:absolute; bottom:0; left:10%; width:15%; height:40%; background:linear-gradient(to top, #00f2fe, transparent);"></div>
-            <div style="position:absolute; bottom:0; left:30%; width:15%; height:70%; background:linear-gradient(to top, #00f2fe, transparent);"></div>
-            <div style="position:absolute; bottom:0; left:50%; width:15%; height:50%; background:linear-gradient(to top, #00f2fe, transparent);"></div>
-            <div style="position:absolute; bottom:0; left:70%; width:15%; height:90%; background:linear-gradient(to top, #00f2fe, transparent);"></div>
-        </div>
-        <div style="flex:1; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:10px; display:flex; align-items:center; justify-content:center;">
-            <div style="width:80px; height:80px; border-radius:50%; border:10px solid #b026ff; border-top-color:#00f2fe;"></div>
-        </div>
-    </div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/analytics.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -778,31 +708,7 @@
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - Customer Khata</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="width:100%; display:flex; flex-direction:column; gap:10px;">
-    <div style="display:flex; gap:10px;">
-        <div style="padding:5px 15px; background:rgba(0,242,254,0.2); border:1px solid #00f2fe; color:#00f2fe; border-radius:15px; font-size:10px;">Given Credit</div>
-        <div style="padding:5px 15px; background:rgba(255,255,255,0.05); color:#fff; border-radius:15px; font-size:10px;">Received Payment</div>
-    </div>
-    <div style="flex:1; background:rgba(15,23,42,0.6); border:1px solid rgba(176,38,255,0.3); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:5px;">
-        <div style="height:25px; background:rgba(255,255,255,0.05); border-radius:4px; display:flex; align-items:center; padding:0 10px; justify-content:space-between;"><div style="width:30%; height:8px; background:#4facfe; border-radius:2px;"></div><div style="width:20px; height:20px; background:#00ff87; border-radius:4px;"></div></div>
-        <div style="height:25px; background:rgba(255,255,255,0.05); border-radius:4px; display:flex; align-items:center; padding:0 10px; justify-content:space-between;"><div style="width:40%; height:8px; background:#4facfe; border-radius:2px;"></div><div style="width:20px; height:20px; background:#00ff87; border-radius:4px;"></div></div>
-        <div style="height:25px; background:rgba(255,255,255,0.05); border-radius:4px; display:flex; align-items:center; padding:0 10px; justify-content:space-between;"><div style="width:25%; height:8px; background:#4facfe; border-radius:2px;"></div><div style="width:20px; height:20px; background:#ef4444; border-radius:4px;"></div></div>
-    </div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/khata.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -822,31 +728,7 @@
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - Ledger Database</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="width:100%; background:rgba(15,23,42,0.6); border:1px solid rgba(0,242,254,0.3); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-        <div style="font-size:12px; color:#00f2fe;">Live Data Editor</div>
-        <div style="padding:4px 10px; background:#ef4444; color:#fff; border-radius:4px; font-size:8px;">Delete Selected</div>
-    </div>
-    <div style="height:15px; background:rgba(255,255,255,0.1); border-radius:2px;"></div>
-    <div style="height:15px; background:rgba(255,255,255,0.05); border-radius:2px;"></div>
-    <div style="height:15px; background:rgba(255,255,255,0.05); border-radius:2px;"></div>
-    <div style="height:15px; background:rgba(255,255,255,0.05); border-radius:2px;"></div>
-    <div style="height:15px; background:rgba(255,255,255,0.05); border-radius:2px;"></div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/database.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -873,31 +755,7 @@
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - AI Assistant</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="width:100%; display:flex; flex-direction:column; gap:10px;">
-    <div style="flex:1; background:rgba(15,23,42,0.6); border:1px solid rgba(0,255,135,0.3); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
-        <div style="align-self:flex-end; max-width:70%; padding:8px 12px; background:rgba(0,242,254,0.15); border:1px solid #00f2fe; border-radius:10px 10px 0 10px; font-size:9px; color:#fff;">What is the total sales for today?</div>
-        <div style="align-self:flex-start; max-width:80%; padding:8px 12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px 10px 10px 0; font-size:9px; color:#00ff87;">Total sales today is ₹12,450 across 14 transactions. I've also noted that sugar is running low in inventory.</div>
-        <div style="align-self:flex-end; max-width:70%; padding:8px 12px; background:rgba(0,242,254,0.15); border:1px solid #00f2fe; border-radius:10px 10px 0 10px; font-size:9px; color:#fff;">Update inventory for sugar by 50kg.</div>
-    </div>
-    <div style="height:35px; background:rgba(0,0,0,0.5); border:1px solid rgba(148,163,184,0.3); border-radius:20px; display:flex; align-items:center; padding:0 15px; justify-content:space-between;">
-        <div style="color:#94a3b8; font-size:10px;">Ask AI...</div>
-        <div style="width:20px; height:20px; background:#00f2fe; border-radius:50%;"></div>
-    </div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/rag.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -917,38 +775,7 @@
             </div>
         </div>
         <div class="split-img-container">
-            
-        <div class="app-mock floating-screenshot" style="width: 100%; height: 350px; background: #030712; border-radius: 20px; border: 1px solid rgba(56,189,248,0.3); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-            <div style="height: 35px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(56,189,248,0.2); display: flex; align-items: center; padding: 0 15px; gap: 8px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #eab308;"></div>
-                <div style="width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></div>
-                <div style="margin-left: 15px; font-size: 11px; color: #94a3b8; font-family: sans-serif; letter-spacing: 0.5px;">VernaLedger.AI - Staff Audit</div>
-            </div>
-            <div style="flex: 1; padding: 15px; display: flex; gap: 15px; background: radial-gradient(circle at 15% 10%, rgba(14,165,233,0.1), transparent 50%), radial-gradient(circle at 85% 90%, rgba(139,92,246,0.1), transparent 50%); position: relative;">
-                
-<div style="width:100%; display:flex; flex-direction:column; gap:10px;">
-    <div style="display:flex; gap:10px;">
-        <div style="flex:1; background:rgba(15,23,42,0.8); border:1px solid #4facfe; border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-            <div style="font-size:24px; font-weight:bold; color:#4facfe;">3</div>
-            <div style="font-size:8px; color:#94a3b8;">Active Staff</div>
-        </div>
-        <div style="flex:1; background:rgba(15,23,42,0.8); border:1px solid #00f2fe; border-radius:10px; padding:10px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-            <div style="font-size:24px; font-weight:bold; color:#00f2fe;">124</div>
-            <div style="font-size:8px; color:#94a3b8;">Total Audits Today</div>
-        </div>
-    </div>
-    <div style="flex:1; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px;">
-        <div style="font-size:10px; color:#fff; margin-bottom:8px;">Recent Audit Logs</div>
-        <div style="height:12px; background:rgba(255,255,255,0.05); margin-bottom:4px; border-radius:2px;"></div>
-        <div style="height:12px; background:rgba(255,255,255,0.05); margin-bottom:4px; border-radius:2px;"></div>
-        <div style="height:12px; background:rgba(255,255,255,0.05); margin-bottom:4px; border-radius:2px;"></div>
-    </div>
-</div>
-
-            </div>
-        </div>
-
+            <img src="assets/staff.png" class="floating-screenshot">
         </div>
     </div>
 </section>
@@ -960,7 +787,7 @@
                 <div class="glass-card" style="margin-top: 30px;">
                     <ul class="feature-list" style="width: 95%;">
                         <li><strong style="color: var(--neon-cyan);">Itemized CSV Exports</strong>Raw data exports for advanced accounting and external auditing.</li>
-                        <li><strong style="color: var(--neon-purple);">Localized HTML Reports</strong>Professional English/Marathi dual language HTML bill generation for local customers.</li>
+                        <li><strong style="color: var(--neon-purple);">Dual Language Reports</strong>Professional English & Marathi dual-language HTML bill generation.</li>
                         <li><strong style="color: var(--neon-green);">One-Click Print</strong>Streamlined pipeline from digital ledger to physical printable invoices.</li>
                     </ul>
                 </div>
