@@ -3879,8 +3879,8 @@ elif selected_page == "RAG AI Chat":
     
     [data-testid="stMainBlockContainer"] {
     box-sizing: border-box !important;
-    width: min(100%, 960px) !important;
-    max-width: 960px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     margin-inline: auto !important;
     padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.5rem) 9rem !important;
