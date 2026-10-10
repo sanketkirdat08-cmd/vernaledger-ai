@@ -3190,6 +3190,7 @@ if selected_page == "OCR Scanner":
                     try:
                         v_data = process_voice_billing_advanced(spoken_bill, API_KEY)
                         st.session_state['processed_data'] = v_data
+                        st.session_state['processed_batch'] = [v_data]
                         log_activity(st.session_state.get('current_username', 'admin'), "Processed Voice Bill")
                         st.success("व्हॉईस बिल Successfully तयार होऊन डेटाबेसमध्ये सेव्ह झाले !")
                         st.toast("व्हॉईस बिल सेव्ह झाले!", icon="🎤")
@@ -3294,15 +3295,16 @@ if selected_page == "OCR Scanner":
                 import pandas as pd
                 items_df = pd.DataFrame(items_raw)
                 if not items_df.empty:
-                    st.dataframe(items_df, use_container_width=True)
+                    edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
+                    p_item['items'] = edited_df.to_dict('records')
                     
                     if st.button('📦 Update Inventory', key='inv_sync_single'):
                         try:
                             import sqlite3
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
-                                for item in items_raw:
-                                    q = str(item.get('qty', '1')).split()[0]
+                                for item in p_item.get('items', []):
+                                    q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
                                     if not q.isdigit(): q = 1
                                     cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
                                 conn.commit()
@@ -3323,7 +3325,8 @@ if selected_page == "OCR Scanner":
                         import pandas as pd
                         items_df = pd.DataFrame(p_item.get('items', []))
                         if not items_df.empty:
-                            st.dataframe(items_df, use_container_width=True)
+                            edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_{idx}')
+                            p_item['items'] = edited_df.to_dict('records')
                             
                         if st.button('📦 Update Inventory', key=f'inv_sync_{idx}'):
                             try:
@@ -3331,7 +3334,7 @@ if selected_page == "OCR Scanner":
                                 with sqlite3.connect('ledger.db') as conn:
                                     cursor = conn.cursor()
                                     for item in p_item.get('items', []):
-                                        q = str(item.get('qty', '1')).split()[0]
+                                        q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
                                         if not q.isdigit(): q = 1
                                         cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
                                     conn.commit()
