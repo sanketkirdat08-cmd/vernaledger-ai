@@ -179,6 +179,7 @@ def hash_password_secure(password):
     return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), b'salt_verna_bcrypt_layer', 100000).hex()
 
 # -- ADVANCED DATABASE SETUP WITH ACID TRANSACTIONS ---
+@st.cache_resource(show_spinner=False)
 def init_databases():
     if not os.path.exists("backups"):
         os.makedirs("backups")
@@ -1998,6 +1999,7 @@ _UI_TRANSLATION_PAIRS = {
     "Min 6 chars password": "किमान ६ अक्षरांचा पासवर्ड",
     "Re-enter password": "पासवर्ड पुन्हा भरा",
     "OCR Scanner": "OCR स्कॅनर",
+    "Business Operations": "व्यवसाय संचालन",
     "Sales & Analytics": "विक्री आणि विश्लेषण",
     "Business Modules": "व्यवसाय विभाग",
     "Ledger Database": "लेजर डेटाबेस",
@@ -2167,10 +2169,15 @@ _UI_TRANSLATION_PAIRS = {
     "इन्व्हेंटरी पेजवर प्रवेश करण्याची परवानगी नाही!": "the inventory page.",
     "व्यवसाय खर्च पेजवर प्रवेश करण्याची परवानगी नाही!": "the business expenses page.",
     "OCR Scanner & Multi-Language Voice Billing": "OCR स्कॅनर आणि बहुभाषिक व्हॉईस बिलिंग",
+    "OCR Scanner & Voice Billing": "OCR स्कॅनर आणि व्हॉइस बिलिंग",
     "Instant Digital POS Receipt Parsing & Audio Confirmation": "पावत्या स्कॅन करा आणि आवाजाद्वारे बिल नोंदवा",
+    "पावत्या स्कॅन करा आणि आवाजाद्वारे बिल नोंदवा": "Scan receipts and record bills by voice",
     "POS ONLINE": "POS सुरू आहे",
     "Input Mode": "इनपुट प्रकार",
     "ड्युप्लिकेट पावती असल्यास जबरदस्तीने सेव्ह करा (Force Save)": "Save duplicate receipts anyway",
+    "⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)": "⚠️ Save duplicate receipt (Force Save)",
+    "ड्युप्लिकेट पावती सेव्ह करा": "Save duplicate receipt",
+    "⚠️ ड्युप्लिकेट पावती सेव्ह Force Save": "⚠️ Save duplicate receipt (Force Save)",
     "Upload File": "फाइल अपलोड करा",
     "Live Camera": "थेट कॅमेरा",
     "Voice Bill": "व्हॉइस बिल",
@@ -2180,11 +2187,17 @@ _UI_TRANSLATION_PAIRS = {
     "व्हॉईस बिल Successfully तयार होऊन डेटाबेसमध्ये सेव्ह झाले !": "Voice bill processed and saved successfully!",
     "व्हॉईस बिल सेव्ह झाले!": "Voice bill saved!",
     "Process Receipt(s)": "पावती प्रक्रिया करा",
+    "पावती प्रक्रिया करा": "Process Receipt(s)",
     "Successfully processed": "यशस्वी प्रक्रिया:",
     "पावती Successfully स्कॅन झाली!": "Receipt scanned successfully!",
     "कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.": "Select at least one receipt or take a photo.",
     "Extracted Items & Summary": "काढलेल्या वस्तू आणि सारांश",
     "Scan receipt(s) or use Multi-Language Voice Bill to display extracted items & summary.": "Scan a receipt or use voice billing to see extracted items and the summary.",
+    "Scan receipt(s) or use Multi-Language व्हॉइस बिल to display extracted items & summary.": "पावती स्कॅन करा किंवा व्हॉइस बिल वापरून काढलेले तपशील आणि सारांश पहा.",
+    "Summary": "सारांश",
+    "📋 Summary": "📋 सारांश",
+    "NAVIGATION MENU": "नेव्हिगेशन मेनू",
+    "PROJECT DEVELOPERS": "प्रकल्प विकासक",
     "Daily Sales & Merchant Analytics": "दैनिक विक्री आणि व्यवसाय विश्लेषण",
     "Daily Revenue, Ticket Size, Category & Custom Period Reports": "दैनिक उत्पन्न, सरासरी बिल आणि कालावधी अहवाल",
     "कस्टम अहवाल आणि कालावधी फिल्टर (Custom Period Filters)": "अहवाल कालावधी फिल्टर",
@@ -3173,7 +3186,10 @@ if selected_page == "OCR Scanner":
     col_u, col_p = st.columns([1.1, 0.9])
     with col_u:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        force_save_option = st.checkbox("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)", value=False)
+        force_save_option = st.checkbox(
+            _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
+            value=False,
+        )
         
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
@@ -3402,7 +3418,11 @@ if selected_page == "OCR Scanner":
             if aud_path and os.path.exists(aud_path):
                 st.audio(aud_path)
         else:
-            st.caption("Scan receipt(s) or use Multi-Language Voice Bill to display extracted items & summary.")
+            st.caption(
+                _translate_ui_text(
+                    "Scan receipt(s) or use Multi-Language Voice Bill to display extracted items & summary."
+                )
+            )
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 3: ADVANCED CUSTOMER KHATA ---
