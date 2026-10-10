@@ -2406,20 +2406,30 @@ st = _LocalizedStreamlitProxy(_streamlit_ui)
 def render_custom_logo(size="large"):
     if size == "large":
         st.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
-            <div style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #7f00ff 100%); padding: 12px; border-radius: 16px; box-shadow: 0 0 20px rgba(0, 242, 254, 0.6); animation: pulseGlow 3s infinite alternate;">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 12px;">
+            <div style="background: linear-gradient(135deg, #00f2fe 0%, #3b82f6 50%, #8b5cf6 100%); padding: 14px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.4), inset 0 2px 4px rgba(255,255,255,0.3); animation: pulseGlow 3s infinite alternate;">
+                <svg width="38" height="38" viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"></path>
+                    <path d="M10 11 L16 22 L22 11" stroke="white" stroke-width="2.5"></path>
+                    <path d="M9 16 H23" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                    <circle cx="16" cy="22" r="2" fill="#00ff87" stroke="white" stroke-width="1"></circle>
+                    <circle cx="10" cy="11" r="1.5" fill="white" stroke="none"></circle>
+                    <circle cx="22" cy="11" r="1.5" fill="white" stroke="none"></circle>
                 </svg>
             </div>
         </div>
         """, unsafe_allow_html=True)
     elif size == "compact":
         st.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 4px;">
-            <div style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #7f00ff 100%); padding: 6px; border-radius: 10px; box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 6px;">
+            <div style="background: linear-gradient(135deg, #00f2fe 0%, #3b82f6 50%, #8b5cf6 100%); padding: 8px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 242, 254, 0.3), inset 0 1px 2px rgba(255,255,255,0.3);">
+                <svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"></path>
+                    <path d="M10 11 L16 22 L22 11" stroke="white" stroke-width="2.5"></path>
+                    <path d="M9 16 H23" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                    <circle cx="16" cy="22" r="2" fill="#00ff87" stroke="white" stroke-width="1"></circle>
+                    <circle cx="10" cy="11" r="1.5" fill="white" stroke="none"></circle>
+                    <circle cx="22" cy="11" r="1.5" fill="white" stroke="none"></circle>
                 </svg>
             </div>
         </div>
