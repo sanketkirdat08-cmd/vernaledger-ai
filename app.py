@@ -3877,22 +3877,7 @@ elif selected_page == "RAG AI Chat":
     }}
     /* --- END SAFE FONT --- */
     
-
-.stApp,
-[data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(ellipse at 14% 4%, rgba(14, 165, 233, 0.075), transparent 43%),
-        radial-gradient(ellipse at 88% 32%, rgba(124, 58, 237, 0.065), transparent 46%),
-        linear-gradient(145deg, #0e1117 0%, #101725 52%, #0b1020 100%) !important;
-    color: #f4f7ff !important;
-}
-[data-testid="stHeader"] {
-    background: rgba(14, 17, 23, 0.72) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
-}
-[data-testid="stMainBlockContainer"] {
+    [data-testid="stMainBlockContainer"] {
     box-sizing: border-box !important;
     width: min(100%, 960px) !important;
     max-width: 960px !important;
