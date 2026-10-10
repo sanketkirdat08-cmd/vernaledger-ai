@@ -2665,6 +2665,8 @@ div[data-testid="stFileUploader"] section {
     border-color: #00f2fe !important;
 }
 .stButton>button, .stDownloadButton>button, div[data-testid="stFormSubmitButton"]>button {
+    position: relative !important;
+    overflow: hidden !important;
     background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 48%, #7c3aed 100%) !important;
     color: #ffffff !important;
     font-weight: 800 !important;
@@ -2674,12 +2676,25 @@ div[data-testid="stFileUploader"] section {
     border: 1px solid rgba(0, 242, 254, 0.7) !important;
     padding: 0.72rem 1.2rem !important;
     min-height: 42px !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 18px rgba(14, 165, 233, 0.24), 0 0 18px rgba(0, 242, 254, 0.25) !important;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.35) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, filter 0.2s ease !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 0 rgba(2, 6, 23, 0.2), 0 4px 0 rgba(2, 8, 23, 0.35), 0 10px 18px rgba(2, 8, 23, 0.28) !important;
+    text-shadow: 0 1px 2px rgba(2, 8, 23, 0.45) !important;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, filter 0.16s ease !important;
+}
+.stButton>button::before, .stDownloadButton>button::before, div[data-testid="stFormSubmitButton"]>button::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 1px 1px 52% !important;
+    border-radius: 10px 10px 45% 45% !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent) !important;
+    pointer-events: none !important;
+}
+.stButton>button:active, .stDownloadButton>button:active, div[data-testid="stFormSubmitButton"]>button:active {
+    transform: translateY(3px) !important;
+    box-shadow: inset 0 2px 3px rgba(2, 6, 23, 0.3), 0 1px 0 rgba(2, 8, 23, 0.4) !important;
+    filter: brightness(0.97) !important;
 }
 .stButton>button:hover, .stDownloadButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 22px rgba(14, 165, 233, 0.32), 0 0 24px rgba(0, 242, 254, 0.5) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -2px 0 rgba(2, 6, 23, 0.2), 0 5px 0 rgba(2, 8, 23, 0.35), 0 14px 24px rgba(2, 8, 23, 0.32) !important;
     border-color: #00f2fe !important;
     transform: translateY(-2px) scale(1.01) !important;
     filter: brightness(1.04) !important;
@@ -2687,6 +2702,12 @@ div[data-testid="stFileUploader"] section {
 .stButton>button:focus-visible, .stDownloadButton>button:focus-visible, div[data-testid="stFormSubmitButton"]>button:focus-visible {
     outline: none !important;
     box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.45), 0 0 0 5px rgba(14, 165, 233, 0.2), 0 0 20px rgba(0, 242, 254, 0.45) !important;
+}
+.stButton>button:disabled, .stDownloadButton>button:disabled, div[data-testid="stFormSubmitButton"]>button:disabled {
+    opacity: 0.52 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 0 rgba(2, 8, 23, 0.25) !important;
 }
 @media (max-width: 768px) {
     section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] label,
