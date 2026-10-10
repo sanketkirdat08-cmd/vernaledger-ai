@@ -882,11 +882,14 @@ def render_rag_sidebar_design_styles():
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
         box-sizing: border-box !important;
+        resize: none !important;
+        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
+    }
+    section[data-testid="stSidebar"][aria-expanded="true"] {
         width: 18.75rem !important;
         min-width: 18.75rem !important;
         max-width: 18.75rem !important;
         flex: 0 0 18.75rem !important;
-        resize: none !important;
     }
     [data-testid="stSidebarResizer"] {
         display: none !important;
@@ -896,13 +899,6 @@ def render_rag_sidebar_design_styles():
         height: 100dvh !important;
         overflow: hidden !important;
         padding: 6px 10px !important;
-    }
-    section[data-testid="stSidebar"][aria-expanded="false"] {
-        width: 0 !important;
-        min-width: 0 !important;
-        max-width: 0 !important;
-        flex: 0 0 0 !important;
-        overflow: hidden !important;
     }
     [data-testid="stSidebarContent"] {
         height: 100% !important;
@@ -1099,7 +1095,8 @@ def render_application_design_styles():
     
 
     """ + font_css + """
-    body:has(.app-ui-polish-scope) .stApp, .block-container {
+    body:has(.app-ui-polish-scope) .stApp,
+    body:has(.app-ui-polish-scope) [data-testid="stAppViewContainer"] {
         background-color: #030712 !important;
         background-image:
             radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.18), transparent 45%),
@@ -1128,11 +1125,14 @@ def render_application_design_styles():
         border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
         box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
         box-sizing: border-box !important;
+        resize: none !important;
+        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
         width: 18.75rem !important;
         min-width: 18.75rem !important;
         max-width: 18.75rem !important;
         flex: 0 0 18.75rem !important;
-        resize: none !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebarResizer"] {
         display: none !important;
@@ -1141,13 +1141,6 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
         padding: 6px 10px !important;
         height: 100dvh !important;
-        overflow: hidden !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="false"] {
-        width: 0 !important;
-        min-width: 0 !important;
-        max-width: 0 !important;
-        flex: 0 0 0 !important;
         overflow: hidden !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stSidebarContent"] {
