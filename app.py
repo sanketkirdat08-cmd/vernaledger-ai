@@ -86,7 +86,7 @@ if "subpage" in st.query_params and "business_dropdown" not in st.session_state:
 # Sync localStorage using a small JS injection just to satisfy localStorage persistence fallback
 import streamlit.components.v1 as components
 def sync_local_storage():
-    lang = st.session_state.get("ui_language", "mr")
+    lang = st.session_state.get("ui_language", "en")
     page = st.session_state.get("selected_page", "OCR Scanner")
     # Only inject JS if state changed, preventing iframe from recreating and stealing focus every rerun!
     if st.session_state.get("last_synced_lang") != lang or st.session_state.get("last_synced_page") != page:
@@ -737,10 +737,11 @@ def render_business_module_styles():
         box-sizing: border-box;
         padding: clamp(13px, 1.4vw, 18px) !important;
         margin-bottom: 13px !important;
-        background: linear-gradient(145deg, rgba(11, 20, 37, 0.94), rgba(12, 23, 41, 0.88)) !important;
-        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75)) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.18) !important;
         border-radius: 20px !important;
-        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
     }
     [data-testid="stMain"]:has(.business-suite-page) .panel-card:hover {
         transform: none !important;
@@ -1066,7 +1067,7 @@ def render_rag_sidebar_design_styles():
 
 
 def render_application_design_styles():
-    lang = st.session_state.get("ui_language", "mr")
+    lang = st.session_state.get("ui_language", "en")
     font_css = ""
     if lang == "mr":
         font_css = """
@@ -1099,11 +1100,12 @@ def render_application_design_styles():
 
     """ + font_css + """
     body:has(.app-ui-polish-scope) .stApp, .block-container {
-        background-color: #08111f !important;
+        background-color: #030712 !important;
         background-image:
-            radial-gradient(ellipse at 8% 0%, rgba(14, 165, 233, 0.12), transparent 38%),
-            radial-gradient(ellipse at 100% 18%, rgba(99, 102, 241, 0.11), transparent 34%),
-            linear-gradient(145deg, #08111f 0%, #0b1424 54%, #0a1020 100%) !important;
+            radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.18), transparent 45%),
+            radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.15), transparent 45%),
+            radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5), transparent 80%),
+            linear-gradient(160deg, #020617 0%, #09090b 50%, #0f172a 100%) !important;
         color: #e7eef8 !important;
     }
     body:has(.app-ui-polish-scope) [data-testid="stHeader"] {
@@ -1334,10 +1336,11 @@ def render_application_design_styles():
         box-sizing: border-box !important;
         padding: clamp(13px, 1.4vw, 18px) !important;
         margin-bottom: 13px !important;
-        background: linear-gradient(145deg, rgba(15, 28, 46, 0.94), rgba(12, 23, 39, 0.94)) !important;
-        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75)) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.18) !important;
         border-radius: 18px !important;
-        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.19), inset 0 1px rgba(255, 255, 255, 0.035) !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
         transform: none !important;
     }
     body:has(.app-ui-polish-scope) .panel-card:hover {
@@ -1972,7 +1975,8 @@ if 'forgot_pass_mode' not in st.session_state:
 if 'input_method' not in st.session_state:
     st.session_state['input_method'] = 'Upload File'
 if "ui_language" not in st.session_state:
-    st.session_state["ui_language"] = "mr"
+    st.session_state["ui_language"] = "en"
+    st.session_state["ui_language_english"] = True
 
 
 _UI_TRANSLATION_PAIRS = {
@@ -2294,7 +2298,7 @@ _UI_TRANSLATION_PAIRS = {
 def _translate_ui_text(value):
     if not isinstance(value, str):
         return value
-    language = st.session_state.get("ui_language", "mr")
+    language = st.session_state.get("ui_language", "en")
     devanagari_pattern = re.compile(r"[\u0900-\u097f]")
     if language == "en":
         replacements = []
@@ -2524,13 +2528,13 @@ section[data-testid="stSidebar"] {
     box-shadow: 0 12px 40px rgba(0, 242, 254, 0.2) !important;
 }
 .panel-card {
-    background: linear-gradient(135deg, rgba(13, 19, 33, 0.85) 0%, rgba(15, 23, 42, 0.75) 100%) !important;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(9, 9, 11, 0.7) 100%) !important;
     backdrop-filter: blur(28px) !important;
-    border: 1.5px solid rgba(0, 242, 254, 0.22) !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
     border-radius: 22px !important;
     padding: 24px !important;
     margin-bottom: 24px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.08) !important;
     transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
     width: 100% !important;
 }
@@ -2785,11 +2789,16 @@ def render_login_portal():
         max-width: 460px !important;
         padding: 1.35rem clamp(1.1rem, 5vw, 2rem) !important;
         margin: auto !important;
-        background: linear-gradient(145deg, rgba(16, 31, 51, 0.96), rgba(10, 21, 37, 0.95)) !important;
-        backdrop-filter: blur(24px) !important;
-        border: 1px solid rgba(148, 163, 184, 0.2) !important;
-        border-radius: 24px !important;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255,255,255,0.06) !important;
+        background: linear-gradient(145deg, rgba(2, 6, 23, 0.7), rgba(15, 23, 42, 0.6)) !important;
+        backdrop-filter: blur(30px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-radius: 30px !important;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px rgba(255,255,255,0.1), 0 0 40px rgba(56, 189, 248, 0.15), 0 0 15px rgba(139, 92, 246, 0.1) !important;
+        animation: glowBorder 4s infinite alternate;
+    }}
+    @keyframes glowBorder {{
+        0% {{ border-color: rgba(56, 189, 248, 0.3); box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px rgba(255,255,255,0.1), 0 0 20px rgba(56, 189, 248, 0.1); }}
+        100% {{ border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px rgba(255,255,255,0.15), 0 0 40px rgba(139, 92, 246, 0.2); }}
     }}
     [data-testid="stTextInput"] input {{
         min-height: 44px !important;
@@ -4064,7 +4073,7 @@ main.block-container {
     chat_input_event = CHAT_INPUT_COMPONENT(
         key="verna_chat_input_component",
         default=None,
-        language=st.session_state.get("ui_language", "mr"),
+        language=st.session_state.get("ui_language", "en"),
     )
     prompt = None
     voice_captured = None
