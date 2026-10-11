@@ -953,9 +953,10 @@ def render_rag_sidebar_design_styles():
         box-sizing: border-box !important;
         margin: 4px 0 7px 3px !important;
         font-size: 9px !important;
-        letter-spacing: 1px !important;
+        letter-spacing: normal !important;
         line-height: 1.4 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] {
         display: flex !important;
@@ -988,10 +989,11 @@ def render_rag_sidebar_design_styles():
         color: #dceafa !important;
         font-size: 11.5px !important;
         font-weight: 650 !important;
-        letter-spacing: 0.01em !important;
+        letter-spacing: normal !important;
         line-height: 1.35 !important;
         margin: 0 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
         background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
@@ -1030,9 +1032,11 @@ def render_rag_sidebar_design_styles():
     section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
         font-size: 11px !important;
         font-weight: 700 !important;
+        letter-spacing: normal !important;
         line-height: 1.3 !important;
         margin: 0 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
         min-height: 34px !important;
@@ -1197,9 +1201,10 @@ def render_application_design_styles():
         box-sizing: border-box !important;
         margin: 4px 0 7px 3px !important;
         font-size: 9px !important;
-        letter-spacing: 1px !important;
+        letter-spacing: normal !important;
         line-height: 1.4 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
         display: flex !important;
@@ -1248,10 +1253,11 @@ def render_application_design_styles():
         color: #dceafa !important;
         font-size: 11.5px !important;
         font-weight: 650 !important;
-        letter-spacing: 0.01em !important;
+        letter-spacing: normal !important;
         line-height: 1.35 !important;
         margin: 0 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"],
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
@@ -1274,9 +1280,11 @@ def render_application_design_styles():
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
         font-size: 11px !important;
         font-weight: 700 !important;
+        letter-spacing: normal !important;
         line-height: 1.3 !important;
         margin: 0 !important;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word !important;
+        word-break: keep-all !important;
     }
     body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
         min-height: 34px !important;
@@ -1575,8 +1583,8 @@ def render_page_header(title, subtitle, icon="✨"):
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
     ">
         <div>
-            <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #00f2fe; letter-spacing: -0.5px;">{title}</h2>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">{subtitle}</p>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #00f2fe; letter-spacing: normal;">{title}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; line-height: 1.4;">{subtitle}</p>
         </div>
         <div style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,242,254,0.3));">{icon}</div>
     </div>
@@ -1943,6 +1951,7 @@ def load_receipts_data():
         logging.error(f"Error loading receipts: {e}")
         return pd.DataFrame()
 
+
 def cleanup_temp_files():
     try:
         for f in os.listdir("."):
@@ -2240,22 +2249,19 @@ _UI_TRANSLATION_PAIRS = {
     "Expense ID to delete": "Expense ID to delete",
     "Delete Expense Record": "Delete expense record",
     "No expenses recorded.": "No expenses have been recorded.",
-    "Admin Staff Management & Audit Logs": "स्टाफ व्यवस्थापन आणि ऑडिट लॉग",
-    "Create Staff Accounts & View Complete System Activity Audit Trail": "स्टाफ खाती तयार करा आणि प्रणालीतील हालचाली पहा",
+    "Admin Staff Management": "स्टाफ व्यवस्थापन",
+    "Create and manage staff accounts with role-based access control.": "नवीन कर्मचारी खाती तयार करा आणि भूमिका नियंत्रण व्यवस्थापित करा.",
     "Staff Management": "स्टाफ व्यवस्थापन",
-    "System Audit Logs": "सिस्टीम ऑडिट लॉग",
-    "Add New Staff or Admin": "नवीन स्टाफ किंवा प्रशासक जोडा",
+    "Add New Staff or Admin": "नवीन स्टाफ किंवा ॲडमिन जोडा",
     "Username": "वापरकर्ता नाव",
     "Phone Number": "मोबाईल नंबर",
-    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अक्षरे)",
+    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अंक/अक्षरे)",
     "Role": "भूमिका",
-    "Create Account": "Create account",
-    "नोंदणीकृत युझर्सची यादी": "नोंदणीकृत वापरकर्ते",
-    "डिलिट करण्यासाठी युजरनेम टाईप करा (Username to delete)": "हटवण्यासाठी वापरकर्ता नाव लिहा",
-    "युजर डिलीट करा": "वापरकर्ता हटवा",
-    "मुख्य मास्टर अॅडमिन युजर डिलीट करता येणार नाही!": "The master administrator account cannot be deleted.",
-    "कोणतेही ऑडिट लॉग्ज उपलब्ध नाहीत.": "No audit logs are available.",
-    "ऑडिट लॉग्ज लोड करण्यात त्रुटी.": "Could not load audit logs.",
+    "Create Account": "खाते तयार करा",
+    "Registered Users List": "नोंदणीकृत वापरकर्त्यांची यादी",
+    "Enter username to delete": "डिलिट करण्यासाठी वापरकर्ता नाव टाईप करा",
+    "Delete User": "वापरकर्ता डिलीट करा",
+    "Master Admin account cannot be deleted!": "मुख्य मास्टर ॲडमिन खाते डिलीट करता येणार नाही!",
     "Ledger Database & Multi-Language Export": "लेजर डेटाबेस आणि अहवाल डाउनलोड",
     "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads": "डेटा, प्रगत फिल्टर आणि अहवाल डाउनलोड",
     "Select Shop / Vendor": "दुकान / विक्रेता निवडा",
@@ -2463,24 +2469,56 @@ def render_custom_logo(size="large"):
 st.markdown("""
 <style>
 
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
-        font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
-    /* --- END SAFE FONT --- */
-    
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
-@import url('https://fonts.googleapis.com/css?family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    /* --- SAFE FONT & MARATHI UNBROKEN TEXT APPLICATION --- */
+    html, body, .stApp, 
+    h1, h2, h3, h4, h5, h6, 
+    p, li, label, 
+    .stMarkdown, .stMarkdown p,
+    .stTextInput input, .stTextArea textarea, .stSelectbox select,
+    [data-testid="stWidgetLabel"] p, [data-testid="stMarkdownContainer"] p {
+        font-family: 'Mukta', 'Baloo 2', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        word-break: keep-all !important;
+        overflow-wrap: break-word !important;
+        hyphens: none !important;
+    }
+    /* Protect all Streamlit Material Icons from font overrides */
+    [data-testid="stIconMaterial"],
+    [data-testid^="stIcon"],
+    [data-testid*="Icon"],
+    [data-testid="stSidebarCollapseButton"] button span,
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="collapsedControl"] button span,
+    [data-testid="collapsedControl"] span,
+    [data-testid="stFileUploader"] span[data-testid="stIconMaterial"],
+    .material-symbols-rounded,
+    .material-symbols-outlined,
+    .material-icons,
+    [class*="material-symbols"],
+    [class*="material-icons"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-weight: normal !important;
+        font-style: normal !important;
+        font-size: 24px !important;
+        line-height: 1 !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        display: inline-block !important;
+        white-space: nowrap !important;
+        word-wrap: normal !important;
+        direction: ltr !important;
+        -webkit-font-feature-settings: 'liga' !important;
+        font-feature-settings: 'liga' !important;
+        -webkit-font-smoothing: antialiased !important;
+    }
+    /* Protect SVG elements */
+    svg, svg * {
+        font-family: inherit !important; 
+    }
+    /* --- END SAFE FONT --- */
 @keyframes pulseGlow {
     0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
     100% { box-shadow: 0 0 22px rgba(0, 242, 254, 0.7); }
@@ -2628,12 +2666,14 @@ section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] label p {
     color: #dceafa !important;
-    font-size: 11.5px !important;
+    font-size: 12px !important;
     font-weight: 650 !important;
-    letter-spacing: 0.01em !important;
+    letter-spacing: normal !important;
     line-height: 1.35 !important;
     margin: 0 !important;
-    overflow-wrap: anywhere;
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
 }
 div[data-testid="stFileUploader"] {
     background: linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
@@ -3646,78 +3686,112 @@ elif selected_page == "Business Operations":
     
 # FEATURE 6: ADMIN STAFF MANAGEMENT ---
 elif selected_page == "Staff Management":
+    is_english = st.session_state.get("ui_language", "en") == "en"
     if st.session_state.get('user_role') == 'Staff':
-        st.error("Restricted Area: Staff not allowed on Staff Management page!")
+        st.error("Restricted Area: Staff not allowed on Staff Management page!" if is_english else "प्रतिबंधित क्षेत्र: कर्मचाऱ्यांना स्टाफ व्यवस्थापन पानावर प्रवेश नाही!")
         st.stop()
-    render_page_header("Admin Staff Management", "Create Staff Accounts & View Complete System Activity Audit Trail", "👥")
-    tab_st1, tab_st2 = st.tabs(["Staff Management", "System Audit Logs"])
-    with tab_st1:
-        sc1, sc2 = st.columns([1, 1])
-        with sc1:
-            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन स्टाफ किंवा अॅडमिन जोडा</h4>", unsafe_allow_html=True)
-            with st.form("new_staff_form"):
-                s_user = st.text_input("Username")
-                s_phone = st.text_input("Phone Number")
-                s_pass = st.text_input("Password (Min 6 digits)", type="password")
-                s_role = st.selectbox("Role", ["Staff (Cashier - Limited Access)", "Admin (Owner - Full Access)"])
-                submit_new_user = st.form_submit_button("Create Account")
-                if submit_new_user:
-                    if not s_user.strip() or not s_phone.strip() or len(s_pass) < 6:
-                        st.error("सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
-                    else:
-                        role_val = "Staff" if "Staff" in s_role else "Admin"
-                        pass_hashed = hash_password_secure(s_pass)
-                        try:
-                            with sqlite3.connect("ledger.db") as conn:
-                                conn.execute("BEGIN TRANSACTION;")
-                                cursor = conn.cursor()
-                                cursor.execute("INSERT INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)", (s_user.strip(), pass_hashed, role_val, s_phone.strip()))
-                                conn.commit()
-                            log_activity(st.session_state.get('current_username', 'admin'), f"Created User {s_user.strip()} as {role_val}")
-                            st.success(f"नवीन '{role_val}' अकाऊंट ({s_user}) Successfully तयार झाले!")
-                            st.rerun()
-                        except Exception as ex:
-                            st.error(f"Error: हा युजरनेम आधीपासून अस्तित्वात आहे किंवा डेटाबेस त्रुटी.")
-            st.markdown("</div>", unsafe_allow_html=True)
-        with sc2:
-            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नोंदणीकृत युझर्सची यादी</h4>", unsafe_allow_html=True)
-            try:
-                with sqlite3.connect("ledger.db") as conn:
-                    users_df = pd.read_sql_query("SELECT username, role, phone FROM users", conn)
-                st.dataframe(users_df, use_container_width=True)
-                del_uname = st.text_input("डिलिट करण्यासाठी युजरनेम टाईप करा (Username to delete)")
-                if st.button("युजर डिलीट करा"):
-                    if del_uname.strip() == "admin" or del_uname.strip() == "sanket":
-                        st.error("मुख्य मास्टर अॅडमिन युजर डिलीट करता येणार नाही!")
-                    else:
-                        try:
-                            with sqlite3.connect("ledger.db") as conn:
-                                conn.execute("BEGIN TRANSACTION;")
-                                cursor = conn.cursor()
-                                cursor.execute("DELETE FROM users WHERE username = ?", (del_uname.strip(),))
-                                conn.commit()
-                            log_activity(st.session_state.get('current_username', 'admin'), f"Deleted User {del_uname.strip()}")
-                            st.success(f"User '{del_uname}' successfully deleted!")
-                            st.rerun()
-                        except Exception as ex:
-                            st.error(f"Error: {ex}")
-            except Exception as e:
-                st.error(f"Error loading data: {e}")
-            st.markdown("</div>", unsafe_allow_html=True)
-    with tab_st2:
+
+    page_title = "Staff Management" if is_english else "स्टाफ व्यवस्थापन"
+    page_subtitle = "Create and manage staff accounts with role-based access control." if is_english else "नवीन कर्मचारी खाती तयार करा आणि भूमिका नियंत्रण व्यवस्थापित करा."
+    render_page_header(page_title, page_subtitle, "👥")
+
+    sc1, sc2 = st.columns([1, 1])
+    with sc1:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>सिस्टीम ऑडिट लॉग्ज (Who did what)</h4>", unsafe_allow_html=True)
+        form_heading = "Add New Staff or Admin" if is_english else "नवीन स्टाफ किंवा ॲडमिन जोडा"
+        st.markdown(f"<h4 style='color:#00f2fe; margin-top:0;'>{form_heading}</h4>", unsafe_allow_html=True)
+
+        with st.form("new_staff_form"):
+            user_lbl = "Username" if is_english else "वापरकर्ता नाव (Username)"
+            phone_lbl = "Phone Number" if is_english else "मोबाईल नंबर (Phone Number)"
+            pass_lbl = "Password (Min 6 digits)" if is_english else "पासवर्ड (किमान ६ अंक/अक्षरे)"
+            role_lbl = "Role" if is_english else "भूमिका (Role)"
+
+            s_user = st.text_input(user_lbl, key="staff_reg_user")
+            s_phone = st.text_input(phone_lbl, key="staff_reg_phone")
+            s_pass = st.text_input(pass_lbl, type="password", key="staff_reg_pass")
+
+            if is_english:
+                role_opts = ["Staff (Cashier - Limited Access)", "Admin (Owner - Full Access)"]
+            else:
+                role_opts = ["कर्मचारी (कॅशियर - मर्यादित प्रवेश)", "ॲडमिन (मालक - पूर्ण प्रवेश)"]
+
+            s_role = st.selectbox(role_lbl, role_opts, key="staff_reg_role")
+            submit_btn_lbl = "Create Account" if is_english else "खाते तयार करा"
+            submit_new_user = st.form_submit_button(submit_btn_lbl)
+
+            if submit_new_user:
+                if not s_user.strip() or not s_phone.strip() or len(s_pass) < 6:
+                    err_msg = "Please fill all fields and enter a password of at least 6 digits!" if is_english else "सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!"
+                    st.error(err_msg)
+                else:
+                    role_val = "Staff" if ("Staff" in s_role or "कर्मचारी" in s_role) else "Admin"
+                    pass_hashed = hash_password_secure(s_pass)
+                    try:
+                        with sqlite3.connect("ledger.db") as conn:
+                            conn.execute("BEGIN TRANSACTION;")
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "INSERT INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)",
+                                (s_user.strip(), pass_hashed, role_val, s_phone.strip()),
+                            )
+                            conn.commit()
+                        log_activity(st.session_state.get('current_username', 'admin'), f"Created User {s_user.strip()} as {role_val}")
+                        succ_msg = f"New '{role_val}' account ({s_user.strip()}) successfully created!" if is_english else f"नवीन '{role_val}' खाते ({s_user.strip()}) यशस्वीरित्या तयार झाले!"
+                        st.success(succ_msg)
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as ex:
+                        dup_msg = "Error: Username already exists or database error occurred." if is_english else "त्रुटी: हे वापरकर्ता नाव आधीच अस्तित्वात आहे किंवा डेटाबेस त्रुटी आली."
+                        st.error(dup_msg)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with sc2:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        list_heading = "Registered Users List" if is_english else "नोंदणीकृत वापरकर्त्यांची यादी"
+        st.markdown(f"<h4 style='color:#00f2fe; margin-top:0;'>{list_heading}</h4>", unsafe_allow_html=True)
+
         try:
             with sqlite3.connect("ledger.db") as conn:
-                logs_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100", conn)
-            if not logs_df.empty:
-                st.dataframe(logs_df, use_container_width=True)
+                users_df = pd.read_sql_query("SELECT username, role, phone FROM users", conn)
+
+            if not users_df.empty:
+                if is_english:
+                    disp_df = users_df.rename(columns={"username": "Username", "role": "Role", "phone": "Phone Number"})
+                else:
+                    disp_df = users_df.rename(columns={"username": "वापरकर्ता नाव", "role": "भूमिका", "phone": "मोबाईल नंबर"})
+                st.dataframe(disp_df, use_container_width=True)
             else:
-                st.info("कोणतेही ऑडिट लॉग्ज उपलब्ध नाहीत.")
-        except Exception:
-            st.info("ऑडिट लॉग्ज लोड करण्यात त्रुटी.")
+                st.info("No registered users found." if is_english else "कोणतेही वापरकर्ते नोंदणीकृत नाहीत.")
+
+            del_lbl = "Enter username to delete" if is_english else "डिलिट करण्यासाठी वापरकर्ता नाव टाईप करा"
+            del_uname = st.text_input(del_lbl, key="staff_del_uname")
+
+            del_btn_lbl = "Delete User" if is_english else "वापरकर्ता डिलीट करा"
+            if st.button(del_btn_lbl, key="btn_del_staff_user"):
+                target_user = del_uname.strip().lower()
+                if target_user in ["admin", "sanket"]:
+                    master_err = "Master Admin account cannot be deleted!" if is_english else "मुख्य मास्टर ॲडमिन खाते डिलीट करता येणार नाही!"
+                    st.error(master_err)
+                elif not del_uname.strip():
+                    empty_err = "Please enter a valid username to delete." if is_english else "कृपया डिलीट करण्यासाठी योग्य वापरकर्ता नाव टाका."
+                    st.warning(empty_err)
+                else:
+                    try:
+                        with sqlite3.connect("ledger.db") as conn:
+                            conn.execute("BEGIN TRANSACTION;")
+                            cursor = conn.cursor()
+                            cursor.execute("DELETE FROM users WHERE username = ?", (del_uname.strip(),))
+                            conn.commit()
+                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted User {del_uname.strip()}")
+                        succ_del = f"User '{del_uname.strip()}' successfully deleted!" if is_english else f"वापरकर्ता '{del_uname.strip()}' यशस्वीरित्या डिलीट झाला!"
+                        st.success(succ_del)
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as ex:
+                        st.error(f"Error: {ex}")
+        except Exception as e:
+            st.error(f"Error loading users: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 7: LEDGER DATABASE ---
@@ -3997,7 +4071,9 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     color: #d5deeb;
     font-size: 0.98rem;
     line-height: 1.7;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: keep-all;
+    hyphens: none;
 }
 .st-key-rag_chat_history {
     box-sizing: border-box;
@@ -4020,8 +4096,9 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 .st-key-rag_chat_history [data-testid="stMarkdownContainer"] {
-    overflow-wrap: anywhere;
-    word-break: normal;
+    overflow-wrap: break-word;
+    word-break: keep-all;
+    hyphens: none;
 }
 [data-testid="stCustomComponentV1"] {
     position: fixed !important;
