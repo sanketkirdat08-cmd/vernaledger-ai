@@ -24,6 +24,7 @@ from ocr_engine import (
     process_voice_billing_advanced,
 )
 from streamlit_mic_recorder import speech_to_text
+import qrcode
 
 st.set_page_config(
     page_title="VernaLedger AI",
@@ -2645,6 +2646,189 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
     buffer.seek(0)
     return buffer
 
+def generate_upi_qr_base64(amount: float, vpa: str = "vernaledger@upi", payee_name: str = "VernaLedger Store", note: str = "POS Bill") -> str:
+    try:
+        clean_amount = f"{max(0.0, float(amount)):.2f}"
+        upi_url = f"upi://pay?pa={vpa}&pn={urllib.parse.quote(payee_name)}&am={clean_amount}&cu=INR&tn={urllib.parse.quote(note)}"
+        qr = qrcode.QRCode(version=1, box_size=5, border=2)
+        qr.add_data(upi_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception as e:
+        ai_logger.error(f"UPI QR generation failed: {e}")
+        return ""
+
+def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, items: list, total: float, upi_qr_b64: str = "", receipt_no: str = "1", is_english: bool = False) -> str:
+    item_rows = ""
+    for idx, itm in enumerate(items, 1):
+        name = str(itm.get("item_name", f"Item {idx}"))[:16]
+        qty = str(itm.get("quantity", itm.get("qty", "1")))
+        rate = float(itm.get("rate", itm.get("price", 0)) or 0)
+        t_price = float(itm.get("total_price", rate * 1) or 0)
+        item_rows += f"<tr><td>{escape(name)}</td><td style='text-align:center;'>{escape(qty)}</td><td style='text-align:right;'>{rate:.1f}</td><td style='text-align:right;'>{t_price:.2f}</td></tr>"
+
+    qr_section = ""
+    if upi_qr_b64:
+        qr_section = f"""
+        <div style="margin-top:10px; text-align:center;">
+            <div style="font-size:10px; font-weight:bold; margin-bottom:4px;">SCAN & PAY VIA UPI</div>
+            <img src="data:image/png;base64,{upi_qr_b64}" style="width:115px; height:115px;" />
+            <div style="font-size:9px; color:#555; margin-top:2px;">GPay / PhonePe / Paytm</div>
+        </div>
+        """
+
+    title_label = "RETAIL CASH SLIP" if is_english else "किराणा खरेदी पावती"
+    tot_label = "GRAND TOTAL" if is_english else "एकूण रक्कम"
+    thanks_label = "THANK YOU! VISIT AGAIN" if is_english else "धन्यवाद! पुन्हा भेट द्या"
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>POS Thermal Slip #{receipt_no}</title>
+<style>
+    @page {{
+        size: 58mm auto;
+        margin: 0;
+    }}
+    body {{
+        font-family: 'Courier New', Courier, monospace;
+        width: 54mm;
+        margin: 0 auto;
+        padding: 6px 2px;
+        color: #000;
+        background: #fff;
+        font-size: 11px;
+        line-height: 1.25;
+    }}
+    .center {{ text-align: center; }}
+    .bold {{ font-weight: bold; }}
+    .divider {{ border-top: 1px dashed #000; margin: 5px 0; }}
+    .double-divider {{ border-top: 2px dashed #000; margin: 6px 0; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 10px; }}
+    th {{ border-bottom: 1px dashed #000; text-align: left; padding: 2px 0; }}
+    td {{ padding: 2px 0; }}
+    .no-print {{
+        background: #0ea5e9;
+        color: #fff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }}
+    @media print {{
+        .no-print {{ display: none !important; }}
+    }}
+</style>
+</head>
+<body>
+    <button class="no-print" onclick="window.print()">🖨️ पावती प्रिंट करा (Print Thermal Slip)</button>
+    <div class="center bold" style="font-size: 13px;">VERNALEDGER AI POS</div>
+    <div class="center bold">{escape(vendor)}</div>
+    <div class="center" style="font-size: 9px;">{title_label}</div>
+    <div class="divider"></div>
+    <div>Date: {escape(date_str)}</div>
+    <div>Slip No: #{receipt_no} | Cat: {escape(category)}</div>
+    <div class="divider"></div>
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th style="text-align:center;">Qty</th>
+                <th style="text-align:right;">Rate</th>
+                <th style="text-align:right;">Tot</th>
+            </tr>
+        </thead>
+        <tbody>
+            {item_rows}
+        </tbody>
+    </table>
+    <div class="double-divider"></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+        <span>{tot_label}:</span>
+        <span>₹{total:,.2f}</span>
+    </div>
+    <div class="divider"></div>
+    {qr_section}
+    <div class="center" style="margin-top: 8px; font-size: 10px;">*** {thanks_label} ***</div>
+    <div class="center" style="font-size: 8px; color:#555;">Powered by VernaLedger-AI</div>
+</body>
+</html>"""
+    return html
+
+def generate_daily_whatsapp_digest(is_english: bool = False) -> str:
+    today_str = date.today().strftime("%Y-%m-%d")
+    today_disp = date.today().strftime("%d-%m-%Y")
+    total_sales = 0.0
+    total_bills = 0
+    total_expenses = 0.0
+    cash_recovered = 0.0
+    pending_khata = 0.0
+
+    try:
+        with sqlite3.connect("ledger.db") as conn:
+            rec_df = pd.read_sql_query("SELECT grand_total, date FROM receipts", conn)
+            if not rec_df.empty:
+                today_rec = rec_df[rec_df['date'].astype(str).str.contains(today_str, na=False)]
+                if today_rec.empty:
+                    today_rec = rec_df
+                total_sales = float(today_rec['grand_total'].sum() or 0.0)
+                total_bills = len(today_rec)
+
+            exp_df = pd.read_sql_query("SELECT amount, date FROM business_expenses", conn)
+            if not exp_df.empty:
+                today_exp = exp_df[exp_df['date'].astype(str).str.contains(today_str, na=False)]
+                if today_exp.empty:
+                    today_exp = exp_df
+                total_expenses = float(today_exp['amount'].sum() or 0.0)
+
+            khata_df = pd.read_sql_query("SELECT customer_name, amount, transaction_type FROM customer_khata", conn)
+            if not khata_df.empty:
+                credit_sum = float(khata_df[khata_df['transaction_type'] == 'Credit Given']['amount'].sum() or 0.0)
+                pay_sum = float(khata_df[khata_df['transaction_type'] == 'Payment Received']['amount'].sum() or 0.0)
+                cash_recovered = pay_sum
+                pending_khata = max(0.0, credit_sum - pay_sum)
+    except Exception as e:
+        ai_logger.error(f"WhatsApp digest error: {e}")
+
+    net_profit = total_sales - total_expenses
+
+    if is_english:
+        return (
+            f"📊 *VERNALEDGER AI - DAILY BUSINESS DIGEST*\n"
+            f"📅 *Date:* {today_disp}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 *Total Sales:* ₹{total_sales:,.2f} ({total_bills} bills)\n"
+            f"📉 *Total Expenses:* ₹{total_expenses:,.2f}\n"
+            f"💵 *Estimated Net Margin:* ₹{net_profit:,.2f}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ *Khata Cash Recovered:* ₹{cash_recovered:,.2f}\n"
+            f"⏳ *Total Outstanding Credit:* ₹{pending_khata:,.2f}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 _Automated Report Generated by VernaLedger-AI_"
+        )
+    else:
+        return (
+            f"📊 *वर्ना लेजर AI - दैनिक बिझनेस रिपोर्ट*\n"
+            f"📅 *तारीख:* {today_disp}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 *आजची एकूण विक्री:* ₹{total_sales:,.2f} ({total_bills} पावत्या)\n"
+            f"📉 *एकूण दैनंदिन खर्च:* ₹{total_expenses:,.2f}\n"
+            f"💵 *अंदाजे निव्वळ नफा:* ₹{net_profit:,.2f}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ *उधारीतून जमा रोख:* ₹{cash_recovered:,.2f}\n"
+            f"⏳ *बाकी एकूण उधारी:* ₹{pending_khata:,.2f}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 _VernaLedger-AI द्वारे स्वयंचलित जनरेट केलेला अहवाल_"
+        )
+
 df = load_receipts_data()
 
 # SIDEBAR NAVIGATION ---
@@ -2996,17 +3180,6 @@ if selected_page == "OCR Scanner":
             )
             st.session_state['voice_billing_transcript'] = voice_text_input
             
-            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin-top: 6px;'>💡 <b>झटपट नमुना वाक्ये (क्लिक करा):</b></div>", unsafe_allow_html=True)
-            prompt_c1, prompt_c2 = st.columns(2)
-            with prompt_c1:
-                if st.button("🛒 ५ किलो साखर ₹२००, २L तेल ₹३००", key="v_sample_1", use_container_width=True):
-                    st.session_state['voice_billing_transcript'] = "श्री गणेश किराणा ५ किलो साखर २०० रुपये आणि २ लिटर तेल ३०० रुपये"
-                    st.rerun()
-            with prompt_c2:
-                if st.button("🌾 १० किलो तांदूळ ₹५००, २ किलो डाळ ₹२४०", key="v_sample_2", use_container_width=True):
-                    st.session_state['voice_billing_transcript'] = "महालक्ष्मी स्टोअर्स १० किलो तांदूळ ५०० रुपये आणि २ किलो डाळ २४० रुपये"
-                    st.rerun()
-                    
             submit_voice = st.button("⚡ व्हॉईस बिल प्रोसेस करा (Generate Bill)", type="primary", use_container_width=True, key="btn_process_voice_bill")
             
             active_voice_text = st.session_state.get('voice_billing_transcript', '').strip()
@@ -3175,85 +3348,59 @@ if selected_page == "OCR Scanner":
                 
                 st.markdown("<hr style='margin: 12px 0; border-color: rgba(255, 255, 255, 0.08);'>", unsafe_allow_html=True)
                 
-                # Marathi Audio Summary Player
-                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>🔊 मराठी ऑडिओ पुष्टीकरण (Audio Confirmation):</div>", unsafe_allow_html=True)
-                audio_text = f"{v_disp} कडून खरेदी केलेली पावती. एकूण रक्कम {tot:.0f} रुपये."
-                aud_path = generate_marathi_tts(audio_text)
-                if aud_path and os.path.exists(aud_path):
-                    st.audio(aud_path)
+                # ⚡ DYNAMIC UPI QR & AI SOUNDBOX
+                upi_b64 = generate_upi_qr_base64(tot, payee_name=v_disp, note=f"Bill {date_disp}")
+                with st.expander("⚡ त्वरित UPI पेमेंट आणि साऊंडबॉक्स (Scan & Pay + Soundbox)", expanded=True):
+                    upic1, upic2 = st.columns([1, 1.3])
+                    with upic1:
+                        if upi_b64:
+                            st.markdown(f"""
+                            <div style='text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px dashed rgba(0,242,254,0.4);'>
+                                <div style='font-size: 11px; font-weight: 700; color: #00f2fe; margin-bottom: 5px;'>QR स्कॅन करून भरा</div>
+                                <img src="data:image/png;base64,{upi_b64}" style="width: 125px; height: 125px; border-radius: 8px; background: white; padding: 4px;" />
+                                <div style='font-size: 10px; color: #94a3b8; margin-top: 4px;'>GPay • PhonePe • Paytm • BHIM</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    with upic2:
+                        st.markdown(f"""
+                        <div style='padding: 6px 0;'>
+                            <div style='font-size: 11px; color: #94a3b8;'>देय रक्कम (Payable Amount):</div>
+                            <div style='font-size: 24px; font-weight: 800; color: #00ff87;'>₹{tot:,.2f}</div>
+                            <div style='font-size: 11px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;'>
+                                ग्राहक हा QR स्कॅन करून थेट बँक खात्यात रक्कम पाठवू शकतात.
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        if st.button("🔊 साऊंडबॉक्स आवाज (Play Soundbox)", key="btn_soundbox_single", use_container_width=True):
+                            sb_text = f"VernaLedger: {tot:.0f} रुपये प्राप्त झाले!" if not is_english else f"VernaLedger: Received payment of {tot:.0f} rupees!"
+                            sb_path = generate_marathi_tts(sb_text, output_path=f"soundbox_{int(time.time())}.mp3")
+                            if sb_path and os.path.exists(sb_path):
+                                st.audio(sb_path, autoplay=True)
+                            st.toast(f"🔔 ₹{tot:,.2f} Payment Received!", icon="✅")
                 
-                # Action Buttons Row: WhatsApp & Download Invoice
+                # Action Buttons Row: Thermal POS Slip and WhatsApp with UPI Link
+                thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, upi_qr_b64=upi_b64, receipt_no="1", is_english=is_english)
                 act_col1, act_col2 = st.columns(2)
                 with act_col1:
-                    inv_rows = ""
-                    for itm_idx, itm in enumerate(items_raw):
-                        q_val = itm.get('quantity', itm.get('qty', '1'))
-                        r_val = itm.get('rate', itm.get('price', 0))
-                        t_val = itm.get('total_price', 0)
-                        inv_rows += f"<tr><td style='border-bottom:1px solid #e2e8f0; padding:8px;'>{itm_idx+1}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px;'>{itm.get('item_name')}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:center;'>{q_val}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:right;'>₹{r_val}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:right;'>₹{t_val}</td></tr>"
-                    
-                    inv_html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Invoice - {v_disp}</title>
-<style>
-    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; color: #1e293b; padding: 25px; margin: 0; }}
-    .inv-container {{ max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; }}
-    .inv-header {{ border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }}
-    .inv-title {{ font-size: 20px; font-weight: bold; color: #0284c7; }}
-    .badge {{ background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }}
-    .meta {{ font-size: 12px; color: #64748b; margin-bottom: 15px; display: flex; justify-content: space-between; }}
-    table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
-    th {{ background: #f8fafc; color: #475569; text-align: left; padding: 8px; border-bottom: 2px solid #cbd5e1; font-size: 11px; text-transform: uppercase; }}
-    .grand-total {{ text-align: right; margin-top: 15px; font-size: 18px; font-weight: bold; color: #0284c7; border-top: 2px solid #cbd5e1; padding-top: 10px; }}
-    .footer {{ margin-top: 25px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px; }}
-    @media print {{ body {{ padding: 0; }} .inv-container {{ border: none; }} }}
-</style>
-</head>
-<body>
-<div class="inv-container">
-    <div class="inv-header">
-        <div>
-            <div class="inv-title">{v_disp}</div>
-            <div style="font-size:12px; color:#64748b;">Retail Cash Receipt / खरेदी पावती</div>
-        </div>
-        <div class="badge">VernaLedger AI POS</div>
-    </div>
-    <div class="meta">
-        <div><strong>Date:</strong> {date_disp}</div>
-        <div><strong>Category:</strong> {cat_disp}</div>
-    </div>
-    <table>
-        <thead>
-            <tr><th>#</th><th>वस्तू (Item)</th><th style="text-align:center;">प्रमाण (Qty)</th><th style="text-align:right;">दर (Rate)</th><th style="text-align:right;">एकूण (Total)</th></tr>
-        </thead>
-        <tbody>
-            {inv_rows}
-        </tbody>
-    </table>
-    <div class="grand-total">Grand Total: ₹{tot:,.2f}</div>
-    <div class="footer">संगणकीकृत पावती • VernaLedger-AI POS द्वारे व्युत्पन्न • धन्यवाद!</div>
-</div>
-</body>
-</html>"""
                     st.download_button(
-                        label="📄 इनव्हॉइस डाउनलोड (HTML)",
-                        data=inv_html,
-                        file_name=f"Invoice_{v_disp.replace(' ', '_')}.html",
+                        label="🖨️ थर्मल पावती (58mm POS)",
+                        data=thermal_html,
+                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}.html",
                         mime="text/html",
                         use_container_width=True,
                         type="primary",
-                        key="btn_download_inv_single"
+                        key="btn_download_thermal_single"
                     )
                 with act_col2:
                     wa_lines = [f"• {itm.get('item_name')} ({itm.get('quantity', itm.get('qty', '1'))}) - ₹{itm.get('total_price', 0):,.2f}" for itm in items_raw]
-                    wa_text = f"🧾 *{v_disp} - पावती तपशील*\n\n" + "\n".join(wa_lines) + f"\n\n💰 *एकूण रक्कम:* ₹{tot:,.2f}\n\n🙏 धन्यवाद!"
+                    clean_amt_str = f"{tot:.2f}"
+                    upi_direct_link = f"upi://pay?pa=vernaledger@upi&pn={urllib.parse.quote(v_disp)}&am={clean_amt_str}&cu=INR"
+                    wa_text = f"🧾 *{v_disp} - पावती तपशील*\n\n" + "\n".join(wa_lines) + f"\n\n💰 *एकूण रक्कम:* ₹{tot:,.2f}\n⚡ *UPI पेमेंट लिंक:* {upi_direct_link}\n\n🙏 धन्यवाद!"
                     wa_link = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
                     st.markdown(f"""
                     <a href="{wa_link}" target="_blank" style="text-decoration: none;">
-                        <button style="width: 100%; height: 38px; border-radius: 8px; background: rgba(37, 211, 102, 0.15); border: 1px solid #25d366; color: #25d366; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            💬 व्हॉट्सॲपवर पाठवा
+                        <button style="width: 100%; height: 42px; border-radius: 8px; background: rgba(37, 211, 102, 0.15); border: 1px solid #25d366; color: #25d366; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">
+                            💬 व्हॉट्सॲपवर पाठवा (सह UPI लिंक)
                         </button>
                     </a>
                     """, unsafe_allow_html=True)
@@ -3338,22 +3485,16 @@ if selected_page == "OCR Scanner":
                                 except Exception as e:
                                     st.error(str(e))
                         with b_c2:
-                            inv_rows = ""
-                            for itm_idx, itm in enumerate(items_raw):
-                                q_val = itm.get('quantity', itm.get('qty', '1'))
-                                r_val = itm.get('rate', itm.get('price', 0))
-                                t_val = itm.get('total_price', 0)
-                                inv_rows += f"<tr><td style='border-bottom:1px solid #e2e8f0; padding:8px;'>{itm_idx+1}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px;'>{itm.get('item_name')}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:center;'>{q_val}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:right;'>₹{r_val}</td><td style='border-bottom:1px solid #e2e8f0; padding:8px; text-align:right;'>₹{t_val}</td></tr>"
-                            
-                            inv_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice - {v_disp}</title><style>body {{ font-family: sans-serif; padding: 20px; color: #1e293b; }} table {{ width:100%; border-collapse: collapse; }} th, td {{ padding: 8px; border-bottom: 1px solid #ddd; }} th {{ background: #f1f5f9; text-align: left; }}</style></head><body><h2>{v_disp}</h2><p>Date: {date_disp}</p><table><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr>{inv_rows}</table><h3 style='text-align:right; color:#0284c7;'>Grand Total: ₹{tot:,.2f}</h3></body></html>"""
-                            
+                            b_upi_b64 = generate_upi_qr_base64(tot, payee_name=v_disp, note=f"Batch #{idx+1}")
+                            b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, upi_qr_b64=b_upi_b64, receipt_no=str(idx+1), is_english=is_english)
                             st.download_button(
-                                label="📄 इनव्हॉइस डाउनलोड",
-                                data=inv_html,
-                                file_name=f"Invoice_{v_disp.replace(' ', '_')}_{idx+1}.html",
+                                label="🖨️ थर्मल स्लिप (POS)",
+                                data=b_thermal_html,
+                                file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{idx+1}.html",
                                 mime="text/html",
                                 use_container_width=True,
-                                key=f"btn_dl_batch_{idx}"
+                                type="primary",
+                                key=f"btn_dl_thermal_batch_{idx}"
                             )
                 
                 st.markdown("<hr style='margin: 12px 0; border-color: rgba(255, 255, 255, 0.08);'>", unsafe_allow_html=True)
@@ -3473,12 +3614,35 @@ elif selected_page == "Business Operations":
                 display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
                 st.dataframe(display_df,  hide_index=True)
                 if not low_stock_items.empty:
-                    low_names = ", ".join(low_stock_items['item_name'].tolist())
-                    st.markdown(f"""
-                    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 12px; border-radius: 12px; margin-top: 14px; color: #f87171;">
-                        <b>लो स्टॉक वार्निंग (Low Stock Alert):</b> खालील वस्तू संपत आल्या आहेत: <b>{low_names}</b>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # 🧠 AI PREDICTIVE REORDER LIST & WHOLESALE ORDER
+                    with st.expander("🧠 AI स्मार्ट साठा अंदाज आणि खरेदी यादी (AI Reorder List)", expanded=True):
+                        st.markdown("<div style='font-size:12px; color:#94a3b8; margin-bottom:8px;'>AI ने खपाच्या गतीनुसार खालीलप्रमाणे नवीन माल भरण्याचा अंदाज तयार केला आहे:</div>", unsafe_allow_html=True)
+                        reorder_rows = []
+                        order_lines = []
+                        for _, r in low_stock_items.iterrows():
+                            c_qty = float(r['stock_qty'])
+                            a_lim = float(r['alert_limit'])
+                            t_unit = str(r['unit'])
+                            needed = max(1.0, math.ceil((a_lim * 3.0) - c_qty))
+                            reorder_rows.append({
+                                "वस्तू (Item)": r['item_name'],
+                                "सध्याचा साठा": f"{c_qty:g} {t_unit}",
+                                "सूचना मर्यादा": f"{a_lim:g} {t_unit}",
+                                "खरेदी शिफारस": f"{needed:g} {t_unit}"
+                            })
+                            order_lines.append(f"• {r['item_name']}: {needed:g} {t_unit}")
+                        
+                        st.dataframe(pd.DataFrame(reorder_rows), hide_index=True, use_container_width=True)
+                        
+                        wh_order_text = "🛒 *नवीन माल खरेदी ऑर्डर (Wholesale Purchase Order)*\nदुकानाचे नाव: VernaLedger Store\nतारीख: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nकृपया लवकरात लवकर डिलिव्हरी पाठवावी. धन्यवाद!"
+                        wh_link = f"https://wa.me/?text={urllib.parse.quote(wh_order_text)}"
+                        st.markdown(f"""
+                        <a href="{wh_link}" target="_blank" style="text-decoration: none;">
+                            <button style="width: 100%; height: 38px; border-radius: 8px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; margin-bottom: 12px;">
+                                📲 घाऊक व्यापाऱ्याला व्हॉट्सॲप ऑर्डर पाठवा (WhatsApp to Supplier)
+                            </button>
+                        </a>
+                        """, unsafe_allow_html=True)
                 del_s_id = st.number_input("डिलिट करण्यासाठी स्टॉक ID", min_value=1, step=1, key="del_stock_id")
                 if st.button("Delete Stock Item"):
                     try:
@@ -3717,13 +3881,27 @@ elif selected_page == "Ledger Database":
         total_unpaid = total_collected = total_overdue = 0.0
 
     st.markdown("##### ⚡ Quick Cashflow / Udhar Summary")
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1.2])
     with c1:
         st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>✅ CASH RECOVERED</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
     with c2:
         st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>⏳ PENDING UDHAR</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
     with c3:
         st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>🚨 OVERDUE (AT RISK)</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
+    with c4:
+        db_is_en = st.session_state.get("ui_language", "en") == "en"
+        daily_digest_msg = generate_daily_whatsapp_digest(is_english=db_is_en)
+        daily_wa_url = f"https://wa.me/?text={urllib.parse.quote(daily_digest_msg)}"
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom:15px; border-left:4px solid #25d366;'>
+            <div style='font-size:11px; color:#94a3b8; font-weight:700;'>🌙 DAILY BUSINESS DIGEST</div>
+            <a href='{daily_wa_url}' target='_blank' style='text-decoration:none;'>
+                <button style='width:100%; height:32px; border-radius:6px; background:#25d366; color:#000; font-weight:700; border:none; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px;'>
+                    💬 व्हॉट्सॲपवर पाठवा
+                </button>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
 
 
     
@@ -3812,20 +3990,8 @@ elif selected_page == "Ledger Database":
             
         with col_db_right:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("#### 📥 Backups & Report Downloads")
-            if os.path.exists("ledger.db"):
-                with open("ledger.db", "rb") as db_file:
-                    db_bytes = db_file.read()
-                st.download_button(
-                    label="Download Full DB Backup (.db)",
-                    data=db_bytes,
-                    file_name="vernaledger_backup.db",
-                    mime="application/octet-stream",
-                    help="सध्याचा संपूर्ण डेटाबेस एका क्लिकवर सुरक्षित डाऊनलोड करा."
-                )
-            
-            st.markdown("---")
-            st.markdown("**📥 रिपोर्ट डाऊनलोड फिल्टर (Date-Range & Shop Filters)**")
+            st.markdown("#### 📥 अहवाल आणि डाऊनलोड (Reports & Export)")
+            st.markdown("<div style='font-size:12px; color:#94a3b8; margin-bottom:10px;'>तारीख आणि दुकान निवडून अहवाल डाऊनलोड करा:</div>", unsafe_allow_html=True)
             
             dl_shop_options = ["All Shops/Vendors"] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else ["All Shops/Vendors"]
             dl_selected_shop = st.selectbox("दुकान निवडून डाउनलोड करा (Select Shop)", dl_shop_options, key="dl_shop_filter_select")
@@ -3855,10 +4021,49 @@ elif selected_page == "Ledger Database":
             if 'raw_json' in csv_df.columns:
                 csv_df['Items Summary'] = csv_df['raw_json'].apply(get_items_clean_summary)
                 csv_df = csv_df.drop(columns=['raw_json'])
+            if not csv_df.empty and 'grand_total' in csv_df.columns:
+                csv_df['Taxable Value (₹)'] = csv_df['grand_total'].apply(lambda x: round(float(x or 0) / 1.05, 2))
+                csv_df['CGST 2.5% (₹)'] = csv_df['grand_total'].apply(lambda x: round((float(x or 0) - round(float(x or 0) / 1.05, 2)) / 2.0, 2))
+                csv_df['SGST 2.5% (₹)'] = csv_df.apply(lambda r: round(float(r['grand_total'] or 0) - r['Taxable Value (₹)'] - r['CGST 2.5% (₹)'], 2), axis=1)
                 
             csv_data = csv_df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("Export Clean CSV", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv")
-            st.download_button(f"Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html")
+            st.download_button("📊 Export Clean CSV (सह GST & Items)", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv", use_container_width=True)
+            st.download_button(f"📄 Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html", use_container_width=True)
+            
+            # Database Backup & Restore Card
+            st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
+            st.markdown("##### 💾 डेटाबेस बॅकअप आणि रिस्टोअर (Backup & Restore)")
+            
+            db_bytes = b""
+            if os.path.exists("ledger.db"):
+                try:
+                    with open("ledger.db", "rb") as f_db:
+                        db_bytes = f_db.read()
+                except Exception as e:
+                    ai_logger.error(f"Failed to read ledger.db: {e}")
+            
+            st.download_button(
+                "📥 संपूर्ण डेटाबेस बॅकअप (.db डाउनलोड)",
+                data=db_bytes,
+                file_name=f"VernaLedger_Backup_{date.today().strftime('%Y-%m-%d')}.db",
+                mime="application/x-sqlite3",
+                use_container_width=True,
+                key="btn_download_db_backup"
+            )
+            
+            with st.expander("📤 डेटाबेस रिस्टोअर करा (Restore DB Backup)", expanded=False):
+                uploaded_db = st.file_uploader("बॅकअप फाईल निवडा (.db)", type=["db", "sqlite", "sqlite3"], key="uploader_restore_db")
+                if uploaded_db is not None:
+                    if st.button("⚠️ रिस्टोअरची पुष्टी करा (Confirm Restore)", type="primary", use_container_width=True):
+                        try:
+                            with open("ledger.db", "wb") as f_restore:
+                                f_restore.write(uploaded_db.getbuffer())
+                            st.toast("✅ डेटाबेस यशस्वीरित्या रिस्टोअर झाला!", icon="💾")
+                            st.success("डेटाबेस यशस्वीरित्या रिस्टोअर झाला! ॲप रिफ्रेश होत आहे...")
+                            time.sleep(1)
+                            st.rerun()
+                        except Exception as re_err:
+                            st.error(f"रिस्टोअर त्रुटी: {re_err}")
             
             st.markdown("</div>", unsafe_allow_html=True)
     else:
