@@ -7,7 +7,7 @@ import base64
 import json
 import hashlib
 import shutil
-import plotly.express as px
+import concurrent.futures
 from io import BytesIO
 import time
 import re
@@ -84,7 +84,6 @@ if "subpage" in st.query_params and "business_dropdown" not in st.session_state:
     st.session_state["business_dropdown"] = st.query_params["subpage"]
 
 # Sync localStorage using a small JS injection just to satisfy localStorage persistence fallback
-import streamlit.components.v1 as components
 def sync_local_storage():
     lang = st.session_state.get("ui_language", "en")
     page = st.session_state.get("selected_page", "OCR Scanner")
@@ -153,28 +152,8 @@ def get_tts_voice(text: str) -> str:
     return "mr-IN-AarohiNeural" if marathi_score > hindi_score else "hi-IN-SwaraNeural"
 
 
-# --- AI AUTOMATIC RETRY LOGIC ---
-def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
-    for attempt in range(retries):
-        try:
-            response = model.generate_content(prompt)
-            if response and response.text:
-                return response
-        except Exception as e:
-            logging.warning(f"AI API retry attempt {attempt+1}/{retries} failed: {e}")
-            if attempt < retries - 1:
-                time.sleep(delay * (2 ** attempt))
-            else:
-                raise e
 
 # --- SECURE HASHING & DATABASE STRUCTURE ---
-def get_db_connection():
-    db_url = os.getenv("DATABASE_URL")
-    if db_url:
-        import psycopg2
-        return psycopg2.connect(db_url)
-    return sqlite3.connect("ledger.db")
-
 def hash_password_secure(password):
     return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), b'salt_verna_bcrypt_layer', 100000).hex()
 
@@ -927,717 +906,6 @@ def render_business_module_styles():
     """, unsafe_allow_html=True)
 
 
-def render_rag_sidebar_design_styles():
-    _streamlit_ui.markdown("""
-    <style>
-
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
-        font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
-    /* --- END SAFE FONT --- */
-    
-
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
-        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
-        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        box-sizing: border-box !important;
-        resize: none !important;
-        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
-    }
-    section[data-testid="stSidebar"][aria-expanded="true"] {
-        width: 18.75rem !important;
-        min-width: 18.75rem !important;
-        max-width: 18.75rem !important;
-        flex: 0 0 18.75rem !important;
-    }
-    [data-testid="stSidebarResizer"] {
-        display: none !important;
-        pointer-events: none !important;
-    }
-    [data-testid="stSidebar"] > div:first-child {
-        height: 100dvh !important;
-        overflow: hidden !important;
-        padding: 6px 10px !important;
-    }
-    [data-testid="stSidebarContent"] {
-        height: 100% !important;
-        padding: 0.2rem 0.4rem 0.5rem !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
-    }
-    [data-testid="stSidebarUserContent"] {
-        box-sizing: border-box !important;
-        min-height: 0 !important;
-        max-height: calc(100dvh - 5.25rem) !important;
-        padding: 0.3rem 0.15rem 0.5rem !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
-    }
-    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
-        gap: 0.45rem !important;
-    }
-    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
-    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
-    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
-        margin-bottom: 0 !important;
-    }
-    section[data-testid="stSidebar"] .sidebar-role-badge {
-        box-sizing: border-box !important;
-        display: flex !important;
-        min-height: 25px !important;
-        width: 100% !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 15px 0 0 !important;
-        padding: 4px 8px !important;
-        border-radius: 8px !important;
-        line-height: 1.25 !important;
-    }
-    section[data-testid="stSidebar"] .sidebar-role-badge span {
-        font-size: 9px !important;
-    }
-    section[data-testid="stSidebar"] .sidebar-brand {
-        margin-bottom: 1px !important;
-        padding: 0 !important;
-        gap: 8px !important;
-    }
-    section[data-testid="stSidebar"] .sidebar-title {
-        box-sizing: border-box !important;
-        margin: 4px 0 7px 3px !important;
-        font-size: 9px !important;
-        letter-spacing: normal !important;
-        line-height: 1.4 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 7px !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        box-sizing: border-box !important;
-        display: flex !important;
-        min-height: 40px !important;
-        align-items: center !important;
-        gap: 10px !important;
-        padding: 8px 11px !important;
-        margin: 0 !important;
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
-        border: 1px solid rgba(56, 189, 248, 0.2) !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
-        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
-        transform: none !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
-        accent-color: #22d3ee !important;
-        flex: 0 0 auto !important;
-        width: 15px !important;
-        height: 15px !important;
-        margin: 0 !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label p {
-        color: #dceafa !important;
-        font-size: 11.5px !important;
-        font-weight: 650 !important;
-        letter-spacing: normal !important;
-        line-height: 1.35 !important;
-        margin: 0 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
-        border-color: rgba(103, 232, 249, 0.75) !important;
-        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
-        color: #f0fdff !important;
-        transform: translateY(-1px) !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
-        border-color: rgba(103, 232, 249, 0.82) !important;
-        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
-        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
-        outline-offset: 2px !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stToggle"],
-    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        min-width: 0 !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stToggle"] label,
-    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
-        box-sizing: border-box !important;
-        display: flex !important;
-        width: 100% !important;
-        min-height: 30px !important;
-        align-items: center !important;
-        gap: 8px !important;
-        margin: 0 !important;
-        padding: 2px 0 !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
-    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        letter-spacing: normal !important;
-        line-height: 1.3 !important;
-        margin: 0 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
-        min-height: 34px !important;
-        border-color: rgba(56, 189, 248, 0.24) !important;
-        border-radius: 10px !important;
-    }
-    section[data-testid="stSidebar"] .dev-credit-box {
-        box-sizing: border-box !important;
-        width: 100% !important;
-        padding: 7px 9px !important;
-        margin: 4px 0 2px !important;
-        border-radius: 10px !important;
-        line-height: 1.35 !important;
-    }
-    section[data-testid="stSidebar"] .stButton > button {
-        min-height: 34px !important;
-        padding: 6px 9px !important;
-    }
-    @media (max-width: 900px) {
-        section[data-testid="stSidebar"][aria-expanded="true"] {
-            width: min(18rem, 82vw) !important;
-            max-width: min(18rem, 82vw) !important;
-            min-width: min(18rem, 82vw) !important;
-            flex-basis: min(18rem, 82vw) !important;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-
-def render_application_design_styles():
-    lang = st.session_state.get("ui_language", "en")
-    font_css = ""
-    if lang == "mr":
-        font_css = """
-        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&display=swap');
-        
-        
-        
-        
-        """
-
-    st.markdown("""
-    <style>
-
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
-        font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
-    /* --- END SAFE FONT --- */
-    
-
-    """ + font_css + """
-    body:has(.app-ui-polish-scope) .stApp,
-    body:has(.app-ui-polish-scope) [data-testid="stAppViewContainer"] {
-        background-color: #030712 !important;
-        background-image:
-            radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.18), transparent 45%),
-            radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.15), transparent 45%),
-            radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5), transparent 80%),
-            linear-gradient(160deg, #020617 0%, #09090b 50%, #0f172a 100%) !important;
-        color: #e7eef8 !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stHeader"] {
-        background: rgba(8, 17, 31, 0.84) !important;
-        border-bottom-color: rgba(148, 163, 184, 0.12) !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-        box-sizing: border-box !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: clamp(0.45rem, 0.9vw, 0.8rem) clamp(0.75rem, 2vw, 1.75rem) 1.1rem !important;
-    }
-    body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
-        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
-        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
-        box-sizing: border-box !important;
-        resize: none !important;
-        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
-        width: 18.75rem !important;
-        min-width: 18.75rem !important;
-        max-width: 18.75rem !important;
-        flex: 0 0 18.75rem !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarResizer"] {
-        display: none !important;
-        pointer-events: none !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
-        padding: 6px 10px !important;
-        height: 100dvh !important;
-        overflow: hidden !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarContent"] {
-        height: 100% !important;
-        padding: 0.2rem 0.4rem 0.5rem !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] {
-        box-sizing: border-box !important;
-        min-height: 0 !important;
-        max-height: calc(100dvh - 5.25rem) !important;
-        padding: 0.3rem 0.15rem 0.5rem !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
-        gap: 0.45rem !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
-    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
-        margin-bottom: 0 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge {
-        box-sizing: border-box !important;
-        display: flex !important;
-        min-height: 25px !important;
-        width: 100% !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 15px 0 0 !important;
-        padding: 4px 8px !important;
-        border-radius: 8px !important;
-        line-height: 1.25 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge span {
-        font-size: 9px !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-brand {
-        margin-bottom: 1px !important;
-        padding: 0 !important;
-        gap: 8px !important;
-    }
-    body:has(.app-ui-polish-scope) .sidebar-title {
-        color: #91a9c7 !important;
-        box-sizing: border-box !important;
-        margin: 4px 0 7px 3px !important;
-        font-size: 9px !important;
-        letter-spacing: normal !important;
-        line-height: 1.4 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 7px !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-        box-sizing: border-box !important;
-        display: flex !important;
-        min-height: 40px !important;
-        align-items: center !important;
-        gap: 10px !important;
-        padding: 8px 11px !important;
-        margin: 0 !important;
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
-        border: 1px solid rgba(56, 189, 248, 0.2) !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
-        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
-        border-color: rgba(103, 232, 249, 0.75) !important;
-        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
-        color: #f0fdff !important;
-        transform: translateY(-1px) !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
-        border-color: rgba(103, 232, 249, 0.82) !important;
-        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
-        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
-        outline-offset: 2px !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
-        accent-color: #22d3ee !important;
-        flex: 0 0 auto !important;
-        width: 15px !important;
-        height: 15px !important;
-        margin: 0 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
-        color: #dceafa !important;
-        font-size: 11.5px !important;
-        font-weight: 650 !important;
-        letter-spacing: normal !important;
-        line-height: 1.35 !important;
-        margin: 0 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"],
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        min-width: 0 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label,
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
-        box-sizing: border-box !important;
-        display: flex !important;
-        width: 100% !important;
-        min-height: 30px !important;
-        align-items: center !important;
-        gap: 8px !important;
-        margin: 0 !important;
-        padding: 2px 0 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        letter-spacing: normal !important;
-        line-height: 1.3 !important;
-        margin: 0 !important;
-        overflow-wrap: break-word !important;
-        word-break: keep-all !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
-        min-height: 34px !important;
-        border-color: rgba(56, 189, 248, 0.24) !important;
-        border-radius: 10px !important;
-    }
-    body:has(.app-ui-polish-scope) .dev-credit-box {
-        background: rgba(15, 29, 48, 0.78) !important;
-        border-color: rgba(148, 163, 184, 0.14) !important;
-        border-radius: 10px !important;
-        box-sizing: border-box !important;
-        width: 100% !important;
-        padding: 7px 9px !important;
-        margin: 4px 0 2px !important;
-        line-height: 1.35 !important;
-    }
-    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .stButton > button {
-        min-height: 34px !important;
-        padding: 6px 9px !important;
-    }
-    body:has(.app-ui-polish-scope) .studio-header {
-        position: relative;
-        overflow: hidden;
-        min-height: 118px;
-        padding: clamp(16px, 2vw, 25px) !important;
-        margin-bottom: 15px !important;
-        background:
-            radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.15), transparent 32%),
-            linear-gradient(125deg, rgba(16, 31, 51, 0.96), rgba(12, 23, 40, 0.92)) !important;
-        border: 1px solid rgba(148, 163, 184, 0.17) !important;
-        border-radius: 22px !important;
-        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.045) !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) .studio-header:hover {
-        border-color: rgba(56, 189, 248, 0.3) !important;
-        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.05) !important;
-    }
-    body:has(.app-ui-polish-scope) .studio-header h2 {
-        color: #e9f4ff !important;
-        font-size: clamp(20px, 2.2vw, 28px) !important;
-        line-height: 1.25 !important;
-        letter-spacing: -0.035em !important;
-    }
-    body:has(.app-ui-polish-scope) .studio-header p {
-        color: #9bb0c9 !important;
-        font-size: clamp(12px, 1.15vw, 14px) !important;
-        line-height: 1.6 !important;
-    }
-    body:has(.app-ui-polish-scope) .panel-card {
-        box-sizing: border-box !important;
-        padding: clamp(13px, 1.4vw, 18px) !important;
-        margin-bottom: 13px !important;
-        background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75)) !important;
-        backdrop-filter: blur(16px) !important;
-        border: 1px solid rgba(56, 189, 248, 0.18) !important;
-        border-radius: 18px !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) .panel-card:hover {
-        border-color: rgba(56, 189, 248, 0.24) !important;
-        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.23) !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) h1,
-    body:has(.app-ui-polish-scope) h2,
-    body:has(.app-ui-polish-scope) h3,
-    body:has(.app-ui-polish-scope) h4 {
-        letter-spacing: -0.025em;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] h4 {
-        color: #dceaf9 !important;
-        font-size: 16px !important;
-        margin-bottom: 14px !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
-        gap: 6px !important;
-        padding: 6px !important;
-        background: rgba(10, 20, 35, 0.74) !important;
-        border: 1px solid rgba(148, 163, 184, 0.14) !important;
-        border-radius: 15px !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
-        min-height: 42px !important;
-        padding: 9px 14px !important;
-        color: #9fb2c9 !important;
-        border: 1px solid transparent !important;
-        border-radius: 10px !important;
-        font-size: 12px !important;
-        font-weight: 700 !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        color: #e5f6ff !important;
-        background: linear-gradient(120deg, rgba(14, 165, 233, 0.2), rgba(59, 130, 246, 0.13)) !important;
-        border-color: rgba(56, 189, 248, 0.25) !important;
-        box-shadow: inset 0 1px rgba(255, 255, 255, 0.06) !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input,
-    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input,
-    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input,
-    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea,
-    body:has(.app-ui-polish-scope) [data-baseweb="select"] > div {
-        min-height: 42px;
-        color: #e7eef8 !important;
-        background: rgba(7, 16, 29, 0.78) !important;
-        border-color: rgba(148, 163, 184, 0.2) !important;
-        border-radius: 11px !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input:focus,
-    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input:focus,
-    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input:focus,
-    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea:focus {
-        border-color: rgba(56, 189, 248, 0.72) !important;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.13) !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stWidgetLabel"] p,
-    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] p {
-        line-height: 1.55;
-    }
-    body:has(.app-ui-polish-scope) .stButton > button,
-    body:has(.app-ui-polish-scope) .stDownloadButton > button,
-    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
-        min-height: 43px !important;
-        padding: 10px 16px !important;
-        border-radius: 11px !important;
-        box-shadow: 0 6px 16px rgba(2, 8, 23, 0.23) !important;
-        transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) .stButton > button[kind="primary"],
-    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
-        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
-        border: 1px solid rgba(125, 211, 252, 0.28) !important;
-        color: #f8fbff !important;
-    }
-    body:has(.app-ui-polish-scope) .stButton > button:hover,
-    body:has(.app-ui-polish-scope) .stDownloadButton > button:hover,
-    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button:hover {
-        border-color: rgba(125, 211, 252, 0.58) !important;
-        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.29) !important;
-        transform: translateY(-1px) !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stMetric"] {
-        padding: 15px 16px;
-        background: rgba(10, 21, 37, 0.74);
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        border-radius: 14px;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
-    body:has(.app-ui-polish-scope) [data-testid="stDataEditor"] {
-        overflow: hidden;
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        border-radius: 14px;
-        background: rgba(10, 19, 33, 0.65);
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stFileUploader"],
-    body:has(.app-ui-polish-scope) [data-testid="stCameraInput"] {
-        background: rgba(9, 19, 33, 0.65) !important;
-        border: 1px dashed rgba(56, 189, 248, 0.42) !important;
-        border-radius: 15px !important;
-        box-shadow: none !important;
-        transform: none !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stAlert"] {
-        border-radius: 13px !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"],
-    body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"],
-    body:has(.app-ui-polish-scope) [data-testid="stColumn"] {
-        box-sizing: border-box !important;
-        min-width: 0 !important;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-        overflow-x: clip;
-    }
-    body:has(.app-ui-polish-scope) .khata-ai-entry {
-        padding: 12px 15px;
-        margin: 4px 0 12px;
-        background: linear-gradient(115deg, rgba(8, 145, 178, 0.12), rgba(59, 130, 246, 0.08));
-        border: 1px solid rgba(103, 232, 249, 0.2);
-        border-radius: 13px;
-    }
-    body:has(.app-ui-polish-scope) .khata-ai-entry-title {
-        color: #d9fbff;
-        font-size: 13px;
-        font-weight: 800;
-    }
-    body:has(.app-ui-polish-scope) .khata-ai-entry-caption {
-        margin-top: 3px;
-        color: #9fb2c9;
-        font-size: 11px;
-        line-height: 1.45;
-    }
-    body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
-        height: 27px;
-    }
-    body:has(.app-ui-polish-scope) [data-testid="stForm"] {
-        padding: 13px;
-        background: rgba(5, 13, 27, 0.36);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 15px;
-    }
-    @media (max-width: 900px) {
-        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-            padding: 0.55rem 0.7rem 1rem !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
-            flex-wrap: wrap !important;
-            gap: 0.75rem !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-            min-width: calc(50% - 0.4rem) !important;
-            flex: 1 1 calc(50% - 0.4rem) !important;
-        }
-        body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
-            width: min(18rem, 82vw) !important;
-            max-width: min(18rem, 82vw) !important;
-            min-width: min(18rem, 82vw) !important;
-            flex-basis: min(18rem, 82vw) !important;
-        }
-    }
-    @media (max-width: 640px) {
-        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
-            width: 100% !important;
-            max-width: 100% !important;
-            padding: 0.45rem 0.55rem 0.85rem !important;
-        }
-        body:has(.app-ui-polish-scope) .studio-header {
-            min-height: 0;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: flex-start;
-            padding: 14px 13px !important;
-            margin-bottom: 12px !important;
-            border-radius: 18px !important;
-        }
-        body:has(.app-ui-polish-scope) .studio-header h2 {
-            font-size: 20px !important;
-        }
-        body:has(.app-ui-polish-scope) .panel-card {
-            box-sizing: border-box;
-            padding: 13px !important;
-            margin-bottom: 10px !important;
-            border-radius: 16px !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
-        body:has(.app-ui-polish-scope) [data-testid="stDataEditor"],
-        body:has(.app-ui-polish-scope) [data-testid="stPlotlyChart"] {
-            box-sizing: border-box !important;
-            max-width: 100% !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-            min-width: 100% !important;
-            flex: 1 1 100% !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
-            gap: 4px !important;
-            overflow-x: auto !important;
-            flex-wrap: nowrap !important;
-            scrollbar-width: none;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
-            display: none;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
-            flex: 0 0 auto !important;
-            min-height: 40px !important;
-            padding: 8px 11px !important;
-            font-size: 11px !important;
-        }
-        body:has(.app-ui-polish-scope) [data-testid="stFileUploader"] {
-            padding: 12px !important;
-        }
-        body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
-            display: none;
-        }
-    }
-    </style>
-    <div class="app-ui-polish-scope" aria-hidden="true"></div>
-    """, unsafe_allow_html=True)
-
-
 def render_page_header(title, subtitle, icon="✨"):
     st.markdown(f"""
     <div style="
@@ -2189,7 +1457,7 @@ def render_customer_khata():
                                 st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
                         except sqlite3.Error as exc:
                             logging.exception("Could not delete customer khata transaction")
-                        st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
+                            st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 @st.cache_data(ttl=10)
@@ -2274,7 +1542,6 @@ _UI_TRANSLATION_PAIRS = {
     "New Credit / Installment Entry": "New Credit / Installment Entry",
     "Old Records & AI Smart Search": "Old Records & AI Smart Search",
     "Speak transaction details": "Speak transaction details",
-    "New Credit / Installment Entry": "New Credit / Installment Entry",
     "Credit Ledger & AI Risk Report": "उधारी लेजर & AI रिस्क रिपोर्ट",
     "Speak the order (Voice Billing)": "बोलून ऑर्डर द्या (वॉइस बिलिंग)",
     "Press here when done speaking": "बोलणे पूर्ण झाल्यावर इथे दाबा",
@@ -2288,28 +1555,28 @@ _UI_TRANSLATION_PAIRS = {
     "No goods found in inventory.": "इन्व्हेंटरी मध्ये कोणताही माल सापडला नाही.",
     "Save Stock Update": "स्टॉक अपडेट सेव्ह करा",
     "New stock item successfully added to inventory!": "नवीन माल इन्व्हेंटरीमध्ये Successfully जोडला गेला!",
-    "Expense successfully recorded!": "Expense successfully recorded!",
+    "Expense successfully recorded!": "खर्च यशस्वीरित्या नोंदवला गेला!",
 
-    "Item Name": "वस्तूचे नाव (Item Name)",
-    "Stock Quantity": "उपलब्ध नग/साठा (Stock Quantity)",
-    "Unit (e.g. kg, pcs, ltr)": "मोजमाप एकक (Unit e.g. kg, pcs, ltr)",
-    "Low Stock Alert Limit": "किमान वार्निंग लिमिट (Low Stock Alert Limit)",
+    "Item Name": "वस्तूचे नाव",
+    "Stock Quantity": "उपलब्ध साठा",
+    "Unit (e.g. kg, pcs, ltr)": "मोजमापाचे एकक (उदा. kg, नग, ltr)",
+    "Low Stock Alert Limit": "कमी साठ्याची सूचना मर्यादा",
     "Save Stock": "स्टॉक सेव्ह करा",
-    "Please enter item name!": "Please enter item name!",
+    "Please enter item name!": "कृपया वस्तूचे नाव टाका!",
     "Item ID to delete": "डिलिट करण्यासाठी आयटम ID",
-    "No stock available.": "No stock available.",
+    "No stock available.": "कोणताही स्टॉक उपलब्ध नाही.",
     "Total Business Expenses": "एकूण व्यवसाय खर्च",
     "Expense Records": "खर्च नोंदी",
     "Expense ID to delete": "डिलिट करण्यासाठी खर्च ID",
     "Delete Expense Record": "खर्च नोंद डिलीट करा",
-    "No expenses recorded.": "No expenses recorded.",
+    "No expenses recorded.": "कोणताही खर्च नोंदवलेला नाही.",
     "Restricted Area: Staff not allowed on Staff Management page!": "प्रतिबंधीत क्षेत्रः कामागार/स्टाफला स्टाफ मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!",
-    "Add New Staff or Admin": "नवीन स्टाफ किंवा अॅडमिन जोडा",
-    "Password (Min 6 digits)": "पासवर्ड (Password - किमान ६ अंक)",
+    "Add New Staff or Admin": "नवीन स्टाफ किंवा ॲडमिन जोडा",
+    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अंक/अक्षरे)",
     "Role": "भूमिका",
-    "Staff (Cashier - Limited Access)": "Staff (कामगार/कॅशियर - Limited Access)",
-    "Admin (Owner - Full Access)": "Admin (मालक - Full Access)",
-    "Create Account": "अकाऊंट तयार करा",
+    "Staff (Cashier - Limited Access)": "कर्मचारी (मर्यादित प्रवेश)",
+    "Admin (Owner - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
+    "Create Account": "खाते तयार करा",
     "Please fill all fields and password must be at least 6 characters!": "कृपया सर्व फील्ड भरा आणि पासवर्ड किमान ६ अंकांचा असावा!",
     "Username to delete account": "Username to delete account",
     "Delete Account": "Delete Account",
@@ -2353,10 +1620,7 @@ _UI_TRANSLATION_PAIRS = {
     "Add to Inventory": "माल इन्व्हेंटरीत जोडा",
     "Delete from Inventory": "इन्व्हेंटरी मधून हटवा",
     "Delete Stock Item": "Delete Stock Item",
-    "Customer Name": "कस्टमर नाव (Customer Name)",
-    "Phone Number (10 digits)": "मोबाईल नंबर (Phone Number - 10 digits)",
-    "Phone Number": "मोबाईल नंबर (Phone Number)",
-    "Amount": "रक्कम (Amount)",
+    "Customer Name": "ग्राहकाचे नाव",
     "Transaction Type": "व्यवहाराचा प्रकार (Transaction Type)",
     "Credit Given": "उधारी दिली (Credit Given)",
     "Payment Received": "पैसे मिळाले (Payment Received)",
@@ -2378,8 +1642,7 @@ _UI_TRANSLATION_PAIRS = {
     "Logout System": "लॉगआउट",
     "ROLE: ADMIN": "भूमिका: प्रशासक",
     "ROLE: STAFF": "भूमिका: कर्मचारी",
-    "Customer Khata": "ग्राहक खाते",
-        "उधारी लेजर & AI रिस्क रिपोर्ट": "लेजर आणि AI जोखीम अहवाल",
+    "उधारी लेजर & AI रिस्क रिपोर्ट": "लेजर आणि AI जोखीम अहवाल",
     "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)": "AI व्हॉइस नोंद",
     "Customer Khata - Credit Ledger": "ग्राहक खाते - उधारी वही",
     "नवीन व्यवहार नोंदवा": "Add a new transaction",
@@ -2418,7 +1681,6 @@ _UI_TRANSLATION_PAIRS = {
     "रक्कम वैध संख्या असणे आवश्यक आहे.": "Enter a valid amount.",
     "व्यवहार प्रकार उपलब्ध पर्यायांपैकी निवडा.": "Select a valid transaction type.",
     "टीप 1000 अक्षरांपेक्षा मोठी असू शकत नाही.": "Notes cannot exceed 1,000 characters.",
-    "ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.": "Customer name cannot exceed 100 characters.",
     "फोन नंबर रिकामा ठेवा किंवा वैध 10 अंकी मोबाईल नंबर भरा.": "Leave the phone number blank or enter a valid 10-digit mobile number.",
     "डेटाबेसमध्ये नोंद सेव्ह करता आली नाही:": "Could not save the database record:",
     "नोंद सेव्ह करता आली नाही:": "Could not save the record:",
@@ -2477,11 +1739,6 @@ _UI_TRANSLATION_PAIRS = {
     "Shop Revenue Overview": "दुकाननिहाय उत्पन्न",
     "स्टॉक आणि इन्व्हेंटरी": "Stock & Inventory",
     "उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.": "View available stock, low inventory and item status at a glance.",
-    "Save Stock": "Save stock",
-    "Item Name": "वस्तूचे नाव",
-    "Stock Quantity": "उपलब्ध साठा",
-    "Unit (e.g. kg, pcs, ltr)": "मोजमापाचे एकक (उदा. kg, नग, ltr)",
-    "Low Stock Alert Limit": "कमी साठ्याची सूचना मर्यादा",
     "स्टॉक आयटम डिलिट करा": "Delete stock item",
     "डिलिट करण्यासाठी स्टॉक ID": "Stock ID to delete",
     "कोणताही स्टॉक जोडलेला नाही.": "No stock items have been added.",
@@ -2491,27 +1748,13 @@ _UI_TRANSLATION_PAIRS = {
     "वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.": "Items in stock and items to reorder.",
     "व्यवसाय खर्च · नोंदवही": "Business Expenses",
     "भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.": "Track rent, utilities, payroll and everyday business costs.",
-    "Record New Expense": "Add an expense",
     "खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.": "Enter the expense type, amount and date.",
     "खर्चाचे शीर्षक (Expense Title e.g. Light Bill)": "खर्चाचे शीर्षक (उदा. वीज बिल)",
-    "Expense Amount": "खर्चाची रक्कम",
     "खर्चाचा प्रकार (Category)": "खर्चाचा प्रकार",
-    "Date": "तारीख",
     "तपशील / टीप (Notes)": "तपशील / टीप",
     "खर्च सेव्ह करा": "Save expense",
-    "Total Business Expenses": "Total business expenses",
-    "Expense ID to delete": "Expense ID to delete",
-    "Delete Expense Record": "Delete expense record",
-    "No expenses recorded.": "No expenses have been recorded.",
     "Admin Staff Management": "स्टाफ व्यवस्थापन",
     "Create and manage staff accounts with role-based access control.": "नवीन कर्मचारी खाती तयार करा आणि भूमिका नियंत्रण व्यवस्थापित करा.",
-    "Staff Management": "स्टाफ व्यवस्थापन",
-    "Add New Staff or Admin": "नवीन स्टाफ किंवा ॲडमिन जोडा",
-    "Username": "वापरकर्ता नाव",
-    "Phone Number": "मोबाईल नंबर",
-    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अंक/अक्षरे)",
-    "Role": "भूमिका",
-    "Create Account": "खाते तयार करा",
     "Registered Users List": "नोंदणीकृत वापरकर्त्यांची यादी",
     "Enter username to delete": "डिलिट करण्यासाठी वापरकर्ता नाव टाईप करा",
     "Delete User": "वापरकर्ता डिलीट करा",
@@ -2551,9 +1794,6 @@ _UI_TRANSLATION_PAIRS = {
     "Select an option": "पर्याय निवडा",
     "All Shops/Vendors": "सर्व दुकाने / विक्रेते",
     "All Categories": "सर्व वर्ग",
-    "Staff (Cashier - Limited Access)": "कर्मचारी (मर्यादित प्रवेश)",
-    "Admin (Owner - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
-    "Shop Rent": "दुकान भाडे",
     "वीज बिल (Electricity Bill)": "वीज बिल",
     "स्टाफ पगार (Staff Salary)": "स्टाफ पगार",
     "वाहतूक (Transport)": "वाहतूक",
@@ -2942,8 +2182,48 @@ div[data-testid="stFileUploader"]:hover {
     box-shadow: 0 0 35px rgba(0, 255, 135, 0.55), inset 0 0 20px rgba(0, 255, 135, 0.25) !important;
     transform: translateY(-2px) !important;
 }
+div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px dashed rgba(0, 242, 254, 0.25) !important;
+}
+div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] p {
+    color: #cbd5e1 !important;
+    font-size: 12.5px !important;
+    line-height: 1.6 !important;
+    margin: 0 !important;
+}
+div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] strong {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 10px !important;
+    border-radius: 20px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    background: rgba(0, 242, 254, 0.12) !important;
+    color: #00f2fe !important;
+    border: 1px solid rgba(0, 242, 254, 0.35) !important;
+    margin-right: 8px !important;
+}
+div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] em {
+    font-style: normal !important;
+    font-size: 11px !important;
+    color: #94a3b8 !important;
+    float: right !important;
+}
+@media (max-width: 600px) {
+    div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] em {
+        float: none !important;
+        display: block !important;
+        margin-top: 4px !important;
+    }
+}
 div[data-testid="stFileUploader"] section {
     background: transparent !important;
+    border: none !important;
 }
 .dev-credit-box {
     background: rgba(0, 242, 254, 0.06);
@@ -3321,7 +2601,7 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
                     <td style="padding:8px 12px; border-bottom:1px solid #334155; text-align:right; font-weight:700; color:#00f2fe;">{tot:,.2f}</td>
                 </tr>"""
         except Exception:
-            items_rows = f"<tr><td colspan='4' style='padding:8px; color:#94a3b8; text-align:center;'>No itemized details</td></tr>"
+            items_rows = "<tr><td colspan='4' style='padding:8px; color:#94a3b8; text-align:center;'>No itemized details</td></tr>"
             
         cards_html += f"""
         <div style="background:#0d1321; border:1px solid rgba(0,242,254,0.3); border-radius:14px; padding:20px; margin-bottom:20px;">
@@ -3498,6 +2778,8 @@ with st.sidebar:
 if selected_page == "OCR Scanner":
     render_page_header("OCR Scanner & Voice Billing", "Instant Digital POS Receipt Parsing & Audio Confirmation", "📷")
 
+    is_english = st.session_state.get("ui_language", "en") == "en"
+
     st.markdown("""
     <style>
     .scanner-viewfinder {
@@ -3582,7 +2864,7 @@ if selected_page == "OCR Scanner":
         m_c1, m_c2, m_c3 = st.columns(3)
         with m_c1:
             if st.button(
-                "📁 फाईल अपलोड (Upload)",
+                "📁 Upload File" if is_english else "📁 फाईल अपलोड",
                 type="primary" if curr_mode == "Upload File" else "secondary",
                 use_container_width=True,
                 key="btn_mode_upload"
@@ -3591,7 +2873,7 @@ if selected_page == "OCR Scanner":
                 st.rerun()
         with m_c2:
             if st.button(
-                "📸 लाईव्ह कॅमेरा (Camera)",
+                "📸 Live Camera" if is_english else "📸 लाईव्ह कॅमेरा",
                 type="primary" if curr_mode == "Live Camera" else "secondary",
                 use_container_width=True,
                 key="btn_mode_camera"
@@ -3600,7 +2882,7 @@ if selected_page == "OCR Scanner":
                 st.rerun()
         with m_c3:
             if st.button(
-                "🎙️ व्हॉईस बिलिंग (Voice)",
+                "🎙️ Voice Billing" if is_english else "🎙️ व्हॉईस बिलिंग",
                 type="primary" if curr_mode == "Multi-Language Voice Bill" else "secondary",
                 use_container_width=True,
                 key="btn_mode_voice"
@@ -3629,20 +2911,10 @@ if selected_page == "OCR Scanner":
         up_files = []
         up_cam = None
         if input_method == "Upload File":
-            st.markdown("""
-            <div class='scanner-viewfinder'>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
-                    <span class='scanner-pill'>⚡ Multi-Core Batch OCR Ready</span>
-                    <span style='font-size: 11px; color: #94a3b8;'>एकाच वेळी १० पावत्यांपर्यंत सपोर्ट</span>
-                </div>
-                <div style='font-size: 12px; color: #cbd5e1;'>पावतीचा फोटो निवडा किंवा ड्रॅग करा (JPG, JPEG, PNG):</div>
-            </div>
-            """, unsafe_allow_html=True)
             up_files = st.file_uploader(
-                "Choose Receipts",
+                "**⚡ Multi-Core Batch OCR Ready** *एकाच वेळी १० पावत्यांपर्यंत सपोर्ट*  \nपावतीचा फोटो निवडा किंवा ड्रॅग करा (JPG, JPEG, PNG):",
                 type=["jpg", "jpeg", "png"],
                 accept_multiple_files=True,
-                label_visibility="collapsed",
                 key="ocr_receipt_files"
             )
             if up_files:
@@ -3771,7 +3043,6 @@ if selected_page == "OCR Scanner":
                     processed_batch = []
                     warning_messages = []
                     total_f = len(target_files)
-                    import concurrent.futures
                     
                     def process_single_file(idx, single_file):
                         temp_f = f"temp_{os.urandom(4).hex()}.png"
@@ -3841,9 +3112,6 @@ if selected_page == "OCR Scanner":
         batch_data = st.session_state.get('processed_batch', [])
         
         if batch_data:
-            import urllib.parse
-            import pandas as pd
-            
             if len(batch_data) == 1:
                 p_item = batch_data[0]
                 v_disp = decode_unicode(p_item.get('vendor_name'))
@@ -3890,13 +3158,15 @@ if selected_page == "OCR Scanner":
                     # 1-Click Inventory Sync
                     if st.button('📦 इन्व्हेंटरी अपडेट करा (Sync Stock to Inventory)', key='inv_sync_single', use_container_width=True):
                         try:
-                            import sqlite3
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
                                 for item in p_item.get('items', []):
-                                    q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                    if not q.isdigit(): q = 1
-                                    cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                    q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                    try:
+                                        q_val = float(q_raw)
+                                    except (ValueError, TypeError):
+                                        q_val = 1.0
+                                    cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
                                 conn.commit()
                             st.toast('📦 स्टॉक आपोआप अपडेट झाला!', icon="📦")
                             st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
@@ -4019,14 +3289,16 @@ if selected_page == "OCR Scanner":
                 
                 if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये सिंक करा (Sync All to Inventory)', key='inv_sync_all_batch', use_container_width=True):
                     try:
-                        import sqlite3
                         with sqlite3.connect('ledger.db') as conn:
                             cursor = conn.cursor()
                             for b_item in batch_data:
                                 for item in b_item.get('items', []):
-                                    q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                    if not q.isdigit(): q = 1
-                                    cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                    q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                    try:
+                                        q_val = float(q_raw)
+                                    except (ValueError, TypeError):
+                                        q_val = 1.0
+                                    cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
                             conn.commit()
                         st.toast('📦 सर्व पावत्यांचा स्टॉक इन्व्हेंटरीमध्ये जोडला गेला!', icon="📦")
                         st.success('सर्व पावत्या इन्व्हेंटरीमध्ये यशस्वीरित्या अपडेट झाल्या!')
@@ -4051,13 +3323,15 @@ if selected_page == "OCR Scanner":
                         with b_c1:
                             if st.button('📦 स्टॉक अपडेट', key=f'inv_sync_{idx}', use_container_width=True):
                                 try:
-                                    import sqlite3
                                     with sqlite3.connect('ledger.db') as conn:
                                         cursor = conn.cursor()
                                         for item in p_item.get('items', []):
-                                            q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                            if not q.isdigit(): q = 1
-                                            cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                            q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                            try:
+                                                q_val = float(q_raw)
+                                            except (ValueError, TypeError):
+                                                q_val = 1.0
+                                            cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
                                         conn.commit()
                                     st.toast(f'#{idx+1} स्टॉक अपडेट झाला!')
                                     st.success('इन्व्हेंटरी अपडेट झाली!')
@@ -4360,7 +3634,7 @@ elif selected_page == "Staff Management":
                         st.success(succ_msg)
                         time.sleep(0.5)
                         st.rerun()
-                    except Exception as ex:
+                    except Exception:
                         dup_msg = "Error: Username already exists or database error occurred." if is_english else "त्रुटी: हे वापरकर्ता नाव आधीच अस्तित्वात आहे किंवा डेटाबेस त्रुटी आली."
                         st.error(dup_msg)
         st.markdown("</div>", unsafe_allow_html=True)

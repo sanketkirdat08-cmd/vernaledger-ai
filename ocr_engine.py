@@ -4,7 +4,6 @@ import json
 import sqlite3
 import re
 import os
-import time
 import logging
 import asyncio
 import edge_tts
@@ -47,7 +46,6 @@ def extract_valid_json(text: str) -> dict:
 def get_active_gemini_models():
     """Dynamically fetch the best available Gemini model."""
     try:
-        import google.generativeai as genai
         online_models = []
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
@@ -67,6 +65,7 @@ def get_active_gemini_models():
             return best
         return online_models
     except Exception as exc:
+        logger.debug("Model discovery fallback: %s", exc)
         return ['gemini-3.5-flash', 'gemini-2.5-flash']
 
 def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
