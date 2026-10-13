@@ -17,7 +17,7 @@ import math
 from datetime import date, datetime
 from html import escape
 import google.generativeai as genai
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageOps
 from ocr_engine import (
     extract_valid_json,
     generate_marathi_tts,
@@ -30,6 +30,21 @@ try:
     import qrcode
 except ImportError:
     qrcode = None
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    import zxingcpp
+except ImportError:
+    zxingcpp = None
 
 st.set_page_config(
     page_title="VernaLedger AI",
@@ -331,81 +346,203 @@ def decode_barcode_image(image_bytes: bytes, use_ai_fallback: bool = False) -> d
     if not image_bytes:
         return result
 
-    # 1. Ultra-Fast C++ ZXing Engine (< 5 ms, detects EAN-13, EAN-8, UPC, Code-128, ITF, QR, DataMatrix)
+    # 1. Multi-Stage Ultra-Fast C++ ZXing Engine & OpenCV Pipeline (< 150 ms total)
     try:
-        import zxingcpp
-        pil_img = Image.open(BytesIO(image_bytes))
+        # Step A: EXIF Orientation Correction (fixes mobile camera orientation quirks)
+        img_bgr = None
+        try:
+            pil_raw = Image.open(BytesIO(image_bytes))
+            pil_img = ImageOps.exif_transpose(pil_raw)
+            if pil_img.mode != "RGB":
+                pil_img = pil_img.convert("RGB")
+            if np is not None and cv2 is not None:
+                img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        except Exception:
+            if np is not None and cv2 is not None:
+                img_bgr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
 
-        # Direct scan (supports full 360-degree rotation natively)
-        zx_res = zxingcpp.read_barcode(pil_img)
-        if zx_res and zx_res.text:
-            result["barcode"] = str(zx_res.text).strip()
-            result["method"] = f"Gun Scanner ({zx_res.format})"
-            result["detected"] = True
-            return result
+        # Quick scanner helper using zxingcpp
+        def _scan_zx(cand_img, binarizer=None):
+            if cand_img is None or zxingcpp is None:
+                return None
+            try:
+                kwargs = {"try_rotate": True, "try_downscale": True, "try_invert": True}
+                if binarizer is not None:
+                    kwargs["binarizer"] = binarizer
+                barcodes = zxingcpp.read_barcodes(cand_img, **kwargs)
+                if barcodes:
+                    for b in barcodes:
+                        if b.text and str(b.format) in [
+                            "BarcodeFormat.EAN13", "BarcodeFormat.EAN8", "BarcodeFormat.UPCA",
+                            "BarcodeFormat.Code128", "BarcodeFormat.ITF", "BarcodeFormat.Code39"
+                        ]:
+                            return str(b.text).strip(), str(b.format)
+                    for b in barcodes:
+                        if b.text:
+                            return str(b.text).strip(), str(b.format)
+            except Exception:
+                pass
+            return None
 
-        # Center-crop scan (where phone camera focuses on barcode)
-        w, h = pil_img.size
-        crop_box = (int(w * 0.1), int(h * 0.15), int(w * 0.9), int(h * 0.85))
-        cropped = pil_img.crop(crop_box)
-        zx_res = zxingcpp.read_barcode(cropped)
-        if zx_res and zx_res.text:
-            result["barcode"] = str(zx_res.text).strip()
-            result["method"] = f"Gun Scanner ({zx_res.format})"
-            result["detected"] = True
-            return result
+        # Stage 1: Direct full image scan (< 10 ms)
+        if img_bgr is not None:
+            hit = _scan_zx(img_bgr)
+            if hit:
+                result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                result["detected"] = True
+                return result
 
-        # High-contrast enhancement for faint/reflective retail barcodes
-        gray_img = ImageOps.grayscale(pil_img)
-        contrasted = ImageEnhance.Contrast(gray_img).enhance(2.0)
-        zx_res = zxingcpp.read_barcode(contrasted)
-        if zx_res and zx_res.text:
-            result["barcode"] = str(zx_res.text).strip()
-            result["method"] = f"Gun Scanner ({zx_res.format})"
-            result["detected"] = True
-            return result
-    except Exception as ze:
-        ai_logger.debug(f"ZXing decode error: {ze}")
+            h, w = img_bgr.shape[:2]
+            # Stage 1b: Scale down massive 4K/1080p camera frames (smooths sensor noise)
+            if max(h, w) > 1600 and cv2 is not None:
+                scale = 1280.0 / max(h, w)
+                base_img = cv2.resize(img_bgr, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                base_img = img_bgr
 
-    # 2. Local OpenCV Barcode & QR Detector (< 10 ms)
-    try:
-        import cv2
-        import numpy as np
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is not None:
-            detector = cv2.barcode.BarcodeDetector()
-            qr_detector = cv2.QRCodeDetector()
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            for v in [img, gray]:
+            bh, bw = base_img.shape[:2]
+
+            # Stage 2: Viewfinder Center Crops (where user holds product barcode)
+            crops = [
+                base_img[int(bh * 0.18):int(bh * 0.82), int(bw * 0.18):int(bw * 0.82)], # 65% center
+                base_img[int(bh * 0.28):int(bh * 0.72), int(bw * 0.28):int(bw * 0.72)], # 45% tight center
+                base_img[int(bh * 0.25):int(bh * 0.75), int(bw * 0.08):int(bw * 0.92)], # Wide horizontal strip
+                base_img[int(bh * 0.08):int(bh * 0.92), int(bw * 0.08):int(bw * 0.92)], # 85% wide crop
+            ]
+            for cp in crops:
+                hit = _scan_zx(cp)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+            if cv2 is not None and np is not None:
+                # Stage 3: CLAHE (Adaptive Histogram Equalization for glossy/uneven lighting)
+                center_crop = crops[0]
+                center_gray = cv2.cvtColor(center_crop, cv2.COLOR_BGR2GRAY)
+                full_gray = cv2.cvtColor(base_img, cv2.COLOR_BGR2GRAY)
+
+                clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
+                cl_center = clahe.apply(center_gray)
+                hit = _scan_zx(cl_center)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+                cl_full = clahe.apply(full_gray)
+                hit = _scan_zx(cl_full)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+                # Stage 4: Contrast Stretching + Unsharp Mask (Sharpening blurred camera focus)
+                norm_center = cv2.normalize(center_gray, None, 0, 255, cv2.NORM_MINMAX)
+                sharp_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+                sharp_center = cv2.filter2D(norm_center, -1, sharp_kernel)
+                hit = _scan_zx(sharp_center)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+                sharp_clahe = cv2.filter2D(cl_center, -1, sharp_kernel)
+                hit = _scan_zx(sharp_clahe)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+                # Stage 5: Bicubic Upscaling (for small barcodes held at distance)
+                up_center = cv2.resize(sharp_clahe, (0, 0), fx=1.7, fy=1.7, interpolation=cv2.INTER_CUBIC)
+                hit = _scan_zx(up_center)
+                if hit:
+                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                    result["detected"] = True
+                    return result
+
+                # Stage 6: Alternative Binarizers (GlobalHistogram & FixedThreshold)
+                if zxingcpp is not None:
+                    for b_type in [zxingcpp.Binarizer.GlobalHistogram, zxingcpp.Binarizer.FixedThreshold]:
+                        hit = _scan_zx(cl_center, binarizer=b_type)
+                        if hit:
+                            result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                            result["detected"] = True
+                            return result
+
+                # Stage 7: Rotational Passes (±30°, ±45° for tilted handheld packets)
+                c_h, c_w = cl_center.shape[:2]
+                c_pt = (c_w // 2, c_h // 2)
+                for angle in [30, -30, 45, -45]:
+                    rot_mat = cv2.getRotationMatrix2D(c_pt, angle, 1.0)
+                    rot_img = cv2.warpAffine(cl_center, rot_mat, (c_w, c_h), borderValue=255)
+                    hit = _scan_zx(rot_img)
+                    if hit:
+                        result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                        result["detected"] = True
+                        return result
+
+                # Stage 8: Morphological Stripe Region Extraction
                 try:
-                    res = detector.detectAndDecode(v)
-                    if res and len(res) >= 2:
-                        decoded_info = res[0]
-                        if isinstance(decoded_info, (list, tuple)) and len(decoded_info) > 0:
-                            val = str(decoded_info[0]).strip()
-                        else:
-                            val = str(decoded_info).strip() if decoded_info else ""
-                        if val:
-                            result["barcode"] = val
-                            result["method"] = "OpenCV Barcode"
+                    gradX = cv2.Sobel(center_gray, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
+                    gradY = cv2.Sobel(center_gray, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
+                    gradient = cv2.convertScaleAbs(cv2.subtract(gradX, gradY))
+                    blurred = cv2.blur(gradient, (9, 9))
+                    _, thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)
+                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 7))
+                    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+                    cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    for c in cnts:
+                        rx, ry, rw, rh = cv2.boundingRect(c)
+                        if rw > 45 and rh > 20:
+                            p_x1 = max(0, rx - int(rw * 0.15))
+                            p_y1 = max(0, ry - int(rh * 0.15))
+                            p_x2 = min(center_gray.shape[1], rx + int(rw * 1.15))
+                            p_y2 = min(center_gray.shape[0], ry + int(rh * 1.15))
+                            roi = center_gray[p_y1:p_y2, p_x1:p_x2]
+                            roi_up = cv2.resize(roi, (0, 0), fx=1.6, fy=1.6, interpolation=cv2.INTER_CUBIC)
+                            hit = _scan_zx(roi_up)
+                            if hit:
+                                result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
+                                result["detected"] = True
+                                return result
+                except Exception:
+                    pass
+
+                # Stage 9: Local OpenCV Barcode & QR Detector (< 10 ms)
+                try:
+                    detector = cv2.barcode.BarcodeDetector()
+                    for cand in [base_img, cl_center, full_gray]:
+                        res = detector.detectAndDecode(cand)
+                        if res and len(res) >= 1 and res[0]:
+                            val = res[0]
+                            if isinstance(val, (list, tuple)) and len(val) > 0 and val[0]:
+                                v = str(val[0]).strip()
+                            elif isinstance(val, str) and val.strip():
+                                v = val.strip()
+                            else:
+                                v = ""
+                            if v:
+                                result["barcode"], result["method"] = v, "OpenCV Barcode"
+                                result["detected"] = True
+                                return result
+
+                    qr_detector = cv2.QRCodeDetector()
+                    qr_res = qr_detector.detectAndDecode(full_gray)
+                    if qr_res and len(qr_res) >= 1 and qr_res[0]:
+                        qv = str(qr_res[0]).strip()
+                        if qv:
+                            result["barcode"], result["method"] = qv, "OpenCV QR"
                             result["detected"] = True
                             return result
                 except Exception:
                     pass
 
-            qr_res = qr_detector.detectAndDecode(gray)
-            if qr_res and len(qr_res) >= 1 and qr_res[0]:
-                qr_val = str(qr_res[0]).strip()
-                if qr_val:
-                    result["barcode"] = qr_val
-                    result["method"] = "OpenCV QR"
-                    result["detected"] = True
-                    return result
-    except Exception as oe:
-        ai_logger.debug(f"OpenCV decode exception: {oe}")
+    except Exception as ze:
+        ai_logger.debug(f"Barcode multi-stage decode error: {ze}")
 
-    # 3. Optional Gemini AI Fallback (only if explicitly enabled)
+    # Stage 10: Optional Gemini AI Fallback (only if explicitly enabled)
     if use_ai_fallback and API_KEY:
         try:
             genai.configure(api_key=API_KEY)
@@ -3389,6 +3526,12 @@ if selected_page == "OCR Scanner":
                     st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
                     st.rerun()
 
+            st.markdown("""
+            <div style='background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 7px 12px; margin: 6px 0 10px 0; font-size: 11px; color: #cbd5e1;'>
+                💡 <b>अचूक स्कॅन टीप:</b> वस्तूचा बारकोड कॅमेऱ्याच्या मध्यभागी १५-२० सेमी अंतरावर धरा आणि फोटो स्पष्ट येऊ द्या.
+            </div>
+            """, unsafe_allow_html=True)
+
             cam_k_idx = st.session_state.get("cam_bar_key_idx", 0)
             b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key=f"cam_bar_main_{cam_k_idx}")
             if b_cam_file:
@@ -3410,7 +3553,34 @@ if selected_page == "OCR Scanner":
                         st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
                         st.rerun()
                     else:
-                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
+                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड कॅमेऱ्याच्या मध्यभागी जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
+                        if st.button("🔄 पुन्हा फोटो घ्या (Retake Photo)", key="btn_retake_cam_barcode", type="primary", use_container_width=True):
+                            st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                            st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
+                            st.rerun()
+
+            with st.expander("📁 किंवा गॅलरी/फाईल मधून बारकोड फोटो निवडा (Upload from Gallery)"):
+                b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
+                if b_up_file:
+                    up_raw = b_up_file.getvalue()
+                    up_hash = hashlib.md5(up_raw).hexdigest()
+                    if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
+                        st.session_state["last_scanned_barcode_cam_hash"] = up_hash
+                        dec_info = decode_barcode_image(up_raw)
+                        if dec_info.get("detected"):
+                            f_code = dec_info.get("barcode", "").strip()
+                            f_prod = dec_info.get("product_name", "").strip()
+                            if f_code:
+                                st.session_state["active_barcode_search"] = f_code
+                            elif f_prod:
+                                st.session_state["active_barcode_search"] = f_prod
+                            if f_prod:
+                                st.session_state["temp_detected_prod_name"] = f_prod
+                            m_type = dec_info.get("method", "Gun Scanner")
+                            st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया अधिक स्पष्ट फोटो निवडा.")
 
             st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 10px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा USB Barcode Gun वापरा):</div>", unsafe_allow_html=True)
             scanned_code = st.text_input(
