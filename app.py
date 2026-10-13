@@ -24,7 +24,10 @@ from ocr_engine import (
     process_voice_billing_advanced,
 )
 from streamlit_mic_recorder import speech_to_text
-import qrcode
+try:
+    import qrcode
+except ImportError:
+    qrcode = None
 
 st.set_page_config(
     page_title="VernaLedger AI",
@@ -2648,6 +2651,8 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
 
 def generate_upi_qr_base64(amount: float, vpa: str = "vernaledger@upi", payee_name: str = "VernaLedger Store", note: str = "POS Bill") -> str:
     try:
+        if qrcode is None:
+            return ""
         clean_amount = f"{max(0.0, float(amount)):.2f}"
         upi_url = f"upi://pay?pa={vpa}&pn={urllib.parse.quote(payee_name)}&am={clean_amount}&cu=INR&tn={urllib.parse.quote(note)}"
         qr = qrcode.QRCode(version=1, box_size=5, border=2)
