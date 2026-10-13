@@ -3272,6 +3272,16 @@ with st.sidebar:
     
     st.markdown("<hr style='margin: 8px 0; border-color: rgba(0, 242, 254, 0.15);'>", unsafe_allow_html=True)
     
+    st.markdown('''
+    <div class="dev-credit-box" style="margin-bottom: 10px; padding: 8px 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; border-left: 3px solid #00f2fe;">
+        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 3px;">👨‍💻 Project Developers</div>
+        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+            Sanket Kirdat &nbsp;|&nbsp; Sakshi Bhagat<br>
+            Vaishnavi Dhavale &nbsp;|&nbsp; Rushikesh Mulik
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+    
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
     if st.button("\U0001f6aa Logout System"):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
