@@ -3264,224 +3264,38 @@ if selected_page == "OCR Scanner":
             st.markdown("""
             <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.4);'>
                 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                    <span class='scanner-pill'>🔴 Live Auto-Scanner</span>
-                    <span class='scanner-pill-success'>● सतत स्कॅनिंग सक्रिय</span>
+                    <span class='scanner-pill'>📷 Live Barcode Scanner</span>
+                    <span class='scanner-pill-success'>● कॅमेरा सक्रिय</span>
                 </div>
                 <div style='font-size: 11px; color: #cbd5e1; line-height: 1.4;'>
-                    फोटो काढण्याची अजिबात गरज नाही! बारकोड फक्त कॅमेऱ्यासमोर धरा, बीप वाजून थेट स्कॅन होईल.
+                    खाली मोबाईलचा कॅमेरा सुरू झाला आहे. वस्तूचा बारकोड फ्रेममध्ये धरा व स्कॅन करा.
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             if st.session_state.get("active_barcode_search"):
-                if st.button("🔄 पुढील वस्तू स्कॅन करा (Scan Next Product)", key="btn_clear_barcode_top", type="primary", use_container_width=True):
+                if st.button("🔄 पुढील वस्तू स्कॅन करा (Clear / Next Item)", key="btn_clear_barcode_top", type="primary", use_container_width=True):
                     st.session_state["active_barcode_search"] = ""
                     st.session_state.pop("temp_detected_prod_name", None)
                     st.rerun()
 
-            # Continuous Live Video Auto-Scanner (HTML5 + ZXing + Native BarcodeDetector)
-            live_scanner_html = """
-            <style>
-            @keyframes scanLaserLine {
-                0% { top: 12%; opacity: 0.8; }
-                50% { top: 88%; opacity: 1; }
-                100% { top: 12%; opacity: 0.8; }
-            }
-            .live-scanner-container {
-                position: relative;
-                width: 100%;
-                height: 260px;
-                background: #000;
-                border-radius: 12px;
-                overflow: hidden;
-                border: 2px solid rgba(0, 242, 254, 0.4);
-                box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
-                margin-bottom: 10px;
-            }
-            .live-scanner-video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: block;
-            }
-            .live-scanner-reticle {
-                position: absolute;
-                inset: 15% 10%;
-                border: 2px dashed rgba(0, 242, 254, 0.8);
-                border-radius: 10px;
-                pointer-events: none;
-                box-shadow: inset 0 0 25px rgba(0, 242, 254, 0.15);
-            }
-            .live-scanner-laser {
-                position: absolute;
-                left: 8%;
-                right: 8%;
-                height: 3px;
-                background: linear-gradient(90deg, transparent, #ff0055, #ff3366, #ff0055, transparent);
-                box-shadow: 0 0 14px #ff0055, 0 0 6px #ff3366;
-                animation: scanLaserLine 2s infinite ease-in-out;
-                border-radius: 2px;
-                pointer-events: none;
-            }
-            .live-scanner-badge {
-                position: absolute;
-                bottom: 8px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.8);
-                color: #00f2fe;
-                padding: 4px 14px;
-                border-radius: 20px;
-                font-size: 11px;
-                font-weight: 700;
-                border: 1px solid rgba(0, 242, 254, 0.4);
-                white-space: nowrap;
-                z-index: 10;
-                letter-spacing: 0.3px;
-            }
-            </style>
+            b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key="cam_bar_main")
+            if b_cam_file:
+                with st.spinner("🤖 AI बारकोड स्कॅन करत आहे..."):
+                    dec_info = decode_barcode_image(b_cam_file.getvalue())
+                    if dec_info.get("detected"):
+                        f_code = dec_info.get("barcode", "").strip()
+                        f_prod = dec_info.get("product_name", "").strip()
+                        if f_code:
+                            st.session_state["active_barcode_search"] = f_code
+                        if f_prod:
+                            st.session_state["temp_detected_prod_name"] = f_prod
+                        st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
 
-            <div class="live-scanner-container">
-                <video id="barcode-live-feed" autoplay playsinline muted class="live-scanner-video"></video>
-                <div class="live-scanner-reticle"></div>
-                <div class="live-scanner-laser"></div>
-                <div id="live-scan-badge" class="live-scanner-badge">🔴 सतत स्कॅनर चालू... बारकोड कॅमेऱ्यासमोर धरा</div>
-            </div>
-
-            <script>
-            (function() {
-                let isDetected = false;
-                
-                function playBeep() {
-                    try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(1400, ctx.currentTime);
-                        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.12);
-                    } catch(e) {}
-                }
-
-                function onBarcodeScanned(code) {
-                    if (isDetected) return;
-                    isDetected = true;
-                    playBeep();
-                    const badge = document.getElementById('live-scan-badge');
-                    if (badge) {
-                        badge.style.background = '#00ff87';
-                        badge.style.color = '#000';
-                        badge.innerHTML = '✅ ओळखला: <b>' + code + '</b>';
-                    }
-                    const vid = document.getElementById('barcode-live-feed');
-                    if (vid && vid.srcObject) {
-                        try {
-                            vid.srcObject.getTracks().forEach(t => t.stop());
-                        } catch(e) {}
-                    }
-                    setTimeout(() => {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('scanned_barcode', code);
-                        window.location.href = url.href;
-                    }, 250);
-                }
-
-                async function startCameraScanner() {
-                    const video = document.getElementById('barcode-live-feed');
-                    if (!video) return;
-
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                            audio: false
-                        });
-                        video.srcObject = stream;
-                        await video.play();
-
-                        if ('BarcodeDetector' in window) {
-                            try {
-                                const detector = new BarcodeDetector({
-                                    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
-                                });
-                                const timer = setInterval(async () => {
-                                    if (isDetected) { clearInterval(timer); return; }
-                                    try {
-                                        const codes = await detector.detect(video);
-                                        if (codes && codes.length > 0) {
-                                            clearInterval(timer);
-                                            onBarcodeScanned(codes[0].rawValue);
-                                        }
-                                    } catch(e) {}
-                                }, 150);
-                                return;
-                            } catch(e) {
-                                console.warn('Native BarcodeDetector fallback to ZXing', e);
-                            }
-                        }
-
-                        function attachZXing() {
-                            if (window.ZXing) {
-                                const codeReader = new ZXing.BrowserMultiFormatReader();
-                                codeReader.decodeFromVideoElement(video, (result, err) => {
-                                    if (result && result.text && !isDetected) {
-                                        codeReader.reset();
-                                        onBarcodeScanned(result.text);
-                                    }
-                                });
-                            }
-                        }
-
-                        if (window.ZXing) {
-                            attachZXing();
-                        } else {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js';
-                            script.onload = attachZXing;
-                            document.head.appendChild(script);
-                        }
-                    } catch(err) {
-                        console.error('Camera error:', err);
-                        const badge = document.getElementById('live-scan-badge');
-                        if (badge) {
-                            badge.style.background = 'rgba(239, 68, 68, 0.85)';
-                            badge.style.color = '#fff';
-                            badge.innerHTML = '⚠️ कॅमेरा परवानगी मिळालेली नाही (खाली नंबर टाका)';
-                        }
-                    }
-                }
-
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    startCameraScanner();
-                } else {
-                    window.addEventListener('DOMContentLoaded', startCameraScanner);
-                }
-            })();
-            </script>
-            """
-            st.html(live_scanner_html, unsafe_allow_javascript=True)
-
-            with st.expander("📷 फोटो काढून स्कॅन करा (Snapshot Fallback)", expanded=False):
-                b_snap = st.camera_input("बारकोडचा फोटो घ्या", key="cam_snap_fallback")
-                if b_snap:
-                    with st.spinner("🤖 AI बारकोड तपासत आहे..."):
-                        dec_info = decode_barcode_image(b_snap.getvalue())
-                        if dec_info.get("detected"):
-                            f_code = dec_info.get("barcode", "").strip()
-                            f_prod = dec_info.get("product_name", "").strip()
-                            if f_code:
-                                st.session_state["active_barcode_search"] = f_code
-                            if f_prod:
-                                st.session_state["temp_detected_prod_name"] = f_prod
-                            st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
-                            st.rerun()
-                        else:
-                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही.")
-
-            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 8px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा USB Barcode Gun वापरा):</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 10px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा USB Barcode Gun वापरा):</div>", unsafe_allow_html=True)
             scanned_code = st.text_input(
                 "बारकोड प्रविष्ट करा:",
                 value=st.session_state.get("active_barcode_search", ""),
