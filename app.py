@@ -17,7 +17,9 @@ import math
 from datetime import date, datetime
 from html import escape
 import google.generativeai as genai
+from PIL import Image
 from ocr_engine import (
+    extract_valid_json,
     generate_marathi_tts,
     get_active_gemini_models,
     process_receipt_advanced,
@@ -237,10 +239,28 @@ def init_databases():
                 item_name TEXT,
                 stock_qty REAL,
                 unit TEXT,
-                alert_limit REAL
+                alert_limit REAL,
+                barcode TEXT DEFAULT '',
+                selling_price REAL DEFAULT 0.0
             )
             """)
+            try:
+                cursor.execute("ALTER TABLE shop_inventory ADD COLUMN barcode TEXT DEFAULT ''")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE shop_inventory ADD COLUMN selling_price REAL DEFAULT 0.0")
+            except Exception:
+                pass
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_name ON shop_inventory(item_name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_barcode ON shop_inventory(barcode)")
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shop_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+            """)
 
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS business_expenses (
@@ -258,6 +278,77 @@ def init_databases():
             logging.error(f"Database initialization transaction failed: {e}")
 
 init_databases()
+
+def get_shop_setting(key: str, default: str = "") -> str:
+    try:
+        with sqlite3.connect("ledger.db") as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT value FROM shop_settings WHERE key = ?", (key,))
+            row = cur.fetchone()
+            if row and row[0] is not None and str(row[0]).strip():
+                return str(row[0]).strip()
+    except Exception:
+        pass
+    return default
+
+def set_shop_setting(key: str, value: str) -> None:
+    try:
+        with sqlite3.connect("ledger.db") as conn:
+            cur = conn.cursor()
+            cur.execute("CREATE TABLE IF NOT EXISTS shop_settings (key TEXT PRIMARY KEY, value TEXT)")
+            cur.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (key, str(value).strip()))
+            conn.commit()
+    except Exception as e:
+        ai_logger.error(f"Failed to set shop setting {key}: {e}")
+
+def decode_barcode_image(image_bytes: bytes) -> dict:
+    result = {"barcode": "", "product_name": "", "method": "", "detected": False}
+    # 1. OpenCV Barcode Detector
+    try:
+        import cv2
+        import numpy as np
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is not None:
+            detector = cv2.barcode.BarcodeDetector()
+            ok, decoded_info, _, _ = detector.detectAndDecode(img)
+            if ok and decoded_info:
+                val = decoded_info[0] if isinstance(decoded_info, (list, tuple)) else str(decoded_info)
+                if val and str(val).strip():
+                    result["barcode"] = str(val).strip()
+                    result["method"] = "OpenCV Barcode"
+                    result["detected"] = True
+                    return result
+    except Exception as e:
+        ai_logger.warning(f"OpenCV barcode decode: {e}")
+
+    # 2. Gemini Vision fallback
+    if API_KEY:
+        try:
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            img_pil = Image.open(BytesIO(image_bytes))
+            prompt = """Analyze this image. Find any barcode (EAN-13, UPC, Code128, etc.) or retail product packaging.
+Extract:
+1. The exact numeric digits printed under or on the barcode.
+2. The product/item name written on the packaging.
+Return STRICT JSON ONLY with format:
+{"barcode": "digits or empty", "product_name": "product name or empty", "detected": true/false}"""
+            response = model.generate_content([prompt, img_pil])
+            if response and response.text:
+                clean_json = extract_valid_json(response.text)
+                if isinstance(clean_json, dict):
+                    b = str(clean_json.get("barcode", "")).strip()
+                    p = str(clean_json.get("product_name", "")).strip()
+                    if b or p:
+                        result["barcode"] = b
+                        result["product_name"] = p
+                        result["method"] = "Gemini Vision AI"
+                        result["detected"] = True
+                        return result
+        except Exception as e:
+            ai_logger.warning(f"Gemini barcode decode: {e}")
+
+    return result
 
 def log_activity(username, action):
     with sqlite3.connect("ledger.db") as conn:
@@ -292,6 +383,9 @@ def _khata_text(value):
 
 
 def load_business_upi_id():
+    custom_upi = get_shop_setting("shop_upi_id", "")
+    if custom_upi:
+        return custom_upi
     try:
         secret_value = st.secrets.get("BUSINESS_UPI_ID", "")
     except Exception as exc:
@@ -302,7 +396,7 @@ def load_business_upi_id():
         secret_value = ""
     environment_value = os.getenv("BUSINESS_UPI_ID", "")
     return str(
-        secret_value or environment_value or "sanketkirdat08@okaxis"
+        secret_value or environment_value or "vernaledger@upi"
     ).strip()
 
 
@@ -2649,10 +2743,12 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
     buffer.seek(0)
     return buffer
 
-def generate_upi_qr_base64(amount: float, vpa: str = "vernaledger@upi", payee_name: str = "VernaLedger Store", note: str = "POS Bill") -> str:
+def generate_upi_qr_base64(amount: float, vpa: str = "", payee_name: str = "", note: str = "POS Bill") -> str:
     try:
         if qrcode is None:
             return ""
+        vpa = (vpa or get_shop_setting("shop_upi_id", "vernaledger@upi")).strip()
+        payee_name = (payee_name or get_shop_setting("shop_name", "VernaLedger Store")).strip()
         clean_amount = f"{max(0.0, float(amount)):.2f}"
         upi_url = f"upi://pay?pa={vpa}&pn={urllib.parse.quote(payee_name)}&am={clean_amount}&cu=INR&tn={urllib.parse.quote(note)}"
         qr = qrcode.QRCode(version=1, box_size=5, border=2)
@@ -2688,6 +2784,13 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
     title_label = "RETAIL CASH SLIP" if is_english else "किराणा खरेदी पावती"
     tot_label = "GRAND TOTAL" if is_english else "एकूण रक्कम"
     thanks_label = "THANK YOU! VISIT AGAIN" if is_english else "धन्यवाद! पुन्हा भेट द्या"
+
+    cfg_shop_name = get_shop_setting("shop_name", vendor if vendor and vendor != "अनामित" else "VERNALEDGER AI POS")
+    cfg_shop_addr = get_shop_setting("shop_address", "")
+    cfg_shop_phone = get_shop_setting("shop_phone", "")
+    cfg_footer_tagline = get_shop_setting("shop_tagline", thanks_label)
+    addr_line = f"<div class='center' style='font-size: 8.5px; color:#333;'>{escape(cfg_shop_addr)}</div>" if cfg_shop_addr else ""
+    phone_line = f"<div class='center' style='font-size: 8.5px; color:#333;'>मोबाईल: {escape(cfg_shop_phone)}</div>" if cfg_shop_phone else ""
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -2735,9 +2838,10 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
 </head>
 <body>
     <button class="no-print" onclick="window.print()">🖨️ पावती प्रिंट करा (Print Thermal Slip)</button>
-    <div class="center bold" style="font-size: 13px;">VERNALEDGER AI POS</div>
-    <div class="center bold">{escape(vendor)}</div>
-    <div class="center" style="font-size: 9px;">{title_label}</div>
+    <div class="center bold" style="font-size: 13px;">{escape(cfg_shop_name)}</div>
+    {addr_line}
+    {phone_line}
+    <div class="center" style="font-size: 9px; margin-top: 2px;">{title_label}</div>
     <div class="divider"></div>
     <div>Date: {escape(date_str)}</div>
     <div>Slip No: #{receipt_no} | Cat: {escape(category)}</div>
@@ -2762,7 +2866,7 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
     </div>
     <div class="divider"></div>
     {qr_section}
-    <div class="center" style="margin-top: 8px; font-size: 10px;">*** {thanks_label} ***</div>
+    <div class="center bold" style="margin-top: 8px; font-size: 10px;">*** {escape(cfg_footer_tagline)} ***</div>
     <div class="center" style="font-size: 8px; color:#555;">Powered by VernaLedger-AI</div>
 </body>
 </html>"""
@@ -3354,7 +3458,9 @@ if selected_page == "OCR Scanner":
                 st.markdown("<hr style='margin: 12px 0; border-color: rgba(255, 255, 255, 0.08);'>", unsafe_allow_html=True)
                 
                 # ⚡ DYNAMIC UPI QR & AI SOUNDBOX
-                upi_b64 = generate_upi_qr_base64(tot, payee_name=v_disp, note=f"Bill {date_disp}")
+                shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
+                shop_name = get_shop_setting("shop_name", v_disp if v_disp and v_disp != "अनामित" else "VernaLedger Store")
+                upi_b64 = generate_upi_qr_base64(tot, vpa=shop_upi_id, payee_name=shop_name, note=f"Bill {date_disp}")
                 with st.expander("⚡ त्वरित UPI पेमेंट आणि साऊंडबॉक्स (Scan & Pay + Soundbox)", expanded=True):
                     upic1, upic2 = st.columns([1, 1.3])
                     with upic1:
@@ -3399,8 +3505,8 @@ if selected_page == "OCR Scanner":
                 with act_col2:
                     wa_lines = [f"• {itm.get('item_name')} ({itm.get('quantity', itm.get('qty', '1'))}) - ₹{itm.get('total_price', 0):,.2f}" for itm in items_raw]
                     clean_amt_str = f"{tot:.2f}"
-                    upi_direct_link = f"upi://pay?pa=vernaledger@upi&pn={urllib.parse.quote(v_disp)}&am={clean_amt_str}&cu=INR"
-                    wa_text = f"🧾 *{v_disp} - पावती तपशील*\n\n" + "\n".join(wa_lines) + f"\n\n💰 *एकूण रक्कम:* ₹{tot:,.2f}\n⚡ *UPI पेमेंट लिंक:* {upi_direct_link}\n\n🙏 धन्यवाद!"
+                    upi_direct_link = f"upi://pay?pa={shop_upi_id}&pn={urllib.parse.quote(shop_name)}&am={clean_amt_str}&cu=INR"
+                    wa_text = f"🧾 *{shop_name} - पावती तपशील*\n\n" + "\n".join(wa_lines) + f"\n\n💰 *एकूण रक्कम:* ₹{tot:,.2f}\n⚡ *UPI पेमेंट लिंक:* {upi_direct_link}\n\n🙏 धन्यवाद!"
                     wa_link = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
                     st.markdown(f"""
                     <a href="{wa_link}" target="_blank" style="text-decoration: none;">
@@ -3490,7 +3596,9 @@ if selected_page == "OCR Scanner":
                                 except Exception as e:
                                     st.error(str(e))
                         with b_c2:
-                            b_upi_b64 = generate_upi_qr_base64(tot, payee_name=v_disp, note=f"Batch #{idx+1}")
+                            b_shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
+                            b_shop_name = get_shop_setting("shop_name", v_disp if v_disp and v_disp != "अनामित" else "VernaLedger Store")
+                            b_upi_b64 = generate_upi_qr_base64(tot, vpa=b_shop_upi_id, payee_name=b_shop_name, note=f"Batch #{idx+1}")
                             b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, upi_qr_b64=b_upi_b64, receipt_no=str(idx+1), is_english=is_english)
                             st.download_button(
                                 label="🖨️ थर्मल स्लिप (POS)",
@@ -3534,7 +3642,12 @@ elif selected_page == "Business Operations":
     render_business_module_styles()
     render_page_header("Business Operations", "इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.", "💼")
 
-    tab_stock, tab_expenses = st.tabs(["📦 Stock & Inventory", "💸 Business Expenses"])
+    tab_stock, tab_barcode, tab_expenses, tab_shop_profile = st.tabs([
+        "📦 Stock & Inventory", 
+        "🔍 Barcode Scanner", 
+        "💸 Business Expenses", 
+        "⚙️ Shop Profile & UPI"
+    ])
     
     with tab_stock:
         # Staff can now access this
@@ -3550,9 +3663,11 @@ elif selected_page == "Business Operations":
             </div>
             """, unsafe_allow_html=True)
             with st.form("stock_form"):
-                s_name = st.text_input("Item Name")
-                s_qty = st.number_input("Stock Quantity", min_value=0.0, step=1.0)
-                s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)", value="kg")
+                s_name = st.text_input("Item Name (वस्तूचे नाव)")
+                s_barcode = st.text_input("Barcode (ऐच्छिक / Barcode Scanner)", placeholder="उदा. 8901030384102")
+                s_qty = st.number_input("Stock Quantity (साठा प्रमाण)", min_value=0.0, step=1.0)
+                s_price = st.number_input("Selling Price (विक्री दर ₹)", min_value=0.0, step=5.0, value=0.0)
+                s_unit = st.text_input("Unit (उदा. kg, pcs, ltr)", value="kg")
                 s_limit = st.number_input("Low Stock Alert Limit", min_value=0.0, step=1.0, value=5.0)
                 submit_stock = st.form_submit_button("Save Stock")
                 if submit_stock:
@@ -3564,9 +3679,9 @@ elif selected_page == "Business Operations":
                                 conn.execute("BEGIN TRANSACTION;")
                                 cursor = conn.cursor()
                                 cursor.execute("""
-                                INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit)
-                                VALUES (?, ?, ?, ?)
-                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit))
+                                INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit, s_barcode.strip(), s_price))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
                             st.success(f"Stock '{s_name}' successfully added!")
@@ -3664,6 +3779,204 @@ elif selected_page == "Business Operations":
             else:
                 st.info("कोणताही स्टॉक जोडलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab_barcode:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">🔍</div>
+            <div>
+                <h3 class="business-section-title">Barcode Scanner & Stock Lookup</h3>
+                <p class="business-section-caption">कॅमेऱ्याने बारकोड स्कॅन करा, इमेज अपलोड करा किंवा बारकोड गन / नंबरने साठा त्वरित शोधा.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        bar_col1, bar_col2 = st.columns([1, 1])
+        
+        with bar_col1:
+            st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>🔫 बारकोड नंबर किंवा USB Barcode Gun:</div>", unsafe_allow_html=True)
+            scanned_code = st.text_input(
+                "बारकोड प्रविष्ट करा:",
+                value=st.session_state.get("active_barcode_search", ""),
+                placeholder="उदा. 8901030384102 (किंवा बारकोड गनने स्कॅन करा)",
+                label_visibility="collapsed",
+                key="barcode_text_entry"
+            )
+            st.session_state["active_barcode_search"] = scanned_code.strip()
+
+            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 8px 0 4px 0;'>💡 <b>झटपट नमुना बारकोड (क्लिक करा):</b></div>", unsafe_allow_html=True)
+            demo_b1, demo_b2, demo_b3 = st.columns(3)
+            with demo_b1:
+                if st.button("🥫 पार्ले-जी (102)", key="demo_bar_1", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030384102"
+                    st.rerun()
+            with demo_b2:
+                if st.button("☕ टाटा टी (269)", key="demo_bar_2", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030775269"
+                    st.rerun()
+            with demo_b3:
+                if st.button("🧼 लाईफबॉय (208)", key="demo_bar_3", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030864208"
+                    st.rerun()
+
+        with bar_col2:
+            st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>📷 कॅमेरा किंवा फोटो स्कॅनर (Vision AI):</div>", unsafe_allow_html=True)
+            scan_source = st.radio("स्कॅन मोड:", ["📷 थेट कॅमेऱ्याने फोटो घ्या", "📁 इमेज अपलोड करा"], horizontal=True, label_visibility="collapsed")
+            
+            bar_img_bytes = None
+            if scan_source == "📷 थेट कॅमेऱ्याने फोटो घ्या":
+                cam_bar = st.camera_input("बारकोडचा फोटो घ्या", key="cam_barcode_input", label_visibility="collapsed")
+                if cam_bar:
+                    bar_img_bytes = cam_bar.getvalue()
+            else:
+                up_bar = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg"], key="up_barcode_file", label_visibility="collapsed")
+                if up_bar:
+                    bar_img_bytes = up_bar.getvalue()
+
+            if bar_img_bytes:
+                with st.spinner("🤖 AI बारकोड व वस्तूची माहिती शोधत आहे..."):
+                    dec_res = decode_barcode_image(bar_img_bytes)
+                    if dec_res.get("detected"):
+                        found_code = dec_res.get("barcode", "").strip()
+                        found_prod = dec_res.get("product_name", "").strip()
+                        if found_code:
+                            st.session_state["active_barcode_search"] = found_code
+                            if found_prod:
+                                st.session_state["temp_detected_prod_name"] = found_prod
+                            st.toast(f"✅ बारकोड सापडला: {found_code}", icon="🔍")
+                            st.rerun()
+                        elif found_prod:
+                            st.session_state["temp_detected_prod_name"] = found_prod
+                            st.info(f"🏷️ पॅकेजिंगवरील वस्तूचे नाव: **{found_prod}**")
+                    else:
+                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड क्रमांक थेट टाईप करा.")
+
+        st.markdown("---")
+
+        # Lookup and Action Section
+        search_barcode = st.session_state.get("active_barcode_search", "").strip()
+        detected_pname = st.session_state.get("temp_detected_prod_name", "").strip()
+
+        if search_barcode:
+            inv_item = None
+            try:
+                with sqlite3.connect("ledger.db") as conn:
+                    inv_cursor = conn.cursor()
+                    inv_cursor.execute("SELECT id, item_name, stock_qty, unit, alert_limit, barcode, selling_price FROM shop_inventory WHERE barcode = ? OR item_name LIKE ?", (search_barcode, f"%{search_barcode}%"))
+                    inv_item = inv_cursor.fetchone()
+            except Exception as e:
+                ai_logger.error(f"Barcode lookup error: {e}")
+
+            if inv_item:
+                item_id, item_name, item_qty, item_unit, item_limit, item_bar, item_price = inv_item
+                item_qty = float(item_qty or 0)
+                item_price = float(item_price or 0)
+                is_low = item_qty <= float(item_limit or 0)
+                status_badge = "<span style='background:#ef4444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>🚨 Low Stock</span>" if is_low else "<span style='background:#00ff87; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>✅ In Stock</span>"
+
+                st.markdown(f"""
+                <div style='background:rgba(0, 242, 254, 0.08); border:1px solid rgba(0, 242, 254, 0.3); border-radius:12px; padding:16px; margin-bottom:12px;'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div>
+                            <div style='font-size:11px; text-transform:uppercase; color:#94a3b8; font-weight:700;'>साठा सापडला (Inventory Match)</div>
+                            <div style='font-size:22px; font-weight:800; color:#00f2fe; margin-top:2px;'>{item_name}</div>
+                            <div style='font-size:12px; color:#cbd5e1; margin-top:2px;'>🔢 बारकोड: <code>{item_bar or search_barcode}</code></div>
+                        </div>
+                        <div>{status_badge}</div>
+                    </div>
+                    <div style='display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px;'>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>सध्याचा साठा</div>
+                            <div style='font-size:20px; font-weight:800; color:#00ff87;'>{item_qty:g} {item_unit}</div>
+                        </div>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>विक्री दर (Selling Price)</div>
+                            <div style='font-size:20px; font-weight:800; color:#ffb800;'>₹{item_price:,.2f}</div>
+                        </div>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>किमान मर्यादा</div>
+                            <div style='font-size:20px; font-weight:800; color:#cbd5e1;'>{item_limit} {item_unit}</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("##### ⚡ जलद क्रिया (Quick Stock Actions):")
+                qact1, qact2, qact3 = st.columns([1, 1, 1.5])
+                with qact1:
+                    if st.button("➕ १ नग साठा जोडा (+1)", key=f"bar_add_1_{item_id}", use_container_width=True):
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 1 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +1 साठा जोडला!", icon="📦")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+                with qact2:
+                    if st.button("➖ १ नग विक्री करा (-1)", key=f"bar_sub_1_{item_id}", use_container_width=True):
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = MAX(0.0, stock_qty - 1) WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"🛒 {item_name}: १ विक्री नोंदवली!", icon="💰")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+                with qact3:
+                    with st.popover("📝 साठा / दर अपडेट करा"):
+                        new_q = st.number_input("नवीन साठा प्रमाण:", value=float(item_qty), step=1.0, key=f"edit_q_{item_id}")
+                        new_p = st.number_input("नवीन विक्री दर (₹):", value=float(item_price), step=5.0, key=f"edit_p_{item_id}")
+                        if st.button("💾 अपडेट सेव्ह करा", key=f"save_edit_{item_id}", use_container_width=True):
+                            try:
+                                with sqlite3.connect("ledger.db") as conn:
+                                    conn.execute("UPDATE shop_inventory SET stock_qty = ?, selling_price = ? WHERE id = ?", (new_q, new_p, item_id))
+                                    conn.commit()
+                                st.toast("✅ साठा यशस्वीरित्या अपडेट झाला!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(str(e))
+            else:
+                st.warning(f"⚠️ बारकोड `{search_barcode}` इन्व्हेंटरीमध्ये सापडला नाही. खालील फॉर्म वापरून या बारकोडसह नवीन वस्तू लगेच जोडा:")
+                
+                with st.form("add_new_barcode_item_form"):
+                    st.markdown("##### ➕ नवीन वस्तूची नोंदणी (Register Scanned Item):")
+                    nb_col1, nb_col2 = st.columns(2)
+                    with nb_col1:
+                        new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode)
+                        new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन वस्तू")
+                        new_item_qty = st.number_input("आरंभीचा साठा (Initial Stock):", min_value=1.0, value=10.0, step=1.0)
+                    with nb_col2:
+                        new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0)
+                        new_item_unit = st.text_input("एकक (Unit):", value="pcs")
+                        new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0)
+                    
+                    submit_nb = st.form_submit_button("📦 इन्व्हेंटरीमध्ये जोडा (Save to Inventory)", type="primary", use_container_width=True)
+                    if submit_nb:
+                        if not new_item_title.strip():
+                            st.error("कृपया वस्तूचे नाव भरा!")
+                        else:
+                            try:
+                                with sqlite3.connect("ledger.db") as conn:
+                                    conn.execute("BEGIN TRANSACTION;")
+                                    cursor = conn.cursor()
+                                    cursor.execute("""
+                                    INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
+                                    VALUES (?, ?, ?, ?, ?, ?)
+                                    """, (new_item_title.strip(), new_item_qty, new_item_unit.strip(), new_item_alert, new_item_bar.strip(), new_item_price))
+                                    conn.commit()
+                                log_activity(st.session_state.get('current_username', 'admin'), f"Added Barcode Item {new_item_title.strip()} ({new_item_bar.strip()})")
+                                st.toast(f"✅ '{new_item_title}' इन्व्हेंटरीमध्ये जोडली गेली!", icon="📦")
+                                st.success("नवीन वस्तू यशस्वीरित्या इन्व्हेंटरीमध्ये जोडली गेली!")
+                                st.session_state.pop("temp_detected_prod_name", None)
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(f"Error: {ex}")
+        else:
+            st.info("👆 वरील बॉक्समध्ये बारकोड नंबर टाका, कॅमेऱ्याने फोटो घ्या किंवा नमुना बटणावर क्लिक करा.")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
     
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
@@ -3745,6 +4058,91 @@ elif selected_page == "Business Operations":
             else:
                 st.info("No expenses recorded.")
             st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab_shop_profile:
+        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="business-section-heading">
+            <div class="business-section-icon">⚙️</div>
+            <div>
+                <h3 class="business-section-title">Shop Profile & UPI Configuration</h3>
+                <p class="business-section-caption">दुकानाचे नाव, पत्ता आणि खरा UPI ID सेट करा. हे तपशील थर्मल पावती, QR कोड आणि व्हॉट्सॲप मेसेजमध्ये आपोआप वापरले जातील.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        cur_shop_name = get_shop_setting("shop_name", "VernaLedger Store")
+        cur_shop_owner = get_shop_setting("shop_owner", "VernaLedger Admin")
+        cur_shop_upi = get_shop_setting("shop_upi_id", "vernaledger@upi")
+        cur_shop_phone = get_shop_setting("shop_phone", "+91 9822000000")
+        cur_shop_addr = get_shop_setting("shop_address", "मेन मार्केट रोड, सातारा, महाराष्ट्र")
+        cur_shop_tagline = get_shop_setting("shop_tagline", "धन्यवाद! पुन्हा भेट द्या.")
+        cur_shop_gstin = get_shop_setting("shop_gstin", "27AAAAA0000A1Z5")
+
+        prof_c1, prof_c2 = st.columns([1.1, 0.9])
+        with prof_c1:
+            with st.form("shop_profile_form"):
+                st.markdown("##### 🏪 दुकानाचे मूळ तपशील (Store Information):")
+                f_name = st.text_input("दुकानाचे नाव (Shop / Store Name):", value=cur_shop_name)
+                f_owner = st.text_input("मालक / प्राप्तकर्त्याचे नाव (Payee / Owner Name):", value=cur_shop_owner)
+                f_upi = st.text_input("व्यवसायाचा खरा UPI ID (Business UPI ID e.g. shop@okaxis):", value=cur_shop_upi, help="ग्राहक QR स्कॅन केल्यावर या UPI आयडीवर थेट रक्कम जमा होईल.")
+                
+                f_col_sub1, f_col_sub2 = st.columns(2)
+                with f_col_sub1:
+                    f_phone = st.text_input("मोबाईल / संपर्क क्रमांक:", value=cur_shop_phone)
+                with f_col_sub2:
+                    f_gstin = st.text_input("GSTIN (ऐच्छिक):", value=cur_shop_gstin)
+                
+                f_addr = st.text_area("दुकानाचा पत्ता (Shop Address):", value=cur_shop_addr, height=70)
+                f_tagline = st.text_input("पावतीवरील शुभेच्छा / तळटीप (Receipt Footer):", value=cur_shop_tagline)
+
+                save_prof_btn = st.form_submit_button("💾 प्रोफाइल व UPI सेव्ह करा (Save Configuration)", type="primary", use_container_width=True)
+                if save_prof_btn:
+                    if not f_name.strip() or not f_upi.strip():
+                        st.error("कृपया दुकानाचे नाव आणि UPI ID भरा!")
+                    else:
+                        set_shop_setting("shop_name", f_name.strip())
+                        set_shop_setting("shop_owner", f_owner.strip())
+                        set_shop_setting("shop_upi_id", f_upi.strip())
+                        set_shop_setting("shop_phone", f_phone.strip())
+                        set_shop_setting("shop_address", f_addr.strip())
+                        set_shop_setting("shop_tagline", f_tagline.strip())
+                        set_shop_setting("shop_gstin", f_gstin.strip())
+                        log_activity(st.session_state.get('current_username', 'admin'), "Updated Shop Profile & UPI Settings")
+                        st.toast("✅ दुकानाची माहिती व UPI ID सुरक्षित सेव्ह झाले!", icon="💾")
+                        st.success("सर्व बदल यशस्वीरित्या जतन झाले! पावती व QR कोड त्वरित अपडेट झाले आहेत.")
+                        st.rerun()
+
+        with prof_c2:
+            st.markdown("##### ⚡ थेट UPI टेस्ट QR कोड (Live Test Preview):")
+            test_amt = st.number_input("चाचणी रक्कम (Test ₹):", min_value=1.0, value=10.0, step=10.0, key="upi_test_amt_input")
+            
+            test_qr_b64 = generate_upi_qr_base64(test_amt, vpa=cur_shop_upi, payee_name=cur_shop_owner or cur_shop_name, note="UPI Verification")
+            
+            st.markdown(f"""
+            <div style='background:rgba(0,0,0,0.35); border:1px dashed rgba(0, 242, 254, 0.5); border-radius:12px; padding:16px; text-align:center;'>
+                <div style='font-size:12px; font-weight:700; color:#00f2fe; margin-bottom:4px;'>{cur_shop_name}</div>
+                <div style='font-size:11px; color:#94a3b8; margin-bottom:10px;'>UPI ID: <code style='color:#00ff87;'>{cur_shop_upi}</code></div>
+                <img src="data:image/png;base64,{test_qr_b64}" style="width: 140px; height: 140px; border-radius: 8px; background: white; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
+                <div style='font-size:16px; font-weight:800; color:#00ff87; margin-top:8px;'>₹{test_amt:,.2f}</div>
+                <div style='font-size:10px; color:#cbd5e1; margin-top:4px;'>
+                    हा QR तुमच्या मोबाईलवरील GPay, PhonePe किंवा Paytm ने स्कॅन करून थेट पडताळणी करू शकता.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<div style='margin-top:14px;'>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style='background:rgba(255,255,255,0.04); border-left:3px solid #00f2fe; padding:10px; border-radius:4px;'>
+                <div style='font-size:11px; font-weight:700; color:#00f2fe;'>🧾 पावती हेडर पूर्वावलोकन (POS Slip Header):</div>
+                <div style='font-size:12px; font-weight:bold; color:#fff; margin-top:4px;'>{cur_shop_name}</div>
+                <div style='font-size:10px; color:#94a3b8;'>{cur_shop_addr}</div>
+                <div style='font-size:10px; color:#94a3b8;'>मोबाईल: {cur_shop_phone} | GST: {cur_shop_gstin}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
     
 # FEATURE 6: ADMIN STAFF MANAGEMENT ---
 elif selected_page == "Staff Management":
