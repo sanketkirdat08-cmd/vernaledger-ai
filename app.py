@@ -3251,12 +3251,11 @@ with st.sidebar:
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
     st.markdown(f"""
-    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 4px 8px; border-radius: 4px; margin-bottom: 10px; text-align: center; box-shadow: 0 0 5px {role_badge_color}44;">
-        <span style="font-size: 10px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
+    <div style="text-align: center; margin: 2px 0 8px 0;">
+        <span style="font-size: 10px; font-weight: 700; color: {role_badge_color}; background: rgba(15, 23, 42, 0.85); border: 1px solid {role_badge_color}55; padding: 2px 10px; border-radius: 12px; letter-spacing: 0.5px;">● ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<div style='font-size:10px; color:#8892b0; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Customer Khata", "Business Operations", "RAG AI Chat"]
     else:
@@ -3271,16 +3270,7 @@ with st.sidebar:
         st.query_params["page"] = selected_page
         st.rerun()
     
-    st.markdown("<hr style='margin: 10px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
-    
-    st.markdown('''
-    <div class="dev-credit-box" style="margin-bottom:10px; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px; border-left:3px solid #00f2fe;">
-        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 2px;">Project Developers</div>
-        <div style="font-size: 9px; font-weight: 700; color: #ffffff; line-height: 1.2;">
-            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+    st.markdown("<hr style='margin: 8px 0; border-color: rgba(0, 242, 254, 0.15);'>", unsafe_allow_html=True)
     
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
     if st.button("\U0001f6aa Logout System"):
@@ -3391,38 +3381,34 @@ if selected_page == "OCR Scanner":
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         
         curr_mode = st.session_state.get('input_method', 'Upload File')
-        m_c1, m_c2, m_c3, m_c4 = st.columns(4)
+        is_receipt = curr_mode in ["Upload File", "Live Camera"]
+        is_barcode = curr_mode == "Barcode Scanner"
+        is_voice = curr_mode == "Multi-Language Voice Bill"
+
+        # 3 Clean Primary Modes
+        m_c1, m_c2, m_c3 = st.columns(3)
         with m_c1:
             if st.button(
-                "📁 File Upload" if is_english else "📁 पावती फाईल",
-                type="primary" if curr_mode == "Upload File" else "secondary",
+                "📄 पावती स्कॅनर" if not is_english else "📄 Receipt OCR",
+                type="primary" if is_receipt else "secondary",
                 use_container_width=True,
-                key="btn_mode_upload"
+                key="btn_mode_receipt"
             ):
-                st.session_state['input_method'] = "Upload File"
+                st.session_state['input_method'] = st.session_state.get('receipt_source', 'Upload File')
                 st.rerun()
         with m_c2:
             if st.button(
-                "📸 Live Camera" if is_english else "📸 कॅमेरा",
-                type="primary" if curr_mode == "Live Camera" else "secondary",
-                use_container_width=True,
-                key="btn_mode_camera"
-            ):
-                st.session_state['input_method'] = "Live Camera"
-                st.rerun()
-        with m_c3:
-            if st.button(
-                "🏷️ Barcode" if is_english else "🏷️ बारकोड",
-                type="primary" if curr_mode == "Barcode Scanner" else "secondary",
+                "🏷️ बारकोड गन" if not is_english else "🏷️ Barcode Gun",
+                type="primary" if is_barcode else "secondary",
                 use_container_width=True,
                 key="btn_mode_barcode"
             ):
                 st.session_state['input_method'] = "Barcode Scanner"
                 st.rerun()
-        with m_c4:
+        with m_c3:
             if st.button(
-                "🎙️ Voice Bill" if is_english else "🎙️ व्हॉईस बिल",
-                type="primary" if curr_mode == "Multi-Language Voice Bill" else "secondary",
+                "🎙️ व्हॉईस बिल" if not is_english else "🎙️ Voice Bill",
+                type="primary" if is_voice else "secondary",
                 use_container_width=True,
                 key="btn_mode_voice"
             ):
@@ -3431,27 +3417,36 @@ if selected_page == "OCR Scanner":
                 
         input_method = st.session_state.get('input_method', 'Upload File')
 
-        # Safeguard & Reset Bar
-        ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
-        with ctrl_c1:
-            if input_method != "Barcode Scanner":
+        # Safeguard & Reset Bar (Receipt mode only)
+        if is_receipt:
+            sub_col1, sub_col2 = st.columns(2)
+            with sub_col1:
+                if st.button("📁 फाईल निवडा (Gallery)", type="primary" if input_method == "Upload File" else "secondary", use_container_width=True, key="sub_btn_upload"):
+                    st.session_state['input_method'] = "Upload File"
+                    st.session_state['receipt_source'] = "Upload File"
+                    st.rerun()
+            with sub_col2:
+                if st.button("📸 थेट कॅमेरा (Camera)", type="primary" if input_method == "Live Camera" else "secondary", use_container_width=True, key="sub_btn_camera"):
+                    st.session_state['input_method'] = "Live Camera"
+                    st.session_state['receipt_source'] = "Live Camera"
+                    st.rerun()
+
+            ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
+            with ctrl_c1:
                 force_save_option = st.checkbox(
                     _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
                     value=False,
                     help="सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
                 )
-            else:
-                force_save_option = False
-        with ctrl_c2:
-            show_reset = bool(st.session_state.get('processed_batch') or st.session_state.get('active_barcode_search'))
-            if show_reset:
-                if st.button("🔄 नवीन / रिसेट (Reset)", key="reset_ocr_data", use_container_width=True):
-                    st.session_state['processed_batch'] = []
-                    st.session_state['processed_data'] = None
-                    st.session_state['warning_msg'] = None
-                    st.session_state['active_barcode_search'] = ""
-                    st.session_state.pop('temp_detected_prod_name', None)
-                    st.rerun()
+            with ctrl_c2:
+                if st.session_state.get('processed_batch'):
+                    if st.button("🔄 रिसेट (Reset)", key="reset_ocr_data", use_container_width=True):
+                        st.session_state['processed_batch'] = []
+                        st.session_state['processed_data'] = None
+                        st.session_state['warning_msg'] = None
+                        st.rerun()
+        else:
+            force_save_option = False
 
         up_files = []
         up_cam = None
@@ -3488,96 +3483,73 @@ if selected_page == "OCR Scanner":
             up_cam = st.camera_input("Take photo", label_visibility="collapsed", key="ocr_live_cam")
 
         elif input_method == "Barcode Scanner":
-            barcode_work_mode = st.radio(
-                "कार्यप्रणाली निवडा (Select Operation Mode):",
-                ["📥 DMart Rapid Inward (जलद माल भरणा)", "🛒 POS Sale & Bill (ग्राहक विक्री / बिलिंग)"],
-                index=0 if st.session_state.get("barcode_work_mode", "📥 DMart Rapid Inward (जलद माल भरणा)").startswith("📥") else 1,
-                horizontal=True,
-                key="barcode_work_mode_radio"
-            )
-            st.session_state["barcode_work_mode"] = barcode_work_mode
-            is_inward = barcode_work_mode.startswith("📥")
+            barcode_work_mode = st.session_state.get("barcode_work_mode", "inward")
+            is_inward = (barcode_work_mode == "inward" or str(barcode_work_mode).startswith("📥"))
 
-            if is_inward:
-                st.markdown("""
-                <div class='scanner-viewfinder' style='border-color: rgba(0, 255, 135, 0.45); background: rgba(0, 255, 135, 0.05);'>
-                    <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                        <span class='scanner-pill-success'>🏢 DMart Rapid Inward सज्ज</span>
-                        <span class='scanner-pill-success'>● कॅमेरा / गन सक्रिय</span>
-                    </div>
-                    <div style='font-size: 11px; color: #cbd5e1; line-height: 1.4;'>
-                        <b>गोदाम / दुकानात आलेला माल भरण्यासाठी:</b> नवीन बॉक्स किंवा वस्तूचा बारकोड स्कॅन करा. १-क्लिकमध्ये साठा जमा होईल.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.4);'>
-                    <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                        <span class='scanner-pill'>🛒 POS Retail Sale सज्ज</span>
-                        <span class='scanner-pill-success'>● कॅमेरा सक्रिय</span>
-                    </div>
-                    <div style='font-size: 11px; color: #cbd5e1; line-height: 1.4;'>
-                        <b>ग्राहकाला विक्री करताना:</b> वस्तूचा बारकोड स्कॅन करा, दर व साठा तपासा आणि १-क्लिकमध्ये विक्री नोंदवा.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            if st.session_state.get("active_barcode_search"):
-                if st.button("🔄 पुढील वस्तू स्कॅन करा (Scan Next Item / Clear)", key="btn_clear_barcode_top", type="primary", use_container_width=True):
-                    st.session_state["active_barcode_search"] = ""
-                    st.session_state.pop("temp_detected_prod_name", None)
-                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                    st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
+            bw_c1, bw_c2 = st.columns(2)
+            with bw_c1:
+                if st.button("📥 जलद माल भरणा (Inward)", type="primary" if is_inward else "secondary", use_container_width=True, key="btn_bmode_inward"):
+                    st.session_state["barcode_work_mode"] = "inward"
                     st.rerun()
-
-            scan_mode = st.radio(
-                "स्कॅनर पद्धत निवडा:",
-                ["⚡ DMart Live Gun (फोटो न काढता थेट स्कॅन)", "📸 फोटो क्लिक / गॅलरी अपलोड"],
-                horizontal=True,
-                key="barcode_cam_mode_radio"
-            )
+            with bw_c2:
+                if st.button("🛒 ग्राहक विक्री (POS Sale)", type="primary" if not is_inward else "secondary", use_container_width=True, key="btn_bmode_sale"):
+                    st.session_state["barcode_work_mode"] = "sale"
+                    st.rerun()
 
             cam_k_idx = st.session_state.get("cam_bar_key_idx", 0)
 
-            if scan_mode.startswith("⚡"):
-                st.markdown("""
-                <div style='background: rgba(0, 255, 135, 0.06); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 8px; padding: 7px 12px; margin: 4px 0 8px 0; font-size: 11px; color: #cbd5e1;'>
-                    🎯 <b>कॅमेरा गन मोड:</b> कॅमेरा सुरू होताच बारकोड लाल रेषेच्या मध्यभागी धरा. <b>कोणतेही बटण दाबायची गरज नाही</b>, आपोआप बीप (Beep) वाजून ०.१ सेकंदात स्कॅन होईल!
-                </div>
-                """, unsafe_allow_html=True)
-
-                curr_bar = st.session_state.get("active_barcode_search", "").strip()
-                live_res = BARCODE_SCANNER_COMPONENT(
-                    key=f"live_gun_scanner_{cam_k_idx}",
-                    active_barcode=curr_bar
-                )
-                if live_res and isinstance(live_res, dict):
-                    if live_res.get("action") == "resume":
+            # Scanned Item Clear / Next Button at top
+            if st.session_state.get("active_barcode_search"):
+                cur_b = st.session_state["active_barcode_search"]
+                top_b1, top_b2 = st.columns([1.2, 1])
+                with top_b1:
+                    st.markdown(f"<div style='padding: 6px 0; font-size: 13px; font-weight: 700; color: #00ff87;'>🎯 स्कॅन बारकोड: <code>{cur_b}</code></div>", unsafe_allow_html=True)
+                with top_b2:
+                    if st.button("🔄 पुढील वस्तू स्कॅन करा", key="btn_clear_barcode_top", type="primary", use_container_width=True):
                         st.session_state["active_barcode_search"] = ""
                         st.session_state.pop("temp_detected_prod_name", None)
                         st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                        st.session_state["cam_bar_key_idx"] = cam_k_idx + 1
                         st.rerun()
-                    elif live_res.get("barcode"):
-                        l_code = str(live_res["barcode"]).strip()
-                        if l_code and l_code != curr_bar:
-                            st.session_state["active_barcode_search"] = l_code
-                            st.toast(f"⚡ स्कॅन झाले (Live Gun): {l_code}", icon="✅")
-                            st.rerun()
-            else:
-                st.markdown("""
-                <div style='background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 7px 12px; margin: 4px 0 8px 0; font-size: 11px; color: #cbd5e1;'>
-                    💡 <b>अचूक स्कॅन टीप:</b> वस्तूचा बारकोड कॅमेऱ्याच्या मध्यभागी १५-२० सेमी अंतरावर धरा आणि फोटो स्पष्ट येऊ द्या.
-                </div>
-                """, unsafe_allow_html=True)
 
-                b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key=f"cam_bar_main_{cam_k_idx}")
-                if b_cam_file:
-                    cam_raw = b_cam_file.getvalue()
-                    cam_hash = hashlib.md5(cam_raw).hexdigest()
-                    if st.session_state.get("last_scanned_barcode_cam_hash") != cam_hash:
-                        st.session_state["last_scanned_barcode_cam_hash"] = cam_hash
-                        dec_info = decode_barcode_image(cam_raw)
+            # LIVE CONTINUOUS GUN SCANNER (Instant GPU / WebAssembly)
+            curr_bar = st.session_state.get("active_barcode_search", "").strip()
+            live_res = BARCODE_SCANNER_COMPONENT(
+                key=f"live_gun_scanner_{cam_k_idx}",
+                active_barcode=curr_bar
+            )
+            if live_res and isinstance(live_res, dict):
+                if live_res.get("action") == "resume":
+                    st.session_state["active_barcode_search"] = ""
+                    st.session_state.pop("temp_detected_prod_name", None)
+                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                    st.rerun()
+                elif live_res.get("barcode"):
+                    l_code = str(live_res["barcode"]).strip()
+                    if l_code and l_code != curr_bar:
+                        st.session_state["active_barcode_search"] = l_code
+                        st.toast(f"⚡ स्कॅन झाले: {l_code}", icon="✅")
+                        st.rerun()
+
+            # Sleek manual barcode entry & file upload fallback
+            with st.expander("⌨️ बारकोड नंबर थेट टाका किंवा फोटो अपलोड करा (Manual / File)"):
+                scanned_code = st.text_input(
+                    "बारकोड नंबर किंवा USB Barcode Gun:",
+                    value=st.session_state.get("active_barcode_search", ""),
+                    placeholder="उदा. 8901030384102",
+                    key="barcode_text_entry_main"
+                )
+                if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
+                    st.session_state["active_barcode_search"] = scanned_code.strip()
+                    st.rerun()
+
+                b_up_file = st.file_uploader("किंवा गॅलरीमधून बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
+                if b_up_file:
+                    up_raw = b_up_file.getvalue()
+                    up_hash = hashlib.md5(up_raw).hexdigest()
+                    if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
+                        st.session_state["last_scanned_barcode_cam_hash"] = up_hash
+                        dec_info = decode_barcode_image(up_raw)
                         if dec_info.get("detected"):
                             f_code = dec_info.get("barcode", "").strip()
                             f_prod = dec_info.get("product_name", "").strip()
@@ -3587,59 +3559,10 @@ if selected_page == "OCR Scanner":
                                 st.session_state["active_barcode_search"] = f_prod
                             if f_prod:
                                 st.session_state["temp_detected_prod_name"] = f_prod
-                            m_type = dec_info.get("method", "Gun Scanner")
-                            st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
+                            st.toast(f"⚡ स्कॅन झाले: {f_code or f_prod}", icon="✅")
                             st.rerun()
                         else:
-                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड कॅमेऱ्याच्या मध्यभागी जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
-                            if st.button("🔄 पुन्हा फोटो घ्या (Retake Photo)", key="btn_retake_cam_barcode", type="primary", use_container_width=True):
-                                st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                                st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
-                                st.rerun()
-
-                with st.expander("📁 किंवा गॅलरी/फाईल मधून बारकोड फोटो निवडा (Upload from Gallery)"):
-                    b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
-                    if b_up_file:
-                        up_raw = b_up_file.getvalue()
-                        up_hash = hashlib.md5(up_raw).hexdigest()
-                        if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
-                            st.session_state["last_scanned_barcode_cam_hash"] = up_hash
-                            dec_info = decode_barcode_image(up_raw)
-                            if dec_info.get("detected"):
-                                f_code = dec_info.get("barcode", "").strip()
-                                f_prod = dec_info.get("product_name", "").strip()
-                                if f_code:
-                                    st.session_state["active_barcode_search"] = f_code
-                                elif f_prod:
-                                    st.session_state["active_barcode_search"] = f_prod
-                                if f_prod:
-                                    st.session_state["temp_detected_prod_name"] = f_prod
-                                m_type = dec_info.get("method", "Gun Scanner")
-                                st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
-                                st.rerun()
-                            else:
-                                st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया अधिक स्पष्ट फोटो निवडा.")
-
-            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 10px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा USB Barcode Gun वापरा):</div>", unsafe_allow_html=True)
-            scanned_code = st.text_input(
-                "बारकोड प्रविष्ट करा:",
-                value=st.session_state.get("active_barcode_search", ""),
-                placeholder="उदा. 8901030384102 (किंवा स्कॅनर गनने स्कॅन करा)",
-                label_visibility="collapsed",
-                key="barcode_text_entry_main"
-            )
-            if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
-                st.session_state["active_barcode_search"] = scanned_code.strip()
-                st.rerun()
-
-            if st.session_state.get("active_barcode_search"):
-                cur_b = st.session_state["active_barcode_search"]
-                st.markdown(f"""
-                <div style='background: rgba(0, 255, 135, 0.08); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 12px; color: #cbd5e1;'>
-                    🎯 <b>स्कॅन झालेला बारकोड:</b> <code style='color:#00ff87; font-weight:700;'>{cur_b}</code><br>
-                    👉 <b>उजव्या बाजूला / खाली साठ्यात जमा करण्याचा फॉर्म उघडला आहे.</b>
-                </div>
-                """, unsafe_allow_html=True)
+                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही.")
 
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
@@ -3802,8 +3725,8 @@ if selected_page == "OCR Scanner":
         detected_pname = st.session_state.get("temp_detected_prod_name", "").strip()
 
         if input_method == "Barcode Scanner":
-            barcode_work_mode = st.session_state.get("barcode_work_mode", "📥 DMart Rapid Inward (जलद माल भरणा)")
-            is_inward = barcode_work_mode.startswith("📥")
+            barcode_work_mode = st.session_state.get("barcode_work_mode", "inward")
+            is_inward = (barcode_work_mode == "inward" or str(barcode_work_mode).startswith("📥"))
 
             if search_barcode:
                 inv_item = None
@@ -3880,20 +3803,20 @@ if selected_page == "OCR Scanner":
                             st.rerun()
 
                         with q_c1:
+                            if st.button("➕ १\n(१ नग)", key=f"dmart_add_1_{item_id}", use_container_width=True):
+                                handle_inward_add(1.0)
+                        with q_c2:
                             if st.button("➕ ६\n(१/२ डझन)", key=f"dmart_add_6_{item_id}", use_container_width=True):
                                 handle_inward_add(6.0)
-                        with q_c2:
+                        with q_c3:
                             if st.button("➕ १२\n(१ डझन)", key=f"dmart_add_12_{item_id}", use_container_width=True, type="primary"):
                                 handle_inward_add(12.0)
-                        with q_c3:
+                        with q_c4:
                             if st.button("➕ २४\n(२ डझन)", key=f"dmart_add_24_{item_id}", use_container_width=True):
                                 handle_inward_add(24.0)
-                        with q_c4:
+                        with q_c5:
                             if st.button("➕ ५०\n(कार्टन)", key=f"dmart_add_50_{item_id}", use_container_width=True):
                                 handle_inward_add(50.0)
-                        with q_c5:
-                            if st.button("➕ १००\n(घाऊक)", key=f"dmart_add_100_{item_id}", use_container_width=True):
-                                handle_inward_add(100.0)
 
                         # Custom Quantity Entry
                         st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 8px 0 4px 0;'>किंवा हवी तेवढी संख्या टाकून साठ्यात जमा करा:</div>", unsafe_allow_html=True)
@@ -3996,26 +3919,31 @@ if selected_page == "OCR Scanner":
                 else:
                     # Item not found in shop_inventory
                     st.markdown(f"""
-                    <div style='background: rgba(0, 255, 135, 0.08); border: 1px dashed #00ff87; border-radius: 12px; padding: 14px; margin-bottom: 12px;'>
-                        <div style='font-size: 13px; font-weight: 800; color: #00ff87;'>✨ नवीन माल सापडला! डीएमार्ट द्रुत नोंदणी (Fast Item Registration)</div>
+                    <div style='background: rgba(0, 255, 135, 0.08); border: 1px dashed #00ff87; border-radius: 12px; padding: 12px; margin-bottom: 10px;'>
+                        <div style='font-size: 13px; font-weight: 800; color: #00ff87;'>✨ नवीन माल सापडला (New Product Inward)</div>
                         <div style='font-size: 11px; color: #cbd5e1; margin-top: 2px;'>
-                            बारकोड <code>{search_barcode}</code> इन्व्हेंटरीमध्ये नव्हता. खालील माहिती भरून १-क्लिकमध्ये साठ्यात जमा करा:
+                            बारकोड <code>{search_barcode}</code> - नाव व प्रमाण भरून १-क्लिकमध्ये साठ्यात जमा करा:
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
 
                     with st.form(f"main_add_barcode_item_form_{search_barcode}_{cam_k_idx}"):
-                        nb_col1, nb_col2 = st.columns(2)
-                        with nb_col1:
-                            new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode, key=f"f_bar_{search_barcode}_{cam_k_idx}")
-                            new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन उत्पादन", key=f"f_title_{search_barcode}_{cam_k_idx}")
-                            new_item_qty = st.number_input("आवक साठा प्रमाण (Inward Qty):", min_value=1.0, value=24.0, step=1.0, key=f"f_qty_{search_barcode}_{cam_k_idx}")
-                        with nb_col2:
-                            new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0, key=f"f_price_{search_barcode}_{cam_k_idx}")
-                            new_item_unit = st.text_input("एकक (Unit e.g. pcs, kg, pkt):", value="pcs", key=f"f_unit_{search_barcode}_{cam_k_idx}")
-                            new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0, key=f"f_alert_{search_barcode}_{cam_k_idx}")
+                        f_n1, f_n2 = st.columns([1.4, 1])
+                        with f_n1:
+                            new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "", placeholder="उदा. ब्रिटानिया बिस्कीट", key=f"f_title_{search_barcode}_{cam_k_idx}")
+                        with f_n2:
+                            new_item_price = st.number_input("विक्री दर (₹):", min_value=0.0, value=20.0, step=5.0, key=f"f_price_{search_barcode}_{cam_k_idx}")
 
-                        submit_nb = st.form_submit_button("📥 नवीन वस्तू साठ्यात जमा करा (Save & Inward Stock)", type="primary", use_container_width=True)
+                        f_q1, f_q2, f_q3 = st.columns(3)
+                        with f_q1:
+                            new_item_qty = st.number_input("आवक साठा (+Qty):", min_value=1.0, value=24.0, step=1.0, key=f"f_qty_{search_barcode}_{cam_k_idx}")
+                        with f_q2:
+                            new_item_unit = st.text_input("एकक (Unit):", value="pcs", key=f"f_unit_{search_barcode}_{cam_k_idx}")
+                        with f_q3:
+                            new_item_alert = st.number_input("कमी साठा मर्यादा:", min_value=1.0, value=5.0, step=1.0, key=f"f_alert_{search_barcode}_{cam_k_idx}")
+                        new_item_bar = search_barcode
+
+                        submit_nb = st.form_submit_button("📥 नवीन वस्तू साठ्यात जमा करा (Save & Inward)", type="primary", use_container_width=True)
                         if submit_nb:
                             if not new_item_title.strip():
                                 st.error("कृपया वस्तूचे नाव भरा!")
@@ -4109,31 +4037,22 @@ if selected_page == "OCR Scanner":
 
                 elif not search_barcode:
                     st.markdown("""
-                    <div style='text-align: center; padding: 35px 15px;'>
-                        <div style='font-size: 42px; margin-bottom: 8px;'>🏢</div>
-                        <div style='font-size: 16px; font-weight: 700; color: #00ff87; margin-bottom: 6px;'>डीएमार्ट जलद माल भरणा (Rapid Inwarding) सज्ज आहे</div>
-                        <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                            डाव्या बाजूला कॅमेऱ्याने किंवा बारकोड गनने मालाच्या बॉक्सचा बारकोड स्कॅन करा. एका क्लिकमध्ये +6, +12, +24, +50 साठा थेट गोदामात किंवा दुकानात जमा होईल.
-                        </div>
-                        <div style='margin-top: 18px; display: flex; justify-content: center; gap: 8px;'>
-                            <span class='scanner-pill-success'>⚡ 1-Click Box Add</span>
-                            <span class='scanner-pill'>📋 Live Inward Grid</span>
-                            <span class='scanner-pill-success'>✨ Fast Registration</span>
+                    <div style='text-align: center; padding: 20px 14px; background: rgba(0, 255, 135, 0.03); border: 1px dashed rgba(0, 255, 135, 0.25); border-radius: 12px; margin-bottom: 12px;'>
+                        <div style='font-size: 24px; margin-bottom: 4px;'>🏢</div>
+                        <div style='font-size: 14px; font-weight: 700; color: #00ff87;'>जलद माल भरणा (Rapid Inwarding) सज्ज</div>
+                        <div style='font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.4;'>
+                            बारकोड स्कॅन करताच वस्तूचा साठा व १-क्लिक भरणा बटणे येथे दिसतील.
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 if not search_barcode:
                     st.markdown("""
-                    <div style='text-align: center; padding: 40px 15px;'>
-                        <div style='font-size: 42px; margin-bottom: 10px;'>🛒</div>
-                        <div style='font-size: 16px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>POS रिटेल विक्री स्कॅनर सज्ज आहे</div>
-                        <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                            डाव्या बाजूला वस्तूचा बारकोड स्कॅन करा. वस्तूचा साठा व दर समोर दिसेल आणि १-क्लिकमध्ये विक्री नोंदवता येईल.
-                        </div>
-                        <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
-                            <span class='scanner-pill'>⚡ 1-Click Sale</span>
-                            <span class='scanner-pill-success'>💳 Instant UPI QR</span>
+                    <div style='text-align: center; padding: 20px 14px; background: rgba(0, 242, 254, 0.03); border: 1px dashed rgba(0, 242, 254, 0.25); border-radius: 12px; margin-bottom: 12px;'>
+                        <div style='font-size: 24px; margin-bottom: 4px;'>🛒</div>
+                        <div style='font-size: 14px; font-weight: 700; color: #00f2fe;'>POS विक्री स्कॅनर सज्ज</div>
+                        <div style='font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.4;'>
+                            बारकोड स्कॅन करताच वस्तूचा दर व १-क्लिक विक्री बटण येथे दिसेल.
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -4396,22 +4315,16 @@ elif selected_page == "Business Operations":
     
     with tab_stock:
         # Staff can now access this
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, rgba(0, 255, 135, 0.12) 0%, rgba(0, 242, 254, 0.05) 100%); border: 1px solid rgba(0, 255, 135, 0.35); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;'>
-            <div style='font-size: 16px; font-weight: 800; color: #00ff87; display: flex; align-items: center; gap: 8px;'>
-                🏢 डीएमार्ट स्टाईल जलद माल भरणा (DMart Rapid Inward Station)
-            </div>
-            <div style='font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;'>
-                नवीन आलेल्या मालाचे बॉक्स किंवा वस्तू मोबाईल कॅमेऱ्याने किंवा बारकोड गनने स्कॅन करा आणि १-क्लिकमध्ये (+६, +१२, +२४, +५०) थेट साठ्यात जमा करा.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("🚀 डीएमार्ट माल भरणा स्कॅनर उघडा (Open DMart Rapid Inward Scanner)", type="primary", use_container_width=True, key="btn_shortcut_dmart_inward"):
-            st.session_state["input_method"] = "Barcode Scanner"
-            st.session_state["barcode_work_mode"] = "📥 DMart Rapid Inward (जलद माल भरणा)"
-            st.session_state["selected_page"] = "OCR Scanner"
-            st.query_params["page"] = "OCR Scanner"
-            st.rerun()
+        top_s1, top_s2 = st.columns([1.5, 1])
+        with top_s1:
+            st.markdown("<div style='font-size: 15px; font-weight: 800; color: #00ff87; padding-top: 6px;'>📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड</div>", unsafe_allow_html=True)
+        with top_s2:
+            if st.button("⚡ बारकोड गनने माल भरा", type="primary", use_container_width=True, key="btn_shortcut_dmart_inward"):
+                st.session_state["input_method"] = "Barcode Scanner"
+                st.session_state["barcode_work_mode"] = "inward"
+                st.session_state["selected_page"] = "OCR Scanner"
+                st.query_params["page"] = "OCR Scanner"
+                st.rerun()
 
         ic1, ic2 = st.columns([1, 1])
         with ic1:
@@ -4423,7 +4336,6 @@ elif selected_page == "Business Operations":
                 <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
             </div>
             """, unsafe_allow_html=True)
-            st.info("💡 **झटपट पद्धत:** बारकोड स्कॅन करून थेट नवीन माल साठ्यात जोडण्यासाठी डाव्या मेनूतील **OCR Scanner -> 🏷️ Barcode** वापरा.")
             with st.form("stock_form"):
                 s_name = st.text_input("Item Name (वस्तूचे नाव)")
                 s_barcode = st.text_input("Barcode (ऐच्छिक / Barcode Scanner)", placeholder="उदा. 8901030384102")
