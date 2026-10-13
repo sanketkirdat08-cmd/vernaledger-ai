@@ -303,7 +303,10 @@ def set_shop_setting(key: str, value: str) -> None:
 
 def decode_barcode_image(image_bytes: bytes) -> dict:
     result = {"barcode": "", "product_name": "", "method": "", "detected": False}
-    # 1. OpenCV Barcode Detector
+    if not image_bytes:
+        return result
+
+    # 1. OpenCV Barcode & QR Detectors with multi-scale & enhancement pipeline
     try:
         import cv2
         import numpy as np
@@ -311,42 +314,96 @@ def decode_barcode_image(image_bytes: bytes) -> dict:
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is not None:
             detector = cv2.barcode.BarcodeDetector()
-            ok, decoded_info, _, _ = detector.detectAndDecode(img)
-            if ok and decoded_info:
-                val = decoded_info[0] if isinstance(decoded_info, (list, tuple)) else str(decoded_info)
-                if val and str(val).strip():
-                    result["barcode"] = str(val).strip()
-                    result["method"] = "OpenCV Barcode"
-                    result["detected"] = True
-                    return result
-    except Exception as e:
-        ai_logger.warning(f"OpenCV barcode decode: {e}")
+            qr_detector = cv2.QRCodeDetector()
+            
+            h, w = img.shape[:2]
+            scale = min(1.0, 1600.0 / max(h, w))
+            if scale < 1.0:
+                work_img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                work_img = img.copy()
 
-    # 2. Gemini Vision fallback
+            gray = cv2.cvtColor(work_img, cv2.COLOR_BGR2GRAY)
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+            enhanced_gray = clahe.apply(gray)
+            
+            variants = [work_img, gray, enhanced_gray]
+            ch, cw = gray.shape[:2]
+            crop = gray[int(ch * 0.15):int(ch * 0.85), int(cw * 0.1):int(cw * 0.9)]
+            variants.append(crop)
+            variants.append(cv2.rotate(gray, cv2.ROTATE_90_CLOCKWISE))
+
+            for v in variants:
+                try:
+                    res = detector.detectAndDecode(v)
+                    if res and len(res) >= 2:
+                        decoded_info = res[0]
+                        if isinstance(decoded_info, (list, tuple)) and len(decoded_info) > 0:
+                            val = str(decoded_info[0]).strip()
+                        else:
+                            val = str(decoded_info).strip() if decoded_info else ""
+                        if val:
+                            result["barcode"] = val
+                            result["method"] = "OpenCV Barcode"
+                            result["detected"] = True
+                            return result
+                except Exception as ex:
+                    ai_logger.debug(f"OpenCV variant decode error: {ex}")
+
+            for v in [work_img, gray]:
+                try:
+                    qr_res = qr_detector.detectAndDecode(v)
+                    if qr_res and len(qr_res) >= 1 and qr_res[0]:
+                        qr_val = str(qr_res[0]).strip()
+                        if qr_val:
+                            result["barcode"] = qr_val
+                            result["method"] = "OpenCV QR"
+                            result["detected"] = True
+                            return result
+                except Exception:
+                    pass
+    except Exception as e:
+        ai_logger.warning(f"OpenCV barcode decode exception: {e}")
+
+    # 2. Gemini Multimodal Vision AI Fallback
     if API_KEY:
         try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
+            genai.configure(api_key=API_KEY)
             img_pil = Image.open(BytesIO(image_bytes))
-            prompt = """Analyze this image. Find any barcode (EAN-13, UPC, Code128, etc.) or retail product packaging.
+            if max(img_pil.size) > 1600:
+                img_pil.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+
+            prompt = """You are an expert supermarket retail barcode and grocery scanner.
+Analyze this photo carefully.
+Identify any 1D barcode (EAN-13, EAN-8, UPC-A, Code-128, Code-39) or 2D QR code, OR retail product packaging.
 Extract:
-1. The exact numeric digits printed under or on the barcode.
-2. The product/item name written on the packaging.
-Return STRICT JSON ONLY with format:
-{"barcode": "digits or empty", "product_name": "product name or empty", "detected": true/false}"""
-            response = model.generate_content([prompt, img_pil])
-            if response and response.text:
-                clean_json = extract_valid_json(response.text)
-                if isinstance(clean_json, dict):
-                    b = str(clean_json.get("barcode", "")).strip()
-                    p = str(clean_json.get("product_name", "")).strip()
-                    if b or p:
-                        result["barcode"] = b
-                        result["product_name"] = p
-                        result["method"] = "Gemini Vision AI"
-                        result["detected"] = True
-                        return result
+1. "barcode": Look closely at the numeric digits printed below or near the barcode stripes. If you see the barcode number (e.g. 8901030384102, 8901030775269, 8901030864208), extract ONLY the digits string.
+2. "product_name": The exact retail item name or brand from the packaging (e.g. "Parle-G Gold", "Tata Tea", "Lifebuoy Soap", "Maggi Masala Noodles").
+3. "detected": true if barcode digits or product packaging is clearly identifiable, false otherwise.
+
+Return ONLY strict valid JSON:
+{"barcode": "digits or empty", "product_name": "product name or empty", "detected": true}"""
+
+            for model_name in get_active_gemini_models():
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content([prompt, img_pil])
+                    if response and response.text:
+                        clean_json = extract_valid_json(response.text)
+                        if isinstance(clean_json, dict):
+                            b = str(clean_json.get("barcode", "")).strip()
+                            p = str(clean_json.get("product_name", "")).strip()
+                            is_det = clean_json.get("detected", False) or bool(b or p)
+                            if is_det and (b or p):
+                                result["barcode"] = b
+                                result["product_name"] = p
+                                result["method"] = f"Gemini Vision ({model_name})"
+                                result["detected"] = True
+                                return result
+                except Exception as gerr:
+                    ai_logger.warning(f"Gemini {model_name} barcode failed: {gerr}")
         except Exception as e:
-            ai_logger.warning(f"Gemini barcode decode: {e}")
+            ai_logger.warning(f"Gemini barcode decode general failure: {e}")
 
     return result
 
@@ -3288,9 +3345,12 @@ if selected_page == "OCR Scanner":
                         f_prod = dec_info.get("product_name", "").strip()
                         if f_code:
                             st.session_state["active_barcode_search"] = f_code
+                        elif f_prod:
+                            st.session_state["active_barcode_search"] = f_prod
                         if f_prod:
                             st.session_state["temp_detected_prod_name"] = f_prod
-                        st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
+                        m_type = dec_info.get("method", "Scanner")
+                        st.toast(f"✅ सापडले ({m_type}): {f_code or f_prod}", icon="🔍")
                         st.rerun()
                     else:
                         st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
