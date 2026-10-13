@@ -7,4 +7,4 @@ textColor = "#f8fafc"
 font = "sans serif"
 
 [server]
-runOnSave = false
+runOnSave = true

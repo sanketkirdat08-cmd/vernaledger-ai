@@ -57,6 +57,11 @@ CHAT_INPUT_COMPONENT = components.declare_component(
     path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat_input_component"),
 )
 
+BARCODE_SCANNER_COMPONENT = components.declare_component(
+    "verna_barcode_scanner",
+    path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "barcode_scanner_component"),
+)
+
 # ERROR LOGGING SETUP
 logging.basicConfig(filename='app.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 ai_logger = logging.getLogger("vernaledger.ai")
@@ -3526,47 +3531,45 @@ if selected_page == "OCR Scanner":
                     st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
                     st.rerun()
 
-            st.markdown("""
-            <div style='background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 7px 12px; margin: 6px 0 10px 0; font-size: 11px; color: #cbd5e1;'>
-                💡 <b>अचूक स्कॅन टीप:</b> वस्तूचा बारकोड कॅमेऱ्याच्या मध्यभागी १५-२० सेमी अंतरावर धरा आणि फोटो स्पष्ट येऊ द्या.
-            </div>
-            """, unsafe_allow_html=True)
+            scan_mode = st.radio(
+                "स्कॅनर पद्धत निवडा:",
+                ["⚡ DMart Live Gun (फोटो न काढता थेट स्कॅन)", "📸 फोटो क्लिक / गॅलरी अपलोड"],
+                horizontal=True,
+                key="barcode_cam_mode_radio"
+            )
 
             cam_k_idx = st.session_state.get("cam_bar_key_idx", 0)
-            b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key=f"cam_bar_main_{cam_k_idx}")
-            if b_cam_file:
-                cam_raw = b_cam_file.getvalue()
-                cam_hash = hashlib.md5(cam_raw).hexdigest()
-                if st.session_state.get("last_scanned_barcode_cam_hash") != cam_hash:
-                    st.session_state["last_scanned_barcode_cam_hash"] = cam_hash
-                    dec_info = decode_barcode_image(cam_raw)
-                    if dec_info.get("detected"):
-                        f_code = dec_info.get("barcode", "").strip()
-                        f_prod = dec_info.get("product_name", "").strip()
-                        if f_code:
-                            st.session_state["active_barcode_search"] = f_code
-                        elif f_prod:
-                            st.session_state["active_barcode_search"] = f_prod
-                        if f_prod:
-                            st.session_state["temp_detected_prod_name"] = f_prod
-                        m_type = dec_info.get("method", "Gun Scanner")
-                        st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड कॅमेऱ्याच्या मध्यभागी जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
-                        if st.button("🔄 पुन्हा फोटो घ्या (Retake Photo)", key="btn_retake_cam_barcode", type="primary", use_container_width=True):
-                            st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                            st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
-                            st.rerun()
 
-            with st.expander("📁 किंवा गॅलरी/फाईल मधून बारकोड फोटो निवडा (Upload from Gallery)"):
-                b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
-                if b_up_file:
-                    up_raw = b_up_file.getvalue()
-                    up_hash = hashlib.md5(up_raw).hexdigest()
-                    if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
-                        st.session_state["last_scanned_barcode_cam_hash"] = up_hash
-                        dec_info = decode_barcode_image(up_raw)
+            if scan_mode.startswith("⚡"):
+                st.markdown("""
+                <div style='background: rgba(0, 255, 135, 0.06); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 8px; padding: 7px 12px; margin: 4px 0 8px 0; font-size: 11px; color: #cbd5e1;'>
+                    🎯 <b>कॅमेरा गन मोड:</b> कॅमेरा सुरू होताच बारकोड लाल रेषेच्या मध्यभागी धरा. <b>कोणतेही बटण दाबायची गरज नाही</b>, आपोआप बीप (Beep) वाजून ०.१ सेकंदात स्कॅन होईल!
+                </div>
+                """, unsafe_allow_html=True)
+
+                live_res = BARCODE_SCANNER_COMPONENT(key=f"live_gun_scanner_{cam_k_idx}")
+                if live_res and isinstance(live_res, dict) and live_res.get("barcode"):
+                    l_code = str(live_res["barcode"]).strip()
+                    l_time = live_res.get("timestamp", 0)
+                    if l_code and (l_code != st.session_state.get("active_barcode_search", "") or l_time != st.session_state.get("last_live_scan_time")):
+                        st.session_state["active_barcode_search"] = l_code
+                        st.session_state["last_live_scan_time"] = l_time
+                        st.toast(f"⚡ स्कॅन झाले (Live Gun): {l_code}", icon="✅")
+                        st.rerun()
+            else:
+                st.markdown("""
+                <div style='background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 7px 12px; margin: 4px 0 8px 0; font-size: 11px; color: #cbd5e1;'>
+                    💡 <b>अचूक स्कॅन टीप:</b> वस्तूचा बारकोड कॅमेऱ्याच्या मध्यभागी १५-२० सेमी अंतरावर धरा आणि फोटो स्पष्ट येऊ द्या.
+                </div>
+                """, unsafe_allow_html=True)
+
+                b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key=f"cam_bar_main_{cam_k_idx}")
+                if b_cam_file:
+                    cam_raw = b_cam_file.getvalue()
+                    cam_hash = hashlib.md5(cam_raw).hexdigest()
+                    if st.session_state.get("last_scanned_barcode_cam_hash") != cam_hash:
+                        st.session_state["last_scanned_barcode_cam_hash"] = cam_hash
+                        dec_info = decode_barcode_image(cam_raw)
                         if dec_info.get("detected"):
                             f_code = dec_info.get("barcode", "").strip()
                             f_prod = dec_info.get("product_name", "").strip()
@@ -3580,7 +3583,34 @@ if selected_page == "OCR Scanner":
                             st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
                             st.rerun()
                         else:
-                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया अधिक स्पष्ट फोटो निवडा.")
+                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड कॅमेऱ्याच्या मध्यभागी जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
+                            if st.button("🔄 पुन्हा फोटो घ्या (Retake Photo)", key="btn_retake_cam_barcode", type="primary", use_container_width=True):
+                                st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                                st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
+                                st.rerun()
+
+                with st.expander("📁 किंवा गॅलरी/फाईल मधून बारकोड फोटो निवडा (Upload from Gallery)"):
+                    b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
+                    if b_up_file:
+                        up_raw = b_up_file.getvalue()
+                        up_hash = hashlib.md5(up_raw).hexdigest()
+                        if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
+                            st.session_state["last_scanned_barcode_cam_hash"] = up_hash
+                            dec_info = decode_barcode_image(up_raw)
+                            if dec_info.get("detected"):
+                                f_code = dec_info.get("barcode", "").strip()
+                                f_prod = dec_info.get("product_name", "").strip()
+                                if f_code:
+                                    st.session_state["active_barcode_search"] = f_code
+                                elif f_prod:
+                                    st.session_state["active_barcode_search"] = f_prod
+                                if f_prod:
+                                    st.session_state["temp_detected_prod_name"] = f_prod
+                                m_type = dec_info.get("method", "Gun Scanner")
+                                st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
+                                st.rerun()
+                            else:
+                                st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया अधिक स्पष्ट फोटो निवडा.")
 
             st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 10px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा USB Barcode Gun वापरा):</div>", unsafe_allow_html=True)
             scanned_code = st.text_input(
