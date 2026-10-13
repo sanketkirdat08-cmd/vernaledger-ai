@@ -3255,65 +3255,47 @@ if selected_page == "OCR Scanner":
             st.markdown("""
             <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.4);'>
                 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                    <span class='scanner-pill'>🏷️ Barcode POS Engine</span>
-                    <span class='scanner-pill-success'>● स्कॅनर सज्ज</span>
+                    <span class='scanner-pill'>📱 Live Mobile Barcode Scanner</span>
+                    <span class='scanner-pill-success'>● कॅमेरा स्कॅनर सज्ज</span>
                 </div>
                 <div style='font-size: 11px; color: #cbd5e1; line-height: 1.4;'>
-                    USB बारकोड गनने स्कॅन करा, नंबर टाका किंवा खाली कॅमेऱ्याने फोटो घ्या.
+                    मोबाईल किंवा लॅपटॉप कॅमेऱ्यासमोर बारकोड धरा. वेगळ्या बारकोड गनची गरज नाही!
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
+            b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key="cam_bar_main")
+            if b_cam_file:
+                with st.spinner("🤖 AI बारकोड स्कॅन करत आहे..."):
+                    dec_info = decode_barcode_image(b_cam_file.getvalue())
+                    if dec_info.get("detected"):
+                        f_code = dec_info.get("barcode", "").strip()
+                        f_prod = dec_info.get("product_name", "").strip()
+                        if f_code:
+                            st.session_state["active_barcode_search"] = f_code
+                        if f_prod:
+                            st.session_state["temp_detected_prod_name"] = f_prod
+                        st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड दिसला नाही. कृपया बारकोड जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
+
+            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 10px 0 2px 0;'>किंवा बारकोड नंबर थेट टाका (किंवा Barcode Gun वापरा):</div>", unsafe_allow_html=True)
             scanned_code = st.text_input(
                 "बारकोड प्रविष्ट करा:",
                 value=st.session_state.get("active_barcode_search", ""),
-                placeholder="उदा. 8901030384102 (किंवा बारकोड गनने स्कॅन करा)",
+                placeholder="उदा. 8901030384102",
+                label_visibility="collapsed",
                 key="barcode_text_entry_main"
             )
             if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
                 st.session_state["active_barcode_search"] = scanned_code.strip()
 
-            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 6px 0 3px 0;'>💡 <b>झटपट चाचणी नमुने (क्लिक करा):</b></div>", unsafe_allow_html=True)
-            d_b1, d_b2, d_b3 = st.columns(3)
-            with d_b1:
-                if st.button("🥫 पार्ले-जी", key="main_bar_1", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030384102"
+            if st.session_state.get("active_barcode_search"):
+                if st.button("🔄 नवीन वस्तू स्कॅन करा (Clear / Scan Next)", key="btn_clear_barcode", use_container_width=True):
+                    st.session_state["active_barcode_search"] = ""
+                    st.session_state.pop("temp_detected_prod_name", None)
                     st.rerun()
-            with d_b2:
-                if st.button("☕ टाटा टी", key="main_bar_2", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030775269"
-                    st.rerun()
-            with d_b3:
-                if st.button("🧼 लाईफबॉय", key="main_bar_3", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030864208"
-                    st.rerun()
-
-            with st.expander("📷 कॅमेऱ्याने बारकोड स्कॅन करा किंवा फोटो अपलोड करा", expanded=False):
-                b_cam_opt = st.radio("स्कॅन प्रकार:", ["कॅमेरा", "फोटो फाईल"], horizontal=True, key="bar_opt_radio_main")
-                b_raw_bytes = None
-                if b_cam_opt == "कॅमेरा":
-                    b_cam_file = st.camera_input("बारकोडचा फोटो घ्या", key="cam_bar_main")
-                    if b_cam_file:
-                        b_raw_bytes = b_cam_file.getvalue()
-                else:
-                    b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg"], key="up_bar_main")
-                    if b_up_file:
-                        b_raw_bytes = b_up_file.getvalue()
-
-                if b_raw_bytes:
-                    with st.spinner("🤖 बारकोड ओळखत आहे..."):
-                        dec_info = decode_barcode_image(b_raw_bytes)
-                        if dec_info.get("detected"):
-                            f_code = dec_info.get("barcode", "").strip()
-                            f_prod = dec_info.get("product_name", "").strip()
-                            if f_code:
-                                st.session_state["active_barcode_search"] = f_code
-                            if f_prod:
-                                st.session_state["temp_detected_prod_name"] = f_prod
-                            st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
-                            st.rerun()
-                        else:
-                            st.warning("⚠️ स्पष्ट बारकोड दिसला नाही. कृपया नंबर थेट टाका.")
 
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
@@ -3837,7 +3819,7 @@ if selected_page == "OCR Scanner":
                     <div style='font-size: 42px; margin-bottom: 10px;'>🏷️</div>
                     <div style='font-size: 16px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>बारकोड स्कॅनर सज्ज आहे</div>
                     <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                        डाव्या बाजूला बारकोड नंबर टाका, USB गनने स्कॅन करा किंवा खाली कॅमेऱ्याने फोटो घ्या. वस्तूचा साठा व दर लगेच समोर दिसेल.
+                        डाव्या बाजूला कॅमेऱ्याने थेट बारकोड स्कॅन करा किंवा नंबर टाका. वस्तूचा साठा व दर लगेच समोर दिसेल.
                     </div>
                     <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
                         <span class='scanner-pill'>⚡ Instant Stock Match</span>
