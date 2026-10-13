@@ -7,3 +7,5 @@ edge-tts
 qrcode
 pillow
 pydantic
+zxing-cpp
+opencv-python

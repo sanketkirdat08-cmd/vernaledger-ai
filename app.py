@@ -17,7 +17,7 @@ import math
 from datetime import date, datetime
 from html import escape
 import google.generativeai as genai
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageOps
 from ocr_engine import (
     extract_valid_json,
     generate_marathi_tts,
@@ -326,12 +326,48 @@ def set_shop_setting(key: str, value: str) -> None:
     except Exception as e:
         ai_logger.error(f"Failed to set shop setting {key}: {e}")
 
-def decode_barcode_image(image_bytes: bytes) -> dict:
+def decode_barcode_image(image_bytes: bytes, use_ai_fallback: bool = False) -> dict:
     result = {"barcode": "", "product_name": "", "method": "", "detected": False}
     if not image_bytes:
         return result
 
-    # 1. OpenCV Barcode & QR Detectors with multi-scale & enhancement pipeline
+    # 1. Ultra-Fast C++ ZXing Engine (< 5 ms, detects EAN-13, EAN-8, UPC, Code-128, ITF, QR, DataMatrix)
+    try:
+        import zxingcpp
+        pil_img = Image.open(BytesIO(image_bytes))
+
+        # Direct scan (supports full 360-degree rotation natively)
+        zx_res = zxingcpp.read_barcode(pil_img)
+        if zx_res and zx_res.text:
+            result["barcode"] = str(zx_res.text).strip()
+            result["method"] = f"Gun Scanner ({zx_res.format})"
+            result["detected"] = True
+            return result
+
+        # Center-crop scan (where phone camera focuses on barcode)
+        w, h = pil_img.size
+        crop_box = (int(w * 0.1), int(h * 0.15), int(w * 0.9), int(h * 0.85))
+        cropped = pil_img.crop(crop_box)
+        zx_res = zxingcpp.read_barcode(cropped)
+        if zx_res and zx_res.text:
+            result["barcode"] = str(zx_res.text).strip()
+            result["method"] = f"Gun Scanner ({zx_res.format})"
+            result["detected"] = True
+            return result
+
+        # High-contrast enhancement for faint/reflective retail barcodes
+        gray_img = ImageOps.grayscale(pil_img)
+        contrasted = ImageEnhance.Contrast(gray_img).enhance(2.0)
+        zx_res = zxingcpp.read_barcode(contrasted)
+        if zx_res and zx_res.text:
+            result["barcode"] = str(zx_res.text).strip()
+            result["method"] = f"Gun Scanner ({zx_res.format})"
+            result["detected"] = True
+            return result
+    except Exception as ze:
+        ai_logger.debug(f"ZXing decode error: {ze}")
+
+    # 2. Local OpenCV Barcode & QR Detector (< 10 ms)
     try:
         import cv2
         import numpy as np
@@ -340,25 +376,8 @@ def decode_barcode_image(image_bytes: bytes) -> dict:
         if img is not None:
             detector = cv2.barcode.BarcodeDetector()
             qr_detector = cv2.QRCodeDetector()
-            
-            h, w = img.shape[:2]
-            scale = min(1.0, 1600.0 / max(h, w))
-            if scale < 1.0:
-                work_img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-            else:
-                work_img = img.copy()
-
-            gray = cv2.cvtColor(work_img, cv2.COLOR_BGR2GRAY)
-            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
-            enhanced_gray = clahe.apply(gray)
-            
-            variants = [work_img, gray, enhanced_gray]
-            ch, cw = gray.shape[:2]
-            crop = gray[int(ch * 0.15):int(ch * 0.85), int(cw * 0.1):int(cw * 0.9)]
-            variants.append(crop)
-            variants.append(cv2.rotate(gray, cv2.ROTATE_90_CLOCKWISE))
-
-            for v in variants:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            for v in [img, gray]:
                 try:
                     res = detector.detectAndDecode(v)
                     if res and len(res) >= 2:
@@ -372,63 +391,42 @@ def decode_barcode_image(image_bytes: bytes) -> dict:
                             result["method"] = "OpenCV Barcode"
                             result["detected"] = True
                             return result
-                except Exception as ex:
-                    ai_logger.debug(f"OpenCV variant decode error: {ex}")
-
-            for v in [work_img, gray]:
-                try:
-                    qr_res = qr_detector.detectAndDecode(v)
-                    if qr_res and len(qr_res) >= 1 and qr_res[0]:
-                        qr_val = str(qr_res[0]).strip()
-                        if qr_val:
-                            result["barcode"] = qr_val
-                            result["method"] = "OpenCV QR"
-                            result["detected"] = True
-                            return result
                 except Exception:
                     pass
-    except Exception as e:
-        ai_logger.warning(f"OpenCV barcode decode exception: {e}")
 
-    # 2. Gemini Multimodal Vision AI Fallback
-    if API_KEY:
+            qr_res = qr_detector.detectAndDecode(gray)
+            if qr_res and len(qr_res) >= 1 and qr_res[0]:
+                qr_val = str(qr_res[0]).strip()
+                if qr_val:
+                    result["barcode"] = qr_val
+                    result["method"] = "OpenCV QR"
+                    result["detected"] = True
+                    return result
+    except Exception as oe:
+        ai_logger.debug(f"OpenCV decode exception: {oe}")
+
+    # 3. Optional Gemini AI Fallback (only if explicitly enabled)
+    if use_ai_fallback and API_KEY:
         try:
             genai.configure(api_key=API_KEY)
             img_pil = Image.open(BytesIO(image_bytes))
-            if max(img_pil.size) > 1600:
-                img_pil.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
-
-            prompt = """You are an expert supermarket retail barcode and grocery scanner.
-Analyze this photo carefully.
-Identify any 1D barcode (EAN-13, EAN-8, UPC-A, Code-128, Code-39) or 2D QR code, OR retail product packaging.
-Extract:
-1. "barcode": Look closely at the numeric digits printed below or near the barcode stripes. If you see the barcode number (e.g. 8901030384102, 8901030775269, 8901030864208), extract ONLY the digits string.
-2. "product_name": The exact retail item name or brand from the packaging (e.g. "Parle-G Gold", "Tata Tea", "Lifebuoy Soap", "Maggi Masala Noodles").
-3. "detected": true if barcode digits or product packaging is clearly identifiable, false otherwise.
-
-Return ONLY strict valid JSON:
-{"barcode": "digits or empty", "product_name": "product name or empty", "detected": true}"""
-
-            for model_name in get_active_gemini_models():
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content([prompt, img_pil])
-                    if response and response.text:
-                        clean_json = extract_valid_json(response.text)
-                        if isinstance(clean_json, dict):
-                            b = str(clean_json.get("barcode", "")).strip()
-                            p = str(clean_json.get("product_name", "")).strip()
-                            is_det = clean_json.get("detected", False) or bool(b or p)
-                            if is_det and (b or p):
-                                result["barcode"] = b
-                                result["product_name"] = p
-                                result["method"] = f"Gemini Vision ({model_name})"
-                                result["detected"] = True
-                                return result
-                except Exception as gerr:
-                    ai_logger.warning(f"Gemini {model_name} barcode failed: {gerr}")
-        except Exception as e:
-            ai_logger.warning(f"Gemini barcode decode general failure: {e}")
+            if max(img_pil.size) > 1024:
+                img_pil.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+            prompt = 'Extract barcode digits from this product image. Return valid JSON only: {"barcode": "digits", "product_name": "name", "detected": true}'
+            active_models = get_active_gemini_models()
+            model_to_use = active_models[0] if active_models else "gemini-2.5-flash"
+            model = genai.GenerativeModel(model_to_use)
+            response = model.generate_content([prompt, img_pil])
+            if response and response.text:
+                clean_json = extract_valid_json(response.text)
+                if isinstance(clean_json, dict) and clean_json.get("barcode"):
+                    result["barcode"] = str(clean_json.get("barcode")).strip()
+                    result["product_name"] = str(clean_json.get("product_name", "")).strip()
+                    result["method"] = f"AI Vision ({model_to_use})"
+                    result["detected"] = True
+                    return result
+        except Exception as ge:
+            ai_logger.warning(f"AI Vision barcode fallback error: {ge}")
 
     return result
 
@@ -3387,12 +3385,18 @@ if selected_page == "OCR Scanner":
                 if st.button("🔄 पुढील वस्तू स्कॅन करा (Scan Next Item / Clear)", key="btn_clear_barcode_top", type="primary", use_container_width=True):
                     st.session_state["active_barcode_search"] = ""
                     st.session_state.pop("temp_detected_prod_name", None)
+                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                    st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
                     st.rerun()
 
-            b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key="cam_bar_main")
+            cam_k_idx = st.session_state.get("cam_bar_key_idx", 0)
+            b_cam_file = st.camera_input("बारकोड कॅमेऱ्यासमोर धरा व स्कॅन करा", key=f"cam_bar_main_{cam_k_idx}")
             if b_cam_file:
-                with st.spinner("🤖 AI बारकोड स्कॅन करत आहे..."):
-                    dec_info = decode_barcode_image(b_cam_file.getvalue())
+                cam_raw = b_cam_file.getvalue()
+                cam_hash = hashlib.md5(cam_raw).hexdigest()
+                if st.session_state.get("last_scanned_barcode_cam_hash") != cam_hash:
+                    st.session_state["last_scanned_barcode_cam_hash"] = cam_hash
+                    dec_info = decode_barcode_image(cam_raw)
                     if dec_info.get("detected"):
                         f_code = dec_info.get("barcode", "").strip()
                         f_prod = dec_info.get("product_name", "").strip()
@@ -3402,8 +3406,8 @@ if selected_page == "OCR Scanner":
                             st.session_state["active_barcode_search"] = f_prod
                         if f_prod:
                             st.session_state["temp_detected_prod_name"] = f_prod
-                        m_type = dec_info.get("method", "Scanner")
-                        st.toast(f"✅ सापडले ({m_type}): {f_code or f_prod}", icon="🔍")
+                        m_type = dec_info.get("method", "Gun Scanner")
+                        st.toast(f"⚡ स्कॅन झाले ({m_type}): {f_code or f_prod}", icon="✅")
                         st.rerun()
                     else:
                         st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड जवळ धरून पुन्हा फोटो घ्या किंवा खाली नंबर टाईप करा.")
@@ -3654,6 +3658,8 @@ if selected_page == "OCR Scanner":
                             st.toast(f"✅ {item_name}: +{add_amount:g} {item_unit} साठ्यात जमा! (एकूण: {new_total:g})", icon="📦")
                             st.session_state["active_barcode_search"] = ""
                             st.session_state.pop("temp_detected_prod_name", None)
+                            st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                            st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
                             st.rerun()
 
                         with q_c1:
@@ -3821,6 +3827,8 @@ if selected_page == "OCR Scanner":
                                     st.toast(f"✅ '{new_item_title}' साठ्यामध्ये जोडली गेली!", icon="📦")
                                     st.session_state["active_barcode_search"] = ""
                                     st.session_state.pop("temp_detected_prod_name", None)
+                                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
+                                    st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
                                     st.rerun()
                                 except Exception as ex:
                                     st.error(f"Error: {ex}")
