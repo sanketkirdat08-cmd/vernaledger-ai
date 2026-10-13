@@ -3573,10 +3573,60 @@ if selected_page == "OCR Scanner":
                 </div>
                 """, unsafe_allow_html=True)
 
-                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>⚡ जलद क्रिया (Quick Stock Actions):</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>📦 साठा व्यवस्थापन व जलद क्रिया (Stock Management):</div>", unsafe_allow_html=True)
+
+                # 1. Quick wholesale stock addition (+5, +10, +25, +50 or custom qty)
+                with st.expander("📥 नवीन माल आला का? थेट साठा वाढवा (+ Add Stock)", expanded=True):
+                    st.markdown("<div style='font-size: 11px; color: #94a3b8; margin-bottom: 6px;'>दुकान किंवा गोदामात नवीन आलेला माल साठ्यात जमा करा:</div>", unsafe_allow_html=True)
+                    st_c1, st_c2, st_c3, st_c4 = st.columns(4)
+                    with st_c1:
+                        if st.button("➕ ५ नग", key=f"bar_add_5_{item_id}", use_container_width=True):
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 5 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +५ साठा जमा झाला!", icon="📦")
+                            st.rerun()
+                    with st_c2:
+                        if st.button("➕ १० नग", key=f"bar_add_10_{item_id}", use_container_width=True):
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 10 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +१० साठा जमा झाला!", icon="📦")
+                            st.rerun()
+                    with st_c3:
+                        if st.button("➕ २५ नग", key=f"bar_add_25_{item_id}", use_container_width=True):
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 25 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +२५ साठा जमा झाला!", icon="📦")
+                            st.rerun()
+                    with st_c4:
+                        if st.button("➕ ५० नग", key=f"bar_add_50_{item_id}", use_container_width=True):
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 50 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +५० साठा जमा झाला!", icon="📦")
+                            st.rerun()
+
+                    # Custom quantity addition
+                    custom_c1, custom_c2 = st.columns([1.5, 1])
+                    with custom_c1:
+                        add_custom_q = st.number_input("किंवा हवी तेवढी संख्या टाका (+Qty):", min_value=1.0, value=12.0, step=1.0, key=f"in_add_q_{item_id}")
+                    with custom_c2:
+                        st.write("")
+                        st.write("")
+                        if st.button("📥 साठ्यात जमा करा", key=f"btn_add_custom_{item_id}", type="primary", use_container_width=True):
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + ? WHERE id = ?", (add_custom_q, item_id))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +{add_custom_q:g} {item_unit} साठा जमा झाला!", icon="📦")
+                            st.rerun()
+
+                # 2. Retail Sale & Price Update
+                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 8px 0 4px 0;'>🛒 किरकोळ विक्री किंवा दर बदल:</div>", unsafe_allow_html=True)
                 qact1, qact2, qact3 = st.columns([1, 1, 1.2])
                 with qact1:
-                    if st.button("➕ १ नग जोडा (+1)", key=f"main_bar_add_1_{item_id}", use_container_width=True):
+                    if st.button("➕ १ नग (+1)", key=f"main_bar_add_1_{item_id}", use_container_width=True):
                         try:
                             with sqlite3.connect("ledger.db") as conn:
                                 conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 1 WHERE id = ?", (item_id,))
@@ -3586,7 +3636,7 @@ if selected_page == "OCR Scanner":
                         except Exception as e:
                             st.error(str(e))
                 with qact2:
-                    if st.button("➖ १ नग विक्री (-1)", key=f"main_bar_sub_1_{item_id}", use_container_width=True):
+                    if st.button("➖ १ विक्री (-1)", key=f"main_bar_sub_1_{item_id}", use_container_width=True):
                         try:
                             with sqlite3.connect("ledger.db") as conn:
                                 conn.execute("UPDATE shop_inventory SET stock_qty = MAX(0.0, stock_qty - 1) WHERE id = ?", (item_id,))
@@ -3596,15 +3646,15 @@ if selected_page == "OCR Scanner":
                         except Exception as e:
                             st.error(str(e))
                 with qact3:
-                    with st.popover("📝 दर / साठा बदला"):
-                        new_q = st.number_input("नवीन साठा:", value=float(item_qty), step=1.0, key=f"main_edit_q_{item_id}")
+                    with st.popover("📝 दर / माहिती बदला"):
                         new_p = st.number_input("विक्री दर (₹):", value=float(item_price), step=5.0, key=f"main_edit_p_{item_id}")
-                        if st.button("💾 अपडेट करा", key=f"main_save_edit_{item_id}", use_container_width=True):
+                        new_lim = st.number_input("कमी साठा मर्यादा:", value=float(item_limit), step=1.0, key=f"main_edit_lim_{item_id}")
+                        if st.button("💾 अपडेट सेव्ह करा", key=f"main_save_edit_{item_id}", use_container_width=True):
                             try:
                                 with sqlite3.connect("ledger.db") as conn:
-                                    conn.execute("UPDATE shop_inventory SET stock_qty = ?, selling_price = ? WHERE id = ?", (new_q, new_p, item_id))
+                                    conn.execute("UPDATE shop_inventory SET selling_price = ?, alert_limit = ? WHERE id = ?", (new_p, new_lim, item_id))
                                     conn.commit()
-                                st.toast("✅ साठा यशस्वीरित्या अपडेट झाला!")
+                                st.toast("✅ माहिती यशस्वीरित्या अपडेट झाली!")
                                 st.rerun()
                             except Exception as e:
                                 st.error(str(e))
@@ -3622,20 +3672,27 @@ if selected_page == "OCR Scanner":
                             </div>
                             """, unsafe_allow_html=True)
             else:
-                st.warning(f"⚠️ बारकोड `{search_barcode}` इन्व्हेंटरीमध्ये सापडला नाही. खालील फॉर्म वापरून या बारकोडसह वस्तू लगेच नोंदवा:")
+                st.markdown(f"""
+                <div style='background: rgba(0, 242, 254, 0.08); border: 1px dashed #00f2fe; border-radius: 12px; padding: 14px; margin-bottom: 12px;'>
+                    <div style='font-size: 13px; font-weight: 800; color: #00f2fe;'>✨ नवीन वस्तू सापडली! (New Item Registration)</div>
+                    <div style='font-size: 11px; color: #cbd5e1; margin-top: 2px;'>
+                        बारकोड <code>{search_barcode}</code> इन्व्हेंटरीमध्ये नव्हता. खालील तपशील भरून ही वस्तू व तिचा साठा १-क्लिकमध्ये जोडा:
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
                 with st.form("main_add_barcode_item_form"):
-                    st.markdown("##### ➕ नवीन वस्तूची नोंदणी (Register Scanned Item):")
                     nb_col1, nb_col2 = st.columns(2)
                     with nb_col1:
                         new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode)
-                        new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन वस्तू")
+                        new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन उत्पादन")
                         new_item_qty = st.number_input("आरंभीचा साठा (Initial Stock):", min_value=1.0, value=10.0, step=1.0)
                     with nb_col2:
                         new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0)
-                        new_item_unit = st.text_input("एकक (Unit):", value="pcs")
+                        new_item_unit = st.text_input("एकक (Unit e.g. pcs, kg, pkt):", value="pcs")
                         new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0)
 
-                    submit_nb = st.form_submit_button("📦 इन्व्हेंटरीमध्ये जोडा (Save to Inventory)", type="primary", use_container_width=True)
+                    submit_nb = st.form_submit_button("📦 नवीन वस्तू व साठा इन्व्हेंटरीमध्ये जोडा (Save to Inventory)", type="primary", use_container_width=True)
                     if submit_nb:
                         if not new_item_title.strip():
                             st.error("कृपया वस्तूचे नाव भरा!")
@@ -3650,9 +3707,12 @@ if selected_page == "OCR Scanner":
                                     """, (new_item_title.strip(), new_item_qty, new_item_unit.strip(), new_item_alert, new_item_bar.strip(), new_item_price))
                                     conn.commit()
                                 log_activity(st.session_state.get('current_username', 'admin'), f"Added Barcode Item {new_item_title.strip()} ({new_item_bar.strip()})")
-                                st.toast(f"✅ '{new_item_title}' इन्व्हेंटरीमध्ये जोडली गेली!", icon="📦")
-                                st.success("नवीन वस्तू यशस्वीरित्या इन्व्हेंटरीमध्ये जोडली गेली!")
+                                st.toast(f"✅ '{new_item_title}' साठ्यामध्ये जोडली गेली!", icon="📦")
+                                st.success(f"नवीन वस्तू '{new_item_title}' यशस्वीरित्या साठ्यामध्ये जोडली गेली!")
                                 st.session_state.pop("temp_detected_prod_name", None)
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(f"Error: {ex}")
                                 st.rerun()
                             except Exception as ex:
                                 st.error(f"Error: {ex}")
@@ -3941,6 +4001,7 @@ elif selected_page == "Business Operations":
                 <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
             </div>
             """, unsafe_allow_html=True)
+            st.info("💡 **झटपट पद्धत:** बारकोड स्कॅन करून थेट नवीन माल साठ्यात जोडण्यासाठी डाव्या मेनूतील **OCR Scanner -> 🏷️ Barcode** वापरा.")
             with st.form("stock_form"):
                 s_name = st.text_input("Item Name (वस्तूचे नाव)")
                 s_barcode = st.text_input("Barcode (ऐच्छिक / Barcode Scanner)", placeholder="उदा. 8901030384102")
