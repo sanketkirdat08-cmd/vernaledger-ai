@@ -3069,9 +3069,10 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 if selected_page == "OCR Scanner":
-    render_page_header("OCR Scanner & Voice Billing", "Instant Digital POS Receipt Parsing & Audio Confirmation", "📷")
-
     is_english = st.session_state.get("ui_language", "en") == "en"
+    header_title = "Universal Smart Scanner" if is_english else "युनिव्हर्सल स्मार्ट स्कॅनर"
+    header_subtitle = "All-in-One: Receipts OCR, Barcode POS & Voice Billing" if is_english else "पावत्या, प्रॉडक्ट बारकोड आणि व्हॉईस बिलिंग एकाच ठिकाणी"
+    render_page_header(header_title, header_subtitle, "⚡")
 
     st.markdown("""
     <style>
@@ -3154,10 +3155,10 @@ if selected_page == "OCR Scanner":
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         
         curr_mode = st.session_state.get('input_method', 'Upload File')
-        m_c1, m_c2, m_c3 = st.columns(3)
+        m_c1, m_c2, m_c3, m_c4 = st.columns(4)
         with m_c1:
             if st.button(
-                "📁 Upload File" if is_english else "📁 फाईल अपलोड",
+                "📁 File Upload" if is_english else "📁 पावती फाईल",
                 type="primary" if curr_mode == "Upload File" else "secondary",
                 use_container_width=True,
                 key="btn_mode_upload"
@@ -3166,7 +3167,7 @@ if selected_page == "OCR Scanner":
                 st.rerun()
         with m_c2:
             if st.button(
-                "📸 Live Camera" if is_english else "📸 लाईव्ह कॅमेरा",
+                "📸 Live Camera" if is_english else "📸 कॅमेरा",
                 type="primary" if curr_mode == "Live Camera" else "secondary",
                 use_container_width=True,
                 key="btn_mode_camera"
@@ -3175,7 +3176,16 @@ if selected_page == "OCR Scanner":
                 st.rerun()
         with m_c3:
             if st.button(
-                "🎙️ Voice Billing" if is_english else "🎙️ व्हॉईस बिलिंग",
+                "🏷️ Barcode" if is_english else "🏷️ बारकोड",
+                type="primary" if curr_mode == "Barcode Scanner" else "secondary",
+                use_container_width=True,
+                key="btn_mode_barcode"
+            ):
+                st.session_state['input_method'] = "Barcode Scanner"
+                st.rerun()
+        with m_c4:
+            if st.button(
+                "🎙️ Voice Bill" if is_english else "🎙️ व्हॉईस बिल",
                 type="primary" if curr_mode == "Multi-Language Voice Bill" else "secondary",
                 use_container_width=True,
                 key="btn_mode_voice"
@@ -3188,17 +3198,23 @@ if selected_page == "OCR Scanner":
         # Safeguard & Reset Bar
         ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
         with ctrl_c1:
-            force_save_option = st.checkbox(
-                _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
-                value=False,
-                help="सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
-            )
+            if input_method != "Barcode Scanner":
+                force_save_option = st.checkbox(
+                    _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
+                    value=False,
+                    help="सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
+                )
+            else:
+                force_save_option = False
         with ctrl_c2:
-            if st.session_state.get('processed_batch'):
-                if st.button("🔄 नवीन पावती (Reset)", key="reset_ocr_data", use_container_width=True):
+            show_reset = bool(st.session_state.get('processed_batch') or st.session_state.get('active_barcode_search'))
+            if show_reset:
+                if st.button("🔄 नवीन / रिसेट (Reset)", key="reset_ocr_data", use_container_width=True):
                     st.session_state['processed_batch'] = []
                     st.session_state['processed_data'] = None
                     st.session_state['warning_msg'] = None
+                    st.session_state['active_barcode_search'] = ""
+                    st.session_state.pop('temp_detected_prod_name', None)
                     st.rerun()
 
         up_files = []
@@ -3234,6 +3250,70 @@ if selected_page == "OCR Scanner":
             </div>
             """, unsafe_allow_html=True)
             up_cam = st.camera_input("Take photo", label_visibility="collapsed", key="ocr_live_cam")
+
+        elif input_method == "Barcode Scanner":
+            st.markdown("""
+            <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.4);'>
+                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
+                    <span class='scanner-pill'>🏷️ Barcode POS Engine</span>
+                    <span class='scanner-pill-success'>● स्कॅनर सज्ज</span>
+                </div>
+                <div style='font-size: 11px; color: #cbd5e1; line-height: 1.4;'>
+                    USB बारकोड गनने स्कॅन करा, नंबर टाका किंवा खाली कॅमेऱ्याने फोटो घ्या.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            scanned_code = st.text_input(
+                "बारकोड प्रविष्ट करा:",
+                value=st.session_state.get("active_barcode_search", ""),
+                placeholder="उदा. 8901030384102 (किंवा बारकोड गनने स्कॅन करा)",
+                key="barcode_text_entry_main"
+            )
+            if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
+                st.session_state["active_barcode_search"] = scanned_code.strip()
+
+            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 6px 0 3px 0;'>💡 <b>झटपट चाचणी नमुने (क्लिक करा):</b></div>", unsafe_allow_html=True)
+            d_b1, d_b2, d_b3 = st.columns(3)
+            with d_b1:
+                if st.button("🥫 पार्ले-जी", key="main_bar_1", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030384102"
+                    st.rerun()
+            with d_b2:
+                if st.button("☕ टाटा टी", key="main_bar_2", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030775269"
+                    st.rerun()
+            with d_b3:
+                if st.button("🧼 लाईफबॉय", key="main_bar_3", use_container_width=True):
+                    st.session_state["active_barcode_search"] = "8901030864208"
+                    st.rerun()
+
+            with st.expander("📷 कॅमेऱ्याने बारकोड स्कॅन करा किंवा फोटो अपलोड करा", expanded=False):
+                b_cam_opt = st.radio("स्कॅन प्रकार:", ["कॅमेरा", "फोटो फाईल"], horizontal=True, key="bar_opt_radio_main")
+                b_raw_bytes = None
+                if b_cam_opt == "कॅमेरा":
+                    b_cam_file = st.camera_input("बारकोडचा फोटो घ्या", key="cam_bar_main")
+                    if b_cam_file:
+                        b_raw_bytes = b_cam_file.getvalue()
+                else:
+                    b_up_file = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg"], key="up_bar_main")
+                    if b_up_file:
+                        b_raw_bytes = b_up_file.getvalue()
+
+                if b_raw_bytes:
+                    with st.spinner("🤖 बारकोड ओळखत आहे..."):
+                        dec_info = decode_barcode_image(b_raw_bytes)
+                        if dec_info.get("detected"):
+                            f_code = dec_info.get("barcode", "").strip()
+                            f_prod = dec_info.get("product_name", "").strip()
+                            if f_code:
+                                st.session_state["active_barcode_search"] = f_code
+                            if f_prod:
+                                st.session_state["temp_detected_prod_name"] = f_prod
+                            st.toast(f"✅ बारकोड सापडला: {f_code or f_prod}", icon="🔍")
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ स्पष्ट बारकोड दिसला नाही. कृपया नंबर थेट टाका.")
 
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
@@ -3309,7 +3389,7 @@ if selected_page == "OCR Scanner":
                             logging.error(f"Voice billing error: {ve}")
                             st.error(f"व्हॉईस बिल Error: {ve}")
 
-        if input_method != "Multi-Language Voice Bill":
+        if input_method not in ["Multi-Language Voice Bill", "Barcode Scanner"]:
             st.write("")
             process_clicked = st.button("⚡ पावत्या स्कॅन करा (Process Receipts)", type="primary", use_container_width=True, key="btn_process_receipts")
             if process_clicked:
@@ -3392,8 +3472,141 @@ if selected_page == "OCR Scanner":
     with col_p:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         batch_data = st.session_state.get('processed_batch', [])
-        
-        if batch_data:
+        search_barcode = st.session_state.get("active_barcode_search", "").strip()
+        detected_pname = st.session_state.get("temp_detected_prod_name", "").strip()
+
+        if input_method == "Barcode Scanner" and search_barcode:
+            inv_item = None
+            try:
+                with sqlite3.connect("ledger.db") as conn:
+                    inv_cursor = conn.cursor()
+                    inv_cursor.execute(
+                        "SELECT id, item_name, stock_qty, unit, alert_limit, barcode, selling_price FROM shop_inventory WHERE barcode = ? OR item_name LIKE ?",
+                        (search_barcode, f"%{search_barcode}%")
+                    )
+                    inv_item = inv_cursor.fetchone()
+            except Exception as e:
+                ai_logger.error(f"Barcode lookup error: {e}")
+
+            if inv_item:
+                item_id, item_name, item_qty, item_unit, item_limit, item_bar, item_price = inv_item
+                item_qty = float(item_qty or 0)
+                item_price = float(item_price or 0)
+                is_low = item_qty <= float(item_limit or 0)
+                status_badge = "<span style='background:#ef4444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>🚨 Low Stock</span>" if is_low else "<span style='background:#00ff87; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>✅ In Stock</span>"
+
+                st.markdown(f"""
+                <div style='background:rgba(0, 242, 254, 0.08); border:1px solid rgba(0, 242, 254, 0.3); border-radius:12px; padding:16px; margin-bottom:12px;'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div>
+                            <div style='font-size:11px; text-transform:uppercase; color:#94a3b8; font-weight:700;'>साठा तपशील (Inventory Match)</div>
+                            <div style='font-size:22px; font-weight:800; color:#00f2fe; margin-top:2px;'>{item_name}</div>
+                            <div style='font-size:12px; color:#cbd5e1; margin-top:2px;'>🔢 बारकोड: <code>{item_bar or search_barcode}</code></div>
+                        </div>
+                        <div>{status_badge}</div>
+                    </div>
+                    <div style='display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px;'>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>सध्याचा साठा</div>
+                            <div style='font-size:20px; font-weight:800; color:#00ff87;'>{item_qty:g} {item_unit}</div>
+                        </div>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>विक्री दर (Price)</div>
+                            <div style='font-size:20px; font-weight:800; color:#ffb800;'>₹{item_price:,.2f}</div>
+                        </div>
+                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
+                            <div style='font-size:10px; color:#94a3b8;'>किमान मर्यादा</div>
+                            <div style='font-size:20px; font-weight:800; color:#cbd5e1;'>{item_limit} {item_unit}</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>⚡ जलद क्रिया (Quick Stock Actions):</div>", unsafe_allow_html=True)
+                qact1, qact2, qact3 = st.columns([1, 1, 1.2])
+                with qact1:
+                    if st.button("➕ १ नग जोडा (+1)", key=f"main_bar_add_1_{item_id}", use_container_width=True):
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 1 WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"✅ {item_name}: +1 साठा जोडला!", icon="📦")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+                with qact2:
+                    if st.button("➖ १ नग विक्री (-1)", key=f"main_bar_sub_1_{item_id}", use_container_width=True):
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("UPDATE shop_inventory SET stock_qty = MAX(0.0, stock_qty - 1) WHERE id = ?", (item_id,))
+                                conn.commit()
+                            st.toast(f"🛒 {item_name}: १ नग विक्री नोंदवली!", icon="💰")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+                with qact3:
+                    with st.popover("📝 दर / साठा बदला"):
+                        new_q = st.number_input("नवीन साठा:", value=float(item_qty), step=1.0, key=f"main_edit_q_{item_id}")
+                        new_p = st.number_input("विक्री दर (₹):", value=float(item_price), step=5.0, key=f"main_edit_p_{item_id}")
+                        if st.button("💾 अपडेट करा", key=f"main_save_edit_{item_id}", use_container_width=True):
+                            try:
+                                with sqlite3.connect("ledger.db") as conn:
+                                    conn.execute("UPDATE shop_inventory SET stock_qty = ?, selling_price = ? WHERE id = ?", (new_q, new_p, item_id))
+                                    conn.commit()
+                                st.toast("✅ साठा यशस्वीरित्या अपडेट झाला!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(str(e))
+
+                if item_price > 0:
+                    with st.expander("⚡ या वस्तूसाठी थेट UPI QR कोड (Instant Scan & Pay)"):
+                        shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
+                        shop_name = get_shop_setting("shop_name", "VernaLedger Store")
+                        upi_b64 = generate_upi_qr_base64(item_price, vpa=shop_upi_id, payee_name=shop_name, note=f"{item_name}")
+                        if upi_b64:
+                            st.markdown(f"""
+                            <div style='text-align: center; padding: 6px;'>
+                                <img src='{upi_b64}' style='width: 140px; height: 140px; border-radius: 8px;'/>
+                                <div style='font-size: 13px; font-weight: 700; color: #00ff87; margin-top: 6px;'>₹{item_price:,.2f} स्कॅन करा</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+            else:
+                st.warning(f"⚠️ बारकोड `{search_barcode}` इन्व्हेंटरीमध्ये सापडला नाही. खालील फॉर्म वापरून या बारकोडसह वस्तू लगेच नोंदवा:")
+                with st.form("main_add_barcode_item_form"):
+                    st.markdown("##### ➕ नवीन वस्तूची नोंदणी (Register Scanned Item):")
+                    nb_col1, nb_col2 = st.columns(2)
+                    with nb_col1:
+                        new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode)
+                        new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन वस्तू")
+                        new_item_qty = st.number_input("आरंभीचा साठा (Initial Stock):", min_value=1.0, value=10.0, step=1.0)
+                    with nb_col2:
+                        new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0)
+                        new_item_unit = st.text_input("एकक (Unit):", value="pcs")
+                        new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0)
+
+                    submit_nb = st.form_submit_button("📦 इन्व्हेंटरीमध्ये जोडा (Save to Inventory)", type="primary", use_container_width=True)
+                    if submit_nb:
+                        if not new_item_title.strip():
+                            st.error("कृपया वस्तूचे नाव भरा!")
+                        else:
+                            try:
+                                with sqlite3.connect("ledger.db") as conn:
+                                    conn.execute("BEGIN TRANSACTION;")
+                                    cursor = conn.cursor()
+                                    cursor.execute("""
+                                    INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
+                                    VALUES (?, ?, ?, ?, ?, ?)
+                                    """, (new_item_title.strip(), new_item_qty, new_item_unit.strip(), new_item_alert, new_item_bar.strip(), new_item_price))
+                                    conn.commit()
+                                log_activity(st.session_state.get('current_username', 'admin'), f"Added Barcode Item {new_item_title.strip()} ({new_item_bar.strip()})")
+                                st.toast(f"✅ '{new_item_title}' इन्व्हेंटरीमध्ये जोडली गेली!", icon="📦")
+                                st.success("नवीन वस्तू यशस्वीरित्या इन्व्हेंटरीमध्ये जोडली गेली!")
+                                st.session_state.pop("temp_detected_prod_name", None)
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(f"Error: {ex}")
+
+        elif batch_data:
             if len(batch_data) == 1:
                 p_item = batch_data[0]
                 v_disp = decode_unicode(p_item.get('vendor_name'))
@@ -3618,19 +3831,35 @@ if selected_page == "OCR Scanner":
                 if aud_path and os.path.exists(aud_path):
                     st.audio(aud_path)
         else:
-            st.markdown("""
-            <div style='text-align: center; padding: 40px 15px;'>
-                <div style='font-size: 42px; margin-bottom: 10px;'>🧾</div>
-                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>पावती किंवा व्हॉईस बिल स्कॅन करा</div>
-                <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                    डाव्या बाजूला पावती अपलोड करा, कॅमेऱ्यातून थेट फोटो घ्या किंवा माईकवर बोलून क्षणात डिजिटल इनव्हॉइस व इन्व्हेंटरी अपडेट तयार करा.
+            if input_method == "Barcode Scanner":
+                st.markdown("""
+                <div style='text-align: center; padding: 40px 15px;'>
+                    <div style='font-size: 42px; margin-bottom: 10px;'>🏷️</div>
+                    <div style='font-size: 16px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>बारकोड स्कॅनर सज्ज आहे</div>
+                    <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
+                        डाव्या बाजूला बारकोड नंबर टाका, USB गनने स्कॅन करा किंवा खाली कॅमेऱ्याने फोटो घ्या. वस्तूचा साठा व दर लगेच समोर दिसेल.
+                    </div>
+                    <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
+                        <span class='scanner-pill'>⚡ Instant Stock Match</span>
+                        <span class='scanner-pill-success'>🛒 1-Click Sale & UPI</span>
+                    </div>
                 </div>
-                <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
-                    <span class='scanner-pill'>⚡ 99.8% Vision Accuracy</span>
-                    <span class='scanner-pill-success'>🎙️ Multi-Lingual Voice</span>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='text-align: center; padding: 40px 15px;'>
+                    <div style='font-size: 42px; margin-bottom: 10px;'>🧾</div>
+                    <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>युनिव्हर्सल स्मार्ट स्कॅनर</div>
+                    <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
+                        डाव्या बाजूला पावती अपलोड करा, कॅमेऱ्यातून थेट फोटो घ्या, बारकोड स्कॅन करा किंवा माईकवर बोलून क्षणात डिजिटल इनव्हॉइस व इन्व्हेंटरी तयार करा.
+                    </div>
+                    <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
+                        <span class='scanner-pill'>⚡ 99.8% Vision Accuracy</span>
+                        <span class='scanner-pill-success'>🎙️ Multi-Lingual Voice</span>
+                        <span class='scanner-pill'>🏷️ Barcode POS</span>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 3: ADVANCED CUSTOMER KHATA ---
@@ -3642,9 +3871,8 @@ elif selected_page == "Business Operations":
     render_business_module_styles()
     render_page_header("Business Operations", "इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.", "💼")
 
-    tab_stock, tab_barcode, tab_expenses, tab_shop_profile = st.tabs([
+    tab_stock, tab_expenses, tab_shop_profile = st.tabs([
         "📦 Stock & Inventory", 
-        "🔍 Barcode Scanner", 
         "💸 Business Expenses", 
         "⚙️ Shop Profile & UPI"
     ])
@@ -3780,204 +4008,6 @@ elif selected_page == "Business Operations":
                 st.info("कोणताही स्टॉक जोडलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    with tab_barcode:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="business-section-heading">
-            <div class="business-section-icon">🔍</div>
-            <div>
-                <h3 class="business-section-title">Barcode Scanner & Stock Lookup</h3>
-                <p class="business-section-caption">कॅमेऱ्याने बारकोड स्कॅन करा, इमेज अपलोड करा किंवा बारकोड गन / नंबरने साठा त्वरित शोधा.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        bar_col1, bar_col2 = st.columns([1, 1])
-        
-        with bar_col1:
-            st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>🔫 बारकोड नंबर किंवा USB Barcode Gun:</div>", unsafe_allow_html=True)
-            scanned_code = st.text_input(
-                "बारकोड प्रविष्ट करा:",
-                value=st.session_state.get("active_barcode_search", ""),
-                placeholder="उदा. 8901030384102 (किंवा बारकोड गनने स्कॅन करा)",
-                label_visibility="collapsed",
-                key="barcode_text_entry"
-            )
-            st.session_state["active_barcode_search"] = scanned_code.strip()
-
-            st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 8px 0 4px 0;'>💡 <b>झटपट नमुना बारकोड (क्लिक करा):</b></div>", unsafe_allow_html=True)
-            demo_b1, demo_b2, demo_b3 = st.columns(3)
-            with demo_b1:
-                if st.button("🥫 पार्ले-जी (102)", key="demo_bar_1", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030384102"
-                    st.rerun()
-            with demo_b2:
-                if st.button("☕ टाटा टी (269)", key="demo_bar_2", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030775269"
-                    st.rerun()
-            with demo_b3:
-                if st.button("🧼 लाईफबॉय (208)", key="demo_bar_3", use_container_width=True):
-                    st.session_state["active_barcode_search"] = "8901030864208"
-                    st.rerun()
-
-        with bar_col2:
-            st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 8px;'>📷 कॅमेरा किंवा फोटो स्कॅनर (Vision AI):</div>", unsafe_allow_html=True)
-            scan_source = st.radio("स्कॅन मोड:", ["📷 थेट कॅमेऱ्याने फोटो घ्या", "📁 इमेज अपलोड करा"], horizontal=True, label_visibility="collapsed")
-            
-            bar_img_bytes = None
-            if scan_source == "📷 थेट कॅमेऱ्याने फोटो घ्या":
-                cam_bar = st.camera_input("बारकोडचा फोटो घ्या", key="cam_barcode_input", label_visibility="collapsed")
-                if cam_bar:
-                    bar_img_bytes = cam_bar.getvalue()
-            else:
-                up_bar = st.file_uploader("बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg"], key="up_barcode_file", label_visibility="collapsed")
-                if up_bar:
-                    bar_img_bytes = up_bar.getvalue()
-
-            if bar_img_bytes:
-                with st.spinner("🤖 AI बारकोड व वस्तूची माहिती शोधत आहे..."):
-                    dec_res = decode_barcode_image(bar_img_bytes)
-                    if dec_res.get("detected"):
-                        found_code = dec_res.get("barcode", "").strip()
-                        found_prod = dec_res.get("product_name", "").strip()
-                        if found_code:
-                            st.session_state["active_barcode_search"] = found_code
-                            if found_prod:
-                                st.session_state["temp_detected_prod_name"] = found_prod
-                            st.toast(f"✅ बारकोड सापडला: {found_code}", icon="🔍")
-                            st.rerun()
-                        elif found_prod:
-                            st.session_state["temp_detected_prod_name"] = found_prod
-                            st.info(f"🏷️ पॅकेजिंगवरील वस्तूचे नाव: **{found_prod}**")
-                    else:
-                        st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही. कृपया बारकोड क्रमांक थेट टाईप करा.")
-
-        st.markdown("---")
-
-        # Lookup and Action Section
-        search_barcode = st.session_state.get("active_barcode_search", "").strip()
-        detected_pname = st.session_state.get("temp_detected_prod_name", "").strip()
-
-        if search_barcode:
-            inv_item = None
-            try:
-                with sqlite3.connect("ledger.db") as conn:
-                    inv_cursor = conn.cursor()
-                    inv_cursor.execute("SELECT id, item_name, stock_qty, unit, alert_limit, barcode, selling_price FROM shop_inventory WHERE barcode = ? OR item_name LIKE ?", (search_barcode, f"%{search_barcode}%"))
-                    inv_item = inv_cursor.fetchone()
-            except Exception as e:
-                ai_logger.error(f"Barcode lookup error: {e}")
-
-            if inv_item:
-                item_id, item_name, item_qty, item_unit, item_limit, item_bar, item_price = inv_item
-                item_qty = float(item_qty or 0)
-                item_price = float(item_price or 0)
-                is_low = item_qty <= float(item_limit or 0)
-                status_badge = "<span style='background:#ef4444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>🚨 Low Stock</span>" if is_low else "<span style='background:#00ff87; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>✅ In Stock</span>"
-
-                st.markdown(f"""
-                <div style='background:rgba(0, 242, 254, 0.08); border:1px solid rgba(0, 242, 254, 0.3); border-radius:12px; padding:16px; margin-bottom:12px;'>
-                    <div style='display:flex; justify-content:space-between; align-items:center;'>
-                        <div>
-                            <div style='font-size:11px; text-transform:uppercase; color:#94a3b8; font-weight:700;'>साठा सापडला (Inventory Match)</div>
-                            <div style='font-size:22px; font-weight:800; color:#00f2fe; margin-top:2px;'>{item_name}</div>
-                            <div style='font-size:12px; color:#cbd5e1; margin-top:2px;'>🔢 बारकोड: <code>{item_bar or search_barcode}</code></div>
-                        </div>
-                        <div>{status_badge}</div>
-                    </div>
-                    <div style='display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px;'>
-                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                            <div style='font-size:10px; color:#94a3b8;'>सध्याचा साठा</div>
-                            <div style='font-size:20px; font-weight:800; color:#00ff87;'>{item_qty:g} {item_unit}</div>
-                        </div>
-                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                            <div style='font-size:10px; color:#94a3b8;'>विक्री दर (Selling Price)</div>
-                            <div style='font-size:20px; font-weight:800; color:#ffb800;'>₹{item_price:,.2f}</div>
-                        </div>
-                        <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                            <div style='font-size:10px; color:#94a3b8;'>किमान मर्यादा</div>
-                            <div style='font-size:20px; font-weight:800; color:#cbd5e1;'>{item_limit} {item_unit}</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown("##### ⚡ जलद क्रिया (Quick Stock Actions):")
-                qact1, qact2, qact3 = st.columns([1, 1, 1.5])
-                with qact1:
-                    if st.button("➕ १ नग साठा जोडा (+1)", key=f"bar_add_1_{item_id}", use_container_width=True):
-                        try:
-                            with sqlite3.connect("ledger.db") as conn:
-                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 1 WHERE id = ?", (item_id,))
-                                conn.commit()
-                            st.toast(f"✅ {item_name}: +1 साठा जोडला!", icon="📦")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(str(e))
-                with qact2:
-                    if st.button("➖ १ नग विक्री करा (-1)", key=f"bar_sub_1_{item_id}", use_container_width=True):
-                        try:
-                            with sqlite3.connect("ledger.db") as conn:
-                                conn.execute("UPDATE shop_inventory SET stock_qty = MAX(0.0, stock_qty - 1) WHERE id = ?", (item_id,))
-                                conn.commit()
-                            st.toast(f"🛒 {item_name}: १ विक्री नोंदवली!", icon="💰")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(str(e))
-                with qact3:
-                    with st.popover("📝 साठा / दर अपडेट करा"):
-                        new_q = st.number_input("नवीन साठा प्रमाण:", value=float(item_qty), step=1.0, key=f"edit_q_{item_id}")
-                        new_p = st.number_input("नवीन विक्री दर (₹):", value=float(item_price), step=5.0, key=f"edit_p_{item_id}")
-                        if st.button("💾 अपडेट सेव्ह करा", key=f"save_edit_{item_id}", use_container_width=True):
-                            try:
-                                with sqlite3.connect("ledger.db") as conn:
-                                    conn.execute("UPDATE shop_inventory SET stock_qty = ?, selling_price = ? WHERE id = ?", (new_q, new_p, item_id))
-                                    conn.commit()
-                                st.toast("✅ साठा यशस्वीरित्या अपडेट झाला!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(str(e))
-            else:
-                st.warning(f"⚠️ बारकोड `{search_barcode}` इन्व्हेंटरीमध्ये सापडला नाही. खालील फॉर्म वापरून या बारकोडसह नवीन वस्तू लगेच जोडा:")
-                
-                with st.form("add_new_barcode_item_form"):
-                    st.markdown("##### ➕ नवीन वस्तूची नोंदणी (Register Scanned Item):")
-                    nb_col1, nb_col2 = st.columns(2)
-                    with nb_col1:
-                        new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode)
-                        new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन वस्तू")
-                        new_item_qty = st.number_input("आरंभीचा साठा (Initial Stock):", min_value=1.0, value=10.0, step=1.0)
-                    with nb_col2:
-                        new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0)
-                        new_item_unit = st.text_input("एकक (Unit):", value="pcs")
-                        new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0)
-                    
-                    submit_nb = st.form_submit_button("📦 इन्व्हेंटरीमध्ये जोडा (Save to Inventory)", type="primary", use_container_width=True)
-                    if submit_nb:
-                        if not new_item_title.strip():
-                            st.error("कृपया वस्तूचे नाव भरा!")
-                        else:
-                            try:
-                                with sqlite3.connect("ledger.db") as conn:
-                                    conn.execute("BEGIN TRANSACTION;")
-                                    cursor = conn.cursor()
-                                    cursor.execute("""
-                                    INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
-                                    VALUES (?, ?, ?, ?, ?, ?)
-                                    """, (new_item_title.strip(), new_item_qty, new_item_unit.strip(), new_item_alert, new_item_bar.strip(), new_item_price))
-                                    conn.commit()
-                                log_activity(st.session_state.get('current_username', 'admin'), f"Added Barcode Item {new_item_title.strip()} ({new_item_bar.strip()})")
-                                st.toast(f"✅ '{new_item_title}' इन्व्हेंटरीमध्ये जोडली गेली!", icon="📦")
-                                st.success("नवीन वस्तू यशस्वीरित्या इन्व्हेंटरीमध्ये जोडली गेली!")
-                                st.session_state.pop("temp_detected_prod_name", None)
-                                st.rerun()
-                            except Exception as ex:
-                                st.error(f"Error: {ex}")
-        else:
-            st.info("👆 वरील बॉक्समध्ये बारकोड नंबर टाका, कॅमेऱ्याने फोटो घ्या किंवा नमुना बटणावर क्लिक करा.")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
         # Staff can now access this
