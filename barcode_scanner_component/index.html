@@ -43,7 +43,6 @@
       object-fit: cover;
       background: #000;
     }
-    /* Dimmed overlay with central transparent cutout */
     .overlay {
       position: absolute;
       top: 0;
@@ -84,6 +83,10 @@
       border-radius: 50%;
       animation: pulseDot 1.2s infinite ease-in-out;
     }
+    .pill-dot.paused {
+      background: #ffb800;
+      animation: none;
+    }
     @keyframes pulseDot {
       0%, 100% { transform: scale(0.9); opacity: 0.8; }
       50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px #00ff87; }
@@ -111,7 +114,6 @@
       transform: scale(0.92);
       background: rgba(0, 242, 254, 0.3);
     }
-    /* Central Viewfinder */
     .viewfinder {
       position: absolute;
       top: 50%;
@@ -126,8 +128,8 @@
       pointer-events: none;
       z-index: 5;
       overflow: hidden;
+      transition: border-color 0.3s;
     }
-    /* Corner brackets */
     .viewfinder::before, .viewfinder::after {
       content: "";
       position: absolute;
@@ -147,7 +149,6 @@
       border-width: 0 4px 4px 0;
       border-bottom-right-radius: 10px;
     }
-    /* Red laser scanning line */
     .laser-line {
       position: absolute;
       left: 0;
@@ -163,21 +164,26 @@
       50% { opacity: 1; }
       100% { top: 92%; opacity: 0.9; }
     }
-    /* Success glow state */
     .viewfinder.success {
       border-color: #00ff87 !important;
-      box-shadow: 0 0 20px rgba(0, 255, 135, 0.8), 0 0 0 2000px rgba(0, 0, 0, 0.45) !important;
+      box-shadow: 0 0 24px rgba(0, 255, 135, 0.9), 0 0 0 2000px rgba(0, 0, 0, 0.45) !important;
     }
     .viewfinder.success .laser-line {
       background: #00ff87 !important;
       box-shadow: 0 0 16px #00ff87, 0 0 6px #fff !important;
+      animation: none !important;
+      top: 50% !important;
     }
-    /* Bottom status */
     .bottom-bar {
       padding: 10px 14px;
       text-align: center;
-      background: linear-gradient(0deg, rgba(10, 14, 23, 0.9) 0%, rgba(10, 14, 23, 0) 100%);
+      background: linear-gradient(0deg, rgba(10, 14, 23, 0.92) 0%, rgba(10, 14, 23, 0) 100%);
       z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
     }
     .status-text {
       font-size: 12px;
@@ -190,7 +196,22 @@
       font-size: 14px;
       font-weight: 800;
     }
-    /* Fallback / Error view */
+    .btn-resume {
+      display: none;
+      background: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+      color: #000;
+      border: 0;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 255, 135, 0.4);
+      pointer-events: auto;
+    }
+    .btn-resume:active {
+      transform: scale(0.95);
+    }
     .err-view {
       position: absolute;
       top: 0; left: 0;
@@ -229,8 +250,8 @@
     <div class="overlay">
       <div class="top-bar">
         <div class="pill-badge">
-          <div class="pill-dot"></div>
-          <span>DMart Barcode Gun</span>
+          <div class="pill-dot" id="pill-dot"></div>
+          <span id="pill-title">DMart Live Gun</span>
         </div>
         <div class="controls">
           <button class="ctrl-btn" id="btn-torch" title="Flash/Light">🔦</button>
@@ -244,6 +265,7 @@
 
       <div class="bottom-bar">
         <div class="status-text" id="status-text">बारकोड लाल रेषेच्या बरोबर मध्यभागी धरा...</div>
+        <button class="btn-resume" id="btn-resume">🔄 पुढील वस्तू स्कॅन करा (Scan Next)</button>
       </div>
     </div>
 
@@ -255,7 +277,7 @@
   </div>
 
   <script>
-    // Audio Beep Generator using Web Audio API (No external sound file needed!)
+    // Audio Beep Generator using Web Audio API
     let audioCtx = null;
     function playBeep() {
       try {
@@ -268,24 +290,27 @@
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1950, audioCtx.currentTime); // Crisp retail scanner frequency
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(2100, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.14);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.12);
+        osc.stop(audioCtx.currentTime + 0.14);
       } catch (e) {
         console.warn("Audio beep failed:", e);
       }
       try {
-        if (navigator.vibrate) navigator.vibrate(80);
+        if (navigator.vibrate) navigator.vibrate(100);
       } catch (e) {}
     }
 
     const video = document.getElementById("video");
     const viewfinder = document.getElementById("viewfinder");
     const statusText = document.getElementById("status-text");
+    const btnResume = document.getElementById("btn-resume");
+    const pillDot = document.getElementById("pill-dot");
+    const pillTitle = document.getElementById("pill-title");
     const errView = document.getElementById("err-view");
     const errMsg = document.getElementById("err-msg");
     const btnRetry = document.getElementById("btn-retry");
@@ -297,12 +322,11 @@
     let facingMode = "environment";
     let isTorchOn = false;
     let isScanning = true;
+    let activeScannedBarcode = "";
     let codeReader = null;
     let hasBarcodeDetector = ("BarcodeDetector" in window);
     let nativeDetector = null;
     let scanLoopId = null;
-    let lastScannedCode = "";
-    let lastScannedTime = 0;
 
     if (hasBarcodeDetector) {
       try {
@@ -335,37 +359,58 @@
       }, "*");
     }
 
-    function handleDetected(code, format) {
-      const now = Date.now();
-      // Deduplicate rapid scans (ignore identical code within 2 seconds)
-      if (code === lastScannedCode && (now - lastScannedTime) < 2000) {
-        return;
-      }
-      lastScannedCode = code;
-      lastScannedTime = now;
+    function handleDetected(rawCode, format) {
+      if (!isScanning) return;
+      const cleanCode = String(rawCode).trim();
+      if (!cleanCode) return;
 
-      // Play scanner beep & haptics immediately
+      // 1. STOP SCANNING IMMEDIATELY to prevent rerun loops!
+      isScanning = false;
+      activeScannedBarcode = cleanCode;
+
+      if (scanLoopId) {
+        cancelAnimationFrame(scanLoopId);
+        scanLoopId = null;
+      }
+      if (codeReader && codeReader.reset) {
+        try { codeReader.reset(); } catch(e) {}
+      }
+
+      // 2. Play supermarket beep & vibration
       playBeep();
 
-      // Visual flash
+      // 3. UI Confirmation
       viewfinder.classList.add("success");
+      pillDot.classList.add("paused");
+      pillTitle.textContent = "स्कॅन पूर्ण (Paused)";
       statusText.classList.add("detected");
-      statusText.textContent = `⚡ बारकोड सापडला: ${code}`;
+      statusText.textContent = `✅ बारकोड: ${cleanCode}`;
+      btnResume.style.display = "inline-block";
 
-      // Send to Streamlit
+      // 4. Send to Streamlit ONCE
       sendToStreamlit({
-        barcode: String(code).trim(),
-        format: format || "EAN",
-        timestamp: now
+        barcode: cleanCode,
+        format: format || "EAN"
       });
-
-      // Reset visual state after 800ms
-      setTimeout(() => {
-        viewfinder.classList.remove("success");
-        statusText.classList.remove("detected");
-        statusText.textContent = "बारकोड लाल रेषेच्या बरोबर मध्यभागी धरा...";
-      }, 800);
     }
+
+    function resumeScanning() {
+      if (isScanning) return;
+      isScanning = true;
+      activeScannedBarcode = "";
+      viewfinder.classList.remove("success");
+      pillDot.classList.remove("paused");
+      pillTitle.textContent = "DMart Live Gun";
+      statusText.classList.remove("detected");
+      statusText.textContent = "बारकोड लाल रेषेच्या बरोबर मध्यभागी धरा...";
+      btnResume.style.display = "none";
+      startScannerEngines();
+    }
+
+    btnResume.addEventListener("click", () => {
+      resumeScanning();
+      sendToStreamlit({ barcode: "", action: "resume" });
+    });
 
     async function startCamera() {
       errView.style.display = "none";
@@ -393,7 +438,6 @@
         video.srcObject = stream;
         await video.play();
 
-        // Check torch capability
         const capabilities = currentTrack.getCapabilities ? currentTrack.getCapabilities() : {};
         if (capabilities.torch) {
           btnTorch.style.display = "flex";
@@ -401,8 +445,9 @@
           btnTorch.style.display = "none";
         }
 
-        // Start scanning loop
-        startScannerEngines();
+        if (isScanning) {
+          startScannerEngines();
+        }
       } catch (err) {
         console.error("Camera error:", err);
         errView.style.display = "flex";
@@ -411,7 +456,7 @@
     }
 
     function startScannerEngines() {
-      isScanning = true;
+      if (!isScanning) return;
 
       // Engine 1: Native GPU BarcodeDetector (fastest, ~10ms in Android Chrome)
       if (nativeDetector) {
@@ -424,6 +469,7 @@
                 const b = barcodes[0];
                 if (b.rawValue) {
                   handleDetected(b.rawValue, b.format);
+                  return;
                 }
               }
             }
@@ -443,6 +489,7 @@
             codeReader = new ZXing.BrowserMultiFormatReader();
           }
           codeReader.decodeFromVideoElement(video, (result, err) => {
+            if (!isScanning) return;
             if (result && result.text) {
               handleDetected(result.text, result.format ? result.format.toString() : "EAN");
             }
@@ -480,9 +527,13 @@
     window.addEventListener("message", (event) => {
       if (!event.data || !event.data.isStreamlitMessage) return;
       if (event.data.type === "streamlit:render") {
-        const value = event.data.value;
-        if (value && value.reset) {
-          lastScannedCode = "";
+        const args = (event.data.args) || {};
+        // If Streamlit cleared active_barcode_search, resume scanning!
+        if (args.active_barcode === "") {
+          resumeScanning();
+        } else if (args.active_barcode) {
+          // Keep paused on current barcode
+          isScanning = false;
         }
       }
     });

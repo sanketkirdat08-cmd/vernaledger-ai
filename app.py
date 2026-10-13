@@ -3547,15 +3547,23 @@ if selected_page == "OCR Scanner":
                 </div>
                 """, unsafe_allow_html=True)
 
-                live_res = BARCODE_SCANNER_COMPONENT(key=f"live_gun_scanner_{cam_k_idx}")
-                if live_res and isinstance(live_res, dict) and live_res.get("barcode"):
-                    l_code = str(live_res["barcode"]).strip()
-                    l_time = live_res.get("timestamp", 0)
-                    if l_code and (l_code != st.session_state.get("active_barcode_search", "") or l_time != st.session_state.get("last_live_scan_time")):
-                        st.session_state["active_barcode_search"] = l_code
-                        st.session_state["last_live_scan_time"] = l_time
-                        st.toast(f"⚡ स्कॅन झाले (Live Gun): {l_code}", icon="✅")
+                curr_bar = st.session_state.get("active_barcode_search", "").strip()
+                live_res = BARCODE_SCANNER_COMPONENT(
+                    key=f"live_gun_scanner_{cam_k_idx}",
+                    active_barcode=curr_bar
+                )
+                if live_res and isinstance(live_res, dict):
+                    if live_res.get("action") == "resume":
+                        st.session_state["active_barcode_search"] = ""
+                        st.session_state.pop("temp_detected_prod_name", None)
+                        st.session_state.pop("last_scanned_barcode_cam_hash", None)
                         st.rerun()
+                    elif live_res.get("barcode"):
+                        l_code = str(live_res["barcode"]).strip()
+                        if l_code and l_code != curr_bar:
+                            st.session_state["active_barcode_search"] = l_code
+                            st.toast(f"⚡ स्कॅन झाले (Live Gun): {l_code}", icon="✅")
+                            st.rerun()
             else:
                 st.markdown("""
                 <div style='background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 8px; padding: 7px 12px; margin: 4px 0 8px 0; font-size: 11px; color: #cbd5e1;'>
@@ -3623,6 +3631,15 @@ if selected_page == "OCR Scanner":
             if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
                 st.session_state["active_barcode_search"] = scanned_code.strip()
                 st.rerun()
+
+            if st.session_state.get("active_barcode_search"):
+                cur_b = st.session_state["active_barcode_search"]
+                st.markdown(f"""
+                <div style='background: rgba(0, 255, 135, 0.08); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 12px; color: #cbd5e1;'>
+                    🎯 <b>स्कॅन झालेला बारकोड:</b> <code style='color:#00ff87; font-weight:700;'>{cur_b}</code><br>
+                    👉 <b>उजव्या बाजूला / खाली साठ्यात जमा करण्याचा फॉर्म उघडला आहे.</b>
+                </div>
+                """, unsafe_allow_html=True)
 
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
@@ -3987,16 +4004,16 @@ if selected_page == "OCR Scanner":
                     </div>
                     """, unsafe_allow_html=True)
 
-                    with st.form("main_add_barcode_item_form"):
+                    with st.form(f"main_add_barcode_item_form_{search_barcode}_{cam_k_idx}"):
                         nb_col1, nb_col2 = st.columns(2)
                         with nb_col1:
-                            new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode)
-                            new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन उत्पादन")
-                            new_item_qty = st.number_input("आवक साठा प्रमाण (Inward Qty):", min_value=1.0, value=24.0, step=1.0)
+                            new_item_bar = st.text_input("बारकोड (Barcode):", value=search_barcode, key=f"f_bar_{search_barcode}_{cam_k_idx}")
+                            new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "नवीन उत्पादन", key=f"f_title_{search_barcode}_{cam_k_idx}")
+                            new_item_qty = st.number_input("आवक साठा प्रमाण (Inward Qty):", min_value=1.0, value=24.0, step=1.0, key=f"f_qty_{search_barcode}_{cam_k_idx}")
                         with nb_col2:
-                            new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0)
-                            new_item_unit = st.text_input("एकक (Unit e.g. pcs, kg, pkt):", value="pcs")
-                            new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0)
+                            new_item_price = st.number_input("विक्री दर (Selling Price ₹):", min_value=0.0, value=20.0, step=5.0, key=f"f_price_{search_barcode}_{cam_k_idx}")
+                            new_item_unit = st.text_input("एकक (Unit e.g. pcs, kg, pkt):", value="pcs", key=f"f_unit_{search_barcode}_{cam_k_idx}")
+                            new_item_alert = st.number_input("कमी साठा मर्यादा (Alert Limit):", min_value=1.0, value=5.0, step=1.0, key=f"f_alert_{search_barcode}_{cam_k_idx}")
 
                         submit_nb = st.form_submit_button("📥 नवीन वस्तू साठ्यात जमा करा (Save & Inward Stock)", type="primary", use_container_width=True)
                         if submit_nb:
