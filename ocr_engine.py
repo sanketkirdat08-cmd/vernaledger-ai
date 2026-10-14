@@ -86,20 +86,20 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
         img_copy.thumbnail((1600, 1600))
 
     prompt = """
-    You are an expert document OCR scanner for Marathi/Hindi handwritten and printed ledgers/receipts.
-    CRITICAL MATHEMATICAL TASK:
-    1. Extract the Vendor/Shop Name at the top in Marathi script.
-    2. Extract ALL item rows listed in the table or list.
-    3. For each row, parse accurately:
-       item_name: Name of item.
-       quantity: Specify numeric quantity along with exact measurement unit (e.g. '10 kg', '1 ltr'). Remove commas from numbers. If no unit, just the number.
-       rate: Price per unit in numeric rupees (e.g. 20.0). Remove commas.
-       total_price: Total amount for this line item in rupees.
-    
-    VERIFICATION RULES:
-    - You MUST mathematically verify that: (quantity numeric part) * rate = total_price.
-    - If the math on the receipt is wrong or unreadable, YOU MUST CORRECT IT. Set total_price = quantity * rate.
-    - You MUST mathematically verify that grand_total = SUM(all item total_price). Do NOT blindly copy a wrong total from the image.
+    You are an expert document OCR scanner specialized in Marathi, Devanagari handwritten and printed ledgers, invoices, and retail receipts.
+    CRITICAL OCR INSTRUCTIONS:
+    1. Extract the Vendor/Shop Name at the top in complete Marathi or English script.
+    2. Carefully scan and extract EVERY single line item row listed in the receipt. DO NOT skip or omit any rows.
+    3. Read the complete item name accurately in original Marathi / English script (e.g., 'शेंगदाणा तेल १ लि', 'साखर ५ किलो', 'हळद पावडर', 'गहू', 'तूर डाळ'). DO NOT truncate or abbreviate names.
+    4. For each row, accurately extract:
+       - item_name: Full name of the item.
+       - quantity: Numeric quantity along with exact measurement unit (e.g. '1 kg', '2 pcs', '500 gm', '1 ltr', '1 pkt'). If unit is not written, specify count as string (e.g. '1').
+       - rate: Price per unit in rupees as a numeric float (e.g. 45.0). Remove commas or currency symbols.
+       - total_price: Total amount for this item line in rupees as a numeric float (quantity * rate).
+    5. MATHEMATICAL VERIFICATION:
+       - Verify that total_price = numeric quantity * rate for each item.
+       - Verify that grand_total = sum of all item total_price values.
+       - If the receipt total is blurry, faint, or mathematically incorrect, compute and set the correct sum.
 
     Output strictly in this JSON structure:
     {

@@ -2739,11 +2739,11 @@ def generate_upi_qr_base64(amount: float, vpa: str = "", payee_name: str = "", n
 def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, items: list, total: float, upi_qr_b64: str = "", receipt_no: str = "1", is_english: bool = False) -> str:
     item_rows = ""
     for idx, itm in enumerate(items, 1):
-        name = str(itm.get("item_name", f"Item {idx}"))[:16]
-        qty = str(itm.get("quantity", itm.get("qty", "1")))
+        name = str(itm.get("item_name", f"Item {idx}")).strip()
+        qty = str(itm.get("quantity", itm.get("qty", "1"))).strip()
         rate = float(itm.get("rate", itm.get("price", 0)) or 0)
         t_price = float(itm.get("total_price", rate * 1) or 0)
-        item_rows += f"<tr><td>{escape(name)}</td><td style='text-align:center;'>{escape(qty)}</td><td style='text-align:right;'>{rate:.1f}</td><td style='text-align:right;'>{t_price:.2f}</td></tr>"
+        item_rows += f"<tr><td style='word-break: break-word; padding-right: 4px;'>{escape(name)}</td><td style='text-align:center; white-space:nowrap;'>{escape(qty)}</td><td style='text-align:right; white-space:nowrap;'>{rate:.1f}</td><td style='text-align:right; white-space:nowrap;'>{t_price:.2f}</td></tr>"
 
     title_label = "RETAIL CASH SLIP" if is_english else "किराणा खरेदी पावती"
     tot_label = "GRAND TOTAL" if is_english else "एकूण रक्कम"
@@ -2783,25 +2783,12 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
     table {{ width: 100%; border-collapse: collapse; font-size: 10px; }}
     th {{ border-bottom: 1px dashed #000; text-align: left; padding: 2px 0; }}
     td {{ padding: 2px 0; }}
-    .no-print {{
-        background: #0ea5e9;
-        color: #fff;
-        border: none;
-        padding: 7px 14px;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        width: 100%;
-        margin-bottom: 8px;
-        font-weight: bold;
-    }}
     @media print {{
         .no-print {{ display: none !important; }}
     }}
 </style>
 </head>
 <body>
-    <button class="no-print" onclick="window.print()">🖨️ पावती प्रिंट करा (Print Thermal Slip)</button>
     <div class="center bold" style="font-size: 13px;">{escape(cfg_shop_name)}</div>
     {addr_line}
     {phone_line}
@@ -3375,7 +3362,25 @@ if selected_page == "OCR Scanner":
                 thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, receipt_no="1", is_english=is_english)
                 
                 # Embedded Compact Thermal Receipt Preview
-                st.components.v1.html(thermal_html, height=330, scrolling=True)
+                st.components.v1.html(thermal_html, height=310, scrolling=True)
+                
+                # Clearly Display Scanned Items Table
+                if items_raw:
+                    st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>📋 स्कॅन केलेल्या वस्तूंचा तपशील (Scanned Items):</div>", unsafe_allow_html=True)
+                    clean_items_display = []
+                    for idx_item, itm in enumerate(items_raw, 1):
+                        name_val = str(itm.get("item_name", f"Item {idx_item}")).strip()
+                        qty_val = str(itm.get("quantity", itm.get("qty", "1"))).strip()
+                        rate_val = float(itm.get("rate", itm.get("price", 0)) or 0)
+                        tot_val = float(itm.get("total_price", rate_val) or 0)
+                        clean_items_display.append({
+                            "क्र.": idx_item,
+                            "वस्तूचे नाव (Item)": name_val,
+                            "प्रमाण (Qty)": qty_val,
+                            "दर (Rate ₹)": f"₹{rate_val:,.2f}",
+                            "एकूण (Total ₹)": f"₹{tot_val:,.2f}"
+                        })
+                    st.dataframe(pd.DataFrame(clean_items_display), hide_index=True, use_container_width=True)
                 
                 # Action Buttons Row
                 btn_col1, btn_col2 = st.columns(2)
@@ -3395,12 +3400,25 @@ if selected_page == "OCR Scanner":
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
                                 for item in p_item.get('items', []):
+                                    i_name = str(item.get('item_name', '')).strip()
+                                    if not i_name:
+                                        continue
                                     q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
                                     try:
                                         q_val = float(q_raw)
                                     except (ValueError, TypeError):
                                         q_val = 1.0
-                                    cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
+                                    r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
+                                    cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
+                                    row = cursor.fetchone()
+                                    if row:
+                                        new_qty = float(row[1] or 0.0) + q_val
+                                        cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
+                                    else:
+                                        cursor.execute(
+                                            "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
+                                            (i_name, q_val, 'units', 5.0, '', r_val)
+                                        )
                                 conn.commit()
                             st.toast('📦 स्टॉक आपोआप अपडेट झाला!', icon="📦")
                             st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
@@ -3437,12 +3455,25 @@ if selected_page == "OCR Scanner":
                             cursor = conn.cursor()
                             for b_item in batch_data:
                                 for item in b_item.get('items', []):
+                                    i_name = str(item.get('item_name', '')).strip()
+                                    if not i_name:
+                                        continue
                                     q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
                                     try:
                                         q_val = float(q_raw)
                                     except (ValueError, TypeError):
                                         q_val = 1.0
-                                    cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
+                                    r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
+                                    cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
+                                    row = cursor.fetchone()
+                                    if row:
+                                        new_qty = float(row[1] or 0.0) + q_val
+                                        cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
+                                    else:
+                                        cursor.execute(
+                                            "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
+                                            (i_name, q_val, 'units', 5.0, '', r_val)
+                                        )
                             conn.commit()
                         st.toast('📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
                         st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
@@ -3460,6 +3491,17 @@ if selected_page == "OCR Scanner":
                     with st.expander(f"🧾 #{idx+1} {v_disp} — ₹{tot:,.2f} ({len(items_raw)} वस्तू)"):
                         b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, receipt_no=str(idx+1), is_english=is_english)
                         st.components.v1.html(b_thermal_html, height=280, scrolling=True)
+                        if items_raw:
+                            clean_b_items = []
+                            for bi_idx, bi in enumerate(items_raw, 1):
+                                clean_b_items.append({
+                                    "क्र.": bi_idx,
+                                    "वस्तू": str(bi.get("item_name", "-")),
+                                    "प्रमाण": str(bi.get("quantity", bi.get("qty", "1"))),
+                                    "दर": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
+                                    "एकूण": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
+                                })
+                            st.dataframe(pd.DataFrame(clean_b_items), hide_index=True, use_container_width=True)
                         b_c1, b_c2 = st.columns(2)
                         with b_c1:
                             st.download_button(
@@ -3477,12 +3519,25 @@ if selected_page == "OCR Scanner":
                                     with sqlite3.connect('ledger.db') as conn:
                                         cursor = conn.cursor()
                                         for item in p_item.get('items', []):
+                                            i_name = str(item.get('item_name', '')).strip()
+                                            if not i_name:
+                                                continue
                                             q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
                                             try:
                                                 q_val = float(q_raw)
                                             except (ValueError, TypeError):
                                                 q_val = 1.0
-                                            cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
+                                            r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
+                                            cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
+                                            row = cursor.fetchone()
+                                            if row:
+                                                new_qty = float(row[1] or 0.0) + q_val
+                                                cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
+                                            else:
+                                                cursor.execute(
+                                                    "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
+                                                    (i_name, q_val, 'units', 5.0, '', r_val)
+                                                )
                                         conn.commit()
                                     st.toast(f'#{idx+1} स्टॉक अपडेट झाला!')
                                     st.success('इन्व्हेंटरी अपडेट झाली!')
@@ -3575,6 +3630,13 @@ elif selected_page == "Business Operations":
                 stock_df = pd.DataFrame()
                 
             if not stock_df.empty:
+                stock_df['alert_limit'] = pd.to_numeric(stock_df.get('alert_limit', 5.0), errors='coerce').fillna(5.0)
+                stock_df['stock_qty'] = pd.to_numeric(stock_df.get('stock_qty', 0.0), errors='coerce').fillna(0.0)
+                if 'selling_price' in stock_df.columns:
+                    stock_df['selling_price'] = pd.to_numeric(stock_df['selling_price'], errors='coerce').fillna(0.0)
+                else:
+                    stock_df['selling_price'] = 0.0
+
                 low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
                 stock_metric1, stock_metric2 = st.columns(2)
                 with stock_metric1:
@@ -3603,7 +3665,7 @@ elif selected_page == "Business Operations":
                 display_df = stock_df.copy()
                 if 'barcode' in display_df.columns:
                     display_df = display_df.drop(columns=['barcode'])
-                display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
+                display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if float(row.get('stock_qty', 0.0) or 0.0) <= float(row.get('alert_limit', 5.0) or 5.0) else "✅ In Stock", axis=1))
                 st.dataframe(display_df,  hide_index=True)
                 if not low_stock_items.empty:
                     # 🧠 AI PREDICTIVE REORDER LIST & WHOLESALE ORDER
@@ -3612,17 +3674,23 @@ elif selected_page == "Business Operations":
                         reorder_rows = []
                         order_lines = []
                         for _, r in low_stock_items.iterrows():
-                            c_qty = float(r['stock_qty'])
-                            a_lim = float(r['alert_limit'])
-                            t_unit = str(r['unit'])
+                            try:
+                                c_qty = float(r.get('stock_qty', 0.0) or 0.0)
+                            except (ValueError, TypeError):
+                                c_qty = 0.0
+                            try:
+                                a_lim = float(r.get('alert_limit', 5.0) or 5.0)
+                            except (ValueError, TypeError):
+                                a_lim = 5.0
+                            t_unit = str(r.get('unit', 'units') or 'units')
                             needed = max(1.0, math.ceil((a_lim * 3.0) - c_qty))
                             reorder_rows.append({
-                                "वस्तू (Item)": r['item_name'],
+                                "वस्तू (Item)": str(r.get('item_name', '')),
                                 "सध्याचा साठा": f"{c_qty:g} {t_unit}",
                                 "सूचना मर्यादा": f"{a_lim:g} {t_unit}",
                                 "खरेदी शिफारस": f"{needed:g} {t_unit}"
                             })
-                            order_lines.append(f"• {r['item_name']}: {needed:g} {t_unit}")
+                            order_lines.append(f"• {r.get('item_name', '')}: {needed:g} {t_unit}")
                         
                         st.dataframe(pd.DataFrame(reorder_rows), hide_index=True, use_container_width=True)
                         
@@ -3709,6 +3777,7 @@ elif selected_page == "Business Operations":
             except Exception:
                 exp_df = pd.DataFrame()
             if not exp_df.empty:
+                exp_df['amount'] = pd.to_numeric(exp_df['amount'], errors='coerce').fillna(0.0)
                 total_expenses = exp_df['amount'].sum()
                 st.markdown(f"""
                 <div class="business-metric-card" style="margin-bottom:14px;">
