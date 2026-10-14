@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 def init_db() -> None:
     conn = sqlite3.connect("ledger.db")
     cursor = conn.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL;")
+    cursor.execute("PRAGMA synchronous = NORMAL;")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS receipts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,6 +27,7 @@ def init_db() -> None:
         raw_json TEXT
     )
     """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_receipts_lookup ON receipts(vendor_name, date, grand_total);")
     conn.commit()
     conn.close()
 
@@ -43,47 +46,37 @@ def extract_valid_json(text: str) -> dict:
         
     return json.loads(text)
 
-def get_active_gemini_models():
-    """Fetch the best available working Gemini vision models in optimal priority order."""
-    priority_order = [
-        'gemini-3.5-flash',
-        'gemini-flash-lite-latest',
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite',
-        'gemini-3.1-flash-lite-preview',
-        'gemini-3.6-flash',
-        'gemini-3.7-flash',
-        'gemini-3-flash-preview',
-    ]
-    try:
-        available = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_name = m.name.replace('models/', '')
-                available.append(model_name)
-        
-        # Pick from priority_order that are available online
-        active = [m for m in priority_order if m in available]
-        if active:
-            return active
-        
-        # Safe fallback: any flash models excluding TTS/Audio/ImageGen/pro/deprecated
-        safe_flash = [
-            m for m in available 
-            if 'flash' in m and not any(bad in m for bad in ['tts', 'image', 'audio', 'lyria', 'banana', '2.5', '2.0', '1.5', '3.8', 'omni'])
-        ]
-        if safe_flash:
-            return safe_flash
-    except Exception as exc:
-        logger.debug("Model discovery fallback: %s", exc)
-    return priority_order
+_PRIORITY_FAST_MODELS = [
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+]
+_CACHED_WORKING_MODELS = None
 
-def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
+def get_active_gemini_models():
+    """Returns fastest working vision models instantly without expensive blocking network discovery."""
+    global _CACHED_WORKING_MODELS
+    if _CACHED_WORKING_MODELS:
+        return _CACHED_WORKING_MODELS
+    return _PRIORITY_FAST_MODELS
+
+def update_working_model(model_name: str):
+    global _CACHED_WORKING_MODELS
+    _CACHED_WORKING_MODELS = [model_name] + [m for m in _PRIORITY_FAST_MODELS if m != model_name]
+
+def process_receipt_advanced(image_input, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
     
-    with Image.open(image_path) as img:
-        img_copy = img.convert('RGB')
-        img_copy.thumbnail((1600, 1600))
+    if isinstance(image_input, (str, os.PathLike)):
+        img = Image.open(image_input)
+    else:
+        if hasattr(image_input, "seek"):
+            image_input.seek(0)
+        img = Image.open(image_input)
+
+    img_copy = img.convert('RGB')
+    img_copy.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
 
     prompt = """
     You are an expert document OCR scanner specialized in Marathi, Devanagari handwritten and printed ledgers, invoices, and retail receipts.
@@ -124,6 +117,7 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
             res = model.generate_content([prompt, img_copy])
             if res and res.text:
                 response = res
+                update_working_model(model_name)
                 logger.info(f"Successfully processed receipt using active model: {model_name}")
                 break
         except Exception as exc:
@@ -221,6 +215,7 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
             model = genai.GenerativeModel(model_name)
             res = model.generate_content(prompt)
             if res and res.text:
+                update_working_model(model_name)
                 logger.info(f"Successfully processed voice bill using active model: {model_name}")
                 break
         except Exception as exc:

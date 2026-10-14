@@ -191,6 +191,9 @@ def init_databases():
             
     with sqlite3.connect("ledger.db") as conn:
         try:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA cache_size = -64000;")
             conn.execute("BEGIN TRANSACTION;")
             cursor = conn.cursor()
             cursor.execute("""
@@ -201,6 +204,7 @@ def init_databases():
                 phone TEXT
             )
             """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
             cursor.execute("PRAGMA table_info(users)")
             columns = [col[1] for col in cursor.fetchall()]
             if "role" not in columns:
@@ -280,6 +284,7 @@ def init_databases():
                 notes TEXT
             )
             """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_expenses_date ON business_expenses(date)")
 
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS stock_inward_logs (
@@ -1332,7 +1337,22 @@ def render_customer_khata():
                         else "निवडलेल्या फिल्टरनुसार कोणतेही ग्राहक आढळले नाहीत."
                     )
                 else:
-                    for c_idx, customer in f_df.reset_index(drop=True).iterrows():
+                    PAGE_SIZE = 10
+                    total_custs = len(f_df)
+                    if total_custs > PAGE_SIZE:
+                        num_pages = math.ceil(total_custs / PAGE_SIZE)
+                        p_c1, p_c2 = st.columns([1, 2])
+                        with p_c1:
+                            page_num = st.selectbox(
+                                f"📄 पान (Page 1-{num_pages}):" if not is_english else f"📄 Page (1-{num_pages}):",
+                                range(1, num_pages + 1),
+                                key="khata_page_num"
+                            )
+                        f_df_page = f_df.iloc[(page_num - 1) * PAGE_SIZE : page_num * PAGE_SIZE]
+                    else:
+                        f_df_page = f_df
+
+                    for c_idx, customer in f_df_page.reset_index(drop=True).iterrows():
                         name = _khata_text(customer["customer_name"])
                         customer_phone = _khata_text(customer["phone"])
                         risk_score = int(customer.get("risk_score", 0))
@@ -3262,22 +3282,17 @@ if selected_page == "OCR Scanner":
                     total_f = len(target_files)
                     
                     def process_single_file(idx, single_file):
-                        temp_f = f"temp_{os.urandom(4).hex()}.png"
                         try:
-                            with open(temp_f, "wb") as f:
-                                f.write(single_file.getbuffer())
-                            data = process_receipt_advanced(temp_f, API_KEY, force_save=force_save_option)
-                            if os.path.exists(temp_f):
-                                os.remove(temp_f)
+                            data = process_receipt_advanced(single_file, API_KEY, force_save=force_save_option)
+                            f_name = getattr(single_file, "name", f"पावती #{idx+1}")
                             if data.get("is_duplicate"):
                                 warn_msg = f"दुकान '{data.get('vendor_name')}' चे ₹{data.get('grand_total')} चे बिल आधीच रेकॉर्ड केलेले आहे."
-                                return (idx, data, (single_file.name, f"Duplicate Warning: {warn_msg}"))
+                                return (idx, data, (f_name, f"Duplicate Warning: {warn_msg}"))
                             return (idx, data, None)
                         except Exception as e:
-                            if os.path.exists(temp_f):
-                                os.remove(temp_f)
+                            f_name = getattr(single_file, "name", f"पावती #{idx+1}")
                             err_str = str(e)
-                            return (idx, None, (single_file.name, err_str))
+                            return (idx, None, (f_name, err_str))
 
                     with st.spinner(f"🚀 AI Vision Engine {total_f} पावत्या एकाच वेळी स्कॅन करत आहे... कृपया वाट पहा!"):
                         with concurrent.futures.ThreadPoolExecutor(max_workers=min(total_f, 10)) as executor:
