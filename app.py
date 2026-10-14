@@ -2745,16 +2745,6 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
         t_price = float(itm.get("total_price", rate * 1) or 0)
         item_rows += f"<tr><td>{escape(name)}</td><td style='text-align:center;'>{escape(qty)}</td><td style='text-align:right;'>{rate:.1f}</td><td style='text-align:right;'>{t_price:.2f}</td></tr>"
 
-    qr_section = ""
-    if upi_qr_b64:
-        qr_section = f"""
-        <div style="margin-top:10px; text-align:center;">
-            <div style="font-size:10px; font-weight:bold; margin-bottom:4px;">SCAN & PAY VIA UPI</div>
-            <img src="data:image/png;base64,{upi_qr_b64}" style="width:115px; height:115px;" />
-            <div style="font-size:9px; color:#555; margin-top:2px;">GPay / PhonePe / Paytm</div>
-        </div>
-        """
-
     title_label = "RETAIL CASH SLIP" if is_english else "किराणा खरेदी पावती"
     tot_label = "GRAND TOTAL" if is_english else "एकूण रक्कम"
     thanks_label = "THANK YOU! VISIT AGAIN" if is_english else "धन्यवाद! पुन्हा भेट द्या"
@@ -2839,7 +2829,6 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
         <span>₹{total:,.2f}</span>
     </div>
     <div class="divider"></div>
-    {qr_section}
     <div class="center bold" style="margin-top: 8px; font-size: 10px;">*** {escape(cfg_footer_tagline)} ***</div>
     <div class="center" style="font-size: 8px; color:#555;">Powered by VernaLedger-AI</div>
 </body>
@@ -3081,50 +3070,31 @@ if selected_page == "OCR Scanner":
         color: #00ff87;
         border: 1px solid rgba(0, 255, 135, 0.3);
     }
-    .pos-bill-card {
-        background: linear-gradient(180deg, #10172a 0%, #0b1120 100%);
-        border: 1px solid rgba(0, 242, 254, 0.25);
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-        margin-bottom: 14px;
-    }
-    .pos-bill-header {
-        border-bottom: 1px dashed rgba(0, 242, 254, 0.3);
-        padding-bottom: 10px;
-        margin-bottom: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-    .pos-stat-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-    .pos-stat-box {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+    .thermal-preview-wrap {
+        background: #ffffff;
+        color: #000000;
         border-radius: 8px;
-        padding: 8px 10px;
-        text-align: center;
+        padding: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        max-height: 340px;
+        overflow-y: auto;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11px;
+        margin-bottom: 10px;
+        border: 1px solid #cbd5e1;
     }
-    .pos-stat-val {
-        font-size: 15px;
-        font-weight: 800;
-        color: #00f2fe;
+    [data-testid="stCameraInput"] video {
+        max-height: 200px !important;
+        border-radius: 8px !important;
     }
-    .pos-stat-lbl {
-        font-size: 10px;
-        color: #94a3b8;
-        text-transform: uppercase;
-        margin-top: 2px;
+    [data-testid="stCameraInput"] img {
+        max-height: 180px !important;
+        border-radius: 8px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    col_u, col_p = st.columns([1.12, 0.88])
+    col_u, col_p = st.columns([1.1, 0.9])
     with col_u:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         
@@ -3133,21 +3103,33 @@ if selected_page == "OCR Scanner":
             curr_mode = "Upload File"
             st.session_state['input_method'] = "Upload File"
 
-        is_receipt = curr_mode in ["Upload File", "Live Camera"]
-        is_voice = curr_mode == "Multi-Language Voice Bill"
+        input_method = curr_mode
+        is_receipt = input_method in ["Upload File", "Live Camera"]
+        is_voice = input_method == "Multi-Language Voice Bill"
 
-        # 2 Clean Primary Modes
-        m_c1, m_c2 = st.columns(2)
+        # 3 Clean Input Modes (फक्त ३ बटणे)
+        m_c1, m_c2, m_c3 = st.columns(3)
         with m_c1:
             if st.button(
-                "📄 पावती स्कॅनर" if not is_english else "📄 Receipt OCR",
-                type="primary" if is_receipt else "secondary",
+                "📁 फाईल गॅलरी" if not is_english else "📁 Gallery",
+                type="primary" if input_method == "Upload File" else "secondary",
                 use_container_width=True,
-                key="btn_mode_receipt"
+                key="btn_mode_gallery"
             ):
-                st.session_state['input_method'] = st.session_state.get('receipt_source', 'Upload File')
+                st.session_state['input_method'] = "Upload File"
+                st.session_state['receipt_source'] = "Upload File"
                 st.rerun()
         with m_c2:
+            if st.button(
+                "📸 थेट कॅमेरा" if not is_english else "📸 Camera",
+                type="primary" if input_method == "Live Camera" else "secondary",
+                use_container_width=True,
+                key="btn_mode_camera"
+            ):
+                st.session_state['input_method'] = "Live Camera"
+                st.session_state['receipt_source'] = "Live Camera"
+                st.rerun()
+        with m_c3:
             if st.button(
                 "🎙️ व्हॉईस बिल" if not is_english else "🎙️ Voice Bill",
                 type="primary" if is_voice else "secondary",
@@ -3156,23 +3138,8 @@ if selected_page == "OCR Scanner":
             ):
                 st.session_state['input_method'] = "Multi-Language Voice Bill"
                 st.rerun()
-                
-        input_method = st.session_state.get('input_method', 'Upload File')
 
-        # Safeguard & Reset Bar (Receipt mode only)
         if is_receipt:
-            sub_col1, sub_col2 = st.columns(2)
-            with sub_col1:
-                if st.button("📁 फाईल निवडा (Gallery)", type="primary" if input_method == "Upload File" else "secondary", use_container_width=True, key="sub_btn_upload"):
-                    st.session_state['input_method'] = "Upload File"
-                    st.session_state['receipt_source'] = "Upload File"
-                    st.rerun()
-            with sub_col2:
-                if st.button("📸 थेट कॅमेरा (Camera)", type="primary" if input_method == "Live Camera" else "secondary", use_container_width=True, key="sub_btn_camera"):
-                    st.session_state['input_method'] = "Live Camera"
-                    st.session_state['receipt_source'] = "Live Camera"
-                    st.rerun()
-
             ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
             with ctrl_c1:
                 force_save_option = st.checkbox(
@@ -3194,32 +3161,24 @@ if selected_page == "OCR Scanner":
         up_cam = None
         if input_method == "Upload File":
             up_files = st.file_uploader(
-                "**⚡ Multi-Core Batch OCR Ready** *एकाच वेळी १० पावत्यांपर्यंत सपोर्ट*  \nपावतीचा फोटो निवडा किंवा ड्रॅग करा (JPG, JPEG, PNG):",
+                "पावतीचा फोटो निवडा (JPG, JPEG, PNG):",
                 type=["jpg", "jpeg", "png"],
                 accept_multiple_files=True,
                 key="ocr_receipt_files"
             )
             if up_files:
-                st.markdown(f"""
-                <div style='display: flex; justify-content: space-between; align-items: center; margin: 10px 0;'>
-                    <span class='scanner-pill-success'>📸 निवडलेल्या पावत्या: {len(up_files)}</span>
-                    <span style='font-size: 11px; color: #00f2fe;'>पॅरलल प्रोसेसिंग सज्ज</span>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size: 11px; color: #00ff87; font-weight: 700; margin: 4px 0;'>📸 निवडलेल्या पावत्या ({len(up_files)}):</div>", unsafe_allow_html=True)
                 cols = st.columns(min(len(up_files), 5))
                 for idx, uf in enumerate(up_files[:5]):
-                    cols[idx].image(uf, caption=f"पावती #{idx+1}")
+                    with cols[idx]:
+                        st.image(uf, width=65)
                 if len(up_files) > 5:
-                    st.markdown(f"<div style='font-size: 12px; color: #94a3b8; font-weight: 600; text-align: center;'>+ आणखी {len(up_files)-5} पावत्या तयार आहेत...</div>", unsafe_allow_html=True)
+                    st.caption(f"+ आणखी {len(up_files)-5} पावत्या")
 
         elif input_method == "Live Camera":
             st.markdown("""
-            <div class='scanner-viewfinder'>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
-                    <span class='scanner-pill'>📸 POS Live Scanner</span>
-                    <span class='scanner-pill-success'>● कॅमेरा सक्रिय</span>
-                </div>
-                <div style='font-size: 12px; color: #cbd5e1;'>💡 <b>टिप:</b> पावती सपाट ठेवा, सर्व वस्तू, दर आणि एकूण रक्कम फ्रेममध्ये स्पष्ट दिसू द्या.</div>
+            <div style='font-size: 11px; color: #94a3b8; margin-bottom: 4px;'>
+                📸 पावती फ्रेममध्ये सपाट व स्पष्ट दिसू द्या:
             </div>
             """, unsafe_allow_html=True)
             up_cam = st.camera_input("Take photo", label_visibility="collapsed", key="ocr_live_cam")
@@ -3398,43 +3357,40 @@ if selected_page == "OCR Scanner":
                 date_disp = p_item.get('date', 'Today') or 'Today'
                 cat_disp = p_item.get('category', 'General') or 'General'
                 
-                # POS Bill Card Header
+                # Compact Receipt Header (No big POS card)
                 st.markdown(f"""
-                <div class='pos-bill-card'>
-                    <div class='pos-bill-header'>
-                        <div>
-                            <div style='font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700;'>Digital POS Receipt</div>
-                            <div style='font-size: 20px; font-weight: 800; color: #00f2fe; margin-top: 2px;'>{v_disp}</div>
-                            <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>📅 {date_disp} | 🏷️ {cat_disp}</div>
-                        </div>
-                        <span class='scanner-pill-success'>✅ AI Verified</span>
+                <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
+                    <div>
+                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>🧾 {v_disp}</div>
+                        <div style='font-size: 11px; color: #94a3b8;'>📅 {date_disp} • 🏷️ {cat_disp} • {len(items_raw)} वस्तू</div>
                     </div>
-                    <div class='pos-stat-grid'>
-                        <div class='pos-stat-box'>
-                            <div class='pos-stat-val'>{len(items_raw)}</div>
-                            <div class='pos-stat-lbl'>एकूण वस्तू</div>
-                        </div>
-                        <div class='pos-stat-box' style='border-color: rgba(0, 255, 135, 0.3);'>
-                            <div class='pos-stat-val' style='color: #00ff87;'>₹{tot:,.2f}</div>
-                            <div class='pos-stat-lbl'>एकूण रक्कम</div>
-                        </div>
-                        <div class='pos-stat-box'>
-                            <div class='pos-stat-val' style='color: #ffb800;'>{cat_disp}</div>
-                            <div class='pos-stat-lbl'>कॅटेगरी</div>
-                        </div>
+                    <div style='text-align: right;'>
+                        <div style='font-size: 10px; color: #94a3b8;'>एकूण रक्कम</div>
+                        <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{tot:,.2f}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Interactive Items Table
-                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;'>📦 पावतीमधील वस्तू तपशील (Live Editor):</div>", unsafe_allow_html=True)
-                items_df = pd.DataFrame(items_raw)
-                if not items_df.empty:
-                    edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
-                    p_item['items'] = edited_df.to_dict('records')
-                    
-                    # 1-Click Inventory Sync
-                    if st.button('📦 इन्व्हेंटरी अपडेट करा (Sync Stock to Inventory)', key='inv_sync_single', use_container_width=True):
+                # Pure Thermal Receipt (No Scan & Pay, No Sound Box)
+                thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, receipt_no="1", is_english=is_english)
+                
+                # Embedded Compact Thermal Receipt Preview
+                st.components.v1.html(thermal_html, height=330, scrolling=True)
+                
+                # Action Buttons Row
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    st.download_button(
+                        label="🖨️ थर्मल पावती (Print / Download)",
+                        data=thermal_html,
+                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}.html",
+                        mime="text/html",
+                        use_container_width=True,
+                        type="primary",
+                        key="btn_download_thermal_single"
+                    )
+                with btn_col2:
+                    if st.button('📦 इन्व्हेंटरी अपडेट (Sync Stock)', key='inv_sync_single', use_container_width=True):
                         try:
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
@@ -3451,97 +3407,31 @@ if selected_page == "OCR Scanner":
                         except Exception as e:
                             st.error(str(e))
                 
-                st.markdown("<hr style='margin: 12px 0; border-color: rgba(255, 255, 255, 0.08);'>", unsafe_allow_html=True)
-                
-                # ⚡ DYNAMIC UPI QR & AI SOUNDBOX
-                shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
-                shop_name = get_shop_setting("shop_name", v_disp if v_disp and v_disp != "अनामित" else "VernaLedger Store")
-                upi_b64 = generate_upi_qr_base64(tot, vpa=shop_upi_id, payee_name=shop_name, note=f"Bill {date_disp}")
-                with st.expander("⚡ त्वरित UPI पेमेंट आणि साऊंडबॉक्स (Scan & Pay + Soundbox)", expanded=True):
-                    upic1, upic2 = st.columns([1, 1.3])
-                    with upic1:
-                        if upi_b64:
-                            st.markdown(f"""
-                            <div style='text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 12px; border: 1px dashed rgba(0,242,254,0.4);'>
-                                <div style='font-size: 11px; font-weight: 700; color: #00f2fe; margin-bottom: 5px;'>QR स्कॅन करून भरा</div>
-                                <img src="data:image/png;base64,{upi_b64}" style="width: 125px; height: 125px; border-radius: 8px; background: white; padding: 4px;" />
-                                <div style='font-size: 10px; color: #94a3b8; margin-top: 4px;'>GPay • PhonePe • Paytm • BHIM</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    with upic2:
-                        st.markdown(f"""
-                        <div style='padding: 6px 0;'>
-                            <div style='font-size: 11px; color: #94a3b8;'>देय रक्कम (Payable Amount):</div>
-                            <div style='font-size: 24px; font-weight: 800; color: #00ff87;'>₹{tot:,.2f}</div>
-                            <div style='font-size: 11px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;'>
-                                ग्राहक हा QR स्कॅन करून थेट बँक खात्यात रक्कम पाठवू शकतात.
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button("🔊 साऊंडबॉक्स आवाज (Play Soundbox)", key="btn_soundbox_single", use_container_width=True):
-                            sb_text = f"VernaLedger: {tot:.0f} रुपये प्राप्त झाले!" if not is_english else f"VernaLedger: Received payment of {tot:.0f} rupees!"
-                            sb_path = generate_marathi_tts(sb_text, output_path=f"soundbox_{int(time.time())}.mp3")
-                            if sb_path and os.path.exists(sb_path):
-                                st.audio(sb_path, autoplay=True)
-                            st.toast(f"🔔 ₹{tot:,.2f} Payment Received!", icon="✅")
-                
-                # Action Buttons Row: Thermal POS Slip and WhatsApp with UPI Link
-                thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, upi_qr_b64=upi_b64, receipt_no="1", is_english=is_english)
-                act_col1, act_col2 = st.columns(2)
-                with act_col1:
-                    st.download_button(
-                        label="🖨️ थर्मल पावती (58mm POS)",
-                        data=thermal_html,
-                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}.html",
-                        mime="text/html",
-                        use_container_width=True,
-                        type="primary",
-                        key="btn_download_thermal_single"
-                    )
-                with act_col2:
-                    wa_lines = [f"• {itm.get('item_name')} ({itm.get('quantity', itm.get('qty', '1'))}) - ₹{itm.get('total_price', 0):,.2f}" for itm in items_raw]
-                    clean_amt_str = f"{tot:.2f}"
-                    upi_direct_link = f"upi://pay?pa={shop_upi_id}&pn={urllib.parse.quote(shop_name)}&am={clean_amt_str}&cu=INR"
-                    wa_text = f"🧾 *{shop_name} - पावती तपशील*\n\n" + "\n".join(wa_lines) + f"\n\n💰 *एकूण रक्कम:* ₹{tot:,.2f}\n⚡ *UPI पेमेंट लिंक:* {upi_direct_link}\n\n🙏 धन्यवाद!"
-                    wa_link = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
-                    st.markdown(f"""
-                    <a href="{wa_link}" target="_blank" style="text-decoration: none;">
-                        <button style="width: 100%; height: 42px; border-radius: 8px; background: rgba(37, 211, 102, 0.15); border: 1px solid #25d366; color: #25d366; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">
-                            💬 व्हॉट्सॲपवर पाठवा (सह UPI लिंक)
-                        </button>
-                    </a>
-                    """, unsafe_allow_html=True)
+                # Compact Optional Edit Items in collapsed expander
+                items_df = pd.DataFrame(items_raw)
+                if not items_df.empty:
+                    with st.expander("✏️ वस्तू / किमती तपासा किंवा बदला (Edit Items)", expanded=False):
+                        edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
+                        p_item['items'] = edited_df.to_dict('records')
             else:
                 combined_tot = sum(float(b.get('grand_total', 0) or 0) for b in batch_data)
                 total_items_count = sum(len(b.get('items', [])) for b in batch_data)
                 
+                # Compact Batch Header
                 st.markdown(f"""
-                <div class='pos-bill-card'>
-                    <div class='pos-bill-header'>
-                        <div>
-                            <div style='font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700;'>Batch Scanning Hub</div>
-                            <div style='font-size: 18px; font-weight: 800; color: #00f2fe; margin-top: 2px;'>{len(batch_data)} पावत्या यशस्वीरित्या स्कॅन झाल्या</div>
-                        </div>
-                        <span class='scanner-pill-success'>✅ Multi-Core Batch</span>
+                <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
+                    <div>
+                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>🧾 {len(batch_data)} पावत्या स्कॅन झाल्या</div>
+                        <div style='font-size: 11px; color: #94a3b8;'>एकूण {total_items_count} वस्तू</div>
                     </div>
-                    <div class='pos-stat-grid'>
-                        <div class='pos-stat-box'>
-                            <div class='pos-stat-val'>{len(batch_data)}</div>
-                            <div class='pos-stat-lbl'>एकूण पावत्या</div>
-                        </div>
-                        <div class='pos-stat-box' style='border-color: rgba(0, 255, 135, 0.3);'>
-                            <div class='pos-stat-val' style='color: #00ff87;'>₹{combined_tot:,.2f}</div>
-                            <div class='pos-stat-lbl'>एकत्रित रक्कम</div>
-                        </div>
-                        <div class='pos-stat-box'>
-                            <div class='pos-stat-val' style='color: #ffb800;'>{total_items_count}</div>
-                            <div class='pos-stat-lbl'>एकूण वस्तू</div>
-                        </div>
+                    <div style='text-align: right;'>
+                        <div style='font-size: 10px; color: #94a3b8;'>एकत्रित रक्कम</div>
+                        <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{combined_tot:,.2f}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये सिंक करा (Sync All to Inventory)', key='inv_sync_all_batch', use_container_width=True):
+                if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)', key='inv_sync_all_batch', use_container_width=True):
                     try:
                         with sqlite3.connect('ledger.db') as conn:
                             cursor = conn.cursor()
@@ -3554,12 +3444,12 @@ if selected_page == "OCR Scanner":
                                         q_val = 1.0
                                     cursor.execute('INSERT INTO shop_inventory (item_name, stock_qty, unit) VALUES (?, ?, ?)', (item.get('item_name'), q_val, 'units'))
                             conn.commit()
-                        st.toast('📦 सर्व पावत्यांचा स्टॉक इन्व्हेंटरीमध्ये जोडला गेला!', icon="📦")
-                        st.success('सर्व पावत्या इन्व्हेंटरीमध्ये यशस्वीरित्या अपडेट झाल्या!')
+                        st.toast('📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
+                        st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
                     except Exception as e:
                         st.error(str(e))
                 
-                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 10px 0 6px 0;'>📑 स्वतंत्र पावती तपशील (Individual Receipts):</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 8px 0 4px 0;'>📑 स्वतंत्र थर्मल पावत्या:</div>", unsafe_allow_html=True)
                 
                 for idx, p_item in enumerate(batch_data):
                     v_disp = decode_unicode(p_item.get('vendor_name'))
@@ -3568,13 +3458,20 @@ if selected_page == "OCR Scanner":
                     date_disp = p_item.get('date', 'Today') or 'Today'
                     
                     with st.expander(f"🧾 #{idx+1} {v_disp} — ₹{tot:,.2f} ({len(items_raw)} वस्तू)"):
-                        items_df = pd.DataFrame(items_raw)
-                        if not items_df.empty:
-                            edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_batch_{idx}')
-                            p_item['items'] = edited_df.to_dict('records')
-                            
+                        b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, receipt_no=str(idx+1), is_english=is_english)
+                        st.components.v1.html(b_thermal_html, height=280, scrolling=True)
                         b_c1, b_c2 = st.columns(2)
                         with b_c1:
+                            st.download_button(
+                                label=f"🖨️ पावती #{idx+1} डाउनलोड",
+                                data=b_thermal_html,
+                                file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{idx+1}.html",
+                                mime="text/html",
+                                use_container_width=True,
+                                type="primary",
+                                key=f"btn_dl_thermal_batch_{idx}"
+                            )
+                        with b_c2:
                             if st.button('📦 स्टॉक अपडेट', key=f'inv_sync_{idx}', use_container_width=True):
                                 try:
                                     with sqlite3.connect('ledger.db') as conn:
@@ -3591,39 +3488,17 @@ if selected_page == "OCR Scanner":
                                     st.success('इन्व्हेंटरी अपडेट झाली!')
                                 except Exception as e:
                                     st.error(str(e))
-                        with b_c2:
-                            b_shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
-                            b_shop_name = get_shop_setting("shop_name", v_disp if v_disp and v_disp != "अनामित" else "VernaLedger Store")
-                            b_upi_b64 = generate_upi_qr_base64(tot, vpa=b_shop_upi_id, payee_name=b_shop_name, note=f"Batch #{idx+1}")
-                            b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, upi_qr_b64=b_upi_b64, receipt_no=str(idx+1), is_english=is_english)
-                            st.download_button(
-                                label="🖨️ थर्मल स्लिप (POS)",
-                                data=b_thermal_html,
-                                file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{idx+1}.html",
-                                mime="text/html",
-                                use_container_width=True,
-                                type="primary",
-                                key=f"btn_dl_thermal_batch_{idx}"
-                            )
-                
-                st.markdown("<hr style='margin: 12px 0; border-color: rgba(255, 255, 255, 0.08);'>", unsafe_allow_html=True)
-                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>🔊 सर्व पावत्यांचा एकत्रित मराठी सारांश:</div>", unsafe_allow_html=True)
-                vendor_names_list = [decode_unicode(item.get('vendor_name', 'अनामित')) for item in batch_data]
-                audio_text = "तुमच्या स्कॅन केलेल्या पावत्यांची दुकाने: " + ", ".join(vendor_names_list) + f". एकत्रित रक्कम {combined_tot:.0f} रुपये."
-                aud_path = generate_marathi_tts(audio_text)
-                if aud_path and os.path.exists(aud_path):
-                    st.audio(aud_path)
         else:
             st.markdown("""
-            <div style='text-align: center; padding: 40px 15px;'>
-                <div style='font-size: 42px; margin-bottom: 10px;'>🧾</div>
-                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>युनिव्हर्सल स्मार्ट स्कॅनर</div>
-                <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                    डाव्या बाजूला पावती अपलोड करा, कॅमेऱ्यातून थेट फोटो घ्या किंवा माईकवर बोलून क्षणात डिजिटल इनव्हॉइस व इन्व्हेंटरी तयार करा.
+            <div style='text-align: center; padding: 25px 15px;'>
+                <div style='font-size: 36px; margin-bottom: 8px;'>🧾</div>
+                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>स्मार्ट पावती स्कॅनर</div>
+                <div style='font-size: 12px; color: #94a3b8; max-width: 300px; margin: 0 auto; line-height: 1.5;'>
+                    डाव्या बाजूला पावती निवडा किंवा फोटो काढा, क्षणात ५८mm थर्मल पावती तयार होईल.
                 </div>
-                <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
-                    <span class='scanner-pill'>⚡ 99.8% Vision Accuracy</span>
-                    <span class='scanner-pill-success'>🎙️ Multi-Lingual Voice</span>
+                <div style='margin-top: 14px; display: flex; justify-content: center; gap: 8px;'>
+                    <span class='scanner-pill'>⚡ 58mm Thermal Slip</span>
+                    <span class='scanner-pill-success'>🎙️ Voice Bill</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
