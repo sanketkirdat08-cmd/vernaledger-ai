@@ -44,36 +44,46 @@ def extract_valid_json(text: str) -> dict:
     return json.loads(text)
 
 def get_active_gemini_models():
-    """Dynamically fetch the best available Gemini model."""
+    """Fetch the best available working Gemini vision models in optimal priority order."""
+    priority_order = [
+        'gemini-3.5-flash',
+        'gemini-flash-lite-latest',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite',
+        'gemini-3.1-flash-lite-preview',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash',
+        'gemini-3-flash-preview',
+    ]
     try:
-        online_models = []
+        available = []
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
                 model_name = m.name.replace('models/', '')
-                online_models.append(model_name)
+                available.append(model_name)
         
-        # Priority: flash models, then pro models
-        flash_models = [m for m in online_models if 'flash' in m]
-        pro_models = [m for m in online_models if 'pro' in m]
+        # Pick from priority_order that are available online
+        active = [m for m in priority_order if m in available]
+        if active:
+            return active
         
-        # Sort descending to get highest version number first (e.g., 3.5 > 2.5)
-        flash_models.sort(reverse=True)
-        pro_models.sort(reverse=True)
-        
-        best = pro_models + flash_models
-        if best:
-            return best
-        return online_models
+        # Safe fallback: any flash models excluding TTS/Audio/ImageGen/pro/deprecated
+        safe_flash = [
+            m for m in available 
+            if 'flash' in m and not any(bad in m for bad in ['tts', 'image', 'audio', 'lyria', 'banana', '2.5', '2.0', '1.5', '3.8', 'omni'])
+        ]
+        if safe_flash:
+            return safe_flash
     except Exception as exc:
         logger.debug("Model discovery fallback: %s", exc)
-        return ['gemini-3.5-flash', 'gemini-2.5-flash']
+    return priority_order
 
 def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
     
     with Image.open(image_path) as img:
-        img_copy = img.copy()
-        img_copy.thumbnail((800, 800))
+        img_copy = img.convert('RGB')
+        img_copy.thumbnail((1600, 1600))
 
     prompt = """
     You are an expert document OCR scanner for Marathi/Hindi handwritten and printed ledgers/receipts.
@@ -118,10 +128,11 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
                 break
         except Exception as exc:
             last_error = exc
+            logger.warning(f"Model {model_name} failed: {exc}, trying next model...")
             continue
 
     if not response or not response.text:
-        raise RuntimeError(f"API Connection Error: {last_error!s}")
+        raise RuntimeError(f"AI स्कॅनिंग त्रुटी: {last_error!s}")
 
     raw_text = response.text
     data_dict = extract_valid_json(raw_text)
@@ -150,6 +161,8 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
     validated_data.vendor_name = clean_vendor
     validated_data.category = clean_cat
 
+    ret_dict = validated_data.model_dump()
+
     with sqlite3.connect("ledger.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -159,18 +172,19 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
         existing_record = cursor.fetchone()
 
         if existing_record and not force_save:
-            raise ValueError(
-                f"Duplicate Warning: दुकान '{validated_data.vendor_name}' चे ₹{validated_data.grand_total} चे बिल आधीच रेकॉर्ड केलेले आहे!"
+            ret_dict["is_duplicate"] = True
+            ret_dict["existing_id"] = existing_record[0]
+            logger.info(f"Duplicate receipt detected for {validated_data.vendor_name} (ID: {existing_record[0]})")
+        else:
+            raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
+            cursor.execute(
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
             )
+            conn.commit()
+            ret_dict["is_duplicate"] = False
 
-        raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
-        cursor.execute(
-            "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-            (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
-        )
-        conn.commit()
-
-    return validated_data.model_dump()
+    return ret_dict
 
 def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
     genai.configure(api_key=api_key)

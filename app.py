@@ -3323,6 +3323,9 @@ if selected_page == "OCR Scanner":
                             data = process_receipt_advanced(temp_f, API_KEY, force_save=force_save_option)
                             if os.path.exists(temp_f):
                                 os.remove(temp_f)
+                            if data.get("is_duplicate"):
+                                warn_msg = f"दुकान '{data.get('vendor_name')}' चे ₹{data.get('grand_total')} चे बिल आधीच रेकॉर्ड केलेले आहे."
+                                return (idx, data, (single_file.name, f"Duplicate Warning: {warn_msg}"))
                             return (idx, data, None)
                         except Exception as e:
                             if os.path.exists(temp_f):
@@ -3351,7 +3354,7 @@ if selected_page == "OCR Scanner":
                                     fname, err_str = err
                                     if "Duplicate Warning:" in err_str:
                                         clean_err = err_str.split("Duplicate Warning:")[-1].strip()
-                                        warning_messages.append(f"⚠️ {fname}: {clean_err}")
+                                        warning_messages.append(f"⚠️ {clean_err}")
                                     else:
                                         warning_messages.append(f"❌ {fname}: {err_str}")
                     
@@ -3369,6 +3372,11 @@ if selected_page == "OCR Scanner":
                         st.success(f"✅ {len(processed_batch)} पावती/पावत्या यशस्वीरित्या स्कॅन झाल्या!")
                         st.toast("पावती Successfully स्कॅन झाली!", icon="✅")
                         st.rerun()
+                    else:
+                        if warning_messages:
+                            st.error("पावती स्कॅन करताना अडचण आली: " + " | ".join(warning_messages))
+                        else:
+                            st.error("पावती स्कॅन करता आली नाही. कृपया पावतीचा फोटो स्पष्ट असल्याची खात्री करा.")
                 else:
                     st.warning("⚠️ कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.")
         
