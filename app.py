@@ -17,9 +17,7 @@ import math
 from datetime import date, datetime
 from html import escape
 import google.generativeai as genai
-from PIL import Image, ImageOps
 from ocr_engine import (
-    extract_valid_json,
     generate_marathi_tts,
     get_active_gemini_models,
     process_receipt_advanced,
@@ -41,11 +39,6 @@ try:
 except ImportError:
     np = None
 
-try:
-    import zxingcpp
-except ImportError:
-    zxingcpp = None
-
 st.set_page_config(
     page_title="VernaLedger AI",
     page_icon="🤖",
@@ -55,11 +48,6 @@ st.set_page_config(
 CHAT_INPUT_COMPONENT = components.declare_component(
     "verna_chat_input",
     path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "chat_input_component"),
-)
-
-BARCODE_SCANNER_COMPONENT = components.declare_component(
-    "verna_barcode_scanner",
-    path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "barcode_scanner_component"),
 )
 
 # ERROR LOGGING SETUP
@@ -313,17 +301,6 @@ def init_databases():
 
 init_databases()
 
-def log_stock_inward(item_id: int, item_name: str, barcode: str, quantity_added: float, new_stock: float, username: str = "admin") -> None:
-    try:
-        with sqlite3.connect("ledger.db") as conn:
-            conn.execute("""
-                INSERT INTO stock_inward_logs (item_id, item_name, barcode, quantity_added, new_stock, timestamp, added_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (item_id, item_name, barcode, quantity_added, new_stock, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), username))
-            conn.commit()
-    except Exception as e:
-        ai_logger.error(f"Failed to log stock inward: {e}")
-
 def get_shop_setting(key: str, default: str = "") -> str:
     try:
         with sqlite3.connect("ledger.db") as conn:
@@ -346,231 +323,6 @@ def set_shop_setting(key: str, value: str) -> None:
     except Exception as e:
         ai_logger.error(f"Failed to set shop setting {key}: {e}")
 
-def decode_barcode_image(image_bytes: bytes, use_ai_fallback: bool = False) -> dict:
-    result = {"barcode": "", "product_name": "", "method": "", "detected": False}
-    if not image_bytes:
-        return result
-
-    # 1. Multi-Stage Ultra-Fast C++ ZXing Engine & OpenCV Pipeline (< 150 ms total)
-    try:
-        # Step A: EXIF Orientation Correction (fixes mobile camera orientation quirks)
-        img_bgr = None
-        try:
-            pil_raw = Image.open(BytesIO(image_bytes))
-            pil_img = ImageOps.exif_transpose(pil_raw)
-            if pil_img.mode != "RGB":
-                pil_img = pil_img.convert("RGB")
-            if np is not None and cv2 is not None:
-                img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-        except Exception:
-            if np is not None and cv2 is not None:
-                img_bgr = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-
-        # Quick scanner helper using zxingcpp
-        def _scan_zx(cand_img, binarizer=None):
-            if cand_img is None or zxingcpp is None:
-                return None
-            try:
-                kwargs = {"try_rotate": True, "try_downscale": True, "try_invert": True}
-                if binarizer is not None:
-                    kwargs["binarizer"] = binarizer
-                barcodes = zxingcpp.read_barcodes(cand_img, **kwargs)
-                if barcodes:
-                    for b in barcodes:
-                        if b.text and str(b.format) in [
-                            "BarcodeFormat.EAN13", "BarcodeFormat.EAN8", "BarcodeFormat.UPCA",
-                            "BarcodeFormat.Code128", "BarcodeFormat.ITF", "BarcodeFormat.Code39"
-                        ]:
-                            return str(b.text).strip(), str(b.format)
-                    for b in barcodes:
-                        if b.text:
-                            return str(b.text).strip(), str(b.format)
-            except Exception:
-                pass
-            return None
-
-        # Stage 1: Direct full image scan (< 10 ms)
-        if img_bgr is not None:
-            hit = _scan_zx(img_bgr)
-            if hit:
-                result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                result["detected"] = True
-                return result
-
-            h, w = img_bgr.shape[:2]
-            # Stage 1b: Scale down massive 4K/1080p camera frames (smooths sensor noise)
-            if max(h, w) > 1600 and cv2 is not None:
-                scale = 1280.0 / max(h, w)
-                base_img = cv2.resize(img_bgr, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-            else:
-                base_img = img_bgr
-
-            bh, bw = base_img.shape[:2]
-
-            # Stage 2: Viewfinder Center Crops (where user holds product barcode)
-            crops = [
-                base_img[int(bh * 0.18):int(bh * 0.82), int(bw * 0.18):int(bw * 0.82)], # 65% center
-                base_img[int(bh * 0.28):int(bh * 0.72), int(bw * 0.28):int(bw * 0.72)], # 45% tight center
-                base_img[int(bh * 0.25):int(bh * 0.75), int(bw * 0.08):int(bw * 0.92)], # Wide horizontal strip
-                base_img[int(bh * 0.08):int(bh * 0.92), int(bw * 0.08):int(bw * 0.92)], # 85% wide crop
-            ]
-            for cp in crops:
-                hit = _scan_zx(cp)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-            if cv2 is not None and np is not None:
-                # Stage 3: CLAHE (Adaptive Histogram Equalization for glossy/uneven lighting)
-                center_crop = crops[0]
-                center_gray = cv2.cvtColor(center_crop, cv2.COLOR_BGR2GRAY)
-                full_gray = cv2.cvtColor(base_img, cv2.COLOR_BGR2GRAY)
-
-                clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
-                cl_center = clahe.apply(center_gray)
-                hit = _scan_zx(cl_center)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-                cl_full = clahe.apply(full_gray)
-                hit = _scan_zx(cl_full)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-                # Stage 4: Contrast Stretching + Unsharp Mask (Sharpening blurred camera focus)
-                norm_center = cv2.normalize(center_gray, None, 0, 255, cv2.NORM_MINMAX)
-                sharp_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-                sharp_center = cv2.filter2D(norm_center, -1, sharp_kernel)
-                hit = _scan_zx(sharp_center)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-                sharp_clahe = cv2.filter2D(cl_center, -1, sharp_kernel)
-                hit = _scan_zx(sharp_clahe)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-                # Stage 5: Bicubic Upscaling (for small barcodes held at distance)
-                up_center = cv2.resize(sharp_clahe, (0, 0), fx=1.7, fy=1.7, interpolation=cv2.INTER_CUBIC)
-                hit = _scan_zx(up_center)
-                if hit:
-                    result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                    result["detected"] = True
-                    return result
-
-                # Stage 6: Alternative Binarizers (GlobalHistogram & FixedThreshold)
-                if zxingcpp is not None:
-                    for b_type in [zxingcpp.Binarizer.GlobalHistogram, zxingcpp.Binarizer.FixedThreshold]:
-                        hit = _scan_zx(cl_center, binarizer=b_type)
-                        if hit:
-                            result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                            result["detected"] = True
-                            return result
-
-                # Stage 7: Rotational Passes (±30°, ±45° for tilted handheld packets)
-                c_h, c_w = cl_center.shape[:2]
-                c_pt = (c_w // 2, c_h // 2)
-                for angle in [30, -30, 45, -45]:
-                    rot_mat = cv2.getRotationMatrix2D(c_pt, angle, 1.0)
-                    rot_img = cv2.warpAffine(cl_center, rot_mat, (c_w, c_h), borderValue=255)
-                    hit = _scan_zx(rot_img)
-                    if hit:
-                        result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                        result["detected"] = True
-                        return result
-
-                # Stage 8: Morphological Stripe Region Extraction
-                try:
-                    gradX = cv2.Sobel(center_gray, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
-                    gradY = cv2.Sobel(center_gray, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
-                    gradient = cv2.convertScaleAbs(cv2.subtract(gradX, gradY))
-                    blurred = cv2.blur(gradient, (9, 9))
-                    _, thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)
-                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 7))
-                    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-                    cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    for c in cnts:
-                        rx, ry, rw, rh = cv2.boundingRect(c)
-                        if rw > 45 and rh > 20:
-                            p_x1 = max(0, rx - int(rw * 0.15))
-                            p_y1 = max(0, ry - int(rh * 0.15))
-                            p_x2 = min(center_gray.shape[1], rx + int(rw * 1.15))
-                            p_y2 = min(center_gray.shape[0], ry + int(rh * 1.15))
-                            roi = center_gray[p_y1:p_y2, p_x1:p_x2]
-                            roi_up = cv2.resize(roi, (0, 0), fx=1.6, fy=1.6, interpolation=cv2.INTER_CUBIC)
-                            hit = _scan_zx(roi_up)
-                            if hit:
-                                result["barcode"], result["method"] = hit[0], f"Gun Scanner ({hit[1]})"
-                                result["detected"] = True
-                                return result
-                except Exception:
-                    pass
-
-                # Stage 9: Local OpenCV Barcode & QR Detector (< 10 ms)
-                try:
-                    detector = cv2.barcode.BarcodeDetector()
-                    for cand in [base_img, cl_center, full_gray]:
-                        res = detector.detectAndDecode(cand)
-                        if res and len(res) >= 1 and res[0]:
-                            val = res[0]
-                            if isinstance(val, (list, tuple)) and len(val) > 0 and val[0]:
-                                v = str(val[0]).strip()
-                            elif isinstance(val, str) and val.strip():
-                                v = val.strip()
-                            else:
-                                v = ""
-                            if v:
-                                result["barcode"], result["method"] = v, "OpenCV Barcode"
-                                result["detected"] = True
-                                return result
-
-                    qr_detector = cv2.QRCodeDetector()
-                    qr_res = qr_detector.detectAndDecode(full_gray)
-                    if qr_res and len(qr_res) >= 1 and qr_res[0]:
-                        qv = str(qr_res[0]).strip()
-                        if qv:
-                            result["barcode"], result["method"] = qv, "OpenCV QR"
-                            result["detected"] = True
-                            return result
-                except Exception:
-                    pass
-
-    except Exception as ze:
-        ai_logger.debug(f"Barcode multi-stage decode error: {ze}")
-
-    # Stage 10: Optional Gemini AI Fallback (only if explicitly enabled)
-    if use_ai_fallback and API_KEY:
-        try:
-            genai.configure(api_key=API_KEY)
-            img_pil = Image.open(BytesIO(image_bytes))
-            if max(img_pil.size) > 1024:
-                img_pil.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
-            prompt = 'Extract barcode digits from this product image. Return valid JSON only: {"barcode": "digits", "product_name": "name", "detected": true}'
-            active_models = get_active_gemini_models()
-            model_to_use = active_models[0] if active_models else "gemini-2.5-flash"
-            model = genai.GenerativeModel(model_to_use)
-            response = model.generate_content([prompt, img_pil])
-            if response and response.text:
-                clean_json = extract_valid_json(response.text)
-                if isinstance(clean_json, dict) and clean_json.get("barcode"):
-                    result["barcode"] = str(clean_json.get("barcode")).strip()
-                    result["product_name"] = str(clean_json.get("product_name", "")).strip()
-                    result["method"] = f"AI Vision ({model_to_use})"
-                    result["detected"] = True
-                    return result
-        except Exception as ge:
-            ai_logger.warning(f"AI Vision barcode fallback error: {ge}")
-
-    return result
 
 def log_activity(username, action):
     with sqlite3.connect("ledger.db") as conn:
@@ -3291,23 +3043,9 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 if selected_page == "OCR Scanner":
-    if "scanned_barcode" in st.query_params:
-        scanned_param = st.query_params.get("scanned_barcode")
-        if scanned_param:
-            st.session_state["active_barcode_search"] = str(scanned_param).strip()
-        try:
-            del st.query_params["scanned_barcode"]
-        except Exception:
-            pass
-
-    if "inward_session_items" not in st.session_state:
-        st.session_state["inward_session_items"] = []
-    if "barcode_work_mode" not in st.session_state:
-        st.session_state["barcode_work_mode"] = "📥 DMart Rapid Inward (जलद माल भरणा)"
-
     is_english = st.session_state.get("ui_language", "en") == "en"
     header_title = "Universal Smart Scanner" if is_english else "युनिव्हर्सल स्मार्ट स्कॅनर"
-    header_subtitle = "All-in-One: Receipts OCR, Barcode POS & Voice Billing" if is_english else "पावत्या, प्रॉडक्ट बारकोड आणि व्हॉईस बिलिंग एकाच ठिकाणी"
+    header_subtitle = "Receipts OCR & Voice Billing" if is_english else "पावत्या आणि व्हॉईस बिलिंग एकाच ठिकाणी"
     render_page_header(header_title, header_subtitle, "⚡")
 
     st.markdown("""
@@ -3391,12 +3129,15 @@ if selected_page == "OCR Scanner":
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         
         curr_mode = st.session_state.get('input_method', 'Upload File')
+        if curr_mode not in ["Upload File", "Live Camera", "Multi-Language Voice Bill"]:
+            curr_mode = "Upload File"
+            st.session_state['input_method'] = "Upload File"
+
         is_receipt = curr_mode in ["Upload File", "Live Camera"]
-        is_barcode = curr_mode == "Barcode Scanner"
         is_voice = curr_mode == "Multi-Language Voice Bill"
 
-        # 3 Clean Primary Modes
-        m_c1, m_c2, m_c3 = st.columns(3)
+        # 2 Clean Primary Modes
+        m_c1, m_c2 = st.columns(2)
         with m_c1:
             if st.button(
                 "📄 पावती स्कॅनर" if not is_english else "📄 Receipt OCR",
@@ -3407,15 +3148,6 @@ if selected_page == "OCR Scanner":
                 st.session_state['input_method'] = st.session_state.get('receipt_source', 'Upload File')
                 st.rerun()
         with m_c2:
-            if st.button(
-                "🏷️ बारकोड गन" if not is_english else "🏷️ Barcode Gun",
-                type="primary" if is_barcode else "secondary",
-                use_container_width=True,
-                key="btn_mode_barcode"
-            ):
-                st.session_state['input_method'] = "Barcode Scanner"
-                st.rerun()
-        with m_c3:
             if st.button(
                 "🎙️ व्हॉईस बिल" if not is_english else "🎙️ Voice Bill",
                 type="primary" if is_voice else "secondary",
@@ -3492,88 +3224,6 @@ if selected_page == "OCR Scanner":
             """, unsafe_allow_html=True)
             up_cam = st.camera_input("Take photo", label_visibility="collapsed", key="ocr_live_cam")
 
-        elif input_method == "Barcode Scanner":
-            barcode_work_mode = st.session_state.get("barcode_work_mode", "inward")
-            is_inward = (barcode_work_mode == "inward" or str(barcode_work_mode).startswith("📥"))
-
-            bw_c1, bw_c2 = st.columns(2)
-            with bw_c1:
-                if st.button("📥 जलद माल भरणा (Inward)", type="primary" if is_inward else "secondary", use_container_width=True, key="btn_bmode_inward"):
-                    st.session_state["barcode_work_mode"] = "inward"
-                    st.rerun()
-            with bw_c2:
-                if st.button("🛒 ग्राहक विक्री (POS Sale)", type="primary" if not is_inward else "secondary", use_container_width=True, key="btn_bmode_sale"):
-                    st.session_state["barcode_work_mode"] = "sale"
-                    st.rerun()
-
-            cam_k_idx = st.session_state.get("cam_bar_key_idx", 0)
-
-            # Scanned Item Clear / Next Button at top
-            if st.session_state.get("active_barcode_search"):
-                cur_b = st.session_state["active_barcode_search"]
-                top_b1, top_b2 = st.columns([1.2, 1])
-                with top_b1:
-                    st.markdown(f"<div style='padding: 6px 0; font-size: 13px; font-weight: 700; color: #00ff87;'>🎯 स्कॅन बारकोड: <code>{cur_b}</code></div>", unsafe_allow_html=True)
-                with top_b2:
-                    if st.button("🔄 पुढील वस्तू स्कॅन करा", key="btn_clear_barcode_top", type="primary", use_container_width=True):
-                        st.session_state["active_barcode_search"] = ""
-                        st.session_state.pop("temp_detected_prod_name", None)
-                        st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                        st.session_state["cam_bar_key_idx"] = cam_k_idx + 1
-                        st.rerun()
-
-            # LIVE CONTINUOUS GUN SCANNER (Instant GPU / WebAssembly)
-            curr_bar = st.session_state.get("active_barcode_search", "").strip()
-            live_res = BARCODE_SCANNER_COMPONENT(
-                key=f"live_gun_scanner_{cam_k_idx}",
-                active_barcode=curr_bar
-            )
-            if live_res and isinstance(live_res, dict):
-                if live_res.get("action") == "resume":
-                    st.session_state["active_barcode_search"] = ""
-                    st.session_state.pop("temp_detected_prod_name", None)
-                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                    st.rerun()
-                elif live_res.get("barcode"):
-                    l_code = str(live_res["barcode"]).strip()
-                    if l_code and l_code != curr_bar:
-                        st.session_state["active_barcode_search"] = l_code
-                        st.toast(f"⚡ स्कॅन झाले: {l_code}", icon="✅")
-                        st.rerun()
-
-            # Sleek manual barcode entry & file upload fallback
-            with st.expander("⌨️ बारकोड नंबर थेट टाका किंवा फोटो अपलोड करा (Manual / File)"):
-                scanned_code = st.text_input(
-                    "बारकोड नंबर किंवा USB Barcode Gun:",
-                    value=st.session_state.get("active_barcode_search", ""),
-                    placeholder="उदा. 8901030384102",
-                    key="barcode_text_entry_main"
-                )
-                if scanned_code.strip() != st.session_state.get("active_barcode_search", ""):
-                    st.session_state["active_barcode_search"] = scanned_code.strip()
-                    st.rerun()
-
-                b_up_file = st.file_uploader("किंवा गॅलरीमधून बारकोड फोटो निवडा:", type=["png", "jpg", "jpeg", "webp"], key=f"up_bar_file_{cam_k_idx}")
-                if b_up_file:
-                    up_raw = b_up_file.getvalue()
-                    up_hash = hashlib.md5(up_raw).hexdigest()
-                    if st.session_state.get("last_scanned_barcode_cam_hash") != up_hash:
-                        st.session_state["last_scanned_barcode_cam_hash"] = up_hash
-                        dec_info = decode_barcode_image(up_raw)
-                        if dec_info.get("detected"):
-                            f_code = dec_info.get("barcode", "").strip()
-                            f_prod = dec_info.get("product_name", "").strip()
-                            if f_code:
-                                st.session_state["active_barcode_search"] = f_code
-                            elif f_prod:
-                                st.session_state["active_barcode_search"] = f_prod
-                            if f_prod:
-                                st.session_state["temp_detected_prod_name"] = f_prod
-                            st.toast(f"⚡ स्कॅन झाले: {f_code or f_prod}", icon="✅")
-                            st.rerun()
-                        else:
-                            st.warning("⚠️ या फोटोमध्ये स्पष्ट बारकोड ओळखता आला नाही.")
-
         elif input_method == "Multi-Language Voice Bill":
             st.markdown("""
             <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.5);'>
@@ -3648,7 +3298,7 @@ if selected_page == "OCR Scanner":
                             logging.error(f"Voice billing error: {ve}")
                             st.error(f"व्हॉईस बिल Error: {ve}")
 
-        if input_method not in ["Multi-Language Voice Bill", "Barcode Scanner"]:
+        if input_method != "Multi-Language Voice Bill":
             st.write("")
             process_clicked = st.button("⚡ पावत्या स्कॅन करा (Process Receipts)", type="primary", use_container_width=True, key="btn_process_receipts")
             if process_clicked:
@@ -3731,343 +3381,7 @@ if selected_page == "OCR Scanner":
     with col_p:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
         batch_data = st.session_state.get('processed_batch', [])
-        search_barcode = st.session_state.get("active_barcode_search", "").strip()
-        detected_pname = st.session_state.get("temp_detected_prod_name", "").strip()
-
-        if input_method == "Barcode Scanner":
-            barcode_work_mode = st.session_state.get("barcode_work_mode", "inward")
-            is_inward = (barcode_work_mode == "inward" or str(barcode_work_mode).startswith("📥"))
-
-            if search_barcode:
-                inv_item = None
-                try:
-                    with sqlite3.connect("ledger.db") as conn:
-                        inv_cursor = conn.cursor()
-                        inv_cursor.execute(
-                            "SELECT id, item_name, stock_qty, unit, alert_limit, barcode, selling_price FROM shop_inventory WHERE barcode = ? OR item_name LIKE ?",
-                            (search_barcode, f"%{search_barcode}%")
-                        )
-                        inv_item = inv_cursor.fetchone()
-                except Exception as e:
-                    ai_logger.error(f"Barcode lookup error: {e}")
-
-                if inv_item:
-                    item_id, item_name, item_qty, item_unit, item_limit, item_bar, item_price = inv_item
-                    item_qty = float(item_qty or 0)
-                    item_price = float(item_price or 0)
-                    is_low = item_qty <= float(item_limit or 0)
-                    status_badge = "<span style='background:#ef4444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>🚨 Low Stock</span>" if is_low else "<span style='background:#00ff87; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:11px;'>✅ In Stock</span>"
-
-                    if is_inward:
-                        st.markdown(f"""
-                        <div style='background:rgba(0, 255, 135, 0.08); border:1px solid rgba(0, 255, 135, 0.35); border-radius:12px; padding:16px; margin-bottom:12px;'>
-                            <div style='display:flex; justify-content:space-between; align-items:center;'>
-                                <div>
-                                    <div style='font-size:11px; text-transform:uppercase; color:#00ff87; font-weight:700;'>🏢 DMart Rapid Inward Match</div>
-                                    <div style='font-size:22px; font-weight:800; color:#ffffff; margin-top:2px;'>{item_name}</div>
-                                    <div style='font-size:12px; color:#cbd5e1; margin-top:2px;'>🔢 बारकोड: <code>{item_bar or search_barcode}</code></div>
-                                </div>
-                                <div>{status_badge}</div>
-                            </div>
-                            <div style='display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px;'>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>सध्याचा साठा</div>
-                                    <div style='font-size:20px; font-weight:800; color:#00ff87;'>{item_qty:g} {item_unit}</div>
-                                </div>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>विक्री दर (Price)</div>
-                                    <div style='font-size:20px; font-weight:800; color:#ffb800;'>₹{item_price:,.2f}</div>
-                                </div>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>किमान मर्यादा</div>
-                                    <div style='font-size:20px; font-weight:800; color:#cbd5e1;'>{item_limit} {item_unit}</div>
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00ff87; margin-bottom: 6px;'>⚡ १-क्लिक बॉक्स भरणा (Quick Inward Presets):</div>", unsafe_allow_html=True)
-                        q_c1, q_c2, q_c3, q_c4, q_c5 = st.columns(5)
-                        
-                        def handle_inward_add(add_amount):
-                            new_total = item_qty + float(add_amount)
-                            with sqlite3.connect("ledger.db") as conn:
-                                conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + ? WHERE id = ?", (add_amount, item_id))
-                                conn.commit()
-                            log_stock_inward(item_id, item_name, item_bar or search_barcode, float(add_amount), new_total, st.session_state.get('current_username', 'admin'))
-                            if "inward_session_items" not in st.session_state:
-                                st.session_state["inward_session_items"] = []
-                            st.session_state["inward_session_items"].insert(0, {
-                                "time": datetime.now().strftime("%I:%M:%S %p"),
-                                "item_name": item_name,
-                                "barcode": item_bar or search_barcode,
-                                "added_qty": float(add_amount),
-                                "new_stock": new_total,
-                                "unit": item_unit
-                            })
-                            st.toast(f"✅ {item_name}: +{add_amount:g} {item_unit} साठ्यात जमा! (एकूण: {new_total:g})", icon="📦")
-                            st.session_state["active_barcode_search"] = ""
-                            st.session_state.pop("temp_detected_prod_name", None)
-                            st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                            st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
-                            st.rerun()
-
-                        with q_c1:
-                            if st.button("➕ १\n(१ नग)", key=f"dmart_add_1_{item_id}", use_container_width=True):
-                                handle_inward_add(1.0)
-                        with q_c2:
-                            if st.button("➕ ६\n(१/२ डझन)", key=f"dmart_add_6_{item_id}", use_container_width=True):
-                                handle_inward_add(6.0)
-                        with q_c3:
-                            if st.button("➕ १२\n(१ डझन)", key=f"dmart_add_12_{item_id}", use_container_width=True, type="primary"):
-                                handle_inward_add(12.0)
-                        with q_c4:
-                            if st.button("➕ २४\n(२ डझन)", key=f"dmart_add_24_{item_id}", use_container_width=True):
-                                handle_inward_add(24.0)
-                        with q_c5:
-                            if st.button("➕ ५०\n(कार्टन)", key=f"dmart_add_50_{item_id}", use_container_width=True):
-                                handle_inward_add(50.0)
-
-                        # Custom Quantity Entry
-                        st.markdown("<div style='font-size: 11px; color: #94a3b8; margin: 8px 0 4px 0;'>किंवा हवी तेवढी संख्या टाकून साठ्यात जमा करा:</div>", unsafe_allow_html=True)
-                        cq_col1, cq_col2 = st.columns([1.4, 1])
-                        with cq_col1:
-                            custom_inward_qty = st.number_input("आवक संख्या (+Qty):", min_value=1.0, value=24.0, step=1.0, key=f"dmart_custom_q_{item_id}")
-                        with cq_col2:
-                            st.write("")
-                            st.write("")
-                            if st.button("📥 साठ्यात जमा करा", key=f"btn_dmart_custom_{item_id}", type="primary", use_container_width=True):
-                                handle_inward_add(custom_inward_qty)
-
-                        # Quick price/limit update popover
-                        with st.popover("⚙️ दर किंवा साठा मर्यादा बदला (Edit Price/Limit)"):
-                            new_p = st.number_input("नवीन विक्री दर (₹):", value=float(item_price), step=5.0, key=f"dmart_edit_p_{item_id}")
-                            new_lim = st.number_input("कमी साठा मर्यादा:", value=float(item_limit), step=1.0, key=f"dmart_edit_lim_{item_id}")
-                            if st.button("💾 दर अपडेट करा", key=f"dmart_save_edit_{item_id}", use_container_width=True):
-                                with sqlite3.connect("ledger.db") as conn:
-                                    conn.execute("UPDATE shop_inventory SET selling_price = ?, alert_limit = ? WHERE id = ?", (new_p, new_lim, item_id))
-                                    conn.commit()
-                                st.toast("✅ दर यशस्वीरित्या अपडेट झाला!")
-                                st.rerun()
-
-                    else:
-                        st.markdown(f"""
-                        <div style='background:rgba(0, 242, 254, 0.08); border:1px solid rgba(0, 242, 254, 0.3); border-radius:12px; padding:16px; margin-bottom:12px;'>
-                            <div style='display:flex; justify-content:space-between; align-items:center;'>
-                                <div>
-                                    <div style='font-size:11px; text-transform:uppercase; color:#94a3b8; font-weight:700;'>साठा तपशील (POS Match)</div>
-                                    <div style='font-size:22px; font-weight:800; color:#00f2fe; margin-top:2px;'>{item_name}</div>
-                                    <div style='font-size:12px; color:#cbd5e1; margin-top:2px;'>🔢 बारकोड: <code>{item_bar or search_barcode}</code></div>
-                                </div>
-                                <div>{status_badge}</div>
-                            </div>
-                            <div style='display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:14px;'>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>सध्याचा साठा</div>
-                                    <div style='font-size:20px; font-weight:800; color:#00ff87;'>{item_qty:g} {item_unit}</div>
-                                </div>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>विक्री दर (Price)</div>
-                                    <div style='font-size:20px; font-weight:800; color:#ffb800;'>₹{item_price:,.2f}</div>
-                                </div>
-                                <div style='background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; text-align:center;'>
-                                    <div style='font-size:10px; color:#94a3b8;'>किमान मर्यादा</div>
-                                    <div style='font-size:20px; font-weight:800; color:#cbd5e1;'>{item_limit} {item_unit}</div>
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 8px 0 4px 0;'>🛒 किरकोळ विक्री किंवा दर बदल:</div>", unsafe_allow_html=True)
-                        qact1, qact2, qact3 = st.columns([1, 1, 1.2])
-                        with qact1:
-                            if st.button("➕ १ नग (+1)", key=f"main_bar_add_1_{item_id}", use_container_width=True):
-                                try:
-                                    with sqlite3.connect("ledger.db") as conn:
-                                        conn.execute("UPDATE shop_inventory SET stock_qty = stock_qty + 1 WHERE id = ?", (item_id,))
-                                        conn.commit()
-                                    st.toast(f"✅ {item_name}: +1 साठा जोडला!", icon="📦")
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(str(e))
-                        with qact2:
-                            if st.button("➖ १ विक्री (-1)", key=f"main_bar_sub_1_{item_id}", use_container_width=True, type="primary"):
-                                try:
-                                    with sqlite3.connect("ledger.db") as conn:
-                                        conn.execute("UPDATE shop_inventory SET stock_qty = MAX(0.0, stock_qty - 1) WHERE id = ?", (item_id,))
-                                        conn.commit()
-                                    st.toast(f"🛒 {item_name}: १ नग विक्री नोंदवली!", icon="💰")
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(str(e))
-                        with qact3:
-                            with st.popover("📝 दर / माहिती बदला"):
-                                new_p = st.number_input("विक्री दर (₹):", value=float(item_price), step=5.0, key=f"main_edit_p_{item_id}")
-                                new_lim = st.number_input("कमी साठा मर्यादा:", value=float(item_limit), step=1.0, key=f"main_edit_lim_{item_id}")
-                                if st.button("💾 अपडेट सेव्ह करा", key=f"main_save_edit_{item_id}", use_container_width=True):
-                                    try:
-                                        with sqlite3.connect("ledger.db") as conn:
-                                            conn.execute("UPDATE shop_inventory SET selling_price = ?, alert_limit = ? WHERE id = ?", (new_p, new_lim, item_id))
-                                            conn.commit()
-                                        st.toast("✅ माहिती यशस्वीरित्या अपडेट झाली!")
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(str(e))
-
-                        if item_price > 0:
-                            with st.expander("⚡ या वस्तूसाठी थेट UPI QR कोड (Instant Scan & Pay)"):
-                                shop_upi_id = get_shop_setting("shop_upi_id", "vernaledger@upi")
-                                shop_name = get_shop_setting("shop_name", "VernaLedger Store")
-                                upi_b64 = generate_upi_qr_base64(item_price, vpa=shop_upi_id, payee_name=shop_name, note=f"{item_name}")
-                                if upi_b64:
-                                    st.markdown(f"""
-                                    <div style='text-align: center; padding: 6px;'>
-                                        <img src='{upi_b64}' style='width: 140px; height: 140px; border-radius: 8px;'/>
-                                        <div style='font-size: 13px; font-weight: 700; color: #00ff87; margin-top: 6px;'>₹{item_price:,.2f} स्कॅन करा</div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                else:
-                    # Item not found in shop_inventory
-                    st.markdown(f"""
-                    <div style='background: rgba(0, 255, 135, 0.08); border: 1px dashed #00ff87; border-radius: 12px; padding: 12px; margin-bottom: 10px;'>
-                        <div style='font-size: 13px; font-weight: 800; color: #00ff87;'>✨ नवीन माल सापडला (New Product Inward)</div>
-                        <div style='font-size: 11px; color: #cbd5e1; margin-top: 2px;'>
-                            बारकोड <code>{search_barcode}</code> - नाव व प्रमाण भरून १-क्लिकमध्ये साठ्यात जमा करा:
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    with st.form(f"main_add_barcode_item_form_{search_barcode}_{cam_k_idx}"):
-                        f_n1, f_n2 = st.columns([1.4, 1])
-                        with f_n1:
-                            new_item_title = st.text_input("वस्तूचे नाव (Item Name):", value=detected_pname or "", placeholder="उदा. ब्रिटानिया बिस्कीट", key=f"f_title_{search_barcode}_{cam_k_idx}")
-                        with f_n2:
-                            new_item_price = st.number_input("विक्री दर (₹):", min_value=0.0, value=20.0, step=5.0, key=f"f_price_{search_barcode}_{cam_k_idx}")
-
-                        f_q1, f_q2, f_q3 = st.columns(3)
-                        with f_q1:
-                            new_item_qty = st.number_input("आवक साठा (+Qty):", min_value=1.0, value=24.0, step=1.0, key=f"f_qty_{search_barcode}_{cam_k_idx}")
-                        with f_q2:
-                            new_item_unit = st.text_input("एकक (Unit):", value="pcs", key=f"f_unit_{search_barcode}_{cam_k_idx}")
-                        with f_q3:
-                            new_item_alert = st.number_input("कमी साठा मर्यादा:", min_value=1.0, value=5.0, step=1.0, key=f"f_alert_{search_barcode}_{cam_k_idx}")
-                        new_item_bar = search_barcode
-
-                        submit_nb = st.form_submit_button("📥 नवीन वस्तू साठ्यात जमा करा (Save & Inward)", type="primary", use_container_width=True)
-                        if submit_nb:
-                            if not new_item_title.strip():
-                                st.error("कृपया वस्तूचे नाव भरा!")
-                            else:
-                                try:
-                                    with sqlite3.connect("ledger.db") as conn:
-                                        cursor = conn.cursor()
-                                        cursor.execute("""
-                                        INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
-                                        VALUES (?, ?, ?, ?, ?, ?)
-                                        """, (new_item_title.strip(), new_item_qty, new_item_unit.strip(), new_item_alert, new_item_bar.strip(), new_item_price))
-                                        new_id = cursor.lastrowid
-                                        conn.commit()
-                                    log_stock_inward(new_id, new_item_title.strip(), new_item_bar.strip(), new_item_qty, new_item_qty, st.session_state.get('current_username', 'admin'))
-                                    log_activity(st.session_state.get('current_username', 'admin'), f"Added Inward Barcode Item {new_item_title.strip()} ({new_item_bar.strip()})")
-                                    if "inward_session_items" not in st.session_state:
-                                        st.session_state["inward_session_items"] = []
-                                    st.session_state["inward_session_items"].insert(0, {
-                                        "time": datetime.now().strftime("%I:%M:%S %p"),
-                                        "item_name": new_item_title.strip(),
-                                        "barcode": new_item_bar.strip(),
-                                        "added_qty": new_item_qty,
-                                        "new_stock": new_item_qty,
-                                        "unit": new_item_unit.strip()
-                                    })
-                                    st.toast(f"✅ '{new_item_title}' साठ्यामध्ये जोडली गेली!", icon="📦")
-                                    st.session_state["active_barcode_search"] = ""
-                                    st.session_state.pop("temp_detected_prod_name", None)
-                                    st.session_state.pop("last_scanned_barcode_cam_hash", None)
-                                    st.session_state["cam_bar_key_idx"] = st.session_state.get("cam_bar_key_idx", 0) + 1
-                                    st.rerun()
-                                except Exception as ex:
-                                    st.error(f"Error: {ex}")
-
-            # LIVE INWARD SESSION GRID OR READY STATE
-            if is_inward:
-                inward_items = st.session_state.get("inward_session_items", [])
-                if inward_items:
-                    st.markdown("<hr style='border: 0; border-top: 1px dashed rgba(0, 255, 135, 0.3); margin: 16px 0 12px 0;'>", unsafe_allow_html=True)
-                    st.markdown("""
-                    <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
-                        <div style='font-size: 14px; font-weight: 800; color: #00ff87;'>📋 आज भरलेल्या मालाची आवक यादी (Today's Inward Batch Grid)</div>
-                        <span class='scanner-pill-success'>● लाईव्ह आवक चालू</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    tot_types = len(inward_items)
-                    tot_qty = sum(float(x.get("added_qty", 0)) for x in inward_items)
-                    sm_c1, sm_c2 = st.columns(2)
-                    with sm_c1:
-                        st.markdown(f"""
-                        <div class='pos-stat-box' style='border-color: rgba(0, 255, 135, 0.3);'>
-                            <div class='pos-stat-val' style='color: #00ff87;'>{tot_types}</div>
-                            <div class='pos-stat-lbl'>एकूण भरलेली उत्पादने</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with sm_c2:
-                        st.markdown(f"""
-                        <div class='pos-stat-box' style='border-color: rgba(0, 242, 254, 0.3);'>
-                            <div class='pos-stat-val' style='color: #00f2fe;'>{tot_qty:g} नग</div>
-                            <div class='pos-stat-lbl'>एकूण भरलेला साठा (+Qty)</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    inw_df = pd.DataFrame(inward_items)
-                    inw_disp = inw_df.rename(columns={
-                        "time": "वेळ",
-                        "item_name": "वस्तूचे नाव",
-                        "barcode": "बारकोड",
-                        "added_qty": "भरलेला साठा (+Qty)",
-                        "new_stock": "नवीन एकूण साठा",
-                        "unit": "एकक"
-                    })
-                    st.dataframe(inw_disp, use_container_width=True, hide_index=True)
-
-                    inw_b1, inw_b2 = st.columns(2)
-                    with inw_b1:
-                        csv_data = inw_disp.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            "📥 आवक बॅच डाऊनलोड (CSV)",
-                            data=csv_data,
-                            file_name=f"inward_stock_batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                            use_container_width=True,
-                            key="dl_inward_batch_csv"
-                        )
-                    with inw_b2:
-                        if st.button("🗑️ नवीन बॅच सुरू करा (Clear Batch)", key="btn_clear_inward_session", use_container_width=True):
-                            st.session_state["inward_session_items"] = []
-                            st.rerun()
-
-                elif not search_barcode:
-                    st.markdown("""
-                    <div style='text-align: center; padding: 20px 14px; background: rgba(0, 255, 135, 0.03); border: 1px dashed rgba(0, 255, 135, 0.25); border-radius: 12px; margin-bottom: 12px;'>
-                        <div style='font-size: 24px; margin-bottom: 4px;'>🏢</div>
-                        <div style='font-size: 14px; font-weight: 700; color: #00ff87;'>जलद माल भरणा (Rapid Inwarding) सज्ज</div>
-                        <div style='font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.4;'>
-                            बारकोड स्कॅन करताच वस्तूचा साठा व १-क्लिक भरणा बटणे येथे दिसतील.
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                if not search_barcode:
-                    st.markdown("""
-                    <div style='text-align: center; padding: 20px 14px; background: rgba(0, 242, 254, 0.03); border: 1px dashed rgba(0, 242, 254, 0.25); border-radius: 12px; margin-bottom: 12px;'>
-                        <div style='font-size: 24px; margin-bottom: 4px;'>🛒</div>
-                        <div style='font-size: 14px; font-weight: 700; color: #00f2fe;'>POS विक्री स्कॅनर सज्ज</div>
-                        <div style='font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.4;'>
-                            बारकोड स्कॅन करताच वस्तूचा दर व १-क्लिक विक्री बटण येथे दिसेल.
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-        elif batch_data:
+        if batch_data:
             if len(batch_data) == 1:
                 p_item = batch_data[0]
                 v_disp = decode_unicode(p_item.get('vendor_name'))
@@ -4297,12 +3611,11 @@ if selected_page == "OCR Scanner":
                 <div style='font-size: 42px; margin-bottom: 10px;'>🧾</div>
                 <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 6px;'>युनिव्हर्सल स्मार्ट स्कॅनर</div>
                 <div style='font-size: 12px; color: #94a3b8; max-width: 320px; margin: 0 auto; line-height: 1.5;'>
-                    डाव्या बाजूला पावती अपलोड करा, कॅमेऱ्यातून थेट फोटो घ्या, बारकोड स्कॅन करा किंवा माईकवर बोलून क्षणात डिजिटल इनव्हॉइस व इन्व्हेंटरी तयार करा.
+                    डाव्या बाजूला पावती अपलोड करा, कॅमेऱ्यातून थेट फोटो घ्या किंवा माईकवर बोलून क्षणात डिजिटल इनव्हॉइस व इन्व्हेंटरी तयार करा.
                 </div>
                 <div style='margin-top: 20px; display: flex; justify-content: center; gap: 8px;'>
                     <span class='scanner-pill'>⚡ 99.8% Vision Accuracy</span>
                     <span class='scanner-pill-success'>🎙️ Multi-Lingual Voice</span>
-                    <span class='scanner-pill'>🏷️ Barcode POS</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -4325,16 +3638,7 @@ elif selected_page == "Business Operations":
     
     with tab_stock:
         # Staff can now access this
-        top_s1, top_s2 = st.columns([1.5, 1])
-        with top_s1:
-            st.markdown("<div style='font-size: 15px; font-weight: 800; color: #00ff87; padding-top: 6px;'>📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड</div>", unsafe_allow_html=True)
-        with top_s2:
-            if st.button("⚡ बारकोड गनने माल भरा", type="primary", use_container_width=True, key="btn_shortcut_dmart_inward"):
-                st.session_state["input_method"] = "Barcode Scanner"
-                st.session_state["barcode_work_mode"] = "inward"
-                st.session_state["selected_page"] = "OCR Scanner"
-                st.query_params["page"] = "OCR Scanner"
-                st.rerun()
+        st.markdown("<div style='font-size: 16px; font-weight: 800; color: #00ff87; margin-bottom: 12px;'>📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड</div>", unsafe_allow_html=True)
 
         ic1, ic2 = st.columns([1, 1])
         with ic1:
@@ -4348,7 +3652,6 @@ elif selected_page == "Business Operations":
             """, unsafe_allow_html=True)
             with st.form("stock_form"):
                 s_name = st.text_input("Item Name (वस्तूचे नाव)")
-                s_barcode = st.text_input("Barcode (ऐच्छिक / Barcode Scanner)", placeholder="उदा. 8901030384102")
                 s_qty = st.number_input("Stock Quantity (साठा प्रमाण)", min_value=0.0, step=1.0)
                 s_price = st.number_input("Selling Price (विक्री दर ₹)", min_value=0.0, step=5.0, value=0.0)
                 s_unit = st.text_input("Unit (उदा. kg, pcs, ltr)", value="kg")
@@ -4365,7 +3668,7 @@ elif selected_page == "Business Operations":
                                 cursor.execute("""
                                 INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
                                 VALUES (?, ?, ?, ?, ?, ?)
-                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit, s_barcode.strip(), s_price))
+                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit, "", s_price))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
                             st.success(f"Stock '{s_name}' successfully added!")
@@ -4415,6 +3718,8 @@ elif selected_page == "Business Operations":
                         unsafe_allow_html=True,
                     )
                 display_df = stock_df.copy()
+                if 'barcode' in display_df.columns:
+                    display_df = display_df.drop(columns=['barcode'])
                 display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
                 st.dataframe(display_df,  hide_index=True)
                 if not low_stock_items.empty:
@@ -4464,25 +3769,7 @@ elif selected_page == "Business Operations":
                 st.info("कोणताही स्टॉक जोडलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-        with st.expander("📋 माल आवक इतिहास (Stock Inward Audit History & Logs)"):
-            try:
-                with sqlite3.connect("ledger.db") as conn:
-                    inward_log_df = pd.read_sql_query("SELECT id, item_name, barcode, quantity_added, new_stock, timestamp, added_by FROM stock_inward_logs ORDER BY id DESC LIMIT 50", conn)
-                if not inward_log_df.empty:
-                    inward_log_disp = inward_log_df.rename(columns={
-                        "id": "ID",
-                        "item_name": "उत्पादन नाव",
-                        "barcode": "बारकोड",
-                        "quantity_added": "भरलेली संख्या (+Qty)",
-                        "new_stock": "नवीन एकूण साठा",
-                        "timestamp": "दिनांक व वेळ",
-                        "added_by": "नोंदणीकर्ता"
-                    })
-                    st.dataframe(inward_log_disp, use_container_width=True, hide_index=True)
-                else:
-                    st.info("अद्याप कोणतीही आवक नोंद नाही. वरील डीएमार्ट स्कॅनर वापरून माल भरणा करा.")
-            except Exception as e:
-                st.error(f"Error loading inward logs: {e}")
+
 
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
