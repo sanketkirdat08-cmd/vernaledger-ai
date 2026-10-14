@@ -14,7 +14,7 @@ import re
 import urllib.parse
 import logging
 import math
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from html import escape
 import google.generativeai as genai
 from ocr_engine import (
@@ -1008,8 +1008,8 @@ def render_page_header(title, subtitle, icon="✨"):
 def render_customer_khata():
     # Staff can now access this
 
-    render_page_header("Customer Khata - Credit Ledger", "Manage your customer credits and installments efficiently.", "📖")
-    tab1, tab2 = st.tabs(["New Credit / Installment Entry", "Credit Ledger & AI Risk Report"])
+    render_page_header("Customer Khata - Credit Ledger", "ग्राहकांची उधारी, जमा हप्ते आणि AI जोखीम व्यवस्थापन.", "📖")
+    tab1, tab2 = st.tabs(["➕ नवीन उधारी / हप्ता नोंद (New Entry)", "📊 क्रेडिट लेजर & AI रिस्क रिपोर्ट (Ledger & Risk)"])
 
     with tab1:
         if st.session_state.pop("khata_form_reset", False):
@@ -1157,30 +1157,63 @@ def render_customer_khata():
 
         risk_report = build_khata_risk_report(khata_df)
         amounts = pd.to_numeric(khata_df["amount"], errors="coerce").fillna(0)
-        total_balance = float(
-            amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum()
-            - amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum()
-        )
-        
-        # Compact top section
-        top_col1, top_col2 = st.columns([1.5, 1])
-        with top_col1:
-            st.markdown(
-                f'''
-                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 13px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">एकूण येणे बाकी · Net Udhari</div>
-                    <div style="font-size: 24px; font-weight: 800; color: #67e8f9; margin-top: 4px;">₹ {total_balance:,.2f}</div>
+        total_credit = float(amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum())
+        total_payment = float(amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum())
+        total_balance = total_credit - total_payment
+        recovery_pct = (total_payment / total_credit * 100) if total_credit > 0 else 100.0
+
+        if not risk_report.empty:
+            total_overdue = float(risk_report["overdue_balance"].sum())
+            overdue_count = len(risk_report[risk_report["overdue_balance"] > 0])
+            high_risk_count = len(risk_report[risk_report["risk_score"] >= 70])
+            moderate_risk_count = len(risk_report[(risk_report["risk_score"] >= 40) & (risk_report["risk_score"] < 70)])
+            safe_count = len(risk_report[risk_report["risk_score"] < 40])
+        else:
+            total_overdue = 0.0
+            overdue_count = 0
+            high_risk_count = 0
+            moderate_risk_count = 0
+            safe_count = 0
+
+        # --- 1. Portfolio KPI Dashboard ---
+        st.markdown(
+            f'''
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
+                <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 12px; text-align: center;">
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">एकूण दिलेली उधारी</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #f1f5f9; margin-top: 4px;">₹{total_credit:,.2f}</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">{len(risk_report)} ग्राहक खाती</div>
                 </div>
-                ''',
-                unsafe_allow_html=True,
-            )
-        with top_col2:
-            if st.button("🔄 रिफ्रेश करा", type="primary", key="refresh_khata", use_container_width=True):
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
+                    <div style="font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">वसूल झालेली रक्कम</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 4px;">₹{total_payment:,.2f}</div>
+                    <div style="font-size: 10px; color: #34d399; margin-top: 2px;">{recovery_pct:.1f}% परतफेड प्रमाण</div>
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(3, 105, 161, 0.2)); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.1);">
+                    <div style="font-size: 11px; color: #bae6fd; font-weight: 700; text-transform: uppercase;">शिल्लक येणे बाकी</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 4px;">₹{total_balance:,.2f}</div>
+                    <div style="font-size: 10px; color: #7dd3fc; margin-top: 2px;">एकूण येणे शिल्लक</div>
+                </div>
+                <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(153, 27, 27, 0.2)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 12px; text-align: center;">
+                    <div style="font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;">मुदतबाह्य उधारी (Overdue)</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #ef4444; margin-top: 4px;">₹{total_overdue:,.2f}</div>
+                    <div style="font-size: 10px; color: #f87171; margin-top: 2px;">{overdue_count} खाती थकीत</div>
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
+
+        # Quick Refresh & Audio actions
+        top_btn1, top_btn2 = st.columns([1, 1])
+        with top_btn1:
+            if st.button("🔄 लेजर रिफ्रेश करा (Refresh)", key="refresh_khata", use_container_width=True):
                 st.rerun()
-            if st.button("🔊 ऑडिओ सारांश", key="khata_audio_summary", use_container_width=True) and not khata_df.empty:
-                audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
+        with top_btn2:
+            if st.button("🔊 ऑडिओ सारांश (Audio Summary)", key="khata_audio_summary", use_container_width=True) and not khata_df.empty:
+                audio_text = f"ग्राहकांकडे सध्या एकूण {total_balance:.0f} रुपये उधारी येणे बाकी आहे. त्यापैकी {total_overdue:.0f} रुपये मुदतबाह्य झाले आहेत."
                 try:
-                    audio_file = generate_marathi_tts(audio_summary_text)
+                    audio_file = generate_marathi_tts(audio_text)
                     if audio_file and os.path.exists(audio_file):
                         st.audio(audio_file, autoplay=True)
                     else:
@@ -1190,366 +1223,337 @@ def render_customer_khata():
                     st.error(f"ऑडिओ तयार करताना Error: {exc}")
 
         st.write("")
-        search = st.text_input(
-            "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):",
-            placeholder="नाव टाईप करा...",
-            key="khata_search",
-        ).strip()
-        visible_df = khata_df.copy()
-        if search:
-            matches = (
-                visible_df["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
-                | visible_df["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
-            )
-            visible_df = visible_df[matches]
-        visible_risk = risk_report
-        if search and not risk_report.empty:
-            visible_risk = risk_report[
-                risk_report["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
-                | risk_report["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+
+        # --- 2. Live Search & Risk Filter Bar ---
+        sf_col1, sf_col2, sf_col3 = st.columns([1.5, 1.2, 1.3])
+        with sf_col1:
+            search = st.text_input(
+                "🔍 ग्राहक नाव किंवा नंबर शोधा:",
+                placeholder="नाव किंवा फोन नंबर टाईप करा...",
+                key="khata_search",
+            ).strip()
+
+        with sf_col2:
+            filter_opts = [
+                f"सर्व ग्राहक ({len(risk_report)})",
+                f"🔴 हाय रिस्क ({high_risk_count})",
+                f"🟡 मध्यम जोखीम ({moderate_risk_count})",
+                f"⚠️ फक्त मुदतबाह्य ({overdue_count})",
+                f"🟢 सुरक्षित ग्राहक ({safe_count})",
             ]
+            sel_filter = st.selectbox("जोखीम फिल्टर (Risk Tier):", filter_opts, key="khata_filter_cat")
 
-        sub_t1, sub_t2 = st.tabs(["📊 AI Risk & Actions", "✏️ Edit Ledger Database"])
-        
-        with sub_t1:
-            is_english = st.session_state.get("ui_language", "en") == "en"
-            t_header = "⚡ Advanced AI Credit Risk Engine & Recovery Actions" if is_english else "⚡ प्रगत AI उधारी जोखीम विश्लेषण & वसुली कृती"
-            t_caption = (
-                "Automated multi-factor risk scoring (delayed days, balance exposure, payment history) with smart 1-click recovery actions."
-                if is_english
-                else "थकीत दिवस, उधारी प्रमाण व परतफेड इतिहासावर आधारित AI रिस्क विश्लेषण आणि स्मार्ट १-क्लिक वसुली कृती."
+        with sf_col3:
+            sort_opts = [
+                "सर्वात जास्त बाकी रक्कम आधी",
+                "सर्वात जास्त रिस्क स्कोअर आधी",
+                "सर्वाधिक दिवस थकीत आधी",
+                "ग्राहक नाव (A-Z)",
+            ]
+            sel_sort = st.selectbox("क्रमवारी लावा (Sort by):", sort_opts, key="khata_sort_cat")
+
+        visible_risk = risk_report.copy()
+        if search and not visible_risk.empty:
+            search_match = (
+                visible_risk["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | visible_risk["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
             )
-            st.markdown(f"##### {t_header}")
-            st.caption(t_caption)
+            visible_risk = visible_risk[search_match]
 
+        f_df = visible_risk.copy()
+        if "हाय रिस्क" in sel_filter:
+            f_df = f_df[f_df["risk_score"] >= 70]
+        elif "मध्यम" in sel_filter:
+            f_df = f_df[(f_df["risk_score"] >= 40) & (f_df["risk_score"] < 70)]
+        elif "मुदतबाह्य" in sel_filter:
+            f_df = f_df[f_df["overdue_balance"] > 0]
+        elif "सुरक्षित" in sel_filter:
+            f_df = f_df[f_df["risk_score"] < 40]
+
+        if not f_df.empty:
+            if "बाकी रक्कम" in sel_sort:
+                f_df = f_df.sort_values(by="balance", ascending=False)
+            elif "रिस्क स्कोअर" in sel_sort:
+                f_df = f_df.sort_values(by="risk_score", ascending=False)
+            elif "दिवस थकीत" in sel_sort:
+                f_df = f_df.sort_values(by="overdue_days", ascending=False)
+            elif "नाव" in sel_sort:
+                f_df = f_df.sort_values(by="customer_name", ascending=True)
+
+        if f_df.empty:
+            if risk_report.empty:
+                st.info("सध्या कोणतीही उधारी नोंद उपलब्ध नाही. नवीन नोंद जोडण्यासाठी वरील 'नवीन उधारी / हप्ता नोंद' टॅब वापरा.")
+            else:
+                st.warning("शोधलेल्या निकषांनुसार कोणतेही ग्राहक आढळले नाहीत.")
+        else:
+            PAGE_SIZE = 10
+            total_custs = len(f_df)
+            if total_custs > PAGE_SIZE:
+                num_pages = math.ceil(total_custs / PAGE_SIZE)
+                p_c1, p_c2 = st.columns([1, 2])
+                with p_c1:
+                    page_num = st.selectbox(
+                        f"📄 पान निवडा (1-{num_pages}):",
+                        range(1, num_pages + 1),
+                        key="khata_page_num",
+                    )
+                f_df_page = f_df.iloc[(page_num - 1) * PAGE_SIZE : page_num * PAGE_SIZE]
+            else:
+                f_df_page = f_df
+
+            shop_name = get_shop_setting("shop_name", "VernaLedger")
             business_upi_id = load_business_upi_id()
-            upi_configured = bool(
-                re.fullmatch(
-                    r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
-                    business_upi_id,
-                )
-            )
-            if not upi_configured and not visible_risk.empty:
-                st.info(
-                    "Configure BUSINESS_UPI_ID in secrets to enable 1-Click WhatsApp & UPI payment links."
-                    if is_english
-                    else "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये BUSINESS_UPI_ID कॉन्फिगर करा."
+
+            # --- 3. Interactive Customer Cards with 100% Working Actions ---
+            for c_idx, customer in f_df_page.reset_index(drop=True).iterrows():
+                name = _khata_text(customer["customer_name"])
+                customer_phone = _khata_text(customer["phone"])
+                risk_score = int(customer.get("risk_score", 0))
+                balance = float(customer.get("balance", 0.0))
+                overdue_balance = float(customer.get("overdue_balance", 0.0))
+                overdue_days = int(customer.get("overdue_days", 0))
+                credit = float(customer.get("credit", 0.0))
+                payments = float(customer.get("payments", 0.0))
+                repay_ratio = float(customer.get("repayment_ratio", 0.0))
+                ai_rec = customer.get("ai_rec_mr", "")
+
+                if risk_score >= 70:
+                    risk_color = "#ef4444"
+                    badge_text = "🔴 हाय रिस्क (High Risk)"
+                elif risk_score >= 40:
+                    risk_color = "#f59e0b"
+                    badge_text = "🟡 मध्यम जोखीम (Moderate)"
+                else:
+                    risk_color = "#10b981"
+                    badge_text = "🟢 सुरक्षित ग्राहक (Safe)"
+
+                od_tag = f"({overdue_days} दिवस थकीत)" if overdue_days > 0 else ""
+
+                st.markdown(
+                    f'''
+                    <div style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95)); border: 1.5px solid {risk_color}55; border-radius: 14px; padding: 14px 16px; margin-top: 14px; margin-bottom: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div>
+                                <span style="font-size: 17px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
+                                <span style="font-size: 13px; color: #94a3b8; margin-left: 10px;">📞 {escape(customer_phone if customer_phone else "फोन नंबर नाही")}</span>
+                            </div>
+                            <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 800;">
+                                {escape(badge_text)} · {risk_score}/100
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
+                            <div style="background: linear-gradient(90deg, {risk_color}88, {risk_color}); width: {max(5, risk_score)}%; height: 100%;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 10px;">
+                            <div><span style="font-size: 11px; color: #94a3b8;">एकूण उधारी:</span><br><b style="font-size: 14px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
+                            <div><span style="font-size: 11px; color: #94a3b8;">जमा रक्कम:</span><br><b style="font-size: 14px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 10px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
+                            <div><span style="font-size: 11px; color: #94a3b8;">शिल्लक बाकी:</span><br><b style="font-size: 15px; color: #38bdf8;">₹{balance:,.2f}</b></div>
+                            <div><span style="font-size: 11px; color: #94a3b8;">मुदतबाह्य:</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
+                        </div>
+                        <div style="background: rgba(14, 165, 233, 0.08); border-left: 3px solid #0284c7; padding: 8px 12px; border-radius: 0 8px 8px 0;">
+                            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 2px;">⚡ AI वसुली सल्ला व रणनीती:</div>
+                            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.4;">{escape(ai_rec)}</div>
+                        </div>
+                    </div>
+                    ''',
+                    unsafe_allow_html=True,
                 )
 
-            if not risk_report.empty:
-                h_df = risk_report[risk_report["risk_score"] >= 70]
-                m_df = risk_report[(risk_report["risk_score"] >= 40) & (risk_report["risk_score"] < 70)]
-                s_df = risk_report[risk_report["risk_score"] < 40]
-                tot_od_amt = risk_report["overdue_balance"].sum()
+                # WhatsApp reminder link preparation
+                clean_phone = re.sub(r"\D", "", customer_phone)
+                if len(clean_phone) == 10:
+                    clean_phone = "91" + clean_phone
+                elif len(clean_phone) == 11 and clean_phone.startswith("0"):
+                    clean_phone = "91" + clean_phone[1:]
 
-                # Portfolio KPI Cards
-                kc1, kc2, kc3, kc4 = st.columns(4)
-                with kc1:
-                    h_lbl = "HIGH RISK / CRITICAL" if is_english else "बिकट जोखीम (High Risk)"
-                    st.markdown(f"""
-                    <div style="background: rgba(239, 68, 68, 0.12); border: 1.5px solid rgba(239, 68, 68, 0.45); padding: 12px; border-radius: 14px; text-align: center; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.1);">
-                        <div style="font-size: 10px; font-weight: 800; color: #fca5a5; letter-spacing: 0.5px;">🔴 {h_lbl}</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #ef4444; margin: 4px 0;">₹{h_df['balance'].sum():,.2f}</div>
-                        <div style="font-size: 11px; color: #f87171; font-weight: 600;">{len(h_df)} {'Customers' if is_english else 'ग्राहक'}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with kc2:
-                    m_lbl = "MODERATE / WATCHLIST" if is_english else "मध्यम जोखीम (Moderate)"
-                    st.markdown(f"""
-                    <div style="background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.45); padding: 12px; border-radius: 14px; text-align: center; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.1);">
-                        <div style="font-size: 10px; font-weight: 800; color: #fde68a; letter-spacing: 0.5px;">🟡 {m_lbl}</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #f59e0b; margin: 4px 0;">₹{m_df['balance'].sum():,.2f}</div>
-                        <div style="font-size: 11px; color: #fbbf24; font-weight: 600;">{len(m_df)} {'Customers' if is_english else 'ग्राहक'}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with kc3:
-                    s_lbl = "SAFE / TRUSTED" if is_english else "सुरक्षित ग्राहक (Safe)"
-                    st.markdown(f"""
-                    <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.45); padding: 12px; border-radius: 14px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);">
-                        <div style="font-size: 10px; font-weight: 800; color: #a7f3d0; letter-spacing: 0.5px;">🟢 {s_lbl}</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #10b981; margin: 4px 0;">₹{s_df['balance'].sum():,.2f}</div>
-                        <div style="font-size: 11px; color: #34d399; font-weight: 600;">{len(s_df)} {'Customers' if is_english else 'ग्राहक'}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with kc4:
-                    od_lbl = "TOTAL OVERDUE" if is_english else "एकूण थकीत (Overdue)"
-                    st.markdown(f"""
-                    <div style="background: rgba(34, 211, 238, 0.12); border: 1.5px solid rgba(34, 211, 238, 0.45); padding: 12px; border-radius: 14px; text-align: center; box-shadow: 0 4px 15px rgba(34, 211, 238, 0.1);">
-                        <div style="font-size: 10px; font-weight: 800; color: #a5f3fc; letter-spacing: 0.5px;">⚠️ {od_lbl}</div>
-                        <div style="font-size: 19px; font-weight: 800; color: #22d3ee; margin: 4px 0;">₹{tot_od_amt:,.2f}</div>
-                        <div style="font-size: 11px; color: #67e8f9; font-weight: 600;">{len(risk_report[risk_report['overdue_balance'] > 0])} {'Accounts' if is_english else 'थकीत खाती'}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                if overdue_days > 0:
+                    wa_msg = (
+                        f"नमस्कार {name} जी,\n"
+                        f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी असून ती गेल्या {overdue_days} दिवसांपासून थकीत आहे.\n"
+                        f"कृपया ही रक्कम लवकरात लवकर जमा करावी ही नम्र विनंती."
+                    )
+                else:
+                    wa_msg = (
+                        f"नमस्कार {name} जी,\n"
+                        f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी आहे.\n"
+                        f"कृपया सोयीनुसार जमा करावी ही नम्र विनंती. धन्यवाद!"
+                    )
+
+                if business_upi_id and balance > 0:
+                    wa_msg += f"\n\n📲 Google Pay / PhonePe द्वारे पेमेंट करण्यासाठी UPI ID:\n{business_upi_id}"
+
+                btn_c1, btn_c2 = st.columns([1, 1])
+                with btn_c1:
+                    if clean_phone:
+                        st.link_button(
+                            "💬 WhatsApp आठवण संदेश",
+                            f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wa_msg)}",
+                            key=f"wa_btn_{c_idx}_{clean_phone}",
+                            use_container_width=True,
+                        )
+                    else:
+                        st.button("💬 WhatsApp (फोन नंबर नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
+                with btn_c2:
+                    if customer_phone:
+                        st.link_button(
+                            "📞 थेट फोन कॉल (Call)",
+                            f"tel:{customer_phone}",
+                            key=f"call_btn_{c_idx}_{customer_phone}",
+                            use_container_width=True,
+                        )
+                    else:
+                        st.button("📞 थेट फोन (नंबर उपलब्ध नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
+
+                # Action 1: Inline Direct Payment & Credit Addition
+                with st.expander(f"💳 {name} - पैसे जमा नोंदवा / नवीन उधारी जोडा", expanded=False):
+                    tab_pay, tab_cred = st.tabs(["💵 पैसे जमा घ्या (Receive Payment)", "➕ नवीन उधारी जोडा (Add Credit)"])
+                    with tab_pay:
+                        with st.form(key=f"form_quick_pay_{c_idx}_{name}"):
+                            p_col1, p_col2 = st.columns(2)
+                            with p_col1:
+                                default_pay_val = float(balance) if balance > 0 else 100.0
+                                pay_amount = st.number_input(
+                                    "जमा रक्कम (₹):",
+                                    min_value=1.0,
+                                    value=default_pay_val,
+                                    step=50.0,
+                                    key=f"input_pay_amt_{c_idx}",
+                                )
+                                pay_entry_date = st.date_input("जमा तारीख:", value=date.today(), key=f"input_pay_date_{c_idx}")
+                            with p_col2:
+                                pay_notes = st.text_input(
+                                    "तपशील / पेमेंट पद्धत:",
+                                    value="रोख जमा (Cash)" if not business_upi_id else "UPI / GPay द्वारे जमा",
+                                    key=f"input_pay_notes_{c_idx}",
+                                )
+                                st.write("")
+                                submit_pay = st.form_submit_button("✅ जमा रक्कम नोंदवा (Save Payment)", type="primary", use_container_width=True)
+
+                            if submit_pay:
+                                try:
+                                    save_khata_transaction(
+                                        customer_name=name,
+                                        phone=customer_phone,
+                                        amount=pay_amount,
+                                        transaction_type=KHATA_PAYMENT,
+                                        entry_date=pay_entry_date,
+                                        due_date=pay_entry_date,
+                                        notes=pay_notes,
+                                    )
+                                    log_activity(
+                                        st.session_state.get("current_username", "admin"),
+                                        f"Collected payment ₹{pay_amount} from {name}",
+                                    )
+                                    st.toast(f"{name} यांच्याकडून ₹{pay_amount:,.2f} जमा नोंदवले!", icon="✅")
+                                    st.rerun()
+                                except Exception as exc:
+                                    st.error(f"पेमेंट नोंद सेव्ह करता आले नाही: {exc}")
+
+                    with tab_cred:
+                        with st.form(key=f"form_quick_cred_{c_idx}_{name}"):
+                            c_col1, c_col2 = st.columns(2)
+                            with c_col1:
+                                cred_amount = st.number_input(
+                                    "उधारी रक्कम (₹):",
+                                    min_value=1.0,
+                                    value=100.0,
+                                    step=50.0,
+                                    key=f"input_cred_amt_{c_idx}",
+                                )
+                                cred_entry_date = st.date_input("उधारी तारीख:", value=date.today(), key=f"input_cred_date_{c_idx}")
+                            with c_col2:
+                                cred_due_date = st.date_input(
+                                    "परतफेडीची मुदत तारीख:",
+                                    value=date.today() + timedelta(days=15),
+                                    key=f"input_cred_due_{c_idx}",
+                                )
+                                cred_notes = st.text_input(
+                                    "वस्तू तपशील / टीप:",
+                                    placeholder="उदा. किराणा सामान, २ किलो साखर...",
+                                    key=f"input_cred_notes_{c_idx}",
+                                )
+                            submit_cred = st.form_submit_button("➕ नवीन उधारी खात्यात जोडा (Add Credit)", type="primary", use_container_width=True)
+
+                            if submit_cred:
+                                try:
+                                    save_khata_transaction(
+                                        customer_name=name,
+                                        phone=customer_phone,
+                                        amount=cred_amount,
+                                        transaction_type=KHATA_CREDIT,
+                                        entry_date=cred_entry_date,
+                                        due_date=cred_due_date,
+                                        notes=cred_notes,
+                                    )
+                                    log_activity(
+                                        st.session_state.get("current_username", "admin"),
+                                        f"Added credit ₹{cred_amount} for {name}",
+                                    )
+                                    st.toast(f"{name} यांच्या खात्यात ₹{cred_amount:,.2f} उधारी जोडली!", icon="📝")
+                                    st.rerun()
+                                except Exception as exc:
+                                    st.error(f"उधारी नोंद सेव्ह करता आले नाही: {exc}")
+
+                # Action 2: Customer Passbook & History with Mistake Correction (Delete)
+                with st.expander(f"📜 {name} - व्यवहार इतिहास व पासबुक (Passbook)", expanded=False):
+                    cust_mask = khata_df["customer_name"].fillna("").astype(str).str.casefold() == name.casefold()
+                    if customer_phone:
+                        cust_mask = cust_mask | (khata_df["phone"].fillna("").astype(str) == customer_phone)
+                    cust_txs = khata_df[cust_mask].sort_values(by="id", ascending=False)
+                    if cust_txs.empty:
+                        st.info("या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
+                    else:
+                        show_txs = cust_txs[["id", "date", "transaction_type", "amount", "due_date", "notes"]].copy()
+                        show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
+                        st.dataframe(show_txs, use_container_width=True, hide_index=True)
+
+                        del_col1, del_col2 = st.columns([2, 1])
+                        with del_col1:
+                            tx_ids = cust_txs["id"].tolist()
+                            tx_options = {
+                                tid: f"ID #{tid} - {cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0]} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
+                                for tid in tx_ids
+                            }
+                            sel_del_id = st.selectbox(
+                                "चुकीची नोंद डिलीट करा (Select Transaction to Remove):",
+                                tx_ids,
+                                format_func=lambda x: tx_options.get(x, f"ID #{x}"),
+                                key=f"del_tx_sel_{c_idx}_{name}",
+                            )
+                        with del_col2:
+                            st.write("")
+                            st.write("")
+                            if st.button("🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
+                                try:
+                                    if delete_khata_transaction(sel_del_id):
+                                        log_activity(
+                                            st.session_state.get("current_username", "admin"),
+                                            f"Deleted Khata ID {sel_del_id} for {name}",
+                                        )
+                                        st.toast(f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
+                                        st.rerun()
+                                    else:
+                                        st.error("नोंद सापडली नाही.")
+                                except Exception as exc:
+                                    st.error(f"नोंद डिलीट करता आली नाही: {exc}")
 
                 st.write("")
 
-                # Filter and Sorting Controls
-                f_c1, f_c2 = st.columns([1.3, 1])
-                with f_c1:
-                    filter_opts = [
-                        f"All Profiles ({len(visible_risk)})" if is_english else f"सर्व ग्राहक ({len(visible_risk)})",
-                        f"🔴 High Risk Only ({len(h_df)})" if is_english else f"🔴 फक्त हाय रिस्क ({len(h_df)})",
-                        f"🟡 Moderate Risk ({len(m_df)})" if is_english else f"🟡 मध्यम रिस्क ({len(m_df)})",
-                        f"⚠️ Overdue Only ({len(risk_report[risk_report['overdue_balance'] > 0])})" if is_english else f"⚠️ फक्त मुदतबाह्य उधारी ({len(risk_report[risk_report['overdue_balance'] > 0])})",
-                        f"🟢 Safe Customers ({len(s_df)})" if is_english else f"🟢 सुरक्षित ग्राहक ({len(s_df)})",
-                    ]
-                    sel_filter = st.selectbox(
-                        "Risk Tier Filter:" if is_english else "जोखीम स्तर फिल्टर:",
-                        filter_opts,
-                        key="sub_t1_filter_cat",
-                    )
-                with f_c2:
-                    sort_opts = [
-                        "Highest Risk Score First" if is_english else "सर्वात जास्त रिस्क स्कोअर आधी",
-                        "Highest Balance First" if is_english else "सर्वात जास्त बाकी रक्कम आधी",
-                        "Most Days Overdue First" if is_english else "जास्त दिवस थकीत आधी",
-                        "Customer Name (A-Z)" if is_english else "ग्राहक नाव (A-Z)",
-                    ]
-                    sel_sort = st.selectbox(
-                        "Sort By:" if is_english else "क्रमवारी लावा (Sort by):",
-                        sort_opts,
-                        key="sub_t1_sort_cat",
-                    )
-
-                f_df = visible_risk.copy()
-                if "High Risk" in sel_filter:
-                    f_df = f_df[f_df["risk_score"] >= 70]
-                elif "Moderate" in sel_filter:
-                    f_df = f_df[(f_df["risk_score"] >= 40) & (f_df["risk_score"] < 70)]
-                elif "Overdue" in sel_filter or "मुदतबाह्य" in sel_filter:
-                    f_df = f_df[f_df["overdue_balance"] > 0]
-                elif "Safe" in sel_filter or "सुरक्षित" in sel_filter:
-                    f_df = f_df[f_df["risk_score"] < 40]
-
-                if "Highest Risk" in sel_sort or "जास्त रिस्क" in sel_sort:
-                    f_df = f_df.sort_values(by="risk_score", ascending=False)
-                elif "Highest Balance" in sel_sort or "बाकी रक्कम" in sel_sort:
-                    f_df = f_df.sort_values(by="balance", ascending=False)
-                elif "Most Days" in sel_sort or "दिवस थकीत" in sel_sort:
-                    f_df = f_df.sort_values(by="overdue_days", ascending=False)
-                elif "Name" in sel_sort or "नाव" in sel_sort:
-                    f_df = f_df.sort_values(by="customer_name", ascending=True)
-
-                if f_df.empty:
-                    st.info(
-                        "No customers match the selected filter."
-                        if is_english
-                        else "निवडलेल्या फिल्टरनुसार कोणतेही ग्राहक आढळले नाहीत."
-                    )
-                else:
-                    PAGE_SIZE = 10
-                    total_custs = len(f_df)
-                    if total_custs > PAGE_SIZE:
-                        num_pages = math.ceil(total_custs / PAGE_SIZE)
-                        p_c1, p_c2 = st.columns([1, 2])
-                        with p_c1:
-                            page_num = st.selectbox(
-                                f"📄 पान (Page 1-{num_pages}):" if not is_english else f"📄 Page (1-{num_pages}):",
-                                range(1, num_pages + 1),
-                                key="khata_page_num"
-                            )
-                        f_df_page = f_df.iloc[(page_num - 1) * PAGE_SIZE : page_num * PAGE_SIZE]
-                    else:
-                        f_df_page = f_df
-
-                    for c_idx, customer in f_df_page.reset_index(drop=True).iterrows():
-                        name = _khata_text(customer["customer_name"])
-                        customer_phone = _khata_text(customer["phone"])
-                        risk_score = int(customer.get("risk_score", 0))
-                        balance = float(customer.get("balance", 0.0))
-                        overdue_balance = float(customer.get("overdue_balance", 0.0))
-                        overdue_days = int(customer.get("overdue_days", 0))
-                        credit = float(customer.get("credit", 0.0))
-                        payments = float(customer.get("payments", 0.0))
-                        repay_ratio = float(customer.get("repayment_ratio", 0.0))
-                        ai_rec = customer.get("ai_rec_en" if is_english else "ai_rec_mr", "")
-
-                        if risk_score >= 70:
-                            risk_color = "#ef4444"
-                            badge_text = "CRITICAL DEFAULTER" if is_english else "बिकट उधारी (High Risk)"
-                        elif risk_score >= 40:
-                            risk_color = "#f59e0b"
-                            badge_text = "WATCHLIST" if is_english else "मध्यम जोखीम (Moderate)"
-                        else:
-                            risk_color = "#10b981"
-                            badge_text = "TRUSTED CUSTOMER" if is_english else "सुरक्षित ग्राहक (Safe)"
-
-                        od_tag = f"({overdue_days} {'days late' if is_english else 'दिवस थकीत'})" if overdue_days > 0 else ""
-
-                        st.markdown(
-                            f'''
-                            <div style="background: linear-gradient(145deg, rgba(10, 18, 34, 0.95), rgba(4, 9, 20, 0.95)); border: 1.5px solid {risk_color}55; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 15px {risk_color}18;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div>
-                                        <span style="font-size: 16px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
-                                        <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">📞 {escape(customer_phone or ("No phone" if is_english else "फोन नाही"))}</span>
-                                    </div>
-                                    <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;">
-                                        {escape(badge_text)} · {risk_score}/100
-                                    </div>
-                                </div>
-                                <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
-                                    <div style="background: linear-gradient(90deg, {risk_color}88, {risk_color}); width: {max(5, risk_score)}%; height: 100%;"></div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 12px;">
-                                    <div><span style="font-size: 10px; color: #94a3b8;">{'Total Credit' if is_english else 'एकूण उधारी'}:</span><br><b style="font-size: 13px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
-                                    <div><span style="font-size: 10px; color: #94a3b8;">{'Paid' if is_english else 'जमा रक्कम'}:</span><br><b style="font-size: 13px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 9px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
-                                    <div><span style="font-size: 10px; color: #94a3b8;">{'Pending Balance' if is_english else 'बाकी शिल्लक'}:</span><br><b style="font-size: 14px; color: #00f2fe;">₹{balance:,.2f}</b></div>
-                                    <div><span style="font-size: 10px; color: #94a3b8;">{'Overdue' if is_english else 'मुदतबाह्य'}:</span><br><b style="font-size: 13px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
-                                </div>
-                                <div style="background: rgba(14, 165, 233, 0.08); border-left: 3px solid #00f2fe; padding: 9px 12px; border-radius: 0 8px 8px 0; margin-bottom: 10px;">
-                                    <div style="font-size: 10px; font-weight: 800; color: #00f2fe; text-transform: uppercase; margin-bottom: 2px;">🤖 {'AI RECOVERY STRATEGY & ADVICE' if is_english else 'AI वसुली सल्ला & रणनीती'}</div>
-                                    <div style="font-size: 12px; color: #e0f2fe; line-height: 1.4;">{escape(ai_rec)}</div>
-                                </div>
-                            </div>
-                            ''',
-                            unsafe_allow_html=True,
-                        )
-
-                        clean_phone = re.sub(r"\D", "", customer_phone)
-                        if len(clean_phone) >= 10:
-                            if len(clean_phone) == 10:
-                                clean_phone = "91" + clean_phone
-                            elif len(clean_phone) == 11 and clean_phone.startswith("0"):
-                                clean_phone = "91" + clean_phone[1:]
-
-                        btn_c1, btn_c2, btn_c3, btn_c4 = st.columns([1.2, 1.2, 1, 1.2])
-
-                        friendly_msg = (
-                            f"Hello {name}, your outstanding balance at VernaLedger is ₹{balance:,.2f}. Kindly clear it at your convenience. Thank you!"
-                            if is_english
-                            else f"नमस्कार {name} जी, आपल्या VernaLedger दुकानाचे ₹{balance:,.2f} उधारी बाकी आहे. कृपया सोयीनुसार जमा करावी ही नम्र विनंती. धन्यवाद!"
-                        )
-
-                        urgent_msg = (
-                            f"URGENT PAYMENT NOTICE: {name}, your pending balance of ₹{balance:,.2f} is {overdue_days} days overdue. Please clear this by today evening to avoid credit suspension."
-                            if is_english
-                            else f"तातडीची सूचना: {name} जी, आपल्या दुकानाचे ₹{balance:,.2f} गेल्या {overdue_days} दिवसांपासून थकीत आहे. कृपया आज संध्याकाळपर्यंत जमा करावे, अन्यथा पुढील उधारी बंद केली जाईल."
-                        )
-
-                        payment_link = ""
-                        if upi_configured and balance > 0:
-                            payment_link = build_upi_payment_link(
-                                business_upi_id,
-                                "VernaLedger",
-                                name,
-                                balance,
-                            )
-                            link_appendix = (
-                                f"\n\nDirect UPI / Google Pay Payment Link:\n{payment_link}"
-                                if is_english
-                                else f"\n\nGoogle Pay किंवा UPI पेमेंट लिंक:\n{payment_link}"
-                            )
-                            friendly_msg += link_appendix
-                            urgent_msg += link_appendix
-
-                        with btn_c1:
-                            w_lbl = "💬 WhatsApp (Gentle)" if is_english else "💬 WhatsApp (सौम्य)"
-                            st.link_button(
-                                w_lbl,
-                                f"https://wa.me/{clean_phone}?text={urllib.parse.quote(friendly_msg)}",
-                                key=f"wa_gen_{c_idx}",
-                            )
-                        with btn_c2:
-                            w_urg_lbl = "🚨 WhatsApp (Urgent)" if is_english else "🚨 WhatsApp (कडक नोटीस)"
-                            st.link_button(
-                                w_urg_lbl,
-                                f"https://wa.me/{clean_phone}?text={urllib.parse.quote(urgent_msg)}",
-                                key=f"wa_urg_{c_idx}",
-                            )
-                        with btn_c3:
-                            call_lbl = "📞 Call" if is_english else "📞 थेट कॉल"
-                            st.link_button(
-                                call_lbl,
-                                f"tel:{customer_phone}",
-                                key=f"call_{c_idx}",
-                            )
-                        with btn_c4:
-                            if payment_link:
-                                st.link_button(
-                                    "💳 Direct UPI",
-                                    payment_link,
-                                    key=f"upi_{c_idx}",
-                                )
-                            else:
-                                st.caption("No UPI configured" if is_english else "UPI सेट नाही")
-
-                        with st.expander(f"🎙️ {'AI Call Script for' if is_english else 'कॉलवर काय बोलावे? -'} {name}", expanded=False):
-                            script_content = (
-                                f"**Spoken Call Guide (English):**\n\n"
-                                f"\"Hello {name}, this is calling from the store regarding your account. "
-                                f"We show an outstanding balance of **₹{balance:,.2f}** which has been pending for **{overdue_days} days**. "
-                                f"Can we confirm if you are able to settle this today via UPI or cash? Thank you.\"\n\n"
-                                f"---\n\n"
-                                f"**मराठी फोन कॉल स्क्रिप्ट:**\n\n"
-                                f"\"नमस्कार **{name} जी**, मी दुकानातून बोलत आहे. आपल्या खात्यावर **₹{balance:,.2f}** ची उधारी "
-                                f"{'गेल्या **' + str(overdue_days) + ' दिवसांपासून** थकीत आहे' if overdue_days > 0 else 'बाकी आहे'}. "
-                                f"कृपया आपण आज Google Pay किंवा रोखीने जमा करू शकाल का? काही अडचण असल्यास कृपया सांगा.\""
-                            )
-                            st.markdown(script_content)
-
-                        st.write("")
-            else:
-                st.info(
-                    "No credit or khata records available yet."
-                    if is_english
-                    else "सध्या कोणतीही उधारी नोंद उपलब्ध नाही."
+            # --- 4. Master Ledger Database & CSV Export (At the bottom) ---
+            st.divider()
+            with st.expander("📁 संपूर्ण लेजर डेटाबेस & एक्सेल/CSV एक्सपोर्ट (All Transactions)", expanded=False):
+                st.markdown("##### 📋 सर्व ग्राहकांच्या नोंदींचा कच्चा डेटा (Master Khata Records)")
+                st.dataframe(khata_df[KHATA_COLUMNS], use_container_width=True, hide_index=True)
+                csv_data = khata_df[KHATA_COLUMNS].to_csv(index=False).encode('utf-8-sig')
+                st.download_button(
+                    label="📥 संपूर्ण लेजर CSV फाईल डाउनलोड करा (Download CSV)",
+                    data=csv_data,
+                    file_name=f"Customer_Khata_Ledger_{date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    key="download_full_khata_csv",
+                    use_container_width=True,
                 )
 
-        with sub_t2:
-            st.markdown("##### ✏️ जुने रेकॉर्ड्स आणि उधारी Edit / Settle")
-            if visible_df.empty:
-                st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
-            else:
-                visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
-                record_signature = hashlib.sha256(
-                    visible_df[KHATA_COLUMNS].to_json(
-                        orient="split", force_ascii=False
-                    ).encode("utf-8")
-                ).hexdigest()
-                edited_df = st.data_editor(
-                    visible_df[KHATA_COLUMNS],
-                    
-                    key=f"khata_editable_table_{record_signature}",
-                    disabled=["id"],
-                    num_rows="fixed",
-                )
-                edit_col, delete_col = st.columns(2)
-                with edit_col:
-                    if st.button("उधारी records अपडेट (Save Edit)", key="save_khata_edits"):
-                        try:
-                            updated_count = update_khata_transactions(visible_df, edited_df)
-                            log_activity(
-                                st.session_state.get("current_username", "admin"),
-                                f"Updated {updated_count} Khata Records",
-                            )
-                            st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
-                            st.rerun()
-                        except ValueError as exc:
-                            st.error(str(exc))
-                        except sqlite3.Error as exc:
-                            logging.exception("Could not update customer khata transactions")
-                            st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
-                with delete_col:
-                    delete_id = st.selectbox(
-                        "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
-                        visible_record_ids,
-                        key=f"delete_khata_id_{record_signature}",
-                    )
-                    if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
-                        try:
-                            if delete_khata_transaction(delete_id):
-                                log_activity(
-                                    st.session_state.get("current_username", "admin"),
-                                    f"Deleted Khata ID {delete_id}",
-                                )
-                                st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
-                                st.rerun()
-                            else:
-                                st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
-                        except sqlite3.Error as exc:
-                            logging.exception("Could not delete customer khata transaction")
-                            st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 @st.cache_data(ttl=10)
