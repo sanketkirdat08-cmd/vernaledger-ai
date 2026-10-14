@@ -3464,12 +3464,120 @@ if selected_page == "OCR Scanner":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)', key='inv_sync_all_batch', use_container_width=True):
-                    try:
-                        with sqlite3.connect('ledger.db') as conn:
-                            cursor = conn.cursor()
-                            for b_item in batch_data:
-                                for item in b_item.get('items', []):
+                # Top Action Row: Sync All + Download All Slips
+                c_sync_all, c_dl_all = st.columns(2)
+                with c_sync_all:
+                    if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)', key='inv_sync_all_batch', use_container_width=True):
+                        try:
+                            with sqlite3.connect('ledger.db') as conn:
+                                cursor = conn.cursor()
+                                for b_item in batch_data:
+                                    for item in b_item.get('items', []):
+                                        i_name = str(item.get('item_name', '')).strip()
+                                        if not i_name:
+                                            continue
+                                        q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                        try:
+                                            q_val = float(q_raw)
+                                        except (ValueError, TypeError):
+                                            q_val = 1.0
+                                        r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
+                                        cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
+                                        row = cursor.fetchone()
+                                        if row:
+                                            new_qty = float(row[1] or 0.0) + q_val
+                                            cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
+                                        else:
+                                            cursor.execute(
+                                                "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
+                                                (i_name, q_val, 'units', 5.0, '', r_val)
+                                            )
+                                conn.commit()
+                            st.toast('📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
+                            st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
+                        except Exception as e:
+                            st.error(str(e))
+                with c_dl_all:
+                    # Generate all thermal slips in 1 HTML file for batch printing
+                    all_slips_html = """<!DOCTYPE html><html><head><meta charset='utf-8'><title>All Receipts</title><style>@page { size: 58mm auto; margin: 0; } body { width: 54mm; margin: 0 auto; padding: 4px; font-family: 'Courier New', monospace; } .page-sep { page-break-after: always; border-top: 2px dashed #000; margin: 20px 0; }</style></head><body>"""
+                    for b_i, b_obj in enumerate(batch_data, 1):
+                        b_v = decode_unicode(b_obj.get('vendor_name'))
+                        b_tot = float(b_obj.get('grand_total', 0) or 0)
+                        b_its = b_obj.get('items', [])
+                        b_dt = b_obj.get('date', 'Today') or 'Today'
+                        all_slips_html += generate_thermal_receipt_html(b_v, b_dt, "General", b_its, b_tot, receipt_no=str(b_i), is_english=is_english)
+                        if b_i < len(batch_data):
+                            all_slips_html += "<div class='page-sep'></div>"
+                    all_slips_html += "</body></html>"
+                    st.download_button(
+                        label=f"🖨️ सर्व {len(batch_data)} पावत्या एकत्र डाउनलोड",
+                        data=all_slips_html,
+                        file_name=f"All_{len(batch_data)}_Thermal_Slips.html",
+                        mime="text/html",
+                        use_container_width=True,
+                        key="btn_dl_all_slips_batch"
+                    )
+
+                st.markdown("<hr style='margin: 10px 0 8px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
+                
+                # Receipt Selector Dropdown (पावती सिलेक्टर ड्रॉपडाऊन)
+                receipt_labels = [
+                    f"🧾 पावती #{i+1}: {decode_unicode(b.get('vendor_name', 'अनामित'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} वस्तू)"
+                    for i, b in enumerate(batch_data)
+                ]
+                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>📋 पाहण्यासाठी पावती निवडा (Select Receipt):</div>", unsafe_allow_html=True)
+                selected_idx = st.selectbox(
+                    "पावती निवडा",
+                    range(len(batch_data)),
+                    format_func=lambda i: receipt_labels[i],
+                    label_visibility="collapsed",
+                    key="batch_receipt_dropdown_selector"
+                )
+
+                # Show Selected Receipt Details
+                p_item = batch_data[selected_idx]
+                v_disp = decode_unicode(p_item.get('vendor_name'))
+                tot = float(p_item.get('grand_total', 0) or 0)
+                items_raw = p_item.get('items', [])
+                date_disp = p_item.get('date', 'Today') or 'Today'
+                cat_disp = p_item.get('category', 'General') or 'General'
+
+                # Thermal Slip Preview of Selected Receipt
+                b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, receipt_no=str(selected_idx+1), is_english=is_english)
+                st.components.v1.html(b_thermal_html, height=310, scrolling=True)
+
+                # Items Table of Selected Receipt
+                if items_raw:
+                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>📋 पावती #{selected_idx+1} चा वस्तू तपशील ({len(items_raw)} वस्तू):</div>", unsafe_allow_html=True)
+                    clean_b_items = []
+                    for bi_idx, bi in enumerate(items_raw, 1):
+                        clean_b_items.append({
+                            "क्र.": bi_idx,
+                            "वस्तूचे नाव (Item)": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
+                            "प्रमाण (Qty)": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
+                            "दर (Rate ₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
+                            "एकूण (Total ₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
+                        })
+                    st.dataframe(pd.DataFrame(clean_b_items), hide_index=True, use_container_width=True)
+
+                # Action Buttons for Selected Receipt
+                b_c1, b_c2 = st.columns(2)
+                with b_c1:
+                    st.download_button(
+                        label=f"🖨️ पावती #{selected_idx+1} डाउनलोड / प्रिंट",
+                        data=b_thermal_html,
+                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{selected_idx+1}.html",
+                        mime="text/html",
+                        use_container_width=True,
+                        type="primary",
+                        key=f"btn_dl_thermal_sel_{selected_idx}"
+                    )
+                with b_c2:
+                    if st.button(f'📦 पावती #{selected_idx+1} स्टॉक अपडेट', key=f'inv_sync_sel_{selected_idx}', use_container_width=True):
+                        try:
+                            with sqlite3.connect('ledger.db') as conn:
+                                cursor = conn.cursor()
+                                for item in items_raw:
                                     i_name = str(item.get('item_name', '')).strip()
                                     if not i_name:
                                         continue
@@ -3489,75 +3597,18 @@ if selected_page == "OCR Scanner":
                                             "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
                                             (i_name, q_val, 'units', 5.0, '', r_val)
                                         )
-                            conn.commit()
-                        st.toast('📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
-                        st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
-                    except Exception as e:
-                        st.error(str(e))
-                
-                st.markdown("<div style='font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 8px 0 4px 0;'>📑 स्वतंत्र थर्मल पावत्या:</div>", unsafe_allow_html=True)
-                
-                for idx, p_item in enumerate(batch_data):
-                    v_disp = decode_unicode(p_item.get('vendor_name'))
-                    tot = float(p_item.get('grand_total', 0) or 0)
-                    items_raw = p_item.get('items', [])
-                    date_disp = p_item.get('date', 'Today') or 'Today'
-                    
-                    with st.expander(f"🧾 #{idx+1} {v_disp} — ₹{tot:,.2f} ({len(items_raw)} वस्तू)"):
-                        b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, "General", items_raw, tot, receipt_no=str(idx+1), is_english=is_english)
-                        st.components.v1.html(b_thermal_html, height=280, scrolling=True)
-                        if items_raw:
-                            clean_b_items = []
-                            for bi_idx, bi in enumerate(items_raw, 1):
-                                clean_b_items.append({
-                                    "क्र.": bi_idx,
-                                    "वस्तू": str(bi.get("item_name", "-")),
-                                    "प्रमाण": str(bi.get("quantity", bi.get("qty", "1"))),
-                                    "दर": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
-                                    "एकूण": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
-                                })
-                            st.dataframe(pd.DataFrame(clean_b_items), hide_index=True, use_container_width=True)
-                        b_c1, b_c2 = st.columns(2)
-                        with b_c1:
-                            st.download_button(
-                                label=f"🖨️ पावती #{idx+1} डाउनलोड",
-                                data=b_thermal_html,
-                                file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{idx+1}.html",
-                                mime="text/html",
-                                use_container_width=True,
-                                type="primary",
-                                key=f"btn_dl_thermal_batch_{idx}"
-                            )
-                        with b_c2:
-                            if st.button('📦 स्टॉक अपडेट', key=f'inv_sync_{idx}', use_container_width=True):
-                                try:
-                                    with sqlite3.connect('ledger.db') as conn:
-                                        cursor = conn.cursor()
-                                        for item in p_item.get('items', []):
-                                            i_name = str(item.get('item_name', '')).strip()
-                                            if not i_name:
-                                                continue
-                                            q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                            try:
-                                                q_val = float(q_raw)
-                                            except (ValueError, TypeError):
-                                                q_val = 1.0
-                                            r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
-                                            cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
-                                            row = cursor.fetchone()
-                                            if row:
-                                                new_qty = float(row[1] or 0.0) + q_val
-                                                cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
-                                            else:
-                                                cursor.execute(
-                                                    "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
-                                                    (i_name, q_val, 'units', 5.0, '', r_val)
-                                                )
-                                        conn.commit()
-                                    st.toast(f'#{idx+1} स्टॉक अपडेट झाला!')
-                                    st.success('इन्व्हेंटरी अपडेट झाली!')
-                                except Exception as e:
-                                    st.error(str(e))
+                                conn.commit()
+                            st.toast(f'पावती #{selected_idx+1} चा स्टॉक अपडेट झाला!', icon="📦")
+                            st.success(f'पावती #{selected_idx+1} चा स्टॉक यशस्वीरित्या अपडेट झाला!')
+                        except Exception as e:
+                            st.error(str(e))
+
+                # Optional Edit Items in Expander
+                items_df = pd.DataFrame(items_raw)
+                if not items_df.empty:
+                    with st.expander(f"✏️ पावती #{selected_idx+1} मधील वस्तू / किमती तपासा किंवा बदला (Edit Items)", expanded=False):
+                        edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_batch_sel_{selected_idx}')
+                        p_item['items'] = edited_df.to_dict('records')
         else:
             st.markdown("""
             <div style='text-align: center; padding: 25px 15px;'>
