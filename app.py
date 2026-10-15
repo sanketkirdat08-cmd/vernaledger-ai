@@ -29,16 +29,6 @@ try:
 except ImportError:
     qrcode = None
 
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
 st.set_page_config(
     page_title="VernaLedger AI",
     page_icon="🤖",
@@ -379,30 +369,6 @@ def load_business_upi_id():
     ).strip()
 
 
-def build_upi_payment_link(upi_id, payee_name, customer_name, amount):
-    normalized_upi_id = str(upi_id or "").strip()
-    if not re.fullmatch(r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}", normalized_upi_id):
-        raise ValueError("व्यवसायाचा UPI ID वैध स्वरूपात कॉन्फिगर केलेला नाही.")
-    try:
-        normalized_amount = float(amount)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("पेमेंट रक्कम वैध नाही.") from exc
-    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
-        raise ValueError("बाकी रक्कम शून्यापेक्षा जास्त असणे आवश्यक आहे.")
-
-    parameters = urllib.parse.urlencode(
-        {
-            "pa": normalized_upi_id,
-            "pn": str(payee_name or "VernaLedger").strip(),
-            "am": f"{normalized_amount:.2f}",
-            "cu": "INR",
-            "tn": f"Khata payment - {str(customer_name or '').strip()}"[:80],
-        },
-        quote_via=urllib.parse.quote,
-    )
-    return f"upi://pay?{parameters}"
-
-
 def _normalize_khata_date(value, field_name):
     if isinstance(value, datetime):
         value = value.date()
@@ -483,47 +449,6 @@ def load_khata_transactions():
             "FROM customer_khata ORDER BY id DESC",
             conn,
         )
-
-
-def update_khata_transactions(original_df, edited_df):
-    original_ids = {int(record_id) for record_id in original_df["id"].tolist()}
-    updates = []
-    for _, row in edited_df.iterrows():
-        try:
-            record_id = int(row["id"])
-        except (TypeError, ValueError) as exc:
-            raise ValueError("रेकॉर्ड आयडी बदलता येत नाही.") from exc
-        if record_id not in original_ids:
-            raise ValueError("नवीन किंवा अपरिचित रेकॉर्ड बदलता येत नाही.")
-        original_row = original_df.loc[original_df["id"] == record_id].iloc[0]
-        fields = ("customer_name", "phone", "amount", "transaction_type", "date", "due_date", "notes")
-        if all(str(original_row[field] or "") == str(row[field] or "") for field in fields):
-            continue
-        entry = validate_khata_entry(
-            row["customer_name"], row["phone"], row["amount"],
-            row["transaction_type"], row["date"], row["due_date"], row["notes"],
-        )
-        updates.append((entry, record_id))
-
-    if updates:
-        with sqlite3.connect("ledger.db", timeout=10) as conn:
-            conn.executemany(
-                """
-                UPDATE customer_khata
-                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?,
-                    date = ?, due_date = ?, notes = ?
-                WHERE id = ?
-                """,
-                [
-                    (
-                        entry["customer_name"], entry["phone"], entry["amount"],
-                        entry["transaction_type"], entry["date"], entry["due_date"],
-                        entry["notes"], record_id,
-                    )
-                    for entry, record_id in updates
-                ],
-            )
-    return len(updates)
 
 
 def delete_khata_transaction(record_id):
@@ -729,109 +654,6 @@ def parse_voice_khata_details(transcript):
 def render_business_module_styles():
     st.markdown("""
     <style>
-
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
-        font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
-    /* --- END SAFE FONT --- */
-    
-
-    [data-testid="stMain"]:has(.business-suite-page) .studio-header {
-        position: relative;
-        overflow: hidden;
-        min-height: 126px;
-        align-items: center;
-        padding: 22px 26px;
-        margin-bottom: 15px;
-        border: 1px solid rgba(125, 211, 252, 0.24) !important;
-        border-radius: 26px !important;
-        background:
-            radial-gradient(circle at 88% 16%, rgba(34, 211, 238, 0.2), transparent 28%),
-            radial-gradient(circle at 73% 110%, rgba(99, 102, 241, 0.2), transparent 35%),
-            linear-gradient(120deg, rgba(8, 18, 37, 0.98), rgba(14, 31, 55, 0.94) 58%, rgba(12, 27, 49, 0.96)) !important;
-        box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-    }
-    [data-testid="stMain"]:has(.business-suite-page) .studio-header::after {
-        content: "";
-        position: absolute;
-        width: 180px;
-        height: 180px;
-        right: 5%;
-        top: -82px;
-        border: 1px solid rgba(125, 211, 252, 0.13);
-        border-radius: 50%;
-        box-shadow: 0 0 0 20px rgba(125, 211, 252, 0.025), 0 0 0 42px rgba(125, 211, 252, 0.02);
-        pointer-events: none;
-    }
-    [data-testid="stMain"]:has(.business-suite-page) .studio-header:hover {
-        transform: none !important;
-        border-color: rgba(103, 232, 249, 0.42) !important;
-        box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34), 0 0 34px rgba(34, 211, 238, 0.08) !important;
-    }
-    .business-hero-content {
-        position: relative;
-        z-index: 1;
-        max-width: 760px;
-    }
-    .business-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        margin-bottom: 10px;
-        padding: 5px 10px;
-        color: #a5f3fc;
-        background: rgba(34, 211, 238, 0.09);
-        border: 1px solid rgba(103, 232, 249, 0.2);
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 1.25px;
-        text-transform: uppercase;
-    }
-    .business-hero-title {
-        margin: 0 !important;
-        color: #f8fafc !important;
-        font-size: clamp(25px, 3.2vw, 36px) !important;
-        font-weight: 800 !important;
-        letter-spacing: -1.1px;
-        line-height: 1.16 !important;
-    }
-    .business-hero-title span {
-        color: #67e8f9;
-    }
-    .business-hero-subtitle {
-        margin: 9px 0 0 !important;
-        color: #a8b8ce !important;
-        font-size: 13px !important;
-        line-height: 1.65 !important;
-    }
-    .business-hero-mark {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        flex: 0 0 72px;
-        width: 72px;
-        height: 72px;
-        place-items: center;
-        margin-left: 20px;
-        color: #a5f3fc;
-        background: linear-gradient(145deg, rgba(34, 211, 238, 0.19), rgba(99, 102, 241, 0.14));
-        border: 1px solid rgba(103, 232, 249, 0.25);
-        border-radius: 23px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 14px 30px rgba(2, 6, 23, 0.28);
-        font-size: 32px;
-    }
     [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
         margin-top: 4px;
         gap: 8px;
@@ -869,11 +691,6 @@ def render_business_module_styles():
         border: 1px solid rgba(56, 189, 248, 0.18) !important;
         border-radius: 20px !important;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
-    }
-    [data-testid="stMain"]:has(.business-suite-page) .panel-card:hover {
-        transform: none !important;
-        border-color: rgba(103, 232, 249, 0.26) !important;
-        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24) !important;
     }
     .business-section-heading {
         display: flex;
@@ -949,23 +766,6 @@ def render_business_module_styles():
         border-radius: 14px;
     }
     @media (max-width: 720px) {
-        [data-testid="stMain"]:has(.business-suite-page) .studio-header {
-            min-height: 0;
-            padding: 18px 16px;
-            border-radius: 21px !important;
-        }
-        .business-hero-mark {
-            flex-basis: 52px;
-            width: 52px;
-            height: 52px;
-            margin-left: 10px;
-            border-radius: 16px;
-            font-size: 24px;
-        }
-        .business-hero-subtitle {
-            max-width: 92%;
-            font-size: 12px !important;
-        }
         [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
             gap: 4px;
             padding: 5px;
@@ -2529,24 +2329,6 @@ def render_login_portal():
 
     st.markdown(f"""
     <style>
-
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }}
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {{
-        font-family: inherit; 
-    }}
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }}
-    /* --- END SAFE FONT --- */
-    
-
     header, [data-testid="stHeader"] {{ display: none !important; }}
     html, body {{
         overflow: {overflow_css} !important;
@@ -4549,23 +4331,6 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
-
-    /* --- SAFE FONT APPLICATION --- */
-    .stApp {
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
-        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
-        font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
-        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
-    /* --- END SAFE FONT --- */
-    
     [data-testid="stMainBlockContainer"] {
     box-sizing: border-box !important;
     width: 100% !important;
