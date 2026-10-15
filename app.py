@@ -1027,64 +1027,58 @@ def render_customer_khata():
                 st.session_state.pop(field, None)
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
 
-        st.markdown("""
-        <div class="khata-ai-entry">
-            <div class="khata-ai-entry-title">⌁ AI व्हॉइस किंवा मजकूर नोंद</div>
-            <div class="khata-ai-entry-caption">बोला किंवा व्यवहाराचे वाक्य लिहा; AI तपशील फॉर्ममध्ये भरेल. सेव्ह करण्यापूर्वी तपासा.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        try:
-            transcript = speech_to_text(
-                start_prompt="Speak transaction details",
-                stop_prompt="बोलणे थांबवा",
-                just_once=True,
-                language="mr-IN",
-                key="khata_unified_voice_input",
-            )
-        except Exception as exc:
-            logging.exception("Voice transcription failed for customer khata")
-            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
-            transcript = None
-        if isinstance(transcript, str) and transcript.strip():
-            st.session_state["khata_ai_transcript"] = transcript.strip()
+        with st.expander("🎙️ बोलून किंवा AI मजकुराद्वारे नोंद भरा (पर्यायी - Optional)", expanded=False):
+            try:
+                transcript = speech_to_text(
+                    start_prompt="Speak transaction details",
+                    stop_prompt="बोलणे थांबवा",
+                    just_once=True,
+                    language="mr-IN",
+                    key="khata_unified_voice_input",
+                )
+            except Exception as exc:
+                logging.exception("Voice transcription failed for customer khata")
+                st.caption(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+                transcript = None
+            if isinstance(transcript, str) and transcript.strip():
+                st.session_state["khata_ai_transcript"] = transcript.strip()
 
-        transcript_col, parse_col = st.columns([4, 1])
-        with transcript_col:
-            st.text_area(
-                "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
-                key="khata_ai_transcript",
-                height=72,
-                max_chars=1000,
-                placeholder="उदा. सौरभकडे २०० रुपये उधारी",
-            )
-        with parse_col:
-            st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
-            parse_voice = st.button(
-                "AI तपशील भरा",
-                key="parse_unified_khata_voice",
-                type="secondary",
-                
-            )
-        if parse_voice:
-            transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
-            if not transcript_text:
-                st.warning("आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
-            else:
-                try:
-                    draft = parse_voice_khata_details(transcript_text)
-                    st.session_state["khata_voice_draft"] = draft
-                    st.session_state["khata_form_customer_name"] = draft["customer_name"]
-                    st.session_state["khata_form_phone"] = draft["phone"]
-                    st.session_state["khata_form_amount"] = draft["amount"]
-                    st.session_state["khata_form_type"] = draft["transaction_type"]
-                    st.session_state["khata_form_notes"] = draft["notes"]
-                    st.toast("AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
-                    st.rerun()
-                except (ValueError, json.JSONDecodeError) as exc:
-                    st.error(f"AI तपशील ओळखता आले नाहीत: {exc}")
-                except Exception as exc:
-                    logging.exception("AI voice khata parsing failed")
-                    st.error(f"AI तपशील वाचताना Error: {exc}")
+            transcript_col, parse_col = st.columns([4, 1])
+            with transcript_col:
+                st.text_area(
+                    "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
+                    key="khata_ai_transcript",
+                    height=72,
+                    max_chars=1000,
+                    placeholder="उदा. सौरभकडे २०० रुपये उधारी",
+                )
+            with parse_col:
+                st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
+                parse_voice = st.button(
+                    "AI तपशील भरा",
+                    key="parse_unified_khata_voice",
+                    type="secondary",
+                )
+            if parse_voice:
+                transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
+                if not transcript_text:
+                    st.warning("आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
+                else:
+                    try:
+                        draft = parse_voice_khata_details(transcript_text)
+                        st.session_state["khata_voice_draft"] = draft
+                        st.session_state["khata_form_customer_name"] = draft["customer_name"]
+                        st.session_state["khata_form_phone"] = draft["phone"]
+                        st.session_state["khata_form_amount"] = draft["amount"]
+                        st.session_state["khata_form_type"] = draft["transaction_type"]
+                        st.session_state["khata_form_notes"] = draft["notes"]
+                        st.toast("AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
+                        st.rerun()
+                    except (ValueError, json.JSONDecodeError) as exc:
+                        st.error(f"AI तपशील ओळखता आले नाहीत: {exc}")
+                    except Exception as exc:
+                        logging.exception("AI voice khata parsing failed")
+                        st.error(f"AI तपशील वाचताना Error: {exc}")
 
         with st.form("khata_form"):
             fc1, fc2 = st.columns(2)
@@ -1204,33 +1198,14 @@ def render_customer_khata():
             unsafe_allow_html=True,
         )
 
-        # Quick Refresh & Audio actions
-        top_btn1, top_btn2 = st.columns([1, 1])
-        with top_btn1:
-            if st.button("🔄 लेजर रिफ्रेश करा (Refresh)", key="refresh_khata", use_container_width=True):
-                st.rerun()
-        with top_btn2:
-            if st.button("🔊 ऑडिओ सारांश (Audio Summary)", key="khata_audio_summary", use_container_width=True) and not khata_df.empty:
-                audio_text = f"ग्राहकांकडे सध्या एकूण {total_balance:.0f} रुपये उधारी येणे बाकी आहे. त्यापैकी {total_overdue:.0f} रुपये मुदतबाह्य झाले आहेत."
-                try:
-                    audio_file = generate_marathi_tts(audio_text)
-                    if audio_file and os.path.exists(audio_file):
-                        st.audio(audio_file, autoplay=True)
-                    else:
-                        st.error("ऑडिओ तयार करता आला नाही.")
-                except Exception as exc:
-                    logging.exception("Could not generate khata audio summary")
-                    st.error(f"ऑडिओ तयार करताना Error: {exc}")
-
-        st.write("")
-
-        # --- 2. Live Search & Risk Filter Bar ---
-        sf_col1, sf_col2, sf_col3 = st.columns([1.5, 1.2, 1.3])
+        # --- 2. Live Search, Risk Filter & Actions Toolbar ---
+        sf_col1, sf_col2, sf_col3, sf_col4 = st.columns([1.6, 1.2, 1.2, 0.6])
         with sf_col1:
             search = st.text_input(
-                "🔍 ग्राहक नाव किंवा नंबर शोधा:",
-                placeholder="नाव किंवा फोन नंबर टाईप करा...",
+                "ग्राहक शोधा",
+                placeholder="🔍 नाव किंवा फोन नंबर शोधा...",
                 key="khata_search",
+                label_visibility="collapsed",
             ).strip()
 
         with sf_col2:
@@ -1241,7 +1216,12 @@ def render_customer_khata():
                 f"⚠️ फक्त मुदतबाह्य ({overdue_count})",
                 f"🟢 सुरक्षित ग्राहक ({safe_count})",
             ]
-            sel_filter = st.selectbox("जोखीम फिल्टर (Risk Tier):", filter_opts, key="khata_filter_cat")
+            sel_filter = st.selectbox(
+                "जोखीम फिल्टर:",
+                filter_opts,
+                key="khata_filter_cat",
+                label_visibility="collapsed",
+            )
 
         with sf_col3:
             sort_opts = [
@@ -1250,7 +1230,16 @@ def render_customer_khata():
                 "सर्वाधिक दिवस थकीत आधी",
                 "ग्राहक नाव (A-Z)",
             ]
-            sel_sort = st.selectbox("क्रमवारी लावा (Sort by):", sort_opts, key="khata_sort_cat")
+            sel_sort = st.selectbox(
+                "क्रमवारी:",
+                sort_opts,
+                key="khata_sort_cat",
+                label_visibility="collapsed",
+            )
+
+        with sf_col4:
+            if st.button("🔄 रिफ्रेश", key="refresh_khata", use_container_width=True):
+                st.rerun()
 
         visible_risk = risk_report.copy()
         if search and not visible_risk.empty:
@@ -1304,7 +1293,7 @@ def render_customer_khata():
             shop_name = get_shop_setting("shop_name", "VernaLedger")
             business_upi_id = load_business_upi_id()
 
-            # --- 3. Interactive Customer Cards with 100% Working Actions ---
+            # --- 3. Compact & Modern Customer Cards with 100% Working Actions ---
             for c_idx, customer in f_df_page.reset_index(drop=True).iterrows():
                 name = _khata_text(customer["customer_name"])
                 customer_phone = _khata_text(customer["phone"])
@@ -1319,41 +1308,43 @@ def render_customer_khata():
 
                 if risk_score >= 70:
                     risk_color = "#ef4444"
-                    badge_text = "🔴 हाय रिस्क (High Risk)"
+                    badge_text = "🔴 हाय रिस्क"
                 elif risk_score >= 40:
                     risk_color = "#f59e0b"
-                    badge_text = "🟡 मध्यम जोखीम (Moderate)"
+                    badge_text = "🟡 मध्यम जोखीम"
                 else:
                     risk_color = "#10b981"
-                    badge_text = "🟢 सुरक्षित ग्राहक (Safe)"
+                    badge_text = "🟢 सुरक्षित ग्राहक"
 
                 od_tag = f"({overdue_days} दिवस थकीत)" if overdue_days > 0 else ""
 
+                ai_alert_html = ""
+                if (risk_score >= 40 or overdue_days > 0) and ai_rec:
+                    ai_alert_html = f'''
+                    <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid {risk_color}; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-top: 8px;">
+                        <span style="font-size: 11px; color: #f87171; font-weight: 600;">⚡ AI सूचना: {escape(ai_rec)}</span>
+                    </div>
+                    '''
+
                 st.markdown(
                     f'''
-                    <div style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95)); border: 1.5px solid {risk_color}55; border-radius: 14px; padding: 14px 16px; margin-top: 14px; margin-bottom: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95)); border: 1.5px solid {risk_color}44; border-radius: 12px; padding: 12px 14px; margin-top: 10px; margin-bottom: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.25);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div>
-                                <span style="font-size: 17px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
-                                <span style="font-size: 13px; color: #94a3b8; margin-left: 10px;">📞 {escape(customer_phone if customer_phone else "फोन नंबर नाही")}</span>
+                                <span style="font-size: 16px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
+                                <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">📞 {escape(customer_phone if customer_phone else "फोन नाही")}</span>
                             </div>
-                            <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 800;">
+                            <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">
                                 {escape(badge_text)} · {risk_score}/100
                             </div>
                         </div>
-                        <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 12px;">
-                            <div style="background: linear-gradient(90deg, {risk_color}88, {risk_color}); width: {max(5, risk_score)}%; height: 100%;"></div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+                            <div><span style="font-size: 10px; color: #94a3b8;">एकूण उधारी:</span><br><b style="font-size: 13px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">जमा:</span><br><b style="font-size: 13px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 9px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">बाकी शिल्लक:</span><br><b style="font-size: 14px; color: #38bdf8;">₹{balance:,.2f}</b></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">मुदतबाह्य:</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin-bottom: 10px;">
-                            <div><span style="font-size: 11px; color: #94a3b8;">एकूण उधारी:</span><br><b style="font-size: 14px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
-                            <div><span style="font-size: 11px; color: #94a3b8;">जमा रक्कम:</span><br><b style="font-size: 14px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 10px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
-                            <div><span style="font-size: 11px; color: #94a3b8;">शिल्लक बाकी:</span><br><b style="font-size: 15px; color: #38bdf8;">₹{balance:,.2f}</b></div>
-                            <div><span style="font-size: 11px; color: #94a3b8;">मुदतबाह्य:</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
-                        </div>
-                        <div style="background: rgba(14, 165, 233, 0.08); border-left: 3px solid #0284c7; padding: 8px 12px; border-radius: 0 8px 8px 0;">
-                            <div style="font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 2px;">⚡ AI वसुली सल्ला व रणनीती:</div>
-                            <div style="font-size: 12px; color: #e2e8f0; line-height: 1.4;">{escape(ai_rec)}</div>
-                        </div>
+                        {ai_alert_html}
                     </div>
                     ''',
                     unsafe_allow_html=True,
@@ -1386,27 +1377,31 @@ def render_customer_khata():
                 with btn_c1:
                     if clean_phone:
                         st.link_button(
-                            "💬 WhatsApp आठवण संदेश",
+                            "💬 WhatsApp आठवण",
                             f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wa_msg)}",
                             key=f"wa_btn_{c_idx}_{clean_phone}",
                             use_container_width=True,
                         )
                     else:
-                        st.button("💬 WhatsApp (फोन नंबर नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
+                        st.button("💬 WhatsApp (फोन नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
                 with btn_c2:
                     if customer_phone:
                         st.link_button(
-                            "📞 थेट फोन कॉल (Call)",
+                            "📞 थेट कॉल",
                             f"tel:{customer_phone}",
                             key=f"call_btn_{c_idx}_{customer_phone}",
                             use_container_width=True,
                         )
                     else:
-                        st.button("📞 थेट फोन (नंबर उपलब्ध नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
+                        st.button("📞 कॉल (नंबर नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
 
-                # Action 1: Inline Direct Payment & Credit Addition
-                with st.expander(f"💳 {name} - पैसे जमा नोंदवा / नवीन उधारी जोडा", expanded=False):
-                    tab_pay, tab_cred = st.tabs(["💵 पैसे जमा घ्या (Receive Payment)", "➕ नवीन उधारी जोडा (Add Credit)"])
+                # Unified Single Action Expander per Customer: Payment, Credit & Passbook
+                with st.expander(f"📝 {name} - व्यवहार नोंदवा / पासबुक इतिहास", expanded=False):
+                    tab_pay, tab_cred, tab_pass = st.tabs([
+                        "💵 पैसे जमा घ्या (Receive Payment)",
+                        "➕ नवीन उधारी जोडा (Add Credit)",
+                        "📜 पासबुक (Passbook & Delete)",
+                    ])
                     with tab_pay:
                         with st.form(key=f"form_quick_pay_{c_idx}_{name}"):
                             p_col1, p_col2 = st.columns(2)
@@ -1427,7 +1422,7 @@ def render_customer_khata():
                                     key=f"input_pay_notes_{c_idx}",
                                 )
                                 st.write("")
-                                submit_pay = st.form_submit_button("✅ जमा रक्कम नोंदवा (Save Payment)", type="primary", use_container_width=True)
+                                submit_pay = st.form_submit_button("✅ जमा रक्कम नोंदवा", type="primary", use_container_width=True)
 
                             if submit_pay:
                                 try:
@@ -1472,7 +1467,7 @@ def render_customer_khata():
                                     placeholder="उदा. किराणा सामान, २ किलो साखर...",
                                     key=f"input_cred_notes_{c_idx}",
                                 )
-                            submit_cred = st.form_submit_button("➕ नवीन उधारी खात्यात जोडा (Add Credit)", type="primary", use_container_width=True)
+                            submit_cred = st.form_submit_button("➕ नवीन उधारी खात्यात जोडा", type="primary", use_container_width=True)
 
                             if submit_cred:
                                 try:
@@ -1494,48 +1489,47 @@ def render_customer_khata():
                                 except Exception as exc:
                                     st.error(f"उधारी नोंद सेव्ह करता आले नाही: {exc}")
 
-                # Action 2: Customer Passbook & History with Mistake Correction (Delete)
-                with st.expander(f"📜 {name} - व्यवहार इतिहास व पासबुक (Passbook)", expanded=False):
-                    cust_mask = khata_df["customer_name"].fillna("").astype(str).str.casefold() == name.casefold()
-                    if customer_phone:
-                        cust_mask = cust_mask | (khata_df["phone"].fillna("").astype(str) == customer_phone)
-                    cust_txs = khata_df[cust_mask].sort_values(by="id", ascending=False)
-                    if cust_txs.empty:
-                        st.info("या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
-                    else:
-                        show_txs = cust_txs[["id", "date", "transaction_type", "amount", "due_date", "notes"]].copy()
-                        show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
-                        st.dataframe(show_txs, use_container_width=True, hide_index=True)
+                    with tab_pass:
+                        cust_mask = khata_df["customer_name"].fillna("").astype(str).str.casefold() == name.casefold()
+                        if customer_phone:
+                            cust_mask = cust_mask | (khata_df["phone"].fillna("").astype(str) == customer_phone)
+                        cust_txs = khata_df[cust_mask].sort_values(by="id", ascending=False)
+                        if cust_txs.empty:
+                            st.info("या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
+                        else:
+                            show_txs = cust_txs[["id", "date", "transaction_type", "amount", "due_date", "notes"]].copy()
+                            show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
+                            st.dataframe(show_txs, use_container_width=True, hide_index=True)
 
-                        del_col1, del_col2 = st.columns([2, 1])
-                        with del_col1:
-                            tx_ids = cust_txs["id"].tolist()
-                            tx_options = {
-                                tid: f"ID #{tid} - {cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0]} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
-                                for tid in tx_ids
-                            }
-                            sel_del_id = st.selectbox(
-                                "चुकीची नोंद डिलीट करा (Select Transaction to Remove):",
-                                tx_ids,
-                                format_func=lambda x: tx_options.get(x, f"ID #{x}"),
-                                key=f"del_tx_sel_{c_idx}_{name}",
-                            )
-                        with del_col2:
-                            st.write("")
-                            st.write("")
-                            if st.button("🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
-                                try:
-                                    if delete_khata_transaction(sel_del_id):
-                                        log_activity(
-                                            st.session_state.get("current_username", "admin"),
-                                            f"Deleted Khata ID {sel_del_id} for {name}",
-                                        )
-                                        st.toast(f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
-                                        st.rerun()
-                                    else:
-                                        st.error("नोंद सापडली नाही.")
-                                except Exception as exc:
-                                    st.error(f"नोंद डिलीट करता आली नाही: {exc}")
+                            del_col1, del_col2 = st.columns([2, 1])
+                            with del_col1:
+                                tx_ids = cust_txs["id"].tolist()
+                                tx_options = {
+                                    tid: f"ID #{tid} - {cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0]} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
+                                    for tid in tx_ids
+                                }
+                                sel_del_id = st.selectbox(
+                                    "चुकीची नोंद डिलीट करा:",
+                                    tx_ids,
+                                    format_func=lambda x: tx_options.get(x, f"ID #{x}"),
+                                    key=f"del_tx_sel_{c_idx}_{name}",
+                                )
+                            with del_col2:
+                                st.write("")
+                                st.write("")
+                                if st.button("🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
+                                    try:
+                                        if delete_khata_transaction(sel_del_id):
+                                            log_activity(
+                                                st.session_state.get("current_username", "admin"),
+                                                f"Deleted Khata ID {sel_del_id} for {name}",
+                                            )
+                                            st.toast(f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
+                                            st.rerun()
+                                        else:
+                                            st.error("नोंद सापडली नाही.")
+                                    except Exception as exc:
+                                        st.error(f"नोंद डिलीट करता आली नाही: {exc}")
 
                 st.write("")
 
