@@ -1007,9 +1007,17 @@ def render_page_header(title, subtitle, icon="✨"):
 
 def render_customer_khata():
     # Staff can now access this
+    is_english = st.session_state.get("ui_language", "en") == "en"
 
-    render_page_header("Customer Khata - Credit Ledger", "ग्राहकांची उधारी, जमा हप्ते आणि AI जोखीम व्यवस्थापन.", "📖")
-    tab1, tab2 = st.tabs(["➕ नवीन उधारी / हप्ता नोंद (New Entry)", "📊 क्रेडिट लेजर & AI रिस्क रिपोर्ट (Ledger & Risk)"])
+    header_title = "Customer Khata - Credit Ledger" if is_english else "ग्राहक खाते - उधारी लेजर"
+    header_subtitle = "Manage customer credit, installments, and AI risk." if is_english else "ग्राहकांची उधारी, जमा हप्ते आणि AI जोखीम व्यवस्थापन."
+    render_page_header(header_title, header_subtitle, "📖")
+
+    tab_titles = [
+        "➕ New Credit / Installment Entry" if is_english else "➕ नवीन उधारी / हप्ता नोंद",
+        "📊 Credit Ledger & AI Risk Report" if is_english else "📊 क्रेडिट लेजर & AI रिस्क रिपोर्ट",
+    ]
+    tab1, tab2 = st.tabs(tab_titles)
 
     with tab1:
         if st.session_state.pop("khata_form_reset", False):
@@ -1027,18 +1035,19 @@ def render_customer_khata():
                 st.session_state.pop(field, None)
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
 
-        with st.expander("🎙️ बोलून किंवा AI मजकुराद्वारे नोंद भरा (पर्यायी - Optional)", expanded=False):
+        exp_label = "🎙️ Voice or AI Text Entry (Optional)" if is_english else "🎙️ बोलून किंवा AI मजकुराद्वारे नोंद भरा (पर्यायी)"
+        with st.expander(exp_label, expanded=False):
             try:
                 transcript = speech_to_text(
-                    start_prompt="Speak transaction details",
-                    stop_prompt="बोलणे थांबवा",
+                    start_prompt="Speak transaction details" if is_english else "व्यवहाराचा तपशील बोला",
+                    stop_prompt="Stop speaking" if is_english else "बोलणे थांबवा",
                     just_once=True,
-                    language="mr-IN",
+                    language="en-IN" if is_english else "mr-IN",
                     key="khata_unified_voice_input",
                 )
             except Exception as exc:
                 logging.exception("Voice transcription failed for customer khata")
-                st.caption(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+                st.caption(f"Voice recording unavailable: {exc}" if is_english else f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
                 transcript = None
             if isinstance(transcript, str) and transcript.strip():
                 st.session_state["khata_ai_transcript"] = transcript.strip()
@@ -1046,23 +1055,23 @@ def render_customer_khata():
             transcript_col, parse_col = st.columns([4, 1])
             with transcript_col:
                 st.text_area(
-                    "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
+                    "Speak or type transaction details" if is_english else "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
                     key="khata_ai_transcript",
                     height=72,
                     max_chars=1000,
-                    placeholder="उदा. सौरभकडे २०० रुपये उधारी",
+                    placeholder="e.g. 200 rupees credit to Saurabh" if is_english else "उदा. सौरभकडे २०० रुपये उधारी",
                 )
             with parse_col:
                 st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
                 parse_voice = st.button(
-                    "AI तपशील भरा",
+                    "Fill Details with AI" if is_english else "AI तपशील भरा",
                     key="parse_unified_khata_voice",
                     type="secondary",
                 )
             if parse_voice:
                 transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
                 if not transcript_text:
-                    st.warning("आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
+                    st.warning("Please record voice or enter transaction sentence first." if is_english else "आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
                 else:
                     try:
                         draft = parse_voice_khata_details(transcript_text)
@@ -1072,55 +1081,60 @@ def render_customer_khata():
                         st.session_state["khata_form_amount"] = draft["amount"]
                         st.session_state["khata_form_type"] = draft["transaction_type"]
                         st.session_state["khata_form_notes"] = draft["notes"]
-                        st.toast("AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
+                        st.toast("AI parsed details filled in. Review before saving." if is_english else "AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
                         st.rerun()
                     except (ValueError, json.JSONDecodeError) as exc:
-                        st.error(f"AI तपशील ओळखता आले नाहीत: {exc}")
+                        st.error(f"Could not recognize AI details: {exc}" if is_english else f"AI तपशील ओळखता आले नाहीत: {exc}")
                     except Exception as exc:
                         logging.exception("AI voice khata parsing failed")
-                        st.error(f"AI तपशील वाचताना Error: {exc}")
+                        st.error(f"Error parsing AI details: {exc}" if is_english else f"AI तपशील वाचताना Error: {exc}")
 
         with st.form("khata_form"):
             fc1, fc2 = st.columns(2)
             with fc1:
                 customer_name = st.text_input(
-                    "ग्राहक नाव (Customer Name)",
+                    "Customer Name" if is_english else "ग्राहकाचे नाव",
                     max_chars=100,
                     key="khata_form_customer_name",
                 )
                 phone = st.text_input(
-                    "Phone Number (10 digits)",
+                    "Phone Number (10 digits)" if is_english else "फोन नंबर (१० अंक)",
                     max_chars=16,
                     key="khata_form_phone",
                 )
                 amount = st.number_input(
-                    "Amount",
+                    "Amount (₹)" if is_english else "रक्कम (₹)",
                     min_value=0.0,
                     step=10.0,
                     key="khata_form_amount",
                 )
             with fc2:
+                khata_type_map = {
+                    KHATA_CREDIT: "Given Credit" if is_english else "उधारी बाकी",
+                    KHATA_PAYMENT: "Received Payment" if is_english else "पैसे जमा / हप्ता",
+                }
                 transaction_type = st.selectbox(
-                    "व्यवहार प्रकार (Transaction Type)",
+                    "Transaction Type" if is_english else "व्यवहाराचा प्रकार",
                     KHATA_TRANSACTION_TYPES,
+                    format_func=lambda x: khata_type_map.get(x, x),
                     key="khata_form_type",
                 )
                 entry_date = st.date_input(
-                    "व्यवहार तारीख (Date)",
+                    "Transaction Date" if is_english else "व्यवहार तारीख",
                     value=date.today(),
                     key="khata_form_entry_date",
                 )
                 due_date = st.date_input(
-                    "परतफेची मुदत तारीख (Due Date)",
+                    "Due Date" if is_english else "परतफेडीची मुदत तारीख",
                     value=date.today(),
                     key="khata_form_due_date",
                 )
             notes = st.text_area(
-                "टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)",
+                "Itemized Notes / Details (e.g. 2 kg sugar)" if is_english else "टीप / वस्तू तपशील (उदा. २ किलो साखर)",
                 max_chars=1000,
                 key="khata_form_notes",
             )
-            submitted = st.form_submit_button("खात्यात नोंद सेव्ह करा")
+            submitted = st.form_submit_button("Save Entry to Khata" if is_english else "खात्यात नोंद सेव्ह करा")
         if submitted:
             try:
                 record_id = save_khata_transaction(
@@ -1131,13 +1145,13 @@ def render_customer_khata():
                     f"Added Khata ID {record_id}",
                 )
                 st.session_state["khata_form_reset"] = True
-                st.toast("खाते नोंद अपडेट झाली!", icon="📝")
+                st.toast("Khata entry saved successfully!" if is_english else "खाते नोंद अपडेट झाली!", icon="📝")
                 st.rerun()
             except ValueError as exc:
                 st.error(str(exc))
             except sqlite3.Error as exc:
                 logging.exception("Could not save customer khata transaction")
-                st.error(f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
+                st.error(f"Could not save record to database: {exc}" if is_english else f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
@@ -1146,7 +1160,7 @@ def render_customer_khata():
             khata_df = load_khata_transactions()
         except sqlite3.Error as exc:
             logging.exception("Could not load customer khata transactions")
-            st.error(f"लेजर डेटा वाचता आला नाही: {exc}")
+            st.error(f"Could not load ledger data: {exc}" if is_english else f"लेजर डेटा वाचता आला नाही: {exc}")
             khata_df = pd.DataFrame(columns=KHATA_COLUMNS)
 
         risk_report = build_khata_risk_report(khata_df)
@@ -1170,28 +1184,37 @@ def render_customer_khata():
             safe_count = 0
 
         # --- 1. Portfolio KPI Dashboard ---
+        lbl_tot_credit = "TOTAL CREDIT GIVEN" if is_english else "एकूण दिलेली उधारी"
+        lbl_cust_accounts = f"{len(risk_report)} Customer Accounts" if is_english else f"{len(risk_report)} ग्राहक खाती"
+        lbl_rec_amount = "RECOVERED AMOUNT" if is_english else "वसूल झालेली रक्कम"
+        lbl_rec_rate = f"{recovery_pct:.1f}% Recovery Rate" if is_english else f"{recovery_pct:.1f}% परतफेड प्रमाण"
+        lbl_net_balance = "OUTSTANDING BALANCE" if is_english else "शिल्लक येणे बाकी"
+        lbl_net_desc = "Total Net Receivable" if is_english else "एकूण येणे शिल्लक"
+        lbl_overdue_credit = "OVERDUE CREDIT" if is_english else "मुदतबाह्य उधारी (Overdue)"
+        lbl_overdue_count = f"{overdue_count} Accounts Overdue" if is_english else f"{overdue_count} खाती थकीत"
+
         st.markdown(
             f'''
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
                 <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">एकूण दिलेली उधारी</div>
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">{lbl_tot_credit}</div>
                     <div style="font-size: 20px; font-weight: 800; color: #f1f5f9; margin-top: 4px;">₹{total_credit:,.2f}</div>
-                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">{len(risk_report)} ग्राहक खाती</div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">{lbl_cust_accounts}</div>
                 </div>
                 <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">वसूल झालेली रक्कम</div>
+                    <div style="font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">{lbl_rec_amount}</div>
                     <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 4px;">₹{total_payment:,.2f}</div>
-                    <div style="font-size: 10px; color: #34d399; margin-top: 2px;">{recovery_pct:.1f}% परतफेड प्रमाण</div>
+                    <div style="font-size: 10px; color: #34d399; margin-top: 2px;">{lbl_rec_rate}</div>
                 </div>
                 <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(3, 105, 161, 0.2)); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.1);">
-                    <div style="font-size: 11px; color: #bae6fd; font-weight: 700; text-transform: uppercase;">शिल्लक येणे बाकी</div>
+                    <div style="font-size: 11px; color: #bae6fd; font-weight: 700; text-transform: uppercase;">{lbl_net_balance}</div>
                     <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 4px;">₹{total_balance:,.2f}</div>
-                    <div style="font-size: 10px; color: #7dd3fc; margin-top: 2px;">एकूण येणे शिल्लक</div>
+                    <div style="font-size: 10px; color: #7dd3fc; margin-top: 2px;">{lbl_net_desc}</div>
                 </div>
                 <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(153, 27, 27, 0.2)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;">मुदतबाह्य उधारी (Overdue)</div>
+                    <div style="font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;">{lbl_overdue_credit}</div>
                     <div style="font-size: 20px; font-weight: 800; color: #ef4444; margin-top: 4px;">₹{total_overdue:,.2f}</div>
-                    <div style="font-size: 10px; color: #f87171; margin-top: 2px;">{overdue_count} खाती थकीत</div>
+                    <div style="font-size: 10px; color: #f87171; margin-top: 2px;">{lbl_overdue_count}</div>
                 </div>
             </div>
             ''',
@@ -1202,43 +1225,60 @@ def render_customer_khata():
         sf_col1, sf_col2, sf_col3, sf_col4 = st.columns([1.6, 1.2, 1.2, 0.6])
         with sf_col1:
             search = st.text_input(
-                "ग्राहक शोधा",
-                placeholder="🔍 नाव किंवा फोन नंबर शोधा...",
+                "Search Customer" if is_english else "ग्राहक शोधा",
+                placeholder="🔍 Search name or phone..." if is_english else "🔍 नाव किंवा फोन नंबर शोधा...",
                 key="khata_search",
                 label_visibility="collapsed",
             ).strip()
 
         with sf_col2:
-            filter_opts = [
-                f"सर्व ग्राहक ({len(risk_report)})",
-                f"🔴 हाय रिस्क ({high_risk_count})",
-                f"🟡 मध्यम जोखीम ({moderate_risk_count})",
-                f"⚠️ फक्त मुदतबाह्य ({overdue_count})",
-                f"🟢 सुरक्षित ग्राहक ({safe_count})",
-            ]
+            if is_english:
+                filter_opts = [
+                    f"All Customers ({len(risk_report)})",
+                    f"🔴 High Risk ({high_risk_count})",
+                    f"🟡 Moderate Risk ({moderate_risk_count})",
+                    f"⚠️ Overdue Only ({overdue_count})",
+                    f"🟢 Safe Customers ({safe_count})",
+                ]
+            else:
+                filter_opts = [
+                    f"सर्व ग्राहक ({len(risk_report)})",
+                    f"🔴 हाय रिस्क ({high_risk_count})",
+                    f"🟡 मध्यम जोखीम ({moderate_risk_count})",
+                    f"⚠️ फक्त मुदतबाह्य ({overdue_count})",
+                    f"🟢 सुरक्षित ग्राहक ({safe_count})",
+                ]
             sel_filter = st.selectbox(
-                "जोखीम फिल्टर:",
+                "Risk Filter:" if is_english else "जोखीम फिल्टर:",
                 filter_opts,
                 key="khata_filter_cat",
                 label_visibility="collapsed",
             )
 
         with sf_col3:
-            sort_opts = [
-                "सर्वात जास्त बाकी रक्कम आधी",
-                "सर्वात जास्त रिस्क स्कोअर आधी",
-                "सर्वाधिक दिवस थकीत आधी",
-                "ग्राहक नाव (A-Z)",
-            ]
+            if is_english:
+                sort_opts = [
+                    "Highest Balance First",
+                    "Highest Risk Score First",
+                    "Most Days Overdue First",
+                    "Customer Name (A-Z)",
+                ]
+            else:
+                sort_opts = [
+                    "सर्वात जास्त बाकी रक्कम आधी",
+                    "सर्वात जास्त रिस्क स्कोअर आधी",
+                    "सर्वाधिक दिवस थकीत आधी",
+                    "ग्राहक नाव (A-Z)",
+                ]
             sel_sort = st.selectbox(
-                "क्रमवारी:",
+                "Sort By:" if is_english else "क्रमवारी:",
                 sort_opts,
                 key="khata_sort_cat",
                 label_visibility="collapsed",
             )
 
         with sf_col4:
-            if st.button("🔄 रिफ्रेश", key="refresh_khata", use_container_width=True):
+            if st.button("🔄 Refresh" if is_english else "🔄 रिफ्रेश", key="refresh_khata", use_container_width=True):
                 st.rerun()
 
         visible_risk = risk_report.copy()
@@ -1250,30 +1290,30 @@ def render_customer_khata():
             visible_risk = visible_risk[search_match]
 
         f_df = visible_risk.copy()
-        if "हाय रिस्क" in sel_filter:
+        if "हाय रिस्क" in sel_filter or "High Risk" in sel_filter:
             f_df = f_df[f_df["risk_score"] >= 70]
-        elif "मध्यम" in sel_filter:
+        elif "मध्यम" in sel_filter or "Moderate Risk" in sel_filter:
             f_df = f_df[(f_df["risk_score"] >= 40) & (f_df["risk_score"] < 70)]
-        elif "मुदतबाह्य" in sel_filter:
+        elif "मुदतबाह्य" in sel_filter or "Overdue Only" in sel_filter:
             f_df = f_df[f_df["overdue_balance"] > 0]
-        elif "सुरक्षित" in sel_filter:
+        elif "सुरक्षित" in sel_filter or "Safe Customers" in sel_filter:
             f_df = f_df[f_df["risk_score"] < 40]
 
         if not f_df.empty:
-            if "बाकी रक्कम" in sel_sort:
+            if "बाकी रक्कम" in sel_sort or "Highest Balance" in sel_sort:
                 f_df = f_df.sort_values(by="balance", ascending=False)
-            elif "रिस्क स्कोअर" in sel_sort:
+            elif "रिस्क स्कोअर" in sel_sort or "Highest Risk Score" in sel_sort:
                 f_df = f_df.sort_values(by="risk_score", ascending=False)
-            elif "दिवस थकीत" in sel_sort:
+            elif "दिवस थकीत" in sel_sort or "Most Days Overdue" in sel_sort:
                 f_df = f_df.sort_values(by="overdue_days", ascending=False)
-            elif "नाव" in sel_sort:
+            elif "नाव" in sel_sort or "Name (A-Z)" in sel_sort:
                 f_df = f_df.sort_values(by="customer_name", ascending=True)
 
         if f_df.empty:
             if risk_report.empty:
-                st.info("सध्या कोणतीही उधारी नोंद उपलब्ध नाही. नवीन नोंद जोडण्यासाठी वरील 'नवीन उधारी / हप्ता नोंद' टॅब वापरा.")
+                st.info("No customer credit records available currently. Use the 'New Credit / Installment Entry' tab above to add a new record." if is_english else "सध्या कोणतीही उधारी नोंद उपलब्ध नाही. नवीन नोंद जोडण्यासाठी वरील 'नवीन उधारी / हप्ता नोंद' टॅब वापरा.")
             else:
-                st.warning("शोधलेल्या निकषांनुसार कोणतेही ग्राहक आढळले नाहीत.")
+                st.warning("No customers matched your search/filter criteria." if is_english else "शोधलेल्या निकषांनुसार कोणतेही ग्राहक आढळले नाहीत.")
         else:
             PAGE_SIZE = 10
             total_custs = len(f_df)
@@ -1281,8 +1321,9 @@ def render_customer_khata():
                 num_pages = math.ceil(total_custs / PAGE_SIZE)
                 p_c1, p_c2 = st.columns([1, 2])
                 with p_c1:
+                    page_label = f"📄 Select Page (1-{num_pages}):" if is_english else f"📄 पान निवडा (1-{num_pages}):"
                     page_num = st.selectbox(
-                        f"📄 पान निवडा (1-{num_pages}):",
+                        page_label,
                         range(1, num_pages + 1),
                         key="khata_page_num",
                     )
@@ -1304,27 +1345,34 @@ def render_customer_khata():
                 credit = float(customer.get("credit", 0.0))
                 payments = float(customer.get("payments", 0.0))
                 repay_ratio = float(customer.get("repayment_ratio", 0.0))
-                ai_rec = customer.get("ai_rec_mr", "")
+                ai_rec = customer.get("ai_rec_mr" if not is_english else "ai_rec_mr", "")
 
                 if risk_score >= 70:
                     risk_color = "#ef4444"
-                    badge_text = "🔴 हाय रिस्क"
+                    badge_text = "🔴 High Risk" if is_english else "🔴 हाय रिस्क"
                 elif risk_score >= 40:
                     risk_color = "#f59e0b"
-                    badge_text = "🟡 मध्यम जोखीम"
+                    badge_text = "🟡 Moderate Risk" if is_english else "🟡 मध्यम जोखीम"
                 else:
                     risk_color = "#10b981"
-                    badge_text = "🟢 सुरक्षित ग्राहक"
+                    badge_text = "🟢 Safe Customer" if is_english else "🟢 सुरक्षित ग्राहक"
 
-                od_tag = f"({overdue_days} दिवस थकीत)" if overdue_days > 0 else ""
+                od_tag = (f"({overdue_days} days overdue)" if is_english else f"({overdue_days} दिवस थकीत)") if overdue_days > 0 else ""
 
                 ai_alert_html = ""
                 if (risk_score >= 40 or overdue_days > 0) and ai_rec:
+                    ai_alert_lbl = "⚡ AI Insight:" if is_english else "⚡ AI सूचना:"
                     ai_alert_html = f'''
                     <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid {risk_color}; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-top: 8px;">
-                        <span style="font-size: 11px; color: #f87171; font-weight: 600;">⚡ AI सूचना: {escape(ai_rec)}</span>
+                        <span style="font-size: 11px; color: #f87171; font-weight: 600;">{ai_alert_lbl} {escape(ai_rec)}</span>
                     </div>
                     '''
+
+                phone_display = customer_phone if customer_phone else ("No Phone" if is_english else "फोन नाही")
+                stat_credit_lbl = "Total Credit:" if is_english else "एकूण उधारी:"
+                stat_pay_lbl = "Paid:" if is_english else "जमा:"
+                stat_bal_lbl = "Balance Due:" if is_english else "बाकी शिल्लक:"
+                stat_od_lbl = "Overdue:" if is_english else "मुदतबाह्य:"
 
                 st.markdown(
                     f'''
@@ -1332,17 +1380,17 @@ def render_customer_khata():
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div>
                                 <span style="font-size: 16px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
-                                <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">📞 {escape(customer_phone if customer_phone else "फोन नाही")}</span>
+                                <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">📞 {escape(phone_display)}</span>
                             </div>
                             <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">
                                 {escape(badge_text)} · {risk_score}/100
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-                            <div><span style="font-size: 10px; color: #94a3b8;">एकूण उधारी:</span><br><b style="font-size: 13px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">जमा:</span><br><b style="font-size: 13px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 9px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">बाकी शिल्लक:</span><br><b style="font-size: 14px; color: #38bdf8;">₹{balance:,.2f}</b></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">मुदतबाह्य:</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_credit_lbl}</span><br><b style="font-size: 13px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_pay_lbl}</span><br><b style="font-size: 13px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 9px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_bal_lbl}</span><br><b style="font-size: 14px; color: #38bdf8;">₹{balance:,.2f}</b></div>
+                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_od_lbl}</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
                         </div>
                         {ai_alert_html}
                     </div>
@@ -1357,50 +1405,66 @@ def render_customer_khata():
                 elif len(clean_phone) == 11 and clean_phone.startswith("0"):
                     clean_phone = "91" + clean_phone[1:]
 
-                if overdue_days > 0:
-                    wa_msg = (
-                        f"नमस्कार {name} जी,\n"
-                        f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी असून ती गेल्या {overdue_days} दिवसांपासून थकीत आहे.\n"
-                        f"कृपया ही रक्कम लवकरात लवकर जमा करावी ही नम्र विनंती."
-                    )
+                if is_english:
+                    if overdue_days > 0:
+                        wa_msg = (
+                            f"Hello {name} ji,\n"
+                            f"Your pending balance at '{shop_name}' is ₹{balance:,.2f}, which is overdue by {overdue_days} days.\n"
+                            f"Kindly arrange to settle this payment at the earliest. Thank you."
+                        )
+                    else:
+                        wa_msg = (
+                            f"Hello {name} ji,\n"
+                            f"Your outstanding balance at '{shop_name}' is ₹{balance:,.2f}.\n"
+                            f"Kindly clear it at your convenience. Thank you!"
+                        )
+                    if business_upi_id and balance > 0:
+                        wa_msg += f"\n\n📲 Pay via Google Pay / PhonePe UPI ID:\n{business_upi_id}"
                 else:
-                    wa_msg = (
-                        f"नमस्कार {name} जी,\n"
-                        f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी आहे.\n"
-                        f"कृपया सोयीनुसार जमा करावी ही नम्र विनंती. धन्यवाद!"
-                    )
-
-                if business_upi_id and balance > 0:
-                    wa_msg += f"\n\n📲 Google Pay / PhonePe द्वारे पेमेंट करण्यासाठी UPI ID:\n{business_upi_id}"
+                    if overdue_days > 0:
+                        wa_msg = (
+                            f"नमस्कार {name} जी,\n"
+                            f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी असून ती गेल्या {overdue_days} दिवसांपासून थकीत आहे.\n"
+                            f"कृपया ही रक्कम लवकरात लवकर जमा करावी ही नम्र विनंती."
+                        )
+                    else:
+                        wa_msg = (
+                            f"नमस्कार {name} जी,\n"
+                            f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी आहे.\n"
+                            f"कृपया सोयीनुसार जमा करावी ही नम्र विनंती. धन्यवाद!"
+                        )
+                    if business_upi_id and balance > 0:
+                        wa_msg += f"\n\n📲 Google Pay / PhonePe द्वारे पेमेंट करण्यासाठी UPI ID:\n{business_upi_id}"
 
                 btn_c1, btn_c2 = st.columns([1, 1])
                 with btn_c1:
                     if clean_phone:
                         st.link_button(
-                            "💬 WhatsApp आठवण",
+                            "💬 WhatsApp Reminder" if is_english else "💬 WhatsApp आठवण",
                             f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wa_msg)}",
                             key=f"wa_btn_{c_idx}_{clean_phone}",
                             use_container_width=True,
                         )
                     else:
-                        st.button("💬 WhatsApp (फोन नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
+                        st.button("💬 WhatsApp (No Phone)" if is_english else "💬 WhatsApp (फोन नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
                 with btn_c2:
                     if customer_phone:
                         st.link_button(
-                            "📞 थेट कॉल",
+                            "📞 Direct Call" if is_english else "📞 थेट कॉल",
                             f"tel:{customer_phone}",
                             key=f"call_btn_{c_idx}_{customer_phone}",
                             use_container_width=True,
                         )
                     else:
-                        st.button("📞 कॉल (नंबर नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
+                        st.button("📞 Call (No Phone)" if is_english else "📞 कॉल (नंबर नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
 
                 # Unified Single Action Expander per Customer: Payment, Credit & Passbook
-                with st.expander(f"📝 {name} - व्यवहार नोंदवा / पासबुक इतिहास", expanded=False):
+                exp_title = f"📝 {name} - " + ("Record Transaction / Passbook History" if is_english else "व्यवहार नोंदवा / पासबुक इतिहास")
+                with st.expander(exp_title, expanded=False):
                     tab_pay, tab_cred, tab_pass = st.tabs([
-                        "💵 पैसे जमा घ्या (Receive Payment)",
-                        "➕ नवीन उधारी जोडा (Add Credit)",
-                        "📜 पासबुक (Passbook & Delete)",
+                        "💵 Receive Payment" if is_english else "💵 पैसे जमा घ्या",
+                        "➕ Add Credit" if is_english else "➕ नवीन उधारी जोडा",
+                        "📜 Passbook & Delete" if is_english else "📜 पासबुक",
                     ])
                     with tab_pay:
                         with st.form(key=f"form_quick_pay_{c_idx}_{name}"):
@@ -1408,21 +1472,22 @@ def render_customer_khata():
                             with p_col1:
                                 default_pay_val = float(balance) if balance > 0 else 100.0
                                 pay_amount = st.number_input(
-                                    "जमा रक्कम (₹):",
+                                    "Payment Amount (₹):" if is_english else "जमा रक्कम (₹):",
                                     min_value=1.0,
                                     value=default_pay_val,
                                     step=50.0,
                                     key=f"input_pay_amt_{c_idx}",
                                 )
-                                pay_entry_date = st.date_input("जमा तारीख:", value=date.today(), key=f"input_pay_date_{c_idx}")
+                                pay_entry_date = st.date_input("Payment Date:" if is_english else "जमा तारीख:", value=date.today(), key=f"input_pay_date_{c_idx}")
                             with p_col2:
+                                default_pay_notes = ("Cash Payment" if not business_upi_id else "UPI / GPay Payment") if is_english else ("रोख जमा (Cash)" if not business_upi_id else "UPI / GPay द्वारे जमा")
                                 pay_notes = st.text_input(
-                                    "तपशील / पेमेंट पद्धत:",
-                                    value="रोख जमा (Cash)" if not business_upi_id else "UPI / GPay द्वारे जमा",
+                                    "Payment Mode / Notes:" if is_english else "तपशील / पेमेंट पद्धत:",
+                                    value=default_pay_notes,
                                     key=f"input_pay_notes_{c_idx}",
                                 )
                                 st.write("")
-                                submit_pay = st.form_submit_button("✅ जमा रक्कम नोंदवा", type="primary", use_container_width=True)
+                                submit_pay = st.form_submit_button("✅ Record Payment" if is_english else "✅ जमा रक्कम नोंदवा", type="primary", use_container_width=True)
 
                             if submit_pay:
                                 try:
@@ -1439,35 +1504,35 @@ def render_customer_khata():
                                         st.session_state.get("current_username", "admin"),
                                         f"Collected payment ₹{pay_amount} from {name}",
                                     )
-                                    st.toast(f"{name} यांच्याकडून ₹{pay_amount:,.2f} जमा नोंदवले!", icon="✅")
+                                    st.toast(f"Recorded ₹{pay_amount:,.2f} payment from {name}!" if is_english else f"{name} यांच्याकडून ₹{pay_amount:,.2f} जमा नोंदवले!", icon="✅")
                                     st.rerun()
                                 except Exception as exc:
-                                    st.error(f"पेमेंट नोंद सेव्ह करता आले नाही: {exc}")
+                                    st.error(f"Could not save payment: {exc}" if is_english else f"पेमेंट नोंद सेव्ह करता आले नाही: {exc}")
 
                     with tab_cred:
                         with st.form(key=f"form_quick_cred_{c_idx}_{name}"):
                             c_col1, c_col2 = st.columns(2)
                             with c_col1:
                                 cred_amount = st.number_input(
-                                    "उधारी रक्कम (₹):",
+                                    "Credit Amount (₹):" if is_english else "उधारी रक्कम (₹):",
                                     min_value=1.0,
                                     value=100.0,
                                     step=50.0,
                                     key=f"input_cred_amt_{c_idx}",
                                 )
-                                cred_entry_date = st.date_input("उधारी तारीख:", value=date.today(), key=f"input_cred_date_{c_idx}")
+                                cred_entry_date = st.date_input("Credit Date:" if is_english else "उधारी तारीख:", value=date.today(), key=f"input_cred_date_{c_idx}")
                             with c_col2:
                                 cred_due_date = st.date_input(
-                                    "परतफेडीची मुदत तारीख:",
+                                    "Due Date:" if is_english else "परतफेडीची मुदत तारीख:",
                                     value=date.today() + timedelta(days=15),
                                     key=f"input_cred_due_{c_idx}",
                                 )
                                 cred_notes = st.text_input(
-                                    "वस्तू तपशील / टीप:",
-                                    placeholder="उदा. किराणा सामान, २ किलो साखर...",
+                                    "Itemized Notes / Details:" if is_english else "वस्तू तपशील / टीप:",
+                                    placeholder="e.g. Grocery items, 2 kg sugar..." if is_english else "उदा. किराणा सामान, २ किलो साखर...",
                                     key=f"input_cred_notes_{c_idx}",
                                 )
-                            submit_cred = st.form_submit_button("➕ नवीन उधारी खात्यात जोडा", type="primary", use_container_width=True)
+                            submit_cred = st.form_submit_button("➕ Add Credit to Khata" if is_english else "➕ नवीन उधारी खात्यात जोडा", type="primary", use_container_width=True)
 
                             if submit_cred:
                                 try:
@@ -1484,10 +1549,10 @@ def render_customer_khata():
                                         st.session_state.get("current_username", "admin"),
                                         f"Added credit ₹{cred_amount} for {name}",
                                     )
-                                    st.toast(f"{name} यांच्या खात्यात ₹{cred_amount:,.2f} उधारी जोडली!", icon="📝")
+                                    st.toast(f"Added ₹{cred_amount:,.2f} credit to {name}'s khata!" if is_english else f"{name} यांच्या खात्यात ₹{cred_amount:,.2f} उधारी जोडली!", icon="📝")
                                     st.rerun()
                                 except Exception as exc:
-                                    st.error(f"उधारी नोंद सेव्ह करता आले नाही: {exc}")
+                                    st.error(f"Could not save credit entry: {exc}" if is_english else f"उधारी नोंद सेव्ह करता आले नाही: {exc}")
 
                     with tab_pass:
                         cust_mask = khata_df["customer_name"].fillna("").astype(str).str.casefold() == name.casefold()
@@ -1495,21 +1560,26 @@ def render_customer_khata():
                             cust_mask = cust_mask | (khata_df["phone"].fillna("").astype(str) == customer_phone)
                         cust_txs = khata_df[cust_mask].sort_values(by="id", ascending=False)
                         if cust_txs.empty:
-                            st.info("या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
+                            st.info("No transaction records found for this customer." if is_english else "या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
                         else:
                             show_txs = cust_txs[["id", "date", "transaction_type", "amount", "due_date", "notes"]].copy()
-                            show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
+                            if is_english:
+                                show_txs["transaction_type"] = show_txs["transaction_type"].apply(lambda t: "Given Credit" if t == KHATA_CREDIT else "Received Payment")
+                                show_txs.columns = ["ID", "Date", "Type", "Amount (₹)", "Due Date", "Notes"]
+                            else:
+                                show_txs["transaction_type"] = show_txs["transaction_type"].apply(lambda t: "उधारी बाकी" if t == KHATA_CREDIT else "पैसे जमा")
+                                show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
                             st.dataframe(show_txs, use_container_width=True, hide_index=True)
 
                             del_col1, del_col2 = st.columns([2, 1])
                             with del_col1:
                                 tx_ids = cust_txs["id"].tolist()
                                 tx_options = {
-                                    tid: f"ID #{tid} - {cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0]} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
+                                    tid: f"ID #{tid} - {('Credit' if cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0] == KHATA_CREDIT else 'Payment') if is_english else ('उधारी' if cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0] == KHATA_CREDIT else 'जमा')} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
                                     for tid in tx_ids
                                 }
                                 sel_del_id = st.selectbox(
-                                    "चुकीची नोंद डिलीट करा:",
+                                    "Delete incorrect record:" if is_english else "चुकीची नोंद डिलीट करा:",
                                     tx_ids,
                                     format_func=lambda x: tx_options.get(x, f"ID #{x}"),
                                     key=f"del_tx_sel_{c_idx}_{name}",
@@ -1517,30 +1587,35 @@ def render_customer_khata():
                             with del_col2:
                                 st.write("")
                                 st.write("")
-                                if st.button("🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
+                                if st.button("🗑️ Delete Record" if is_english else "🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
                                     try:
                                         if delete_khata_transaction(sel_del_id):
                                             log_activity(
                                                 st.session_state.get("current_username", "admin"),
                                                 f"Deleted Khata ID {sel_del_id} for {name}",
                                             )
-                                            st.toast(f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
+                                            st.toast(f"Record #{sel_del_id} deleted successfully!" if is_english else f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
                                             st.rerun()
                                         else:
-                                            st.error("नोंद सापडली नाही.")
+                                            st.error("Record not found." if is_english else "नोंद सापडली नाही.")
                                     except Exception as exc:
-                                        st.error(f"नोंद डिलीट करता आली नाही: {exc}")
+                                        st.error(f"Could not delete record: {exc}" if is_english else f"नोंद डिलीट करता आली नाही: {exc}")
 
                 st.write("")
 
             # --- 4. Master Ledger Database & CSV Export (At the bottom) ---
             st.divider()
-            with st.expander("📁 संपूर्ण लेजर डेटाबेस & एक्सेल/CSV एक्सपोर्ट (All Transactions)", expanded=False):
-                st.markdown("##### 📋 सर्व ग्राहकांच्या नोंदींचा कच्चा डेटा (Master Khata Records)")
-                st.dataframe(khata_df[KHATA_COLUMNS], use_container_width=True, hide_index=True)
+            with st.expander("📁 Master Ledger Database & CSV Export (All Transactions)" if is_english else "📁 संपूर्ण लेजर डेटाबेस & एक्सेल/CSV एक्सपोर्ट", expanded=False):
+                st.markdown("##### " + ("📋 All Customer Transactions (Master Khata Records)" if is_english else "📋 सर्व ग्राहकांच्या नोंदींचा कच्चा डेटा (Master Khata Records)"))
+                master_disp = khata_df[KHATA_COLUMNS].copy()
+                if is_english:
+                    master_disp.columns = ["ID", "Customer Name", "Phone", "Amount", "Transaction Type", "Date", "Due Date", "Notes"]
+                else:
+                    master_disp.columns = ["ID", "ग्राहक नाव", "फोन नंबर", "रक्कम", "व्यवहार प्रकार", "तारीख", "मुदत तारीख", "तपशील"]
+                st.dataframe(master_disp, use_container_width=True, hide_index=True)
                 csv_data = khata_df[KHATA_COLUMNS].to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
-                    label="📥 संपूर्ण लेजर CSV फाईल डाउनलोड करा (Download CSV)",
+                    label="📥 Download Master Ledger CSV" if is_english else "📥 संपूर्ण लेजर CSV फाईल डाउनलोड करा (Download CSV)",
                     data=csv_data,
                     file_name=f"Customer_Khata_Ledger_{date.today().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
@@ -2533,29 +2608,42 @@ def render_login_portal():
     """, unsafe_allow_html=True)
     
     _render_language_toggle()
+    is_english = st.session_state.get("ui_language", "en") == "en"
     render_custom_logo("compact")
-    st.markdown("""
+    login_tagline = "Next-Gen Merchant & AI Financial Suite" if is_english else "आधुनिक व्यापारी व एआय आर्थिक प्रणाली"
+    st.markdown(f"""
     <div style="text-align: center; margin-bottom: 6px;">
         <h2 style="font-size: 18px; font-weight: 800; margin: 0; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #00ff87 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             VernaLedger.AI
         </h2>
-        <p style="font-size: 9.5px; color: #94a3b8; font-weight: 600; margin-top: 1px;">Next-Gen Merchant & AI Financial Suite</p>
+        <p style="font-size: 9.5px; color: #94a3b8; font-weight: 600; margin-top: 1px;">{login_tagline}</p>
     </div>
     """, unsafe_allow_html=True)
     
     if is_reset_page:
-        st.markdown("<h4 style='color:#00f2fe; text-align:center; font-size:13px; margin-bottom: 6px;'>पासवर्ड रिसेट करा (Reset Password)</h4>", unsafe_allow_html=True)
+        reset_title = "Reset Password" if is_english else "पासवर्ड रिसेट करा"
+        st.markdown(f"<h4 style='color:#00f2fe; text-align:center; font-size:13px; margin-bottom: 6px;'>{reset_title}</h4>", unsafe_allow_html=True)
         with st.form("forgot_pass_form_standalone"):
-            f_user = st.text_input("Username", placeholder="तुमचा युजरनेम")
-            f_phone = st.text_input("मोबाईल नंबर (Phone)", placeholder="10-digit mobile number")
-            new_p1 = st.text_input("नवीन पासवर्ड (New Password)", type="password", placeholder="Min 6 chars")
-            new_p2 = st.text_input("कन्फर्म पासवर्ड (Confirm Password)", type="password", placeholder="Re-enter password")
-            reset_btn = st.form_submit_button("पासवर्ड रिसेट करा")
+            f_user_lbl = "Username" if is_english else "युजरनेम"
+            f_user_ph = "Enter username" if is_english else "तुमचा युजरनेम"
+            f_phone_lbl = "Mobile Number" if is_english else "मोबाईल नंबर"
+            f_phone_ph = "10-digit mobile number" if is_english else "१० अंकी मोबाईल नंबर"
+            f_p1_lbl = "New Password" if is_english else "नवीन पासवर्ड"
+            f_p1_ph = "Min 6 characters" if is_english else "किमान ६ अक्षरे"
+            f_p2_lbl = "Confirm Password" if is_english else "पासवर्ड कन्फर्म करा"
+            f_p2_ph = "Re-enter new password" if is_english else "नवीन पासवर्ड पुन्हा टाका"
+            f_btn_lbl = "Reset Password" if is_english else "पासवर्ड रिसेट करा"
+
+            f_user = st.text_input(f_user_lbl, placeholder=f_user_ph)
+            f_phone = st.text_input(f_phone_lbl, placeholder=f_phone_ph)
+            new_p1 = st.text_input(f_p1_lbl, type="password", placeholder=f_p1_ph)
+            new_p2 = st.text_input(f_p2_lbl, type="password", placeholder=f_p2_ph)
+            reset_btn = st.form_submit_button(f_btn_lbl)
             if reset_btn:
                 if not f_user.strip() or not f_phone.strip() or len(new_p1) < 6:
-                    st.error("सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
+                    st.error("All fields are required and password must be at least 6 characters!" if is_english else "सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
                 elif new_p1 != new_p2:
-                    st.error("पासवर्ड जुळत नाहीत!")
+                    st.error("Passwords do not match!" if is_english else "पासवर्ड जुळत नाहीत!")
                 else:
                     with sqlite3.connect("ledger.db") as conn:
                         try:
@@ -2567,17 +2655,18 @@ def render_login_portal():
                                 cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (new_hashed, f_user.strip()))
                                 conn.commit()
                                 log_activity(f_user.strip(), "Password Reset via Forgot Password")
-                                st.success("पासवर्ड रिसेट झाला! नवीन पासवर्डने लॉगिन करा.")
+                                st.success("Password reset successfully! Please login with your new password." if is_english else "पासवर्ड यशस्वीरित्या रिसेट झाला! नवीन पासवर्डने लॉगिन करा.")
                                 time.sleep(1.2)
                                 st.session_state['forgot_pass_mode'] = False
                                 st.rerun()
                             else:
                                 conn.rollback()
-                                st.error("युजरनेम किंवा नंबर चुकीचा आहे!")
+                                st.error("Invalid username or mobile number!" if is_english else "युजरनेम किंवा मोबाईल नंबर चुकीचा आहे!")
                         except Exception as ex:
                             conn.rollback()
                             st.error(f"Error: {ex}")
-        if st.button("मूळ लॉगिन स्क्रीनवर जा", key="back_to_login"):
+        back_btn_lbl = "Back to Login Screen" if is_english else "मूळ लॉगिन स्क्रीनवर जा"
+        if st.button(back_btn_lbl, key="back_to_login"):
             st.session_state['forgot_pass_mode'] = False
             st.rerun()
     else:
@@ -2586,17 +2675,24 @@ def render_login_portal():
             cursor.execute("SELECT count(*) FROM users WHERE role = 'Admin'")
             admin_count = cursor.fetchone()[0]
             
-        auth_tab = "Login" if admin_count > 0 else st.radio("Auth Mode", ["Login", "Admin Sign Up"], horizontal=True, label_visibility="collapsed")
+        auth_tab = "Login" if admin_count > 0 else st.radio("Auth Mode", ["Login", "Admin Sign Up"] if is_english else ["लॉगिन", "अॅडमिन नोंदणी"], horizontal=True, label_visibility="collapsed")
         
-        if auth_tab == "Login":
+        if auth_tab in ["Login", "लॉगिन"]:
             with st.form("login_form"):
-                uname_input = st.text_input("Username", placeholder="Enter username (e.g. admin)")
-                pass_input = st.text_input("Password", type="password", placeholder="Enter password")
-                remember_me = st.checkbox("Auto-Login Persistent Session", value=True)
-                submit_login = st.form_submit_button("Access VernaLedger Studio")
+                u_lbl = "Username" if is_english else "युजरनेम"
+                u_ph = "Enter username (e.g. admin)" if is_english else "युजरनेम टाका (उदा. admin)"
+                p_lbl = "Password" if is_english else "पासवर्ड"
+                p_ph = "Enter password" if is_english else "पासवर्ड टाका"
+                rem_lbl = "Auto-Login Persistent Session" if is_english else "सत्र चालू ठेवा (Auto-Login)"
+                sub_lbl = "Access VernaLedger Studio" if is_english else "व्हर्ना लेजरमध्ये प्रवेश करा"
+
+                uname_input = st.text_input(u_lbl, placeholder=u_ph)
+                pass_input = st.text_input(p_lbl, type="password", placeholder=p_ph)
+                remember_me = st.checkbox(rem_lbl, value=True)
+                submit_login = st.form_submit_button(sub_lbl)
                 if submit_login:
                     if not uname_input.strip() or not pass_input.strip():
-                        st.error("कृपया युजरनेम आणि पासवर्ड दोन्ही भरा!")
+                        st.error("Please enter both username and password!" if is_english else "कृपया युजरनेम आणि पासवर्ड दोन्ही भरा!")
                     else:
                         hashed_pass = hash_password_secure(pass_input)
                         with sqlite3.connect("ledger.db") as conn:
@@ -2611,27 +2707,40 @@ def render_login_portal():
                                 if remember_me:
                                     st.session_state['remember_me'] = True
                                     st.query_params["logged_in"] = "true"
-                                st.toast(f"स्वागत आहे! ({st.session_state['user_role']} Role)", icon="⚡")
+                                welcome_msg = f"Welcome! ({st.session_state['user_role']} Role)" if is_english else f"स्वागत आहे! ({st.session_state['user_role']} भूमिका)"
+                                st.toast(welcome_msg, icon="⚡")
                                 time.sleep(0.4)
                                 st.rerun()
                             else:
-                                st.error("Invalid username or password!")
-            if st.button("पासवर्ड विसरलात? (Reset Password)", key="btn_forgot_redirect"):
+                                st.error("Invalid username or password!" if is_english else "चुकीचे युजरनेम किंवा पासवर्ड!")
+            forgot_lbl = "Forgot Password? (Reset)" if is_english else "पासवर्ड विसरलात? (रिसेट करा)"
+            if st.button(forgot_lbl, key="btn_forgot_redirect"):
                 st.session_state['forgot_pass_mode'] = True
                 st.rerun()
         else:
             with st.form("signup_form"):
-                st.markdown("##### Initial Admin Registration")
-                new_user = st.text_input("Admin Username", placeholder="Choose admin username")
-                new_phone = st.text_input("Mobile Number", placeholder="10-digit mobile number")
-                new_pass = st.text_input("Admin Password", type="password", placeholder="Min 6 chars password")
-                confirm_pass = st.text_input("Confirm Password", type="password", placeholder="Confirm password")
-                submit_signup = st.form_submit_button("Create Master Admin")
+                signup_heading = "##### Initial Admin Registration" if is_english else "##### मास्टर अॅडमिन नोंदणी"
+                st.markdown(signup_heading)
+                adm_u_lbl = "Admin Username" if is_english else "अॅडमिन युजरनेम"
+                adm_u_ph = "Choose admin username" if is_english else "अॅडमिन युजरनेम निवडा"
+                adm_ph_lbl = "Mobile Number" if is_english else "मोबाईल नंबर"
+                adm_ph_ph = "10-digit mobile number" if is_english else "१० अंकी मोबाईल नंबर"
+                adm_p_lbl = "Admin Password" if is_english else "अॅडमिन पासवर्ड"
+                adm_p_ph = "Min 6 chars password" if is_english else "किमान ६ अक्षरांचा पासवर्ड"
+                adm_cp_lbl = "Confirm Password" if is_english else "पासवर्ड कन्फर्म करा"
+                adm_cp_ph = "Confirm password" if is_english else "पासवर्ड पुन्हा टाका"
+                adm_sub_lbl = "Create Master Admin" if is_english else "मास्टर अॅडमिन तयार करा"
+
+                new_user = st.text_input(adm_u_lbl, placeholder=adm_u_ph)
+                new_phone = st.text_input(adm_ph_lbl, placeholder=adm_ph_ph)
+                new_pass = st.text_input(adm_p_lbl, type="password", placeholder=adm_p_ph)
+                confirm_pass = st.text_input(adm_cp_lbl, type="password", placeholder=adm_cp_ph)
+                submit_signup = st.form_submit_button(adm_sub_lbl)
                 if submit_signup:
                     if not new_user.strip() or not new_phone.strip() or len(new_pass) < 6:
-                        st.error("सर्व माहिती आणि पासवर्ड किमान ६ अंकी भरणे आवश्यक आहे!")
+                        st.error("All fields are required and password must be at least 6 characters!" if is_english else "सर्व माहिती आणि पासवर्ड किमान ६ अंकी भरणे आवश्यक आहे!")
                     elif new_pass != confirm_pass:
-                        st.error("पासवर्ड जुळत नाहीत!")
+                        st.error("Passwords do not match!" if is_english else "पासवर्ड जुळत नाहीत!")
                     else:
                         with sqlite3.connect("ledger.db") as conn:
                             try:
@@ -2641,7 +2750,7 @@ def render_login_portal():
                                 cursor.execute("INSERT OR REPLACE INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)", (new_user.strip(), new_hashed_pass, "Admin", new_phone.strip()))
                                 conn.commit()
                                 log_activity(new_user.strip(), "Master Admin Created")
-                                st.success("मास्टर अॅडमिन Successfully तयार झाला! आता लॉगीन करा.")
+                                st.success("Master Admin successfully created! Please login now." if is_english else "मास्टर अॅडमिन Successfully तयार झाला! आता लॉगीन करा.")
                                 time.sleep(0.8)
                                 st.rerun()
                             except Exception as ex:
@@ -2993,12 +3102,14 @@ with st.sidebar:
     ''', unsafe_allow_html=True)
 
     _render_language_toggle()
+    is_english = st.session_state.get("ui_language", "en") == "en"
     render_custom_logo("small")
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
+    role_badge_text = f"● ROLE: {current_role.upper()}" if is_english else f"● भूमिका: {current_role.upper()}"
     st.markdown(f"""
     <div style="text-align: center; margin: 2px 0 8px 0;">
-        <span style="font-size: 10px; font-weight: 700; color: {role_badge_color}; background: rgba(15, 23, 42, 0.85); border: 1px solid {role_badge_color}55; padding: 2px 10px; border-radius: 12px; letter-spacing: 0.5px;">● ROLE: {current_role.upper()}</span>
+        <span style="font-size: 10px; font-weight: 700; color: {role_badge_color}; background: rgba(15, 23, 42, 0.85); border: 1px solid {role_badge_color}55; padding: 2px 10px; border-radius: 12px; letter-spacing: 0.5px;">{role_badge_text}</span>
     </div>
     """, unsafe_allow_html=True)
     
@@ -3018,9 +3129,10 @@ with st.sidebar:
     
     st.markdown("<hr style='margin: 8px 0; border-color: rgba(0, 242, 254, 0.15);'>", unsafe_allow_html=True)
     
-    st.markdown('''
+    dev_title = "👨‍💻 Project Developers" if is_english else "👨‍💻 प्रकल्प विकासक"
+    st.markdown(f'''
     <div class="dev-credit-box" style="margin-bottom: 10px; padding: 8px 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; border-left: 3px solid #00f2fe;">
-        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 3px;">👨‍💻 Project Developers</div>
+        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 3px;">{dev_title}</div>
         <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
             Sanket Kirdat &nbsp;|&nbsp; Sakshi Bhagat<br>
             Vaishnavi Dhavale &nbsp;|&nbsp; Rushikesh Mulik
@@ -3029,7 +3141,8 @@ with st.sidebar:
     ''', unsafe_allow_html=True)
     
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
-    if st.button("\U0001f6aa Logout System"):
+    logout_btn_text = "🚪 Logout System" if is_english else "🚪 लॉगआउट करा"
+    if st.button(logout_btn_text):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
         st.session_state.clear()
         st.query_params.clear()
@@ -3147,14 +3260,17 @@ if selected_page == "OCR Scanner":
         if is_receipt:
             ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
             with ctrl_c1:
+                force_save_lbl = "⚠️ Save duplicate receipt (Force Save)" if is_english else "⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"
+                force_save_help = "When enabled, receipts from the same shop and amount will be saved even if already recorded in the database." if is_english else "सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
                 force_save_option = st.checkbox(
-                    _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
+                    force_save_lbl,
                     value=False,
-                    help="सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
+                    help=force_save_help
                 )
             with ctrl_c2:
                 if st.session_state.get('processed_batch'):
-                    if st.button("🔄 रिसेट (Reset)", key="reset_ocr_data", use_container_width=True):
+                    reset_lbl = "🔄 Reset" if is_english else "🔄 रिसेट (Reset)"
+                    if st.button(reset_lbl, key="reset_ocr_data", use_container_width=True):
                         st.session_state['processed_batch'] = []
                         st.session_state['processed_data'] = None
                         st.session_state['warning_msg'] = None
@@ -3165,44 +3281,51 @@ if selected_page == "OCR Scanner":
         up_files = []
         up_cam = None
         if input_method == "Upload File":
+            uploader_lbl = "Select receipt photo(s) (JPG, JPEG, PNG):" if is_english else "पावतीचा फोटो निवडा (JPG, JPEG, PNG):"
             up_files = st.file_uploader(
-                "पावतीचा फोटो निवडा (JPG, JPEG, PNG):",
+                uploader_lbl,
                 type=["jpg", "jpeg", "png"],
                 accept_multiple_files=True,
                 key="ocr_receipt_files"
             )
             if up_files:
-                st.markdown(f"<div style='font-size: 11px; color: #00ff87; font-weight: 700; margin: 4px 0;'>📸 निवडलेल्या पावत्या ({len(up_files)}):</div>", unsafe_allow_html=True)
+                sel_lbl = f"Selected receipts ({len(up_files)}):" if is_english else f"निवडलेल्या पावत्या ({len(up_files)}):"
+                st.markdown(f"<div style='font-size: 11px; color: #00ff87; font-weight: 700; margin: 4px 0;'>📸 {sel_lbl}</div>", unsafe_allow_html=True)
                 cols = st.columns(min(len(up_files), 5))
                 for idx, uf in enumerate(up_files[:5]):
                     with cols[idx]:
                         st.image(uf, width=65)
                 if len(up_files) > 5:
-                    st.caption(f"+ आणखी {len(up_files)-5} पावत्या")
+                    more_lbl = f"+ {len(up_files)-5} more receipts" if is_english else f"+ आणखी {len(up_files)-5} पावत्या"
+                    st.caption(more_lbl)
 
         elif input_method == "Live Camera":
-            st.markdown("""
+            cam_note = "📸 Keep receipt flat and clear inside viewfinder:" if is_english else "📸 पावती फ्रेममध्ये सपाट व स्पष्ट दिसू द्या:"
+            st.markdown(f"""
             <div style='font-size: 11px; color: #94a3b8; margin-bottom: 4px;'>
-                📸 पावती फ्रेममध्ये सपाट व स्पष्ट दिसू द्या:
+                {cam_note}
             </div>
             """, unsafe_allow_html=True)
-            up_cam = st.camera_input("Take photo", label_visibility="collapsed", key="ocr_live_cam")
+            up_cam = st.camera_input("Take photo" if is_english else "फोटो घ्या", label_visibility="collapsed", key="ocr_live_cam")
 
         elif input_method == "Multi-Language Voice Bill":
-            st.markdown("""
+            pill_voice_ready = "● Voice Recognition Ready" if is_english else "● ध्वनी ओळख सज्ज"
+            voice_inst = "Click mic and speak bill details. AI will calculate items, quantities, and prices automatically." if is_english else "माइकवर क्लिक करून बिल बोला. AI सर्व वस्तू, प्रमाण आणि किमती आपोआप मोजून बिल तयार करेल."
+            st.markdown(f"""
             <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.5);'>
                 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
                     <span class='scanner-pill'>🎙️ AI Voice Studio (Neural Audio Engine)</span>
-                    <span class='scanner-pill-success'>● ध्वनी ओळख सज्ज</span>
+                    <span class='scanner-pill-success'>{pill_voice_ready}</span>
                 </div>
                 <div style='font-size: 12px; color: #cbd5e1; line-height: 1.4;'>
-                    माइकवर क्लिक करून बिल बोला. AI सर्व वस्तू, प्रमाण आणि किमती आपोआप मोजून बिल तयार करेल.
+                    {voice_inst}
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
+            lang_radio_lbl = "Select Language:" if is_english else "भाषा निवडा (Select Language):"
             voice_lang_choice = st.radio(
-                "भाषा निवडा (Select Language):",
+                lang_radio_lbl,
                 ["मराठी (mr-IN)", "हिंदी (hi-IN)", "English (en-IN)"],
                 index=0,
                 horizontal=True,
@@ -3216,8 +3339,8 @@ if selected_page == "OCR Scanner":
             chosen_lang = lang_code_map.get(voice_lang_choice, "mr-IN")
             
             spoken_bill = speech_to_text(
-                start_prompt="🎙️ बोलणे सुरू करा (माइक दाबा)",
-                stop_prompt="⏹️ बोलणे थांबवा (तयार करा)",
+                start_prompt="🎙️ Start Speaking (Click mic)" if is_english else "🎙️ बोलणे सुरू करा (माइक दाबा)",
+                stop_prompt="⏹️ Stop Speaking (Generate Bill)" if is_english else "⏹️ बोलणे थांबवा (तयार करा)",
                 just_once=True,
                 language=chosen_lang,
                 key='voice_billing_mic_auto'
@@ -3231,40 +3354,45 @@ if selected_page == "OCR Scanner":
                     st.session_state['last_spoken_bill'] = spoken_bill.strip()
                     st.session_state['voice_billing_transcript'] = spoken_bill.strip()
             
-            st.markdown("<div style='font-size: 12px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 4px;'>📝 ओळखलेला मजकूर / टाइप करून बिल बनवा:</div>", unsafe_allow_html=True)
+            rec_text_heading = "📝 Recognized text / Type to generate bill:" if is_english else "📝 ओळखलेला मजकूर / टाइप करून बिल बनवा:"
+            rec_placeholder = "e.g. Ganesh Store: 5 kg sugar 200 rupees, 2 liter oil 300 rupees" if is_english else "उदा. श्री गणेश किराणा: ५ किलो साखर २०० रुपये, २ लिटर तेल ३०० रुपये"
+            st.markdown(f"<div style='font-size: 12px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 4px;'>{rec_text_heading}</div>", unsafe_allow_html=True)
             voice_text_input = st.text_area(
                 "Voice Input Text",
                 value=st.session_state.get('voice_billing_transcript', ''),
                 height=75,
-                placeholder="उदा. श्री गणेश किराणा: ५ किलो साखर २०० रुपये, २ लिटर तेल ३०० रुपये",
+                placeholder=rec_placeholder,
                 label_visibility="collapsed",
                 key="voice_billing_transcript_input"
             )
             st.session_state['voice_billing_transcript'] = voice_text_input
             
-            submit_voice = st.button("⚡ व्हॉईस बिल प्रोसेस करा (Generate Bill)", type="primary", use_container_width=True, key="btn_process_voice_bill")
+            btn_proc_voice_lbl = "⚡ Generate Voice Bill" if is_english else "⚡ व्हॉईस बिल प्रोसेस करा (Generate Bill)"
+            submit_voice = st.button(btn_proc_voice_lbl, type="primary", use_container_width=True, key="btn_process_voice_bill")
             
             active_voice_text = st.session_state.get('voice_billing_transcript', '').strip()
             if submit_voice:
                 if not active_voice_text:
-                    st.warning("⚠️ कृपया आधी माईकवर बोला किंवा वरील बॉक्समध्ये मजकूर टाइप करा.")
+                    st.warning("⚠️ Please speak into the mic or type text above first." if is_english else "⚠️ कृपया आधी माईकवर बोला किंवा वरील बॉक्समध्ये मजकूर टाइप करा.")
                 else:
-                    with st.spinner("🤖 AI गणिती पडताळणी करत आहे... व्हॉईसवरून अचूक बिल तयार होत आहे..."):
+                    voice_spinner = "🤖 AI verifying calculations and generating accurate bill from voice..." if is_english else "🤖 AI गणिती पडताळणी करत आहे... व्हॉईसवरून अचूक बिल तयार होत आहे..."
+                    with st.spinner(voice_spinner):
                         try:
                             v_data = process_voice_billing_advanced(active_voice_text, API_KEY)
                             st.session_state['processed_data'] = v_data
                             st.session_state['processed_batch'] = [v_data]
                             log_activity(st.session_state.get('current_username', 'admin'), "Processed Voice Bill")
-                            st.success("✅ व्हॉईस बिल यशस्वीरित्या तयार होऊन डेटाबेसमध्ये सेव्ह झाले!")
-                            st.toast("व्हॉईस बिल सेव्ह झाले!", icon="🎤")
+                            st.success("✅ Voice bill generated and saved to database successfully!" if is_english else "✅ व्हॉईस बिल यशस्वीरित्या तयार होऊन डेटाबेसमध्ये सेव्ह झाले!")
+                            st.toast("Voice bill saved!" if is_english else "व्हॉईस बिल सेव्ह झाले!", icon="🎤")
                             st.rerun()
                         except Exception as ve:
                             logging.error(f"Voice billing error: {ve}")
-                            st.error(f"व्हॉईस बिल Error: {ve}")
+                            st.error(f"Voice billing error: {ve}" if is_english else f"व्हॉईस बिल Error: {ve}")
 
         if input_method != "Multi-Language Voice Bill":
             st.write("")
-            process_clicked = st.button("⚡ पावत्या स्कॅन करा (Process Receipts)", type="primary", use_container_width=True, key="btn_process_receipts")
+            btn_scan_lbl = "⚡ Process Receipts" if is_english else "⚡ पावत्या स्कॅन करा (Process Receipts)"
+            process_clicked = st.button(btn_scan_lbl, type="primary", use_container_width=True, key="btn_process_receipts")
             if process_clicked:
                 target_files = []
                 if input_method == "Live Camera" and up_cam:
@@ -3282,17 +3410,18 @@ if selected_page == "OCR Scanner":
                     def process_single_file(idx, single_file):
                         try:
                             data = process_receipt_advanced(single_file, API_KEY, force_save=force_save_option)
-                            f_name = getattr(single_file, "name", f"पावती #{idx+1}")
+                            f_name = getattr(single_file, "name", f"Receipt #{idx+1}" if is_english else f"पावती #{idx+1}")
                             if data.get("is_duplicate"):
-                                warn_msg = f"दुकान '{data.get('vendor_name')}' चे ₹{data.get('grand_total')} चे बिल आधीच रेकॉर्ड केलेले आहे."
+                                warn_msg = (f"Bill of ₹{data.get('grand_total')} from '{data.get('vendor_name')}' is already recorded." if is_english else f"दुकान '{data.get('vendor_name')}' चे ₹{data.get('grand_total')} चे बिल आधीच रेकॉर्ड केलेले आहे.")
                                 return (idx, data, (f_name, f"Duplicate Warning: {warn_msg}"))
                             return (idx, data, None)
                         except Exception as e:
-                            f_name = getattr(single_file, "name", f"पावती #{idx+1}")
+                            f_name = getattr(single_file, "name", f"Receipt #{idx+1}" if is_english else f"पावती #{idx+1}")
                             err_str = str(e)
                             return (idx, None, (f_name, err_str))
 
-                    with st.spinner(f"🚀 AI Vision Engine {total_f} पावत्या एकाच वेळी स्कॅन करत आहे... कृपया वाट पहा!"):
+                    spinner_scan = (f"🚀 AI Vision Engine is scanning {total_f} receipt(s) in parallel... Please wait!" if is_english else f"🚀 AI Vision Engine {total_f} पावत्या एकाच वेळी स्कॅन करत आहे... कृपया वाट पहा!")
+                    with st.spinner(spinner_scan):
                         with concurrent.futures.ThreadPoolExecutor(max_workers=min(total_f, 10)) as executor:
                             futures = {executor.submit(process_single_file, i, f): i for i, f in enumerate(target_files)}
                             
@@ -3302,7 +3431,8 @@ if selected_page == "OCR Scanner":
                                 results.append(future.result())
                                 completed_count += 1
                                 progress_bar.progress(completed_count / total_f)
-                                status_text.markdown(f"<span class='scanner-pill'>⚡ पावती स्कॅन सुरू ({completed_count}/{total_f})...</span>", unsafe_allow_html=True)
+                                scan_pill = f"⚡ Scanning receipts ({completed_count}/{total_f})..." if is_english else f"⚡ पावती स्कॅन सुरू ({completed_count}/{total_f})..."
+                                status_text.markdown(f"<span class='scanner-pill'>{scan_pill}</span>", unsafe_allow_html=True)
                                 
                             results.sort(key=lambda x: x[0])
                             
@@ -3328,21 +3458,23 @@ if selected_page == "OCR Scanner":
                             st.session_state['warning_time'] = time.time()
                         else:
                             st.session_state['warning_msg'] = None
-                        st.success(f"✅ {len(processed_batch)} पावती/पावत्या यशस्वीरित्या स्कॅन झाल्या!")
-                        st.toast("पावती Successfully स्कॅन झाली!", icon="✅")
+                        succ_scan_msg = f"✅ {len(processed_batch)} receipt(s) successfully scanned!" if is_english else f"✅ {len(processed_batch)} पावती/पावत्या यशस्वीरित्या स्कॅन झाल्या!"
+                        st.success(succ_scan_msg)
+                        st.toast("Receipt scanned successfully!" if is_english else "पावती Successfully स्कॅन झाली!", icon="✅")
                         st.rerun()
                     else:
                         if warning_messages:
-                            st.error("पावती स्कॅन करताना अडचण आली: " + " | ".join(warning_messages))
+                            st.error(("Error scanning receipts: " if is_english else "पावती स्कॅन करताना अडचण आली: ") + " | ".join(warning_messages))
                         else:
-                            st.error("पावती स्कॅन करता आली नाही. कृपया पावतीचा फोटो स्पष्ट असल्याची खात्री करा.")
+                            st.error("Could not scan receipt. Please ensure receipt photo is clear." if is_english else "पावती स्कॅन करता आली नाही. कृपया पावतीचा फोटो स्पष्ट असल्याची खात्री करा.")
                 else:
-                    st.warning("⚠️ कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.")
+                    st.warning("⚠️ Please select at least one receipt or take a photo." if is_english else "⚠️ कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.")
         
         if st.session_state.get('warning_msg'):
             elapsed = time.time() - st.session_state.get('warning_time', 0)
             if elapsed < 15:
-                st.warning(f"ड्युप्लिकेट पावती अलर्ट: {st.session_state['warning_msg']}")
+                dup_alert_hdr = "Duplicate Receipt Alert:" if is_english else "ड्युप्लिकेट पावती अलर्ट:"
+                st.warning(f"{dup_alert_hdr} {st.session_state['warning_msg']}")
         st.markdown("</div>", unsafe_allow_html=True)
         
     with col_p:
@@ -3358,14 +3490,16 @@ if selected_page == "OCR Scanner":
                 cat_disp = p_item.get('category', 'General') or 'General'
                 
                 # Compact Receipt Header (No big POS card)
+                tot_lbl = "Grand Total" if is_english else "एकूण रक्कम"
+                items_cnt_lbl = "items" if is_english else "वस्तू"
                 st.markdown(f"""
                 <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
                     <div>
                         <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>🧾 {v_disp}</div>
-                        <div style='font-size: 11px; color: #94a3b8;'>📅 {date_disp} • 🏷️ {cat_disp} • {len(items_raw)} वस्तू</div>
+                        <div style='font-size: 11px; color: #94a3b8;'>📅 {date_disp} • 🏷️ {cat_disp} • {len(items_raw)} {items_cnt_lbl}</div>
                     </div>
                     <div style='text-align: right;'>
-                        <div style='font-size: 10px; color: #94a3b8;'>एकूण रक्कम</div>
+                        <div style='font-size: 10px; color: #94a3b8;'>{tot_lbl}</div>
                         <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{tot:,.2f}</div>
                     </div>
                 </div>
@@ -3379,27 +3513,38 @@ if selected_page == "OCR Scanner":
                 
                 # Clearly Display Scanned Items Table
                 if items_raw:
-                    st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>📋 स्कॅन केलेल्या वस्तूंचा तपशील (Scanned Items):</div>", unsafe_allow_html=True)
+                    scanned_items_heading = "📋 Scanned Items Details:" if is_english else "📋 स्कॅन केलेल्या वस्तूंचा तपशील (Scanned Items):"
+                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>{scanned_items_heading}</div>", unsafe_allow_html=True)
                     clean_items_display = []
                     for idx_item, itm in enumerate(items_raw, 1):
                         name_val = str(itm.get("item_name", f"Item {idx_item}")).strip()
                         qty_val = str(itm.get("quantity", itm.get("qty", "1"))).strip()
                         rate_val = float(itm.get("rate", itm.get("price", 0)) or 0)
                         tot_val = float(itm.get("total_price", rate_val) or 0)
-                        clean_items_display.append({
-                            "क्र.": idx_item,
-                            "वस्तूचे नाव (Item)": name_val,
-                            "प्रमाण (Qty)": qty_val,
-                            "दर (Rate ₹)": f"₹{rate_val:,.2f}",
-                            "एकूण (Total ₹)": f"₹{tot_val:,.2f}"
-                        })
+                        if is_english:
+                            clean_items_display.append({
+                                "Sr. No.": idx_item,
+                                "Item Name": name_val,
+                                "Quantity": qty_val,
+                                "Rate (₹)": f"₹{rate_val:,.2f}",
+                                "Total (₹)": f"₹{tot_val:,.2f}"
+                            })
+                        else:
+                            clean_items_display.append({
+                                "क्र.": idx_item,
+                                "वस्तूचे नाव (Item)": name_val,
+                                "प्रमाण (Qty)": qty_val,
+                                "दर (Rate ₹)": f"₹{rate_val:,.2f}",
+                                "एकूण (Total ₹)": f"₹{tot_val:,.2f}"
+                            })
                     st.dataframe(pd.DataFrame(clean_items_display), hide_index=True, use_container_width=True)
                 
                 # Action Buttons Row
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
+                    dl_receipt_lbl = "🖨️ Thermal Receipt (Print / Download)" if is_english else "🖨️ थर्मल पावती (Print / Download)"
                     st.download_button(
-                        label="🖨️ थर्मल पावती (Print / Download)",
+                        label=dl_receipt_lbl,
                         data=thermal_html,
                         file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}.html",
                         mime="text/html",
@@ -3408,7 +3553,8 @@ if selected_page == "OCR Scanner":
                         key="btn_download_thermal_single"
                     )
                 with btn_col2:
-                    if st.button('📦 इन्व्हेंटरी अपडेट (Sync Stock)', key='inv_sync_single', use_container_width=True):
+                    sync_stock_lbl = "📦 Sync Stock" if is_english else "📦 इन्व्हेंटरी अपडेट (Sync Stock)"
+                    if st.button(sync_stock_lbl, key='inv_sync_single', use_container_width=True):
                         try:
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
@@ -3433,15 +3579,16 @@ if selected_page == "OCR Scanner":
                                             (i_name, q_val, 'units', 5.0, '', r_val)
                                         )
                                 conn.commit()
-                            st.toast('📦 स्टॉक आपोआप अपडेट झाला!', icon="📦")
-                            st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
+                            st.toast('Inventory stock synced automatically!' if is_english else '📦 स्टॉक आपोआप अपडेट झाला!', icon="📦")
+                            st.success('Inventory updated successfully!' if is_english else 'इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
                         except Exception as e:
                             st.error(str(e))
                 
                 # Compact Optional Edit Items in collapsed expander
                 items_df = pd.DataFrame(items_raw)
                 if not items_df.empty:
-                    with st.expander("✏️ वस्तू / किमती तपासा किंवा बदला (Edit Items)", expanded=False):
+                    edit_exp_lbl = "✏️ Edit Items & Prices" if is_english else "✏️ वस्तू / किमती तपासा किंवा बदला (Edit Items)"
+                    with st.expander(edit_exp_lbl, expanded=False):
                         edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
                         p_item['items'] = edited_df.to_dict('records')
             else:
@@ -3449,14 +3596,17 @@ if selected_page == "OCR Scanner":
                 total_items_count = sum(len(b.get('items', [])) for b in batch_data)
                 
                 # Compact Batch Header
+                b_scan_lbl = f"🧾 {len(batch_data)} Receipts Scanned" if is_english else f"🧾 {len(batch_data)} पावत्या स्कॅन झाल्या"
+                b_item_lbl = f"Total {total_items_count} items" if is_english else f"एकूण {total_items_count} वस्तू"
+                b_comb_lbl = "Combined Total" if is_english else "एकत्रित रक्कम"
                 st.markdown(f"""
                 <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
                     <div>
-                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>🧾 {len(batch_data)} पावत्या स्कॅन झाल्या</div>
-                        <div style='font-size: 11px; color: #94a3b8;'>एकूण {total_items_count} वस्तू</div>
+                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>{b_scan_lbl}</div>
+                        <div style='font-size: 11px; color: #94a3b8;'>{b_item_lbl}</div>
                     </div>
                     <div style='text-align: right;'>
-                        <div style='font-size: 10px; color: #94a3b8;'>एकत्रित रक्कम</div>
+                        <div style='font-size: 10px; color: #94a3b8;'>{b_comb_lbl}</div>
                         <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{combined_tot:,.2f}</div>
                     </div>
                 </div>
@@ -3465,7 +3615,8 @@ if selected_page == "OCR Scanner":
                 # Top Action Row: Sync All + Download All Slips
                 c_sync_all, c_dl_all = st.columns(2)
                 with c_sync_all:
-                    if st.button('📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)', key='inv_sync_all_batch', use_container_width=True):
+                    sync_all_lbl = "📦 Sync All Stock" if is_english else "📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)"
+                    if st.button(sync_all_lbl, key='inv_sync_all_batch', use_container_width=True):
                         try:
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
@@ -3491,8 +3642,8 @@ if selected_page == "OCR Scanner":
                                                 (i_name, q_val, 'units', 5.0, '', r_val)
                                             )
                                 conn.commit()
-                            st.toast('📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
-                            st.success('इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
+                            st.toast('All receipts synced to inventory!' if is_english else '📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
+                            st.success('Inventory updated successfully!' if is_english else 'इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
                         except Exception as e:
                             st.error(str(e))
                 with c_dl_all:
@@ -3507,8 +3658,9 @@ if selected_page == "OCR Scanner":
                         if b_i < len(batch_data):
                             all_slips_html += "<div class='page-sep'></div>"
                     all_slips_html += "</body></html>"
+                    dl_all_lbl = f"🖨️ Download All {len(batch_data)} Receipts" if is_english else f"🖨️ सर्व {len(batch_data)} पावत्या एकत्र डाउनलोड"
                     st.download_button(
-                        label=f"🖨️ सर्व {len(batch_data)} पावत्या एकत्र डाउनलोड",
+                        label=dl_all_lbl,
                         data=all_slips_html,
                         file_name=f"All_{len(batch_data)}_Thermal_Slips.html",
                         mime="text/html",
@@ -3519,13 +3671,21 @@ if selected_page == "OCR Scanner":
                 st.markdown("<hr style='margin: 10px 0 8px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
                 
                 # Receipt Selector Dropdown (पावती सिलेक्टर ड्रॉपडाऊन)
-                receipt_labels = [
-                    f"🧾 पावती #{i+1}: {decode_unicode(b.get('vendor_name', 'अनामित'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} वस्तू)"
-                    for i, b in enumerate(batch_data)
-                ]
-                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>📋 पाहण्यासाठी पावती निवडा (Select Receipt):</div>", unsafe_allow_html=True)
+                if is_english:
+                    receipt_labels = [
+                        f"🧾 Receipt #{i+1}: {decode_unicode(b.get('vendor_name', 'Unnamed'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} items)"
+                        for i, b in enumerate(batch_data)
+                    ]
+                    sel_prompt = "📋 Select Receipt to View:"
+                else:
+                    receipt_labels = [
+                        f"🧾 पावती #{i+1}: {decode_unicode(b.get('vendor_name', 'अनामित'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} वस्तू)"
+                        for i, b in enumerate(batch_data)
+                    ]
+                    sel_prompt = "📋 पाहण्यासाठी पावती निवडा (Select Receipt):"
+                st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>{sel_prompt}</div>", unsafe_allow_html=True)
                 selected_idx = st.selectbox(
-                    "पावती निवडा",
+                    "Select Receipt" if is_english else "पावती निवडा",
                     range(len(batch_data)),
                     format_func=lambda i: receipt_labels[i],
                     label_visibility="collapsed",
@@ -3546,23 +3706,34 @@ if selected_page == "OCR Scanner":
 
                 # Items Table of Selected Receipt
                 if items_raw:
-                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>📋 पावती #{selected_idx+1} चा वस्तू तपशील ({len(items_raw)} वस्तू):</div>", unsafe_allow_html=True)
+                    items_hdr = f"📋 Receipt #{selected_idx+1} Items ({len(items_raw)} items):" if is_english else f"📋 पावती #{selected_idx+1} चा वस्तू तपशील ({len(items_raw)} वस्तू):"
+                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>{items_hdr}</div>", unsafe_allow_html=True)
                     clean_b_items = []
                     for bi_idx, bi in enumerate(items_raw, 1):
-                        clean_b_items.append({
-                            "क्र.": bi_idx,
-                            "वस्तूचे नाव (Item)": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
-                            "प्रमाण (Qty)": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
-                            "दर (Rate ₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
-                            "एकूण (Total ₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
-                        })
+                        if is_english:
+                            clean_b_items.append({
+                                "Sr. No.": bi_idx,
+                                "Item Name": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
+                                "Quantity": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
+                                "Rate (₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
+                                "Total (₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
+                            })
+                        else:
+                            clean_b_items.append({
+                                "क्र.": bi_idx,
+                                "वस्तूचे नाव (Item)": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
+                                "प्रमाण (Qty)": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
+                                "दर (Rate ₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
+                                "एकूण (Total ₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
+                            })
                     st.dataframe(pd.DataFrame(clean_b_items), hide_index=True, use_container_width=True)
 
                 # Action Buttons for Selected Receipt
                 b_c1, b_c2 = st.columns(2)
                 with b_c1:
+                    dl_sel_lbl = f"🖨️ Download / Print Receipt #{selected_idx+1}" if is_english else f"🖨️ पावती #{selected_idx+1} डाउनलोड / प्रिंट"
                     st.download_button(
-                        label=f"🖨️ पावती #{selected_idx+1} डाउनलोड / प्रिंट",
+                        label=dl_sel_lbl,
                         data=b_thermal_html,
                         file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{selected_idx+1}.html",
                         mime="text/html",
@@ -3571,7 +3742,8 @@ if selected_page == "OCR Scanner":
                         key=f"btn_dl_thermal_sel_{selected_idx}"
                     )
                 with b_c2:
-                    if st.button(f'📦 पावती #{selected_idx+1} स्टॉक अपडेट', key=f'inv_sync_sel_{selected_idx}', use_container_width=True):
+                    sync_sel_lbl = f'📦 Sync Receipt #{selected_idx+1} Stock' if is_english else f'📦 पावती #{selected_idx+1} स्टॉक अपडेट'
+                    if st.button(sync_sel_lbl, key=f'inv_sync_sel_{selected_idx}', use_container_width=True):
                         try:
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
@@ -3596,24 +3768,27 @@ if selected_page == "OCR Scanner":
                                             (i_name, q_val, 'units', 5.0, '', r_val)
                                         )
                                 conn.commit()
-                            st.toast(f'पावती #{selected_idx+1} चा स्टॉक अपडेट झाला!', icon="📦")
-                            st.success(f'पावती #{selected_idx+1} चा स्टॉक यशस्वीरित्या अपडेट झाला!')
+                            st.toast(f'Receipt #{selected_idx+1} stock updated!' if is_english else f'पावती #{selected_idx+1} चा स्टॉक अपडेट झाला!', icon="📦")
+                            st.success(f'Receipt #{selected_idx+1} stock updated successfully!' if is_english else f'पावती #{selected_idx+1} चा स्टॉक यशस्वीरित्या अपडेट झाला!')
                         except Exception as e:
                             st.error(str(e))
 
                 # Optional Edit Items in Expander
                 items_df = pd.DataFrame(items_raw)
                 if not items_df.empty:
-                    with st.expander(f"✏️ पावती #{selected_idx+1} मधील वस्तू / किमती तपासा किंवा बदला (Edit Items)", expanded=False):
+                    edit_sel_exp = f"✏️ Edit Items / Prices for Receipt #{selected_idx+1}" if is_english else f"✏️ पावती #{selected_idx+1} मधील वस्तू / किमती तपासा किंवा बदला (Edit Items)"
+                    with st.expander(edit_sel_exp, expanded=False):
                         edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_batch_sel_{selected_idx}')
                         p_item['items'] = edited_df.to_dict('records')
         else:
-            st.markdown("""
+            empty_title = "Smart Receipt Scanner" if is_english else "स्मार्ट पावती स्कॅनर"
+            empty_desc = "Select a receipt file or capture a photo on the left to instantly generate a 58mm thermal slip." if is_english else "डाव्या बाजूला पावती निवडा किंवा फोटो काढा, क्षणात ५८mm थर्मल पावती तयार होईल."
+            st.markdown(f"""
             <div style='text-align: center; padding: 25px 15px;'>
                 <div style='font-size: 36px; margin-bottom: 8px;'>🧾</div>
-                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>स्मार्ट पावती स्कॅनर</div>
+                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>{empty_title}</div>
                 <div style='font-size: 12px; color: #94a3b8; max-width: 300px; margin: 0 auto; line-height: 1.5;'>
-                    डाव्या बाजूला पावती निवडा किंवा फोटो काढा, क्षणात ५८mm थर्मल पावती तयार होईल.
+                    {empty_desc}
                 </div>
                 <div style='margin-top: 14px; display: flex; justify-content: center; gap: 8px;'>
                     <span class='scanner-pill'>⚡ 58mm Thermal Slip</span>
@@ -3629,39 +3804,46 @@ elif selected_page == "Customer Khata":
 
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Business Operations":
+    is_english = st.session_state.get("ui_language", "en") == "en"
     render_business_module_styles()
-    render_page_header("Business Operations", "इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.", "💼")
+    bo_title = "Business Operations" if is_english else "व्यवसाय संचालन"
+    bo_subtitle = "Manage inventory stock, business expenses, and store profile in one place." if is_english else "इन्व्हेंटरी, साठा आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा."
+    render_page_header(bo_title, bo_subtitle, "💼")
 
-    tab_stock, tab_expenses, tab_shop_profile = st.tabs([
-        "📦 Stock & Inventory", 
-        "💸 Business Expenses", 
-        "⚙️ Shop Profile & UPI"
-    ])
+    tab_labels = [
+        "📦 Stock & Inventory" if is_english else "📦 स्टॉक आणि इन्व्हेंटरी", 
+        "💸 Business Expenses" if is_english else "💸 व्यवसाय खर्च", 
+        "⚙️ Shop Profile & UPI" if is_english else "⚙️ दुकानाचे प्रोफाइल & UPI"
+    ]
+    tab_stock, tab_expenses, tab_shop_profile = st.tabs(tab_labels)
     
     with tab_stock:
         # Staff can now access this
-        st.markdown("<div style='font-size: 16px; font-weight: 800; color: #00ff87; margin-bottom: 12px;'>📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड</div>", unsafe_allow_html=True)
+        stock_dash_title = "📦 Stock & Inventory Dashboard" if is_english else "📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड"
+        st.markdown(f"<div style='font-size: 16px; font-weight: 800; color: #00ff87; margin-bottom: 12px;'>{stock_dash_title}</div>", unsafe_allow_html=True)
 
         ic1, ic2 = st.columns([1, 1])
         with ic1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("""
+            add_stock_title = "Add New Stock" if is_english else "नवीन माल जोडा"
+            add_stock_caption = "Enter item name, quantity, price, and alert limit." if is_english else "वस्तूचे नाव, प्रमाण, दर आणि कमी-साठा मर्यादा भरा."
+            st.markdown(f"""
             <div class="business-section-heading">
                 <div class="business-section-icon">＋</div>
-                <div><h3 class="business-section-title">Add New Stock</h3>
-                <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
+                <div><h3 class="business-section-title">{add_stock_title}</h3>
+                <p class="business-section-caption">{add_stock_caption}</p></div>
             </div>
             """, unsafe_allow_html=True)
             with st.form("stock_form"):
-                s_name = st.text_input("Item Name (वस्तूचे नाव)")
-                s_qty = st.number_input("Stock Quantity (साठा प्रमाण)", min_value=0.0, step=1.0)
-                s_price = st.number_input("Selling Price (विक्री दर ₹)", min_value=0.0, step=5.0, value=0.0)
-                s_unit = st.text_input("Unit (उदा. kg, pcs, ltr)", value="kg")
-                s_limit = st.number_input("Low Stock Alert Limit", min_value=0.0, step=1.0, value=5.0)
-                submit_stock = st.form_submit_button("Save Stock")
+                s_name = st.text_input("Item Name" if is_english else "वस्तूचे नाव")
+                s_qty = st.number_input("Stock Quantity" if is_english else "साठा प्रमाण", min_value=0.0, step=1.0)
+                s_price = st.number_input("Selling Price (₹)" if is_english else "विक्री दर (₹)", min_value=0.0, step=5.0, value=0.0)
+                s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)" if is_english else "मोजमापाचे एकक (उदा. kg, नग, ltr)", value="kg")
+                s_limit = st.number_input("Low Stock Alert Limit" if is_english else "कमी साठा सूचना मर्यादा", min_value=0.0, step=1.0, value=5.0)
+                submit_stock = st.form_submit_button("Save Stock" if is_english else "स्टॉक सेव्ह करा")
                 if submit_stock:
                     if not s_name.strip():
-                        st.error("Please enter item name!")
+                        st.error("Please enter item name!" if is_english else "कृपया वस्तूचे नाव टाका!")
                     else:
                         try:
                             with sqlite3.connect("ledger.db") as conn:
@@ -3673,18 +3855,20 @@ elif selected_page == "Business Operations":
                                 """, (s_name.strip(), s_qty, s_unit.strip(), s_limit, "", s_price))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
-                            st.success(f"Stock '{s_name}' successfully added!")
+                            st.success(f"Stock '{s_name}' successfully added!" if is_english else f"नवीन माल '{s_name}' यशस्वीरित्या जोडला गेला!")
                             st.rerun()
                         except Exception as ex:
                             st.error(f"Error: {ex}")
             st.markdown("</div>", unsafe_allow_html=True)
         with ic2:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("""
+            overview_title = "Inventory Overview" if is_english else "साठ्याचा आढावा"
+            overview_caption = "List of items and replenishment recommendations." if is_english else "वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू."
+            st.markdown(f"""
             <div class="business-section-heading">
                 <div class="business-section-icon">▤</div>
-                <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
-                <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
+                <div><h3 class="business-section-title">{overview_title}</h3>
+                <p class="business-section-caption">{overview_caption}</p></div>
             </div>
             """, unsafe_allow_html=True)
             try:
@@ -3704,24 +3888,28 @@ elif selected_page == "Business Operations":
                 low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
                 stock_metric1, stock_metric2 = st.columns(2)
                 with stock_metric1:
+                    tot_items_lbl = "TOTAL ITEMS" if is_english else "एकूण वस्तू"
+                    tot_items_desc = "Registered inventory items" if is_english else "नोंदवलेल्या इन्व्हेंटरी आयटम्स"
                     st.markdown(
                         f"""
                         <div class="business-metric-card" style="margin-bottom:14px;">
-                            <div class="business-metric-label">एकूण वस्तू</div>
+                            <div class="business-metric-label">{tot_items_lbl}</div>
                             <div class="business-metric-value">{len(stock_df)}</div>
-                            <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
+                            <div class="business-metric-note">{tot_items_desc}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
                 with stock_metric2:
+                    low_stock_lbl = "LOW STOCK" if is_english else "कमी साठा"
+                    low_stock_desc = "Below or equal to limit" if is_english else "मर्यादेपेक्षा कमी किंवा समान"
                     low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
                     st.markdown(
                         f"""
                         <div class="business-metric-card" style="margin-bottom:14px;">
-                            <div class="business-metric-label">कमी साठा</div>
+                            <div class="business-metric-label">{low_stock_lbl}</div>
                             <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
-                            <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
+                            <div class="business-metric-note">{low_stock_desc}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
@@ -3729,12 +3917,20 @@ elif selected_page == "Business Operations":
                 display_df = stock_df.copy()
                 if 'barcode' in display_df.columns:
                     display_df = display_df.drop(columns=['barcode'])
-                display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if float(row.get('stock_qty', 0.0) or 0.0) <= float(row.get('alert_limit', 5.0) or 5.0) else "✅ In Stock", axis=1))
-                st.dataframe(display_df,  hide_index=True)
+                status_low = "🚨 Low Stock" if is_english else "🚨 कमी साठा"
+                status_ok = "✅ In Stock" if is_english else "✅ पुरेसा साठा"
+                display_df.insert(0, 'Status', display_df.apply(lambda row: status_low if float(row.get('stock_qty', 0.0) or 0.0) <= float(row.get('alert_limit', 5.0) or 5.0) else status_ok, axis=1))
+                if is_english:
+                    renames = {"id": "ID", "item_name": "Item Name", "stock_qty": "Stock Qty", "unit": "Unit", "alert_limit": "Alert Limit", "selling_price": "Selling Price (₹)"}
+                else:
+                    renames = {"id": "ID", "item_name": "वस्तूचे नाव", "stock_qty": "साठा प्रमाण", "unit": "एकक", "alert_limit": "सूचना मर्यादा", "selling_price": "विक्री दर (₹)"}
+                st.dataframe(display_df.rename(columns=renames), hide_index=True)
                 if not low_stock_items.empty:
                     # 🧠 AI PREDICTIVE REORDER LIST & WHOLESALE ORDER
-                    with st.expander("🧠 AI स्मार्ट साठा अंदाज आणि खरेदी यादी (AI Reorder List)", expanded=True):
-                        st.markdown("<div style='font-size:12px; color:#94a3b8; margin-bottom:8px;'>AI ने खपाच्या गतीनुसार खालीलप्रमाणे नवीन माल भरण्याचा अंदाज तयार केला आहे:</div>", unsafe_allow_html=True)
+                    reorder_exp_lbl = "🧠 AI Predictive Reorder List & Wholesale Order" if is_english else "🧠 AI स्मार्ट साठा अंदाज आणि खरेदी यादी (AI Reorder List)"
+                    with st.expander(reorder_exp_lbl, expanded=True):
+                        reorder_note = "AI estimated the following replenishment requirements based on current stock levels:" if is_english else "AI ने खपाच्या गतीनुसार खालीलप्रमाणे नवीन माल भरण्याचा अंदाज तयार केला आहे:"
+                        st.markdown(f"<div style='font-size:12px; color:#94a3b8; margin-bottom:8px;'>{reorder_note}</div>", unsafe_allow_html=True)
                         reorder_rows = []
                         order_lines = []
                         for _, r in low_stock_items.iterrows():
@@ -3748,27 +3944,43 @@ elif selected_page == "Business Operations":
                                 a_lim = 5.0
                             t_unit = str(r.get('unit', 'units') or 'units')
                             needed = max(1.0, math.ceil((a_lim * 3.0) - c_qty))
-                            reorder_rows.append({
-                                "वस्तू (Item)": str(r.get('item_name', '')),
-                                "सध्याचा साठा": f"{c_qty:g} {t_unit}",
-                                "सूचना मर्यादा": f"{a_lim:g} {t_unit}",
-                                "खरेदी शिफारस": f"{needed:g} {t_unit}"
-                            })
+                            if is_english:
+                                reorder_rows.append({
+                                    "Item": str(r.get('item_name', '')),
+                                    "Current Stock": f"{c_qty:g} {t_unit}",
+                                    "Alert Limit": f"{a_lim:g} {t_unit}",
+                                    "Recommended Order": f"{needed:g} {t_unit}"
+                                })
+                            else:
+                                reorder_rows.append({
+                                    "वस्तू (Item)": str(r.get('item_name', '')),
+                                    "सध्याचा साठा": f"{c_qty:g} {t_unit}",
+                                    "सूचना मर्यादा": f"{a_lim:g} {t_unit}",
+                                    "खरेदी शिफारस": f"{needed:g} {t_unit}"
+                                })
                             order_lines.append(f"• {r.get('item_name', '')}: {needed:g} {t_unit}")
                         
                         st.dataframe(pd.DataFrame(reorder_rows), hide_index=True, use_container_width=True)
                         
-                        wh_order_text = "🛒 *नवीन माल खरेदी ऑर्डर (Wholesale Purchase Order)*\nदुकानाचे नाव: VernaLedger Store\nतारीख: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nकृपया लवकरात लवकर डिलिव्हरी पाठवावी. धन्यवाद!"
+                        curr_shop_title = get_shop_setting("shop_name", "VernaLedger Store")
+                        if is_english:
+                            wh_order_text = f"🛒 *Wholesale Purchase Order*\nStore: {curr_shop_title}\nDate: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nPlease dispatch this order at your earliest convenience. Thank you!"
+                            wh_btn_text = "📲 Send Wholesale Order via WhatsApp"
+                        else:
+                            wh_order_text = f"🛒 *नवीन माल खरेदी ऑर्डर (Wholesale Purchase Order)*\nदुकानाचे नाव: {curr_shop_title}\nतारीख: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nकृपया लवकरात लवकर डिलिव्हरी पाठवावी. धन्यवाद!"
+                            wh_btn_text = "📲 घाऊक व्यापाऱ्याला व्हॉट्सॲप ऑर्डर पाठवा"
                         wh_link = f"https://wa.me/?text={urllib.parse.quote(wh_order_text)}"
                         st.markdown(f"""
                         <a href="{wh_link}" target="_blank" style="text-decoration: none;">
                             <button style="width: 100%; height: 38px; border-radius: 8px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; margin-bottom: 12px;">
-                                📲 घाऊक व्यापाऱ्याला व्हॉट्सॲप ऑर्डर पाठवा (WhatsApp to Supplier)
+                                {wh_btn_text}
                             </button>
                         </a>
                         """, unsafe_allow_html=True)
-                del_s_id = st.number_input("डिलिट करण्यासाठी स्टॉक ID", min_value=1, step=1, key="del_stock_id")
-                if st.button("Delete Stock Item"):
+                del_s_lbl = "Stock ID to delete" if is_english else "डिलिट करण्यासाठी स्टॉक ID"
+                del_s_id = st.number_input(del_s_lbl, min_value=1, step=1, key="del_stock_id")
+                del_s_btn_lbl = "Delete Stock Item" if is_english else "स्टॉक आयटम डिलीट करा"
+                if st.button(del_s_btn_lbl):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -3776,40 +3988,43 @@ elif selected_page == "Business Operations":
                             cursor.execute("DELETE FROM shop_inventory WHERE id=?", (del_s_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Stock ID {del_s_id}")
-                        st.success(f"Stock ID {del_s_id} deleted!")
+                        st.success(f"Stock ID {del_s_id} deleted!" if is_english else f"स्टॉक ID {del_s_id} यशस्वीरित्या डिलीट केला!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
             else:
-                st.info("कोणताही स्टॉक जोडलेला नाही.")
+                st.info("No stock items added yet." if is_english else "कोणताही स्टॉक जोडलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
-
-
 
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
         # Staff can now access this
-
         ec1, ec2 = st.columns([1, 1])
         with ec1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("""
+            exp_sec_title = "Record New Expense" if is_english else "नवीन खर्च नोंदवा"
+            exp_sec_caption = "Record expense title, category, amount, and date." if is_english else "खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा."
+            st.markdown(f"""
             <div class="business-section-heading">
                 <div class="business-section-icon">＋</div>
-                <div><h3 class="business-section-title">Record New Expense</h3>
-                <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
+                <div><h3 class="business-section-title">{exp_sec_title}</h3>
+                <p class="business-section-caption">{exp_sec_caption}</p></div>
             </div>
             """, unsafe_allow_html=True)
             with st.form("expense_form"):
-                e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
-                e_amount = st.number_input("Expense Amount", min_value=0.0, step=50.0)
-                e_cat = st.selectbox("खर्चाचा प्रकार (Category)", ["Shop Rent", "वीज बिल (Electricity)", "कर्मचारी पगार (Staff Salary)", "Transport", "Miscellaneous"])
-                e_date = st.text_input("Date", value=time.strftime("%Y-%m-%d"))
-                e_notes = st.text_area("तपशील / टीप (Notes)")
-                submit_exp = st.form_submit_button("खर्च सेव्ह करा")
+                e_title = st.text_input("Expense Title (e.g. Light Bill)" if is_english else "खर्चाचे शीर्षक (उदा. वीज बिल)")
+                e_amount = st.number_input("Expense Amount (₹)" if is_english else "खर्च रक्कम (₹)", min_value=0.0, step=50.0)
+                if is_english:
+                    exp_categories = ["Shop Rent", "Electricity Bill", "Staff Salary", "Transport", "Miscellaneous"]
+                else:
+                    exp_categories = ["दुकान भाडे", "वीज बिल", "कर्मचारी पगार", "वाहतूक", "इतर खर्च"]
+                e_cat = st.selectbox("Category" if is_english else "खर्चाचा प्रकार", exp_categories)
+                e_date = st.text_input("Date" if is_english else "तारीख", value=time.strftime("%Y-%m-%d"))
+                e_notes = st.text_area("Notes / Details" if is_english else "तपशील / टीप")
+                submit_exp = st.form_submit_button("Save Expense" if is_english else "खर्च सेव्ह करा")
                 if submit_exp:
                     if not e_title.strip() or e_amount <= 0:
-                        st.error("कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
+                        st.error("Please enter expense title and valid amount!" if is_english else "कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
                     else:
                         try:
                             with sqlite3.connect("ledger.db") as conn:
@@ -3821,18 +4036,20 @@ elif selected_page == "Business Operations":
                                 """, (e_title.strip(), e_amount, e_cat, e_date, e_notes))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Expense {e_title.strip()} - {e_amount}")
-                            st.success(f"Expense '{e_title}' successfully recorded!")
+                            st.success(f"Expense '{e_title}' successfully recorded!" if is_english else f"खर्च '{e_title}' यशस्वीरित्या नोंदवला गेला!")
                             st.rerun()
                         except Exception as ex:
                             st.error(f"Error: {ex}")
             st.markdown("</div>", unsafe_allow_html=True)
         with ec2:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("""
+            exp_ov_title = "Expenses Overview" if is_english else "खर्चाचा आढावा"
+            exp_ov_caption = "Recorded transactions and total expenditure." if is_english else "नोंदवलेले व्यवहार आणि एकूण खर्च."
+            st.markdown(f"""
             <div class="business-section-heading">
                 <div class="business-section-icon">▤</div>
-                <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
-                <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
+                <div><h3 class="business-section-title">{exp_ov_title}</h3>
+                <p class="business-section-caption">{exp_ov_caption}</p></div>
             </div>
             """, unsafe_allow_html=True)
             try:
@@ -3843,16 +4060,24 @@ elif selected_page == "Business Operations":
             if not exp_df.empty:
                 exp_df['amount'] = pd.to_numeric(exp_df['amount'], errors='coerce').fillna(0.0)
                 total_expenses = exp_df['amount'].sum()
+                tot_exp_lbl = "TOTAL BUSINESS EXPENSES" if is_english else "एकूण व्यवसाय खर्च"
+                tot_exp_count = f"{len(exp_df)} expense records" if is_english else f"{len(exp_df)} खर्च नोंदी"
                 st.markdown(f"""
                 <div class="business-metric-card" style="margin-bottom:14px;">
-                    <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
+                    <div class="business-metric-label">{tot_exp_lbl}</div>
                     <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
-                    <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
+                    <div class="business-metric-note">{tot_exp_count}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.dataframe(exp_df, use_container_width=True)
-                del_exp_id = st.number_input("Expense ID to delete", min_value=1, step=1, key="del_exp_id")
-                if st.button("Delete Expense Record"):
+                if is_english:
+                    exp_disp = exp_df.rename(columns={"id": "ID", "expense_title": "Title", "amount": "Amount (₹)", "category": "Category", "date": "Date", "notes": "Notes"})
+                else:
+                    exp_disp = exp_df.rename(columns={"id": "ID", "expense_title": "खर्चाचे शीर्षक", "amount": "रक्कम (₹)", "category": "प्रकार", "date": "तारीख", "notes": "तपशील"})
+                st.dataframe(exp_disp, use_container_width=True)
+                del_exp_lbl = "Expense ID to delete" if is_english else "डिलिट करण्यासाठी खर्च ID"
+                del_exp_id = st.number_input(del_exp_lbl, min_value=1, step=1, key="del_exp_id")
+                del_exp_btn_lbl = "Delete Expense Record" if is_english else "खर्च नोंद डिलीट करा"
+                if st.button(del_exp_btn_lbl):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -3860,22 +4085,24 @@ elif selected_page == "Business Operations":
                             cursor.execute("DELETE FROM business_expenses WHERE id=?", (del_exp_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Expense ID {del_exp_id}")
-                        st.success(f"Expense ID {del_exp_id} deleted!")
+                        st.success(f"Expense ID {del_exp_id} deleted!" if is_english else f"खर्च ID {del_exp_id} डिलीट झाला!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
             else:
-                st.info("No expenses recorded.")
+                st.info("No expenses recorded yet." if is_english else "कोणताही खर्च नोंदवलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
 
     with tab_shop_profile:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.markdown("""
+        prof_heading_title = "Shop Profile & UPI Configuration" if is_english else "दुकानाचे प्रोफाइल आणि UPI कॉन्फिगरेशन"
+        prof_heading_caption = "Set store name, address, and live UPI ID. These details are automatically used in thermal slips, QR codes, and WhatsApp messages." if is_english else "दुकानाचे नाव, पत्ता आणि खरा UPI ID सेट करा. हे तपशील थर्मल पावती, QR कोड आणि व्हॉट्सॲप मेसेजमध्ये आपोआप वापरले जातील."
+        st.markdown(f"""
         <div class="business-section-heading">
             <div class="business-section-icon">⚙️</div>
             <div>
-                <h3 class="business-section-title">Shop Profile & UPI Configuration</h3>
-                <p class="business-section-caption">दुकानाचे नाव, पत्ता आणि खरा UPI ID सेट करा. हे तपशील थर्मल पावती, QR कोड आणि व्हॉट्सॲप मेसेजमध्ये आपोआप वापरले जातील.</p>
+                <h3 class="business-section-title">{prof_heading_title}</h3>
+                <p class="business-section-caption">{prof_heading_caption}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -3884,31 +4111,36 @@ elif selected_page == "Business Operations":
         cur_shop_owner = get_shop_setting("shop_owner", "VernaLedger Admin")
         cur_shop_upi = get_shop_setting("shop_upi_id", "vernaledger@upi")
         cur_shop_phone = get_shop_setting("shop_phone", "+91 9822000000")
-        cur_shop_addr = get_shop_setting("shop_address", "मेन मार्केट रोड, सातारा, महाराष्ट्र")
-        cur_shop_tagline = get_shop_setting("shop_tagline", "धन्यवाद! पुन्हा भेट द्या.")
+        cur_shop_addr = get_shop_setting("shop_address", "Main Market Road, Satara, Maharashtra" if is_english else "मेन मार्केट रोड, सातारा, महाराष्ट्र")
+        cur_shop_tagline = get_shop_setting("shop_tagline", "Thank you! Visit again." if is_english else "धन्यवाद! पुन्हा भेट द्या.")
         cur_shop_gstin = get_shop_setting("shop_gstin", "27AAAAA0000A1Z5")
 
         prof_c1, prof_c2 = st.columns([1.1, 0.9])
         with prof_c1:
             with st.form("shop_profile_form"):
-                st.markdown("##### 🏪 दुकानाचे मूळ तपशील (Store Information):")
-                f_name = st.text_input("दुकानाचे नाव (Shop / Store Name):", value=cur_shop_name)
-                f_owner = st.text_input("मालक / प्राप्तकर्त्याचे नाव (Payee / Owner Name):", value=cur_shop_owner)
-                f_upi = st.text_input("व्यवसायाचा खरा UPI ID (Business UPI ID e.g. shop@okaxis):", value=cur_shop_upi, help="ग्राहक QR स्कॅन केल्यावर या UPI आयडीवर थेट रक्कम जमा होईल.")
+                st.markdown("##### " + ("🏪 Store Information:" if is_english else "🏪 दुकानाचे मूळ तपशील:"))
+                f_name = st.text_input("Shop / Store Name:" if is_english else "दुकानाचे नाव:", value=cur_shop_name)
+                f_owner = st.text_input("Payee / Owner Name:" if is_english else "मालक / प्राप्तकर्त्याचे नाव:", value=cur_shop_owner)
+                f_upi = st.text_input(
+                    "Business UPI ID (e.g. shop@okaxis):" if is_english else "व्यवसायाचा खरा UPI ID (उदा. shop@okaxis):",
+                    value=cur_shop_upi,
+                    help="Payments from customer QR scans will be credited directly to this UPI ID." if is_english else "ग्राहक QR स्कॅन केल्यावर या UPI आयडीवर थेट रक्कम जमा होईल."
+                )
                 
                 f_col_sub1, f_col_sub2 = st.columns(2)
                 with f_col_sub1:
-                    f_phone = st.text_input("मोबाईल / संपर्क क्रमांक:", value=cur_shop_phone)
+                    f_phone = st.text_input("Mobile / Contact Number:" if is_english else "मोबाईल / संपर्क क्रमांक:", value=cur_shop_phone)
                 with f_col_sub2:
-                    f_gstin = st.text_input("GSTIN (ऐच्छिक):", value=cur_shop_gstin)
+                    f_gstin = st.text_input("GSTIN (Optional):" if is_english else "GSTIN (ऐच्छिक):", value=cur_shop_gstin)
                 
-                f_addr = st.text_area("दुकानाचा पत्ता (Shop Address):", value=cur_shop_addr, height=70)
-                f_tagline = st.text_input("पावतीवरील शुभेच्छा / तळटीप (Receipt Footer):", value=cur_shop_tagline)
+                f_addr = st.text_area("Shop Address:" if is_english else "दुकानाचा पत्ता:", value=cur_shop_addr, height=70)
+                f_tagline = st.text_input("Receipt Footer Tagline:" if is_english else "पावतीवरील शुभेच्छा / तळटीप:", value=cur_shop_tagline)
 
-                save_prof_btn = st.form_submit_button("💾 प्रोफाइल व UPI सेव्ह करा (Save Configuration)", type="primary", use_container_width=True)
+                save_prof_btn_lbl = "💾 Save Configuration & UPI" if is_english else "💾 प्रोफाइल व UPI सेव्ह करा"
+                save_prof_btn = st.form_submit_button(save_prof_btn_lbl, type="primary", use_container_width=True)
                 if save_prof_btn:
                     if not f_name.strip() or not f_upi.strip():
-                        st.error("कृपया दुकानाचे नाव आणि UPI ID भरा!")
+                        st.error("Please enter shop name and UPI ID!" if is_english else "कृपया दुकानाचे नाव आणि UPI ID भरा!")
                     else:
                         set_shop_setting("shop_name", f_name.strip())
                         set_shop_setting("shop_owner", f_owner.strip())
@@ -3918,16 +4150,17 @@ elif selected_page == "Business Operations":
                         set_shop_setting("shop_tagline", f_tagline.strip())
                         set_shop_setting("shop_gstin", f_gstin.strip())
                         log_activity(st.session_state.get('current_username', 'admin'), "Updated Shop Profile & UPI Settings")
-                        st.toast("✅ दुकानाची माहिती व UPI ID सुरक्षित सेव्ह झाले!", icon="💾")
-                        st.success("सर्व बदल यशस्वीरित्या जतन झाले! पावती व QR कोड त्वरित अपडेट झाले आहेत.")
+                        st.toast("Shop info & UPI saved successfully!" if is_english else "✅ दुकानाची माहिती व UPI ID सुरक्षित सेव्ह झाले!", icon="💾")
+                        st.success("Configuration saved successfully! Receipts and QR codes updated instantly." if is_english else "सर्व बदल यशस्वीरित्या जतन झाले! पावती व QR कोड त्वरित अपडेट झाले आहेत.")
                         st.rerun()
 
         with prof_c2:
-            st.markdown("##### ⚡ थेट UPI टेस्ट QR कोड (Live Test Preview):")
-            test_amt = st.number_input("चाचणी रक्कम (Test ₹):", min_value=1.0, value=10.0, step=10.0, key="upi_test_amt_input")
+            st.markdown("##### " + ("⚡ Live UPI Test QR Code:" if is_english else "⚡ थेट UPI टेस्ट QR कोड:"))
+            test_amt = st.number_input("Test Amount (₹):" if is_english else "चाचणी रक्कम (₹):", min_value=1.0, value=10.0, step=10.0, key="upi_test_amt_input")
             
             test_qr_b64 = generate_upi_qr_base64(test_amt, vpa=cur_shop_upi, payee_name=cur_shop_owner or cur_shop_name, note="UPI Verification")
             
+            qr_scan_note = "Scan this QR with Google Pay, PhonePe, or Paytm to verify payments directly." if is_english else "हा QR तुमच्या मोबाईलवरील GPay, PhonePe किंवा Paytm ने स्कॅन करून थेट पडताळणी करू शकता."
             st.markdown(f"""
             <div style='background:rgba(0,0,0,0.35); border:1px dashed rgba(0, 242, 254, 0.5); border-radius:12px; padding:16px; text-align:center;'>
                 <div style='font-size:12px; font-weight:700; color:#00f2fe; margin-bottom:4px;'>{cur_shop_name}</div>
@@ -3935,18 +4168,20 @@ elif selected_page == "Business Operations":
                 <img src="data:image/png;base64,{test_qr_b64}" style="width: 140px; height: 140px; border-radius: 8px; background: white; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
                 <div style='font-size:16px; font-weight:800; color:#00ff87; margin-top:8px;'>₹{test_amt:,.2f}</div>
                 <div style='font-size:10px; color:#cbd5e1; margin-top:4px;'>
-                    हा QR तुमच्या मोबाईलवरील GPay, PhonePe किंवा Paytm ने स्कॅन करून थेट पडताळणी करू शकता.
+                    {qr_scan_note}
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             st.markdown("<div style='margin-top:14px;'>", unsafe_allow_html=True)
+            slip_hdr_title = "🧾 POS Receipt Header Preview:" if is_english else "🧾 पावती हेडर पूर्वावलोकन:"
+            phone_lbl_text = "Phone:" if is_english else "मोबाईल:"
             st.markdown(f"""
             <div style='background:rgba(255,255,255,0.04); border-left:3px solid #00f2fe; padding:10px; border-radius:4px;'>
-                <div style='font-size:11px; font-weight:700; color:#00f2fe;'>🧾 पावती हेडर पूर्वावलोकन (POS Slip Header):</div>
+                <div style='font-size:11px; font-weight:700; color:#00f2fe;'>{slip_hdr_title}</div>
                 <div style='font-size:12px; font-weight:bold; color:#fff; margin-top:4px;'>{cur_shop_name}</div>
                 <div style='font-size:10px; color:#94a3b8;'>{cur_shop_addr}</div>
-                <div style='font-size:10px; color:#94a3b8;'>मोबाईल: {cur_shop_phone} | GST: {cur_shop_gstin}</div>
+                <div style='font-size:10px; color:#94a3b8;'>{phone_lbl_text} {cur_shop_phone} | GST: {cur_shop_gstin}</div>
             </div>
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
@@ -3971,10 +4206,10 @@ elif selected_page == "Staff Management":
         st.markdown(f"<h4 style='color:#00f2fe; margin-top:0;'>{form_heading}</h4>", unsafe_allow_html=True)
 
         with st.form("new_staff_form"):
-            user_lbl = "Username" if is_english else "वापरकर्ता नाव (Username)"
-            phone_lbl = "Phone Number" if is_english else "मोबाईल नंबर (Phone Number)"
+            user_lbl = "Username" if is_english else "वापरकर्ता नाव"
+            phone_lbl = "Phone Number" if is_english else "मोबाईल नंबर"
             pass_lbl = "Password (Min 6 digits)" if is_english else "पासवर्ड (किमान ६ अंक/अक्षरे)"
-            role_lbl = "Role" if is_english else "भूमिका (Role)"
+            role_lbl = "Role" if is_english else "भूमिका"
 
             s_user = st.text_input(user_lbl, key="staff_reg_user")
             s_phone = st.text_input(phone_lbl, key="staff_reg_phone")
@@ -4065,22 +4300,29 @@ elif selected_page == "Staff Management":
 
 # FEATURE 7: LEDGER DATABASE ---
 elif selected_page == "Ledger Database":
-    render_page_header("Ledger Database & Export", "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads", "📊")
+    is_english = st.session_state.get("ui_language", "en") == "en"
+    db_title = "Ledger Database & Export" if is_english else "लेजर डेटाबेस आणि निर्यात"
+    db_sub = "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads" if is_english else "डेटा साठा, प्रगत फिल्टर्स, सुलभ मांडणी आणि अहवाल डाऊनलोड"
+    render_page_header(db_title, db_sub, "📊")
 
     # KPI Widgets
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         tot_exp = f"{df['grand_total'].sum():,.2f}" if not df.empty else "0.00"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL REVENUE / SALES</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
+        kpi1_title = "TOTAL REVENUE / SALES" if is_english else "एकूण महसूल / विक्री"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi1_title}</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
     with k2:
         tot_rec = len(df) if not df.empty else 0
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL BILLS/ORDERS</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
+        kpi2_title = "TOTAL BILLS/ORDERS" if is_english else "एकूण बिले / ऑर्डर्स"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi2_title}</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
     with k3:
         avg_exp = f"{df['grand_total'].mean():,.2f}" if not df.empty else "0.00"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>AVG TICKET SIZE</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
+        kpi3_title = "AVG TICKET SIZE" if is_english else "सरासरी बिल रक्कम"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi3_title}</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
     with k4:
         top_v = df.groupby('vendor_name')['grand_total'].sum().idxmax() if not df.empty and 'vendor_name' in df.columns else "N/A"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOP PERFORMING SHOP</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
+        kpi4_title = "TOP PERFORMING SHOP" if is_english else "सर्वोत्कृष्ट दुकान"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi4_title}</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
 
     # Quick Cashflow / Udhar Summary (Khatabook Style)
     try:
@@ -4092,33 +4334,34 @@ elif selected_page == "Ledger Database":
     except Exception:
         total_unpaid = total_collected = total_overdue = 0.0
 
-    st.markdown("##### ⚡ Quick Cashflow / Udhar Summary")
+    cf_heading = "##### ⚡ Quick Cashflow / Udhar Summary" if is_english else "##### ⚡ रोख प्रवाह व उधारी गोषवारा"
+    st.markdown(cf_heading)
     c1, c2, c3, c4 = st.columns([1, 1, 1, 1.2])
     with c1:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>✅ CASH RECOVERED</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
+        c1_title = "✅ CASH RECOVERED" if is_english else "✅ रोख वसूल रक्कम"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c1_title}</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>⏳ PENDING UDHAR</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
+        c2_title = "⏳ PENDING UDHAR" if is_english else "⏳ बाकी उधारी"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c2_title}</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
     with c3:
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>🚨 OVERDUE (AT RISK)</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
+        c3_title = "🚨 OVERDUE (AT RISK)" if is_english else "🚨 थकीत (जोखीम)"
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c3_title}</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
     with c4:
-        db_is_en = st.session_state.get("ui_language", "en") == "en"
-        daily_digest_msg = generate_daily_whatsapp_digest(is_english=db_is_en)
+        daily_digest_msg = generate_daily_whatsapp_digest(is_english=is_english)
         daily_wa_url = f"https://wa.me/?text={urllib.parse.quote(daily_digest_msg)}"
+        c4_title = "🌙 DAILY BUSINESS DIGEST" if is_english else "🌙 दैनिक व्यवसाय गोषवारा"
+        wa_btn_text = "💬 Send on WhatsApp" if is_english else "💬 व्हॉट्सॲपवर पाठवा"
         st.markdown(f"""
         <div class='panel-card' style='margin-bottom:15px; border-left:4px solid #25d366;'>
-            <div style='font-size:11px; color:#94a3b8; font-weight:700;'>🌙 DAILY BUSINESS DIGEST</div>
+            <div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c4_title}</div>
             <a href='{daily_wa_url}' target='_blank' style='text-decoration:none;'>
                 <button style='width:100%; height:32px; border-radius:6px; background:#25d366; color:#000; font-weight:700; border:none; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px;'>
-                    💬 व्हॉट्सॲपवर पाठवा
+                    {wa_btn_text}
                 </button>
             </a>
         </div>
         """, unsafe_allow_html=True)
 
-
-    
-
-    
     if not df.empty:
         col_db_left, col_db_right = st.columns([1.2, 0.8])
         
@@ -4127,18 +4370,20 @@ elif selected_page == "Ledger Database":
             
             f_col1, f_col2, f_col3 = st.columns(3)
             with f_col1:
-                v_options = ["All Shops/Vendors"] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else ["All Shops/Vendors"]
-                selected_db_shop = st.selectbox("Select Shop / Vendor", v_options)
+                all_shops_txt = "All Shops/Vendors" if is_english else "सर्व दुकाने / व्यापारी"
+                v_options = [all_shops_txt] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else [all_shops_txt]
+                selected_db_shop = st.selectbox("Select Shop / Vendor" if is_english else "दुकान / व्यापारी निवडा", v_options)
             with f_col2:
-                cat_options = ["All Categories"] + list(df['category'].dropna().unique()) if 'category' in df.columns else ["All Categories"]
-                selected_db_cat = st.selectbox("Select Category", cat_options)
+                all_cats_txt = "All Categories" if is_english else "सर्व वर्ग"
+                cat_options = [all_cats_txt] + list(df['category'].dropna().unique()) if 'category' in df.columns else [all_cats_txt]
+                selected_db_cat = st.selectbox("Select Category" if is_english else "वर्ग निवडा", cat_options)
             with f_col3:
-                search_query = st.text_input("Quick Search", placeholder="Search anything...")
+                search_query = st.text_input("Quick Search" if is_english else "जलद शोध", placeholder="Search anything..." if is_english else "काहीही शोधा...")
 
             display_df = df.copy()
-            if selected_db_shop != "All Shops/Vendors":
+            if selected_db_shop not in ["All Shops/Vendors", "सर्व दुकाने / व्यापारी"]:
                 display_df = display_df[display_df['vendor_name'] == selected_db_shop]
-            if selected_db_cat != "All Categories":
+            if selected_db_cat not in ["All Categories", "सर्व वर्ग"]:
                 display_df = display_df[display_df['category'] == selected_db_cat]
             if search_query.strip():
                 q = search_query.strip().lower()
@@ -4150,20 +4395,23 @@ elif selected_page == "Ledger Database":
             
             h_col_title, h_col_plus = st.columns([0.85, 0.15])
             with h_col_title:
-                st.markdown("#### 📋 Ledger Database Sheet")
+                sheet_heading = "#### 📋 Ledger Database Sheet" if is_english else "#### 📋 लेजर डेटाबेस शीट"
+                st.markdown(sheet_heading)
             with h_col_plus:
-                if st.button("➕", help="नवीन रो जोडा (Add New Row)"):
+                add_row_help = "Add New Row" if is_english else "नवीन नोंद जोडा"
+                if st.button("➕", help=add_row_help):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
                             cursor = conn.cursor()
+                            shop_init = "New Shop" if is_english else "नवीन दुकान"
                             cursor.execute("""
                             INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json)
                             VALUES (?, ?, ?, ?, ?)
-                            """, ("नवीन दुकान", time.strftime("%Y-%m-%d"), "General", 0.0, '{"items":[]}'))
+                            """, (shop_init, time.strftime("%Y-%m-%d"), "General", 0.0, '{"items":[]}'))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), "Added New Empty Receipt Row via Plus Icon")
-                        st.success("नवीन रो Successfully जोडली गेली!")
+                        st.success("New row successfully added!" if is_english else "नवीन रो यशस्वीरित्या जोडली गेली!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
@@ -4177,14 +4425,17 @@ elif selected_page == "Ledger Database":
                     return "N/A"
 
             sheet_preview_df = display_df[['id', 'vendor_name', 'date', 'category', 'grand_total']].copy()
-            sheet_preview_df['Items Summary'] = display_df['raw_json'].apply(get_items_clean_summary) if 'raw_json' in display_df.columns else "N/A"
-            sheet_preview_df.insert(0, "Select", False)
+            summary_col_name = "Items Summary" if is_english else "वस्तूंचा गोषवारा"
+            sheet_preview_df[summary_col_name] = display_df['raw_json'].apply(get_items_clean_summary) if 'raw_json' in display_df.columns else "N/A"
+            select_col_name = "Select" if is_english else "निवडा"
+            sheet_preview_df.insert(0, select_col_name, False)
             
-            edited_sheet_df = st.data_editor(sheet_preview_df,  key="ledger_checkbox_table")
+            edited_sheet_df = st.data_editor(sheet_preview_df, key="ledger_checkbox_table")
             
-            selected_ids = edited_sheet_df[edited_sheet_df['Select'] == True]['id'].tolist()
+            selected_ids = edited_sheet_df[edited_sheet_df[select_col_name] == True]['id'].tolist()
             if selected_ids:
-                if st.button(f"🗑️ निवडलेले records डिलीट करा ({len(selected_ids)})", type="primary"):
+                del_records_btn_lbl = f"🗑️ Delete Selected Records ({len(selected_ids)})" if is_english else f"🗑️ निवडलेले रेकॉर्ड्स डिलीट करा ({len(selected_ids)})"
+                if st.button(del_records_btn_lbl, type="primary"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -4193,7 +4444,7 @@ elif selected_page == "Ledger Database":
                                 cursor.execute("DELETE FROM receipts WHERE id = ?", (s_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Receipt IDs via checkbox: {selected_ids}")
-                        st.success(f"Successfully {len(selected_ids)} रेकॉर्ड deleted!")
+                        st.success(f"Successfully deleted {len(selected_ids)} record(s)!" if is_english else f"यशस्वीरित्या {len(selected_ids)} रेकॉर्ड डिलीट केले!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
@@ -4202,21 +4453,25 @@ elif selected_page == "Ledger Database":
             
         with col_db_right:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            st.markdown("#### 📥 अहवाल आणि डाऊनलोड (Reports & Export)")
-            st.markdown("<div style='font-size:12px; color:#94a3b8; margin-bottom:10px;'>तारीख आणि दुकान निवडून अहवाल डाऊनलोड करा:</div>", unsafe_allow_html=True)
+            export_heading = "#### 📥 Reports & Export" if is_english else "#### 📥 अहवाल आणि निर्यात"
+            export_sub = "Select date and shop to export reports:" if is_english else "तारीख आणि दुकान निवडून अहवाल डाऊनलोड करा:"
+            st.markdown(export_heading)
+            st.markdown(f"<div style='font-size:12px; color:#94a3b8; margin-bottom:10px;'>{export_sub}</div>", unsafe_allow_html=True)
             
-            dl_shop_options = ["All Shops/Vendors"] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else ["All Shops/Vendors"]
-            dl_selected_shop = st.selectbox("दुकान निवडून डाउनलोड करा (Select Shop)", dl_shop_options, key="dl_shop_filter_select")
-            report_lang = st.selectbox("पावतीची भाषा निवडा:", ["मराठी", "हिंदी", "English"], key="dl_report_lang_select")
+            dl_all_shops = "All Shops/Vendors" if is_english else "सर्व दुकाने / व्यापारी"
+            dl_shop_options = [dl_all_shops] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else [dl_all_shops]
+            dl_selected_shop = st.selectbox("Select Shop to Export" if is_english else "अहवालासाठी दुकान निवडा", dl_shop_options, key="dl_shop_filter_select")
+            report_lang_lbl = "Receipt Language:" if is_english else "पावतीची भाषा निवडा:"
+            report_lang = st.selectbox(report_lang_lbl, ["मराठी", "हिंदी", "English"], key="dl_report_lang_select")
             
             d_col1, d_col2 = st.columns(2)
             with d_col1:
-                start_date_filter = st.date_input("पासून (Start Date)", value=pd.to_datetime("2026-01-01").date())
+                start_date_filter = st.date_input("From (Start Date)" if is_english else "पासून (सुरुवात तारीख)", value=pd.to_datetime("2026-01-01").date())
             with d_col2:
-                end_date_filter = st.date_input("पर्यंत (End Date)", value=pd.Timestamp.now().date())
+                end_date_filter = st.date_input("To (End Date)" if is_english else "पर्यंत (अंतिम तारीख)", value=pd.Timestamp.now().date())
             
             report_df = df.copy()
-            if dl_selected_shop != "All Shops/Vendors":
+            if dl_selected_shop not in ["All Shops/Vendors", "सर्व दुकाने / व्यापारी"]:
                 report_df = report_df[report_df['vendor_name'] == dl_selected_shop]
                 
             if not report_df.empty and 'date' in report_df.columns:
@@ -4239,12 +4494,15 @@ elif selected_page == "Ledger Database":
                 csv_df['SGST 2.5% (₹)'] = csv_df.apply(lambda r: round(float(r['grand_total'] or 0) - r['Taxable Value (₹)'] - r['CGST 2.5% (₹)'], 2), axis=1)
                 
             csv_data = csv_df.to_csv(index=False).encode('utf-8-sig')
-            st.download_button("📊 Export Clean CSV (सह GST & Items)", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv", use_container_width=True)
-            st.download_button(f"📄 Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html", use_container_width=True)
+            csv_btn_lbl = "📊 Export Clean CSV (with GST & Items)" if is_english else "📊 संपूर्ण CSV डाऊनलोड (GST सह)"
+            st.download_button(csv_btn_lbl, data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv", use_container_width=True)
+            html_btn_lbl = f"📄 Export {report_lang} Report (.html)" if is_english else f"📄 {report_lang} अहवाल (.html) डाऊनलोड"
+            st.download_button(html_btn_lbl, data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html", use_container_width=True)
             
             # Database Backup & Restore Card
             st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
-            st.markdown("##### 💾 डेटाबेस बॅकअप आणि रिस्टोअर (Backup & Restore)")
+            backup_restore_heading = "##### 💾 Database Backup & Restore" if is_english else "##### 💾 डेटाबेस बॅकअप आणि रिस्टोअर"
+            st.markdown(backup_restore_heading)
             
             db_bytes = b""
             if os.path.exists("ledger.db"):
@@ -4254,8 +4512,9 @@ elif selected_page == "Ledger Database":
                 except Exception as e:
                     ai_logger.error(f"Failed to read ledger.db: {e}")
             
+            dl_backup_lbl = "📥 Download Full Database Backup (.db)" if is_english else "📥 संपूर्ण डेटाबेस बॅकअप (.db डाउनलोड)"
             st.download_button(
-                "📥 संपूर्ण डेटाबेस बॅकअप (.db डाउनलोड)",
+                dl_backup_lbl,
                 data=db_bytes,
                 file_name=f"VernaLedger_Backup_{date.today().strftime('%Y-%m-%d')}.db",
                 mime="application/x-sqlite3",
@@ -4263,24 +4522,27 @@ elif selected_page == "Ledger Database":
                 key="btn_download_db_backup"
             )
             
-            with st.expander("📤 डेटाबेस रिस्टोअर करा (Restore DB Backup)", expanded=False):
-                uploaded_db = st.file_uploader("बॅकअप फाईल निवडा (.db)", type=["db", "sqlite", "sqlite3"], key="uploader_restore_db")
+            exp_restore_title = "📤 Restore Database Backup" if is_english else "📤 डेटाबेस रिस्टोअर करा"
+            with st.expander(exp_restore_title, expanded=False):
+                upload_db_lbl = "Select Backup File (.db)" if is_english else "बॅकअप फाईल निवडा (.db)"
+                uploaded_db = st.file_uploader(upload_db_lbl, type=["db", "sqlite", "sqlite3"], key="uploader_restore_db")
                 if uploaded_db is not None:
-                    if st.button("⚠️ रिस्टोअरची पुष्टी करा (Confirm Restore)", type="primary", use_container_width=True):
+                    confirm_restore_lbl = "⚠️ Confirm Restore" if is_english else "⚠️ रिस्टोअरची पुष्टी करा"
+                    if st.button(confirm_restore_lbl, type="primary", use_container_width=True):
                         try:
                             with open("ledger.db", "wb") as f_restore:
                                 f_restore.write(uploaded_db.getbuffer())
-                            st.toast("✅ डेटाबेस यशस्वीरित्या रिस्टोअर झाला!", icon="💾")
-                            st.success("डेटाबेस यशस्वीरित्या रिस्टोअर झाला! ॲप रिफ्रेश होत आहे...")
+                            st.toast("✅ Database restored successfully!" if is_english else "✅ डेटाबेस यशस्वीरित्या रिस्टोअर झाला!", icon="💾")
+                            st.success("Database restored successfully! Refreshing app..." if is_english else "डेटाबेस यशस्वीरित्या रिस्टोअर झाला! ॲप रिफ्रेश होत आहे...")
                             time.sleep(1)
                             st.rerun()
                         except Exception as re_err:
-                            st.error(f"रिस्टोअर त्रुटी: {re_err}")
+                            st.error(f"Restore Error: {re_err}" if is_english else f"रिस्टोअर त्रुटी: {re_err}")
             
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.info("Ledger database is empty.")
+        st.info("Ledger database is empty." if is_english else "लेजर डेटाबेस रिकामा आहे.")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 8: RAG AI CHATBOT ---
@@ -4465,15 +4727,22 @@ main.block-container {
 </style>
 """, unsafe_allow_html=True)
 
-    render_page_header("Verna AI Chatbot", "Your Smart Ledger & Business Assistant", "✨")
+    is_english = st.session_state.get("ui_language", "en") == "en"
+    rag_title = "Verna AI Chatbot" if is_english else "व्हर्ना एआय चॅटबॉट"
+    rag_sub = "Your Smart Ledger & Business Assistant" if is_english else "तुमचा स्मार्ट लेजर आणि व्यवसाय सहाय्यक"
+    render_page_header(rag_title, rag_sub, "✨")
     _, toggle_col, _ = st.columns([1, 2, 1])
     with toggle_col:
-        enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+        voice_lbl = "Voice Output" if is_english else "व्हॉईस आउटपुट"
+        voice_help = "Toggle audio response ON/OFF" if is_english else "ऑडिओ उत्तर चालू किंवा बंद करा"
+        enable_voice_output = st.toggle(voice_lbl, value=True, help=voice_help)
 
     if not API_KEY:
         st.warning(
             "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
             "or the environment to enable AI chat. Never share the key publicly."
+            if is_english else
+            "Gemini कॉन्फिगर केलेले नाही. AI चॅट सक्षम करण्यासाठी GEMINI_API_KEY Streamlit secrets मध्ये जोडा."
         )
 
     if "chat_history" not in st.session_state:
@@ -4481,10 +4750,11 @@ main.block-container {
 
     with st.container(key="rag_chat_history"):
         if not st.session_state["chat_history"]:
-            st.markdown("""
+            greeting_text = "Hello! Ask me anything about your shop ledger, stock, or expenses." if is_english else "नमस्कार! तुमच्या दुकानाचे लेजर, साठा किंवा खर्चाबद्दल मला काहीही विचारा."
+            st.markdown(f"""
 <section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
   <div class="verna-ai-greeting-inner">
-    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">{greeting_text}</p>
   </div>
 </section>
 """, unsafe_allow_html=True)
