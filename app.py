@@ -784,24 +784,50 @@ def render_business_module_styles():
 
 
 def render_page_header(title, subtitle, icon="✨"):
+    is_english = st.session_state.get("ui_language", "en") == "en"
+    today_disp = date.today().strftime("%d %b %Y")
+    status_label = "LIVE STUDIO" if is_english else "लाइव्ह स्टुडिओ"
     st.markdown(f"""
     <div style="
+        position: relative;
+        overflow: hidden;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 14px 20px;
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(13, 19, 33, 0.8) 100%);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(0, 242, 254, 0.25);
-        border-radius: 14px;
+        padding: 16px 22px;
+        background: radial-gradient(circle at 90% 10%, rgba(0, 242, 254, 0.15), transparent 40%),
+                    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 16, 32, 0.9) 100%);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(0, 242, 254, 0.35);
+        border-radius: 18px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(0, 242, 254, 0.1);
     ">
         <div>
-            <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #00f2fe; letter-spacing: normal;">{title}</h2>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; line-height: 1.4;">{subtitle}</p>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; color: #00ff87; background: rgba(0, 255, 135, 0.12); border: 1px solid rgba(0, 255, 135, 0.35); padding: 2px 8px; border-radius: 12px; letter-spacing: 0.5px;">
+                    <span style="width: 6px; height: 6px; background: #00ff87; border-radius: 50%; box-shadow: 0 0 6px #00ff87;"></span>
+                    {status_label}
+                </span>
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">📅 {today_disp}</span>
+            </div>
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #ffffff 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.3px;">{title}</h2>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; line-height: 1.4;">{subtitle}</p>
         </div>
-        <div style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,242,254,0.3));">{icon}</div>
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(99, 102, 241, 0.15));
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 14px;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            margin-left: 12px;
+        ">{icon}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -993,28 +1019,95 @@ def render_customer_khata():
         lbl_overdue_credit = "OVERDUE CREDIT" if is_english else "मुदतबाह्य उधारी (Overdue)"
         lbl_overdue_count = f"{overdue_count} Accounts Overdue" if is_english else f"{overdue_count} खाती थकीत"
 
+        safe_rec_pct = min(100.0, max(0.0, recovery_pct))
         st.markdown(
             f'''
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px;">
-                <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">{lbl_tot_credit}</div>
-                    <div style="font-size: 20px; font-weight: 800; color: #f1f5f9; margin-top: 4px;">₹{total_credit:,.2f}</div>
-                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">{lbl_cust_accounts}</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px;">
+                <!-- Total Credit Given -->
+                <div style="
+                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+                    border: 1px solid rgba(148, 163, 184, 0.25);
+                    border-top: 3px solid #94a3b8;
+                    border-radius: 16px;
+                    padding: 14px 16px;
+                    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_tot_credit}</span>
+                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(148, 163, 184, 0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">💳</div>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: #f8fafc; letter-spacing: -0.5px;">₹{total_credit:,.2f}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-weight: 600;">👥 {lbl_cust_accounts}</div>
                 </div>
-                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">{lbl_rec_amount}</div>
-                    <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 4px;">₹{total_payment:,.2f}</div>
-                    <div style="font-size: 10px; color: #34d399; margin-top: 2px;">{lbl_rec_rate}</div>
+
+                <!-- Recovered Amount -->
+                <div style="
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.3) 100%);
+                    border: 1px solid rgba(16, 185, 129, 0.35);
+                    border-top: 3px solid #10b981;
+                    border-radius: 16px;
+                    padding: 14px 16px;
+                    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.1);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #a7f3d0; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_rec_amount}</span>
+                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; font-size: 14px;">✅</div>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: #10b981; letter-spacing: -0.5px;">₹{total_payment:,.2f}</div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #34d399; margin-top: 6px; font-weight: 600;">
+                            <span>{lbl_rec_rate}</span>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.2); height: 4px; border-radius: 2px; margin-top: 4px; overflow: hidden;">
+                            <div style="width: {safe_rec_pct:.1f}%; height: 100%; background: #10b981; border-radius: 2px;"></div>
+                        </div>
+                    </div>
                 </div>
-                <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(3, 105, 161, 0.2)); border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.1);">
-                    <div style="font-size: 11px; color: #bae6fd; font-weight: 700; text-transform: uppercase;">{lbl_net_balance}</div>
-                    <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 4px;">₹{total_balance:,.2f}</div>
-                    <div style="font-size: 10px; color: #7dd3fc; margin-top: 2px;">{lbl_net_desc}</div>
+
+                <!-- Outstanding Balance -->
+                <div style="
+                    background: linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(3, 105, 161, 0.25) 100%);
+                    border: 1px solid rgba(14, 165, 233, 0.4);
+                    border-top: 3px solid #38bdf8;
+                    border-radius: 16px;
+                    padding: 14px 16px;
+                    box-shadow: 0 4px 18px rgba(14, 165, 233, 0.12);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #bae6fd; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_net_balance}</span>
+                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(14, 165, 233, 0.25); display: flex; align-items: center; justify-content: center; font-size: 14px;">⏳</div>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">₹{total_balance:,.2f}</div>
+                    <div style="font-size: 11px; color: #7dd3fc; margin-top: 6px; font-weight: 600;">💼 {lbl_net_desc}</div>
                 </div>
-                <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(153, 27, 27, 0.2)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 12px; text-align: center;">
-                    <div style="font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;">{lbl_overdue_credit}</div>
-                    <div style="font-size: 20px; font-weight: 800; color: #ef4444; margin-top: 4px;">₹{total_overdue:,.2f}</div>
-                    <div style="font-size: 10px; color: #f87171; margin-top: 2px;">{lbl_overdue_count}</div>
+
+                <!-- Overdue Credit -->
+                <div style="
+                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(153, 27, 27, 0.25) 100%);
+                    border: 1px solid rgba(239, 68, 68, 0.4);
+                    border-top: 3px solid #ef4444;
+                    border-radius: 16px;
+                    padding: 14px 16px;
+                    box-shadow: 0 4px 18px rgba(239, 68, 68, 0.12);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 11px; color: #fecaca; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_overdue_credit}</span>
+                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; font-size: 14px;">🚨</div>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: #ef4444; letter-spacing: -0.5px;">₹{total_overdue:,.2f}</div>
+                    <div style="font-size: 11px; color: #f87171; margin-top: 6px; font-weight: 600;">⚠️ {lbl_overdue_count}</div>
                 </div>
             </div>
             ''',
@@ -1174,23 +1267,69 @@ def render_customer_khata():
                 stat_bal_lbl = "Balance Due:" if is_english else "बाकी शिल्लक:"
                 stat_od_lbl = "Overdue:" if is_english else "मुदतबाह्य:"
 
+                initial_letter = (name.strip()[:1].upper()) if name.strip() else "C"
+                gauge_width = min(100, max(0, risk_score))
                 st.markdown(
                     f'''
-                    <div style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95)); border: 1.5px solid {risk_color}44; border-radius: 12px; padding: 12px 14px; margin-top: 10px; margin-bottom: 4px; box-shadow: 0 3px 10px rgba(0,0,0,0.25);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <div>
-                                <span style="font-size: 16px; font-weight: 800; color: #f8fafc;">{escape(name)}</span>
-                                <span style="font-size: 12px; color: #94a3b8; margin-left: 8px;">📞 {escape(phone_display)}</span>
+                    <div style="
+                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95));
+                        border: 1.5px solid {risk_color}44;
+                        border-radius: 14px;
+                        padding: 14px 16px;
+                        margin-top: 10px;
+                        margin-bottom: 4px;
+                        box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s ease;
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="
+                                    width: 36px;
+                                    height: 36px;
+                                    border-radius: 10px;
+                                    background: rgba(0, 242, 254, 0.1);
+                                    border: 1px solid rgba(0, 242, 254, 0.3);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-weight: 800;
+                                    color: #00f2fe;
+                                    font-size: 14px;
+                                    flex-shrink: 0;
+                                ">{escape(initial_letter)}</div>
+                                <div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #f8fafc; line-height: 1.2;">{escape(name)}</div>
+                                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">📞 {escape(phone_display)}</div>
+                                </div>
                             </div>
-                            <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-                                {escape(badge_text)} · {risk_score}/100
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                                    <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">
+                                        {escape(badge_text)} · {risk_score}/100
+                                    </div>
+                                    <div style="width: 70px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="width: {gauge_width}%; height: 100%; background: {risk_color}; border-radius: 2px;"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_credit_lbl}</span><br><b style="font-size: 13px; color: #e2e8f0;">₹{credit:,.2f}</b></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_pay_lbl}</span><br><b style="font-size: 13px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 9px; color: #6ee7b7;">({repay_ratio*100:.0f}%)</span></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_bal_lbl}</span><br><b style="font-size: 14px; color: #38bdf8;">₹{balance:,.2f}</b></div>
-                            <div><span style="font-size: 10px; color: #94a3b8;">{stat_od_lbl}</span><br><b style="font-size: 14px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5;">{escape(od_tag)}</span></div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);">
+                            <div>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_credit_lbl}</span><br>
+                                <b style="font-size: 14px; color: #e2e8f0;">₹{credit:,.2f}</b>
+                            </div>
+                            <div>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_pay_lbl}</span><br>
+                                <b style="font-size: 14px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 10px; color: #6ee7b7; font-weight: 700;">({repay_ratio*100:.0f}%)</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_bal_lbl}</span><br>
+                                <b style="font-size: 15px; color: #38bdf8;">₹{balance:,.2f}</b>
+                            </div>
+                            <div>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_od_lbl}</span><br>
+                                <b style="font-size: 15px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5; font-weight: 600;">{escape(od_tag)}</span>
+                            </div>
                         </div>
                         {ai_alert_html}
                     </div>
@@ -2108,9 +2247,14 @@ section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
     transform: translateY(-1px) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-    background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
-    border-color: rgba(103, 232, 249, 0.82) !important;
-    box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
+    background: linear-gradient(115deg, rgba(0, 242, 254, 0.22) 0%, rgba(79, 70, 229, 0.22) 100%) !important;
+    border-color: #00f2fe !important;
+    box-shadow: inset 4px 0 #00f2fe, 0 0 16px rgba(0, 242, 254, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
     outline: 2px solid rgba(103, 232, 249, 0.72) !important;
@@ -2679,11 +2823,14 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
         font-family: 'Courier New', Courier, monospace;
         width: 54mm;
         margin: 0 auto;
-        padding: 6px 2px;
-        color: #000;
-        background: #fff;
+        padding: 10px 6px 14px 6px;
+        color: #050505;
+        background: #ffffff;
         font-size: 11px;
         line-height: 1.25;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
     }}
     .center {{ text-align: center; }}
     .bold {{ font-weight: bold; }}
@@ -2693,6 +2840,7 @@ def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, ite
     th {{ border-bottom: 1px dashed #000; text-align: left; padding: 2px 0; }}
     td {{ padding: 2px 0; }}
     @media print {{
+        body {{ border: none !important; box-shadow: none !important; border-radius: 0 !important; width: 54mm !important; }}
         .no-print {{ display: none !important; }}
     }}
 </style>
@@ -2973,15 +3121,15 @@ if selected_page == "OCR Scanner":
     .thermal-preview-wrap {
         background: #ffffff;
         color: #000000;
-        border-radius: 8px;
-        padding: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        max-height: 340px;
+        border-radius: 12px;
+        padding: 14px 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        max-height: 350px;
         overflow-y: auto;
         font-family: 'Courier New', Courier, monospace;
         font-size: 11px;
-        margin-bottom: 10px;
-        border: 1px solid #cbd5e1;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
     }
     [data-testid="stCameraInput"] video {
         max-height: 200px !important;
@@ -4092,19 +4240,51 @@ elif selected_page == "Ledger Database":
     with k1:
         tot_exp = f"{df['grand_total'].sum():,.2f}" if not df.empty else "0.00"
         kpi1_title = "TOTAL REVENUE / SALES" if is_english else "एकूण महसूल / विक्री"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi1_title}</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #00f2fe;'>
+            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
+                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi1_title}</span>
+                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(0, 242, 254, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>💰</div>
+            </div>
+            <div style='font-size: 20px; font-weight: 800; color: #00f2fe; letter-spacing: -0.5px;'>₹{tot_exp}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with k2:
         tot_rec = len(df) if not df.empty else 0
         kpi2_title = "TOTAL BILLS/ORDERS" if is_english else "एकूण बिले / ऑर्डर्स"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi2_title}</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #38bdf8;'>
+            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
+                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi2_title}</span>
+                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>🧾</div>
+            </div>
+            <div style='font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;'>{tot_rec}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with k3:
         avg_exp = f"{df['grand_total'].mean():,.2f}" if not df.empty else "0.00"
         kpi3_title = "AVG TICKET SIZE" if is_english else "सरासरी बिल रक्कम"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi3_title}</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #00ff87;'>
+            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
+                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi3_title}</span>
+                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(0, 255, 135, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>📈</div>
+            </div>
+            <div style='font-size: 20px; font-weight: 800; color: #00ff87; letter-spacing: -0.5px;'>₹{avg_exp}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with k4:
         top_v = df.groupby('vendor_name')['grand_total'].sum().idxmax() if not df.empty and 'vendor_name' in df.columns else "N/A"
         kpi4_title = "TOP PERFORMING SHOP" if is_english else "सर्वोत्कृष्ट दुकान"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{kpi4_title}</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #c084fc;'>
+            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
+                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi4_title}</span>
+                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(192, 132, 252, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>🏪</div>
+            </div>
+            <div style='font-size: 16px; font-weight: 800; color: #c084fc; letter-spacing: -0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'>{top_v[:18]}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Quick Cashflow / Udhar Summary (Khatabook Style)
     try:
@@ -4120,24 +4300,45 @@ elif selected_page == "Ledger Database":
     st.markdown(cf_heading)
     c1, c2, c3, c4 = st.columns([1, 1, 1, 1.2])
     with c1:
-        c1_title = "✅ CASH RECOVERED" if is_english else "✅ रोख वसूल रक्कम"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c1_title}</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
+        c1_title = "CASH RECOVERED" if is_english else "रोख वसूल रक्कम"
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #00ff87; background: linear-gradient(135deg, rgba(0, 255, 135, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <span style='font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;'>✅ {c1_title}</span>
+            </div>
+            <div style='font-size: 19px; font-weight: 800; color: #00ff87; margin-top: 4px;'>₹{total_collected:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with c2:
-        c2_title = "⏳ PENDING UDHAR" if is_english else "⏳ बाकी उधारी"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c2_title}</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
+        c2_title = "PENDING UDHAR" if is_english else "बाकी उधारी"
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <span style='font-size: 11px; color: #fde68a; font-weight: 700; text-transform: uppercase;'>⏳ {c2_title}</span>
+            </div>
+            <div style='font-size: 19px; font-weight: 800; color: #f59e0b; margin-top: 4px;'>₹{total_unpaid:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with c3:
-        c3_title = "🚨 OVERDUE (AT RISK)" if is_english else "🚨 थकीत (जोखीम)"
-        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c3_title}</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
+        c3_title = "OVERDUE (AT RISK)" if is_english else "थकीत (जोखीम)"
+        st.markdown(f"""
+        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #ef4444; background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <span style='font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;'>🚨 {c3_title}</span>
+            </div>
+            <div style='font-size: 19px; font-weight: 800; color: #ef4444; margin-top: 4px;'>₹{total_overdue:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
     with c4:
         daily_digest_msg = generate_daily_whatsapp_digest(is_english=is_english)
         daily_wa_url = f"https://wa.me/?text={urllib.parse.quote(daily_digest_msg)}"
-        c4_title = "🌙 DAILY BUSINESS DIGEST" if is_english else "🌙 दैनिक व्यवसाय गोषवारा"
-        wa_btn_text = "💬 Send on WhatsApp" if is_english else "💬 व्हॉट्सॲपवर पाठवा"
+        c4_title = "DAILY BUSINESS DIGEST" if is_english else "दैनिक व्यवसाय गोषवारा"
+        wa_btn_text = "💬 WhatsApp Report" if is_english else "💬 व्हॉट्सॲपवर पाठवा"
         st.markdown(f"""
-        <div class='panel-card' style='margin-bottom:15px; border-left:4px solid #25d366;'>
-            <div style='font-size:11px; color:#94a3b8; font-weight:700;'>{c4_title}</div>
-            <a href='{daily_wa_url}' target='_blank' style='text-decoration:none;'>
-                <button style='width:100%; height:32px; border-radius:6px; background:#25d366; color:#000; font-weight:700; border:none; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px;'>
+        <div class='panel-card' style='margin-bottom: 16px; padding: 12px 14px; border-left: 4px solid #25d366; background: linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
+            <div style='font-size: 11px; color: #bbf7d0; font-weight: 700; text-transform: uppercase;'>🌙 {c4_title}</div>
+            <a href='{daily_wa_url}' target='_blank' style='text-decoration: none;'>
+                <button style='width: 100%; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #25d366, #128c7e); color: #ffffff; font-weight: 800; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: transform 0.2s;'>
                     {wa_btn_text}
                 </button>
             </a>
