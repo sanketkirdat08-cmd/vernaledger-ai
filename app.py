@@ -77,9 +77,10 @@ def load_gemini_api_key() -> str:
 API_KEY = load_gemini_api_key()
 
 # --- INITIALIZE STATE FROM QUERY PARAMS EARLY ---
-if "lang" in st.query_params and "ui_language" not in st.session_state:
-    st.session_state["ui_language"] = st.query_params["lang"]
-    st.session_state["ui_language_english"] = st.query_params["lang"] == "en"
+if "ui_language" not in st.session_state:
+    init_lang = st.query_params.get("lang", "en")
+    st.session_state["ui_language"] = init_lang
+    st.session_state["ui_language_english"] = (init_lang == "en")
 
 if "page" in st.query_params and "selected_page" not in st.session_state:
     st.session_state["selected_page"] = st.query_params["page"]
@@ -1603,9 +1604,6 @@ if 'forgot_pass_mode' not in st.session_state:
     st.session_state['forgot_pass_mode'] = False
 if 'input_method' not in st.session_state:
     st.session_state['input_method'] = 'Upload File'
-if "ui_language" not in st.session_state:
-    st.session_state["ui_language"] = "en"
-    st.session_state["ui_language_english"] = True
 
 
 _UI_TRANSLATION_PAIRS = {
@@ -1643,14 +1641,14 @@ _UI_TRANSLATION_PAIRS = {
     "Customer Khata": "ग्राहक खाते",
     "Stock & Inventory": "स्टॉक आणि इन्व्हेंटरी",
     "Business Expenses": "व्यवसाय खर्च",
-    "New Credit / Installment Entry": "New Credit / Installment Entry",
-    "Old Records & AI Smart Search": "Old Records & AI Smart Search",
-    "Speak transaction details": "Speak transaction details",
+    "New Credit / Installment Entry": "नवीन उधारी / हप्ता नोंद",
+    "Old Records & AI Smart Search": "जुने रेकॉर्ड्स आणि AI स्मार्ट शोध",
+    "Speak transaction details": "व्यवहाराचा तपशील बोला",
     "Credit Ledger & AI Risk Report": "उधारी लेजर & AI रिस्क रिपोर्ट",
     "Speak the order (Voice Billing)": "बोलून ऑर्डर द्या (वॉइस बिलिंग)",
     "Press here when done speaking": "बोलणे पूर्ण झाल्यावर इथे दाबा",
 
-    "Stop recording": "Stop recording",
+    "Stop recording": "रेकॉर्डिंग थांबवा",
     "Old Transactions & AI Search": "जुने व्यवहार आणि AI शोधक",
     "Log of past transactions and smart AI search.": "मागील सर्व व्यवहारांची नोंद आणि AI द्वारे स्मार्ट सर्च.",
     "No past transactions found in the system.": "सिस्टीममध्ये कोणताही जुना व्यवहार सापडला नाही.",
@@ -1682,13 +1680,13 @@ _UI_TRANSLATION_PAIRS = {
     "Admin (Owner - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
     "Create Account": "खाते तयार करा",
     "Please fill all fields and password must be at least 6 characters!": "कृपया सर्व फील्ड भरा आणि पासवर्ड किमान ६ अंकांचा असावा!",
-    "Username to delete account": "Username to delete account",
-    "Delete Account": "Delete Account",
-    "System Audit Logs": "System Audit Logs",
-    "Total Revenue Today": "Total Revenue Today",
-    "Total Bills Today": "Total Bills Today",
-    "Average Ticket Size": "Average Ticket Size",
-    "Top Performing Shop": "Top Performing Shop",
+    "Username to delete account": "खाते हटवण्यासाठी वापरकर्ता नाव",
+    "Delete Account": "खाते हटवा",
+    "System Audit Logs": "सिस्टीम ऑडिट नोंदी",
+    "Total Revenue Today": "आजचा एकूण महसूल",
+    "Total Bills Today": "आजची एकूण बिले",
+    "Average Ticket Size": "सरासरी बिल रक्कम",
+    "Top Performing Shop": "सर्वोत्कृष्ट दुकान",
 
     "Stock & <span>Inventory</span>": "स्टॉक आणि <span>इन्व्हेंटरी</span>",
     "Manage your goods, prices, and availability here.": "तुमचा माल, त्याचे दर आणि उपलब्धतेची माहिती येथे ठेवा.",
@@ -3051,8 +3049,32 @@ with st.sidebar:
     default_page = st.query_params.get("page", "OCR Scanner")
     if default_page not in nav_options:
         default_page = nav_options[0]
-        
-    selected_page = st.radio("Navigation", nav_options, index=nav_options.index(default_page), label_visibility="collapsed")
+
+    nav_labels_en = {
+        "OCR Scanner": "⚡ OCR Scanner",
+        "Customer Khata": "💳 Customer Khata",
+        "Business Operations": "🏬 Business Operations",
+        "Ledger Database": "📊 Ledger Database",
+        "RAG AI Chat": "🤖 RAG AI Chat",
+        "Staff Management": "👥 Staff Management",
+    }
+    nav_labels_mr = {
+        "OCR Scanner": "⚡ स्मार्ट स्कॅनर (OCR)",
+        "Customer Khata": "💳 ग्राहक खाते (Khata)",
+        "Business Operations": "🏬 व्यवसाय व्यवस्थापन",
+        "Ledger Database": "📊 लेजर डेटाबेस",
+        "RAG AI Chat": "🤖 AI चॅटबॉट",
+        "Staff Management": "👥 कर्मचारी व्यवस्थापन",
+    }
+    nav_labels = nav_labels_en if is_english else nav_labels_mr
+
+    selected_page = st.radio(
+        "Navigation",
+        nav_options,
+        index=nav_options.index(default_page),
+        format_func=lambda page_key: nav_labels.get(page_key, page_key),
+        label_visibility="collapsed"
+    )
     if selected_page != st.query_params.get("page"):
         st.query_params["page"] = selected_page
         st.rerun()

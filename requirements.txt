@@ -1,11 +1,8 @@
 streamlit
 pandas
-plotly
 google-generativeai
 streamlit-mic-recorder
 edge-tts
 qrcode
 pillow
 pydantic
-zxing-cpp
-opencv-python

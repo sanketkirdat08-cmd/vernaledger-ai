@@ -2,6 +2,7 @@
 secrets.toml
 
 *.db
+*.db-*
 backups/
 __pycache__/
 *.pyc
