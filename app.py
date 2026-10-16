@@ -96,17 +96,18 @@ def sync_local_storage():
     if st.session_state.get("last_synced_lang") != lang or st.session_state.get("last_synced_page") != page:
         st.session_state["last_synced_lang"] = lang
         st.session_state["last_synced_page"] = page
-        components.html(
-            f'''
-            <script>
-                try {{
-                    window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
-                    window.parent.localStorage.setItem('vernaledger_page', '{page}');
-                }} catch (e) {{}}
-            </script>
-            ''',
-            height=0, width=0
-        )
+        with st.container(key="verna_hidden_sync"):
+            components.html(
+                f'''
+                <script>
+                    try {{
+                        window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
+                        window.parent.localStorage.setItem('vernaledger_page', '{page}');
+                    }} catch (e) {{}}
+                </script>
+                ''',
+                height=0, width=0
+            )
 sync_local_storage()
 
 
@@ -4660,7 +4661,20 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     word-break: keep-all;
     hyphens: none;
 }
-[data-testid="stCustomComponentV1"] {
+.st-key-verna_hidden_sync,
+.st-key-verna_hidden_sync [data-testid="stCustomComponentV1"],
+div[class*="verna_hidden_sync"],
+iframe[height="0"] {
+    display: none !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
+div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
@@ -4671,7 +4685,13 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     padding: 0 !important;
     z-index: 20 !important;
 }
-body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"] iframe,
+div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] iframe {
+    border: none !important;
+    width: 100% !important;
+}
+body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
+body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
     left: calc(50% + 9.375rem) !important;
     width: calc(100vw - 18.75rem - 3rem) !important;
 }
@@ -4679,7 +4699,8 @@ main.block-container {
     padding-bottom: 9rem !important;
 }
 @media (max-width: 900px) and (min-width: 641px) {
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
         left: calc(50% + 9rem) !important;
         width: calc(100vw - 18rem - 3rem) !important;
     }
@@ -4699,12 +4720,14 @@ main.block-container {
     .verna-ai-greeting-inner {
         padding: 1rem 0.85rem;
     }
-    [data-testid="stCustomComponentV1"] {
+    .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
+    div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
         width: calc(100vw - 1.25rem) !important;
     }
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         width: calc(100vw - 1.25rem) !important;
     }
@@ -4757,11 +4780,12 @@ main.block-container {
                         do_play = st.session_state.pop("play_latest_audio", False)
                     st.audio(chat["audio_file"], autoplay=do_play)
 
-    chat_input_event = CHAT_INPUT_COMPONENT(
-        key="verna_chat_input_component",
-        default=None,
-        language=st.session_state.get("ui_language", "en"),
-    )
+    with st.container(key="verna_chat_input_wrapper"):
+        chat_input_event = CHAT_INPUT_COMPONENT(
+            key="verna_chat_input_component",
+            default=None,
+            language=st.session_state.get("ui_language", "en"),
+        )
     prompt = None
     voice_captured = None
     if (
