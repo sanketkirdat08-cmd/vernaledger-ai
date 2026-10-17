@@ -4,11 +4,9 @@ import json
 import sqlite3
 import re
 import os
+import time
 import logging
 import asyncio
-import socket
-import aiohttp
-from gtts import gTTS
 import edge_tts
 from schema import ReceiptData
 
@@ -18,8 +16,6 @@ logger = logging.getLogger(__name__)
 def init_db() -> None:
     conn = sqlite3.connect("ledger.db")
     cursor = conn.cursor()
-    cursor.execute("PRAGMA journal_mode = WAL;")
-    cursor.execute("PRAGMA synchronous = NORMAL;")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS receipts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +26,6 @@ def init_db() -> None:
         raw_json TEXT
     )
     """)
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_receipts_lookup ON receipts(vendor_name, date, grand_total);")
     conn.commit()
     conn.close()
 
@@ -49,53 +44,53 @@ def extract_valid_json(text: str) -> dict:
         
     return json.loads(text)
 
-_PRIORITY_FAST_MODELS = [
-    'gemini-3.5-flash-lite',
-    'gemini-flash-lite-latest',
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
-]
-_CACHED_WORKING_MODELS = None
-
 def get_active_gemini_models():
-    """Returns fastest working vision models instantly without expensive blocking network discovery."""
-    global _CACHED_WORKING_MODELS
-    if _CACHED_WORKING_MODELS:
-        return _CACHED_WORKING_MODELS
-    return _PRIORITY_FAST_MODELS
+    """Dynamically fetch the best available Gemini model."""
+    try:
+        import google.generativeai as genai
+        online_models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                model_name = m.name.replace('models/', '')
+                online_models.append(model_name)
+        
+        # Priority: flash models, then pro models
+        flash_models = [m for m in online_models if 'flash' in m]
+        pro_models = [m for m in online_models if 'pro' in m]
+        
+        # Sort descending to get highest version number first (e.g., 3.5 > 2.5)
+        flash_models.sort(reverse=True)
+        pro_models.sort(reverse=True)
+        
+        best = pro_models + flash_models
+        if best:
+            return best
+        return online_models
+    except Exception as exc:
+        return ['gemini-3.5-flash', 'gemini-2.5-flash']
 
-def update_working_model(model_name: str):
-    global _CACHED_WORKING_MODELS
-    _CACHED_WORKING_MODELS = [model_name] + [m for m in _PRIORITY_FAST_MODELS if m != model_name]
-
-def process_receipt_advanced(image_input, api_key: str, force_save: bool = False) -> dict:
+def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
     
-    if isinstance(image_input, (str, os.PathLike)):
-        img = Image.open(image_input)
-    else:
-        if hasattr(image_input, "seek"):
-            image_input.seek(0)
-        img = Image.open(image_input)
-
-    img_copy = img.convert('RGB')
-    img_copy.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+    with Image.open(image_path) as img:
+        img_copy = img.copy()
+        img_copy.thumbnail((800, 800))
 
     prompt = """
-    You are an expert document OCR scanner specialized in Marathi, Devanagari handwritten and printed ledgers, invoices, and retail receipts.
-    CRITICAL OCR INSTRUCTIONS:
-    1. Extract the Vendor/Shop Name at the top in complete Marathi or English script.
-    2. Carefully scan and extract EVERY single line item row listed in the receipt. DO NOT skip or omit any rows.
-    3. Read the complete item name accurately in original Marathi / English script (e.g., 'शेंगदाणा तेल १ लि', 'साखर ५ किलो', 'हळद पावडर', 'गहू', 'तूर डाळ'). DO NOT truncate or abbreviate names.
-    4. For each row, accurately extract:
-       - item_name: Full name of the item.
-       - quantity: Numeric quantity along with exact measurement unit (e.g. '1 kg', '2 pcs', '500 gm', '1 ltr', '1 pkt'). If unit is not written, specify count as string (e.g. '1').
-       - rate: Price per unit in rupees as a numeric float (e.g. 45.0). Remove commas or currency symbols.
-       - total_price: Total amount for this item line in rupees as a numeric float (quantity * rate).
-    5. MATHEMATICAL VERIFICATION:
-       - Verify that total_price = numeric quantity * rate for each item.
-       - Verify that grand_total = sum of all item total_price values.
-       - If the receipt total is blurry, faint, or mathematically incorrect, compute and set the correct sum.
+    You are an expert document OCR scanner for Marathi/Hindi handwritten and printed ledgers/receipts.
+    CRITICAL MATHEMATICAL TASK:
+    1. Extract the Vendor/Shop Name at the top in Marathi script.
+    2. Extract ALL item rows listed in the table or list.
+    3. For each row, parse accurately:
+       item_name: Name of item.
+       quantity: Specify numeric quantity along with exact measurement unit (e.g. '10 kg', '1 ltr'). Remove commas from numbers. If no unit, just the number.
+       rate: Price per unit in numeric rupees (e.g. 20.0). Remove commas.
+       total_price: Total amount for this line item in rupees.
+    
+    VERIFICATION RULES:
+    - You MUST mathematically verify that: (quantity numeric part) * rate = total_price.
+    - If the math on the receipt is wrong or unreadable, YOU MUST CORRECT IT. Set total_price = quantity * rate.
+    - You MUST mathematically verify that grand_total = SUM(all item total_price). Do NOT blindly copy a wrong total from the image.
 
     Output strictly in this JSON structure:
     {
@@ -120,16 +115,14 @@ def process_receipt_advanced(image_input, api_key: str, force_save: bool = False
             res = model.generate_content([prompt, img_copy])
             if res and res.text:
                 response = res
-                update_working_model(model_name)
                 logger.info(f"Successfully processed receipt using active model: {model_name}")
                 break
         except Exception as exc:
             last_error = exc
-            logger.warning(f"Model {model_name} failed: {exc}, trying next model...")
             continue
 
     if not response or not response.text:
-        raise RuntimeError(f"AI स्कॅनिंग त्रुटी: {last_error!s}")
+        raise RuntimeError(f"API Connection Error: {last_error!s}")
 
     raw_text = response.text
     data_dict = extract_valid_json(raw_text)
@@ -158,8 +151,6 @@ def process_receipt_advanced(image_input, api_key: str, force_save: bool = False
     validated_data.vendor_name = clean_vendor
     validated_data.category = clean_cat
 
-    ret_dict = validated_data.model_dump()
-
     with sqlite3.connect("ledger.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -169,19 +160,18 @@ def process_receipt_advanced(image_input, api_key: str, force_save: bool = False
         existing_record = cursor.fetchone()
 
         if existing_record and not force_save:
-            ret_dict["is_duplicate"] = True
-            ret_dict["existing_id"] = existing_record[0]
-            logger.info(f"Duplicate receipt detected for {validated_data.vendor_name} (ID: {existing_record[0]})")
-        else:
-            raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
-            cursor.execute(
-                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-                (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
+            raise ValueError(
+                f"Duplicate Warning: दुकान '{validated_data.vendor_name}' चे ₹{validated_data.grand_total} चे बिल आधीच रेकॉर्ड केलेले आहे!"
             )
-            conn.commit()
-            ret_dict["is_duplicate"] = False
 
-    return ret_dict
+        raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
+        cursor.execute(
+            "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+            (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
+        )
+        conn.commit()
+
+    return validated_data.model_dump()
 
 def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
     genai.configure(api_key=api_key)
@@ -218,7 +208,6 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
             model = genai.GenerativeModel(model_name)
             res = model.generate_content(prompt)
             if res and res.text:
-                update_working_model(model_name)
                 logger.info(f"Successfully processed voice bill using active model: {model_name}")
                 break
         except Exception as exc:
@@ -250,51 +239,12 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", vo
             except PermissionError:
                 output_path = f"summary_{os.urandom(4).hex()}.mp3"
 
-        # Clean text for high quality TTS
-        clean_text = re.sub(r'[*#_`~>]', ' ', text_marathi)
-        clean_text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', clean_text)
-        clean_text = re.sub(r'https?://\S+', '', clean_text)
-        clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', clean_text)
-        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+        async def _main():
+            communicate = edge_tts.Communicate(text_marathi, voice, rate="+15%")
+            await communicate.save(output_path)
 
-        if not clean_text:
-            return None
-
-        # Keep full answer text (up to 750 chars) so names and sentences are never cut off
-        if len(clean_text) > 750:
-            spoken_text = clean_text[:750]
-            sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
-            if sentence_end and sentence_end.end() > 600:
-                spoken_text = spoken_text[:sentence_end.end()]
-        else:
-            spoken_text = clean_text
-
-
-        # 1. Primary: Edge-TTS Aarohi (mr-IN-AarohiNeural) or Neerja (en-IN-NeerjaNeural) with IPv4 connector
-        try:
-            async def _main():
-                connector = aiohttp.TCPConnector(family=socket.AF_INET)
-                communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%", connector=connector)
-                await communicate.save(output_path)
-
-            asyncio.run(asyncio.wait_for(_main(), timeout=8.0))
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                return output_path
-        except Exception as edge_err:
-            logger.warning("Edge-TTS (%s) generation error: %s, falling back to gTTS", voice, edge_err)
-
-        # 2. Resilient fallback: gTTS
-        try:
-            v_lower = (voice or "").lower()
-            lang = "mr" if (v_lower.startswith("mr") or "marathi" in v_lower) else ("hi" if (v_lower.startswith("hi") or "hindi" in v_lower) else "en")
-            tts = gTTS(text=spoken_text, lang=lang, slow=False)
-            tts.save(output_path)
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                return output_path
-        except Exception as gtts_err:
-            logger.error("gTTS fallback failed: %s", gtts_err)
-
-        return None
+        asyncio.run(_main())
+        return output_path
     except Exception as exc:
         logger.error("TTS Generation Error: %s", exc)
         return None

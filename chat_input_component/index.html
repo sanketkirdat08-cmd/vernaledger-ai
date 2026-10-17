@@ -194,8 +194,7 @@
       window.parent.postMessage({
         isStreamlitMessage: true,
         type: "streamlit:setComponentValue",
-        apiVersion: 1,
-        value: value
+        value
       }, "*");
     }
 
@@ -285,7 +284,6 @@
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: "streamlit:setFrameHeight",
-      apiVersion: 1,
       height: 76
     }, "*");
   </script>

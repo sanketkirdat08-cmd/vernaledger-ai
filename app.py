@@ -7,14 +7,14 @@ import base64
 import json
 import hashlib
 import shutil
-import concurrent.futures
+import plotly.express as px
 from io import BytesIO
 import time
 import re
 import urllib.parse
 import logging
 import math
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from html import escape
 import google.generativeai as genai
 from ocr_engine import (
@@ -24,10 +24,6 @@ from ocr_engine import (
     process_voice_billing_advanced,
 )
 from streamlit_mic_recorder import speech_to_text
-try:
-    import qrcode
-except ImportError:
-    qrcode = None
 
 st.set_page_config(
     page_title="VernaLedger AI",
@@ -77,10 +73,9 @@ def load_gemini_api_key() -> str:
 API_KEY = load_gemini_api_key()
 
 # --- INITIALIZE STATE FROM QUERY PARAMS EARLY ---
-if "ui_language" not in st.session_state:
-    init_lang = st.query_params.get("lang", "en")
-    st.session_state["ui_language"] = init_lang
-    st.session_state["ui_language_english"] = (init_lang == "en")
+if "lang" in st.query_params and "ui_language" not in st.session_state:
+    st.session_state["ui_language"] = st.query_params["lang"]
+    st.session_state["ui_language_english"] = st.query_params["lang"] == "en"
 
 if "page" in st.query_params and "selected_page" not in st.session_state:
     st.session_state["selected_page"] = st.query_params["page"]
@@ -89,6 +84,7 @@ if "subpage" in st.query_params and "business_dropdown" not in st.session_state:
     st.session_state["business_dropdown"] = st.query_params["subpage"]
 
 # Sync localStorage using a small JS injection just to satisfy localStorage persistence fallback
+import streamlit.components.v1 as components
 def sync_local_storage():
     lang = st.session_state.get("ui_language", "en")
     page = st.session_state.get("selected_page", "OCR Scanner")
@@ -96,18 +92,17 @@ def sync_local_storage():
     if st.session_state.get("last_synced_lang") != lang or st.session_state.get("last_synced_page") != page:
         st.session_state["last_synced_lang"] = lang
         st.session_state["last_synced_page"] = page
-        with st.container(key="verna_hidden_sync"):
-            components.html(
-                f'''
-                <script>
-                    try {{
-                        window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
-                        window.parent.localStorage.setItem('vernaledger_page', '{page}');
-                    }} catch (e) {{}}
-                </script>
-                ''',
-                height=0, width=0
-            )
+        components.html(
+            f'''
+            <script>
+                try {{
+                    window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
+                    window.parent.localStorage.setItem('vernaledger_page', '{page}');
+                }} catch (e) {{}}
+            </script>
+            ''',
+            height=0, width=0
+        )
 sync_local_storage()
 
 
@@ -141,30 +136,45 @@ def get_tts_voice(text: str) -> str:
     """Choose an Edge TTS voice based on the language of the generated answer."""
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
     latin_count = len(re.findall(r"[A-Za-z]", text))
-    
-    # If the response contains Devanagari text, it must be spoken by a Devanagari voice (Aarohi or Swara)
-    if devanagari_count >= 8 or (devanagari_count > 0 and latin_count < 50):
-        marathi_markers = (
-            "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
-            "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
-            "विचारू शकता", "प्रकल्प", "नाव", "सर", "विकासक", "महाविद्यालय",
-        )
-        hindi_markers = (
-            "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
-            "करता है", "होता है",
-        )
-        marathi_score = sum(text.count(marker) for marker in marathi_markers)
-        hindi_score = sum(text.count(marker) for marker in hindi_markers)
-        return "hi-IN-SwaraNeural" if hindi_score > marathi_score else "mr-IN-AarohiNeural"
+    if latin_count > devanagari_count:
+        return "en-IN-NeerjaNeural"
 
-    # Otherwise, it's primarily English
-    return "en-IN-NeerjaNeural"
+    marathi_markers = (
+        "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
+        "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
+        "विचारू शकता",
+    )
+    hindi_markers = (
+        "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
+        "करता है", "होता है",
+    )
+    marathi_score = sum(text.count(marker) for marker in marathi_markers)
+    hindi_score = sum(text.count(marker) for marker in hindi_markers)
+    return "mr-IN-AarohiNeural" if marathi_score > hindi_score else "hi-IN-SwaraNeural"
 
 
-
-
+# --- AI AUTOMATIC RETRY LOGIC ---
+def generate_ai_content_with_retry(model, prompt, retries=3, delay=1):
+    for attempt in range(retries):
+        try:
+            response = model.generate_content(prompt)
+            if response and response.text:
+                return response
+        except Exception as e:
+            logging.warning(f"AI API retry attempt {attempt+1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(delay * (2 ** attempt))
+            else:
+                raise e
 
 # --- SECURE HASHING & DATABASE STRUCTURE ---
+def get_db_connection():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        import psycopg2
+        return psycopg2.connect(db_url)
+    return sqlite3.connect("ledger.db")
+
 def hash_password_secure(password):
     return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), b'salt_verna_bcrypt_layer', 100000).hex()
 
@@ -188,9 +198,6 @@ def init_databases():
             
     with sqlite3.connect("ledger.db") as conn:
         try:
-            conn.execute("PRAGMA journal_mode = WAL;")
-            conn.execute("PRAGMA synchronous = NORMAL;")
-            conn.execute("PRAGMA cache_size = -64000;")
             conn.execute("BEGIN TRANSACTION;")
             cursor = conn.cursor()
             cursor.execute("""
@@ -201,7 +208,6 @@ def init_databases():
                 phone TEXT
             )
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
             cursor.execute("PRAGMA table_info(users)")
             columns = [col[1] for col in cursor.fetchall()]
             if "role" not in columns:
@@ -248,28 +254,10 @@ def init_databases():
                 item_name TEXT,
                 stock_qty REAL,
                 unit TEXT,
-                alert_limit REAL,
-                barcode TEXT DEFAULT '',
-                selling_price REAL DEFAULT 0.0
+                alert_limit REAL
             )
             """)
-            try:
-                cursor.execute("ALTER TABLE shop_inventory ADD COLUMN barcode TEXT DEFAULT ''")
-            except Exception:
-                pass
-            try:
-                cursor.execute("ALTER TABLE shop_inventory ADD COLUMN selling_price REAL DEFAULT 0.0")
-            except Exception:
-                pass
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_name ON shop_inventory(item_name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_barcode ON shop_inventory(barcode)")
-
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS shop_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            )
-            """)
 
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS business_expenses (
@@ -281,50 +269,12 @@ def init_databases():
                 notes TEXT
             )
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_expenses_date ON business_expenses(date)")
-
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS stock_inward_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_id INTEGER,
-                item_name TEXT,
-                barcode TEXT,
-                quantity_added REAL,
-                new_stock REAL,
-                timestamp TEXT,
-                added_by TEXT
-            )
-            """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_inward_time ON stock_inward_logs(timestamp)")
             conn.commit()
         except Exception as e:
             conn.rollback()
             logging.error(f"Database initialization transaction failed: {e}")
 
 init_databases()
-
-def get_shop_setting(key: str, default: str = "") -> str:
-    try:
-        with sqlite3.connect("ledger.db") as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT value FROM shop_settings WHERE key = ?", (key,))
-            row = cur.fetchone()
-            if row and row[0] is not None and str(row[0]).strip():
-                return str(row[0]).strip()
-    except Exception:
-        pass
-    return default
-
-def set_shop_setting(key: str, value: str) -> None:
-    try:
-        with sqlite3.connect("ledger.db") as conn:
-            cur = conn.cursor()
-            cur.execute("CREATE TABLE IF NOT EXISTS shop_settings (key TEXT PRIMARY KEY, value TEXT)")
-            cur.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (key, str(value).strip()))
-            conn.commit()
-    except Exception as e:
-        ai_logger.error(f"Failed to set shop setting {key}: {e}")
-
 
 def log_activity(username, action):
     with sqlite3.connect("ledger.db") as conn:
@@ -359,9 +309,6 @@ def _khata_text(value):
 
 
 def load_business_upi_id():
-    custom_upi = get_shop_setting("shop_upi_id", "")
-    if custom_upi:
-        return custom_upi
     try:
         secret_value = st.secrets.get("BUSINESS_UPI_ID", "")
     except Exception as exc:
@@ -372,8 +319,32 @@ def load_business_upi_id():
         secret_value = ""
     environment_value = os.getenv("BUSINESS_UPI_ID", "")
     return str(
-        secret_value or environment_value or "vernaledger@upi"
+        secret_value or environment_value or "sanketkirdat08@okaxis"
     ).strip()
+
+
+def build_upi_payment_link(upi_id, payee_name, customer_name, amount):
+    normalized_upi_id = str(upi_id or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}", normalized_upi_id):
+        raise ValueError("व्यवसायाचा UPI ID वैध स्वरूपात कॉन्फिगर केलेला नाही.")
+    try:
+        normalized_amount = float(amount)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("पेमेंट रक्कम वैध नाही.") from exc
+    if not math.isfinite(normalized_amount) or normalized_amount <= 0:
+        raise ValueError("बाकी रक्कम शून्यापेक्षा जास्त असणे आवश्यक आहे.")
+
+    parameters = urllib.parse.urlencode(
+        {
+            "pa": normalized_upi_id,
+            "pn": str(payee_name or "VernaLedger").strip(),
+            "am": f"{normalized_amount:.2f}",
+            "cu": "INR",
+            "tn": f"Khata payment - {str(customer_name or '').strip()}"[:80],
+        },
+        quote_via=urllib.parse.quote,
+    )
+    return f"upi://pay?{parameters}"
 
 
 def _normalize_khata_date(value, field_name):
@@ -458,6 +429,47 @@ def load_khata_transactions():
         )
 
 
+def update_khata_transactions(original_df, edited_df):
+    original_ids = {int(record_id) for record_id in original_df["id"].tolist()}
+    updates = []
+    for _, row in edited_df.iterrows():
+        try:
+            record_id = int(row["id"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("रेकॉर्ड आयडी बदलता येत नाही.") from exc
+        if record_id not in original_ids:
+            raise ValueError("नवीन किंवा अपरिचित रेकॉर्ड बदलता येत नाही.")
+        original_row = original_df.loc[original_df["id"] == record_id].iloc[0]
+        fields = ("customer_name", "phone", "amount", "transaction_type", "date", "due_date", "notes")
+        if all(str(original_row[field] or "") == str(row[field] or "") for field in fields):
+            continue
+        entry = validate_khata_entry(
+            row["customer_name"], row["phone"], row["amount"],
+            row["transaction_type"], row["date"], row["due_date"], row["notes"],
+        )
+        updates.append((entry, record_id))
+
+    if updates:
+        with sqlite3.connect("ledger.db", timeout=10) as conn:
+            conn.executemany(
+                """
+                UPDATE customer_khata
+                SET customer_name = ?, phone = ?, amount = ?, transaction_type = ?,
+                    date = ?, due_date = ?, notes = ?
+                WHERE id = ?
+                """,
+                [
+                    (
+                        entry["customer_name"], entry["phone"], entry["amount"],
+                        entry["transaction_type"], entry["date"], entry["due_date"],
+                        entry["notes"], record_id,
+                    )
+                    for entry, record_id in updates
+                ],
+            )
+    return len(updates)
+
+
 def delete_khata_transaction(record_id):
     with sqlite3.connect("ledger.db", timeout=10) as conn:
         cursor = conn.execute("DELETE FROM customer_khata WHERE id = ?", (int(record_id),))
@@ -479,9 +491,6 @@ def build_khata_risk_report(khata_df):
                 "credit": 0.0,
                 "payments": 0.0,
                 "overdue_credit": 0.0,
-                "overdue_days_max": 0,
-                "last_tx_date": None,
-                "tx_count": 0,
             },
         )
         if not customer["phone"] and phone:
@@ -492,17 +501,6 @@ def build_khata_risk_report(khata_df):
             continue
         if not math.isfinite(amount):
             continue
-
-        customer["tx_count"] += 1
-        tx_date_str = str(record.get("date") or "")
-        if tx_date_str:
-            try:
-                tx_d = datetime.strptime(tx_date_str, "%Y-%m-%d").date()
-                if not customer["last_tx_date"] or tx_d > customer["last_tx_date"]:
-                    customer["last_tx_date"] = tx_d
-            except Exception:
-                pass
-
         if record.get("transaction_type") == KHATA_CREDIT:
             customer["credit"] += amount
             try:
@@ -511,9 +509,6 @@ def build_khata_risk_report(khata_df):
                 due_date = None
             if due_date and due_date < today:
                 customer["overdue_credit"] += amount
-                days_diff = (today - due_date).days
-                if days_diff > customer["overdue_days_max"]:
-                    customer["overdue_days_max"] = days_diff
         elif record.get("transaction_type") == KHATA_PAYMENT:
             customer["payments"] += amount
 
@@ -521,78 +516,25 @@ def build_khata_risk_report(khata_df):
     for customer in customers.values():
         balance = customer["credit"] - customer["payments"]
         overdue_balance = min(max(balance, 0.0), customer["overdue_credit"])
-        overdue_days = customer["overdue_days_max"] if overdue_balance > 0 else 0
-        repayment_ratio = (customer["payments"] / customer["credit"]) if customer["credit"] > 0 else (1.0 if balance <= 0 else 0.0)
-
         risk_score = 0
         if balance > 0:
-            exposure_pts = min(int(balance / 150), 35)
-            overdue_pts = 0
-            if overdue_balance > 0:
-                if overdue_days > 60:
-                    overdue_pts = 45
-                elif overdue_days > 30:
-                    overdue_pts = 35
-                elif overdue_days > 14:
-                    overdue_pts = 25
-                else:
-                    overdue_pts = 15
-
-            if repayment_ratio == 0:
-                repay_pts = 20
-            elif repayment_ratio < 0.25:
-                repay_pts = 12
-            elif repayment_ratio < 0.50:
-                repay_pts = 5
-            else:
-                repay_pts = -10
-
-            risk_score = max(5, min(100, 15 + exposure_pts + overdue_pts + repay_pts))
-        else:
-            risk_score = 0
-
+            risk_score = min(
+                100,
+                20 + min(int(balance / 100), 40) + (40 if overdue_balance > 0 else 0),
+            )
         if risk_score >= 70:
             risk_level = "High Risk (बिकट उधारी)"
-            risk_tier = "High"
-            ai_recommendation_mr = (
-                f"🚨 तातडीने प्रत्यक्ष भेट द्या किंवा कडक नोटीस पाठवा. {overdue_days} दिवस थकीत आहेत. "
-                "जोपर्यंत ही बाकी जमा होत नाही तोपर्यंत पुढील कोणतीही उधारी देणे त्वरित थांबवा!"
-            )
-            ai_recommendation_en = (
-                f"🚨 Immediate action required. Payment overdue by {overdue_days} days. "
-                "Halt all further credit sales immediately until this past-due balance is settled."
-            )
         elif risk_score >= 40:
-            risk_level = "Moderate Risk (मध्यम जोखीम)"
-            risk_tier = "Moderate"
-            ai_recommendation_mr = (
-                "⚠️ पेमेंट आठवण व थेट UPI लिंक पाठवा. नवीन माल देण्यापूर्वी किमान ५०% रक्कम तातडीने वसूल करा."
-            )
-            ai_recommendation_en = (
-                "⚠️ Send payment reminder with UPI link. Request at least 50% partial repayment before issuing new credit."
-            )
+            risk_level = "Moderate Risk"
         else:
-            risk_level = "Safe Customer (सुरक्षित ग्राहक)"
-            risk_tier = "Safe"
-            ai_recommendation_mr = (
-                "✅ चांगला आणि विश्वासू ग्राहक. नियमित व्यवहार चालू ठेवा. सौम्य आठवण किंवा धन्यवाद संदेश पाठवू शकता."
-            )
-            ai_recommendation_en = (
-                "✅ Trusted customer with safe repayment history. Safe to maintain standard credit terms."
-            )
-
+            risk_level = "Safe Customer"
         report.append(
             {
                 **customer,
                 "balance": balance,
                 "overdue_balance": overdue_balance,
-                "overdue_days": overdue_days,
-                "repayment_ratio": repayment_ratio,
                 "risk_score": risk_score,
                 "risk_level": risk_level,
-                "risk_tier": risk_tier,
-                "ai_rec_mr": ai_recommendation_mr,
-                "ai_rec_en": ai_recommendation_en,
             }
         )
     return pd.DataFrame(report)
@@ -661,6 +603,109 @@ def parse_voice_khata_details(transcript):
 def render_business_module_styles():
     st.markdown("""
     <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {{
+        font-family: inherit; 
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }}
+    /* --- END SAFE FONT --- */
+    
+
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+        position: relative;
+        overflow: hidden;
+        min-height: 126px;
+        align-items: center;
+        padding: 22px 26px;
+        margin-bottom: 15px;
+        border: 1px solid rgba(125, 211, 252, 0.24) !important;
+        border-radius: 26px !important;
+        background:
+            radial-gradient(circle at 88% 16%, rgba(34, 211, 238, 0.2), transparent 28%),
+            radial-gradient(circle at 73% 110%, rgba(99, 102, 241, 0.2), transparent 35%),
+            linear-gradient(120deg, rgba(8, 18, 37, 0.98), rgba(14, 31, 55, 0.94) 58%, rgba(12, 27, 49, 0.96)) !important;
+        box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        right: 5%;
+        top: -82px;
+        border: 1px solid rgba(125, 211, 252, 0.13);
+        border-radius: 50%;
+        box-shadow: 0 0 0 20px rgba(125, 211, 252, 0.025), 0 0 0 42px rgba(125, 211, 252, 0.02);
+        pointer-events: none;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .studio-header:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.42) !important;
+        box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34), 0 0 34px rgba(34, 211, 238, 0.08) !important;
+    }
+    .business-hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+    }
+    .business-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding: 5px 10px;
+        color: #a5f3fc;
+        background: rgba(34, 211, 238, 0.09);
+        border: 1px solid rgba(103, 232, 249, 0.2);
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.25px;
+        text-transform: uppercase;
+    }
+    .business-hero-title {
+        margin: 0 !important;
+        color: #f8fafc !important;
+        font-size: clamp(25px, 3.2vw, 36px) !important;
+        font-weight: 800 !important;
+        letter-spacing: -1.1px;
+        line-height: 1.16 !important;
+    }
+    .business-hero-title span {
+        color: #67e8f9;
+    }
+    .business-hero-subtitle {
+        margin: 9px 0 0 !important;
+        color: #a8b8ce !important;
+        font-size: 13px !important;
+        line-height: 1.65 !important;
+    }
+    .business-hero-mark {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        flex: 0 0 72px;
+        width: 72px;
+        height: 72px;
+        place-items: center;
+        margin-left: 20px;
+        color: #a5f3fc;
+        background: linear-gradient(145deg, rgba(34, 211, 238, 0.19), rgba(99, 102, 241, 0.14));
+        border: 1px solid rgba(103, 232, 249, 0.25);
+        border-radius: 23px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 14px 30px rgba(2, 6, 23, 0.28);
+        font-size: 32px;
+    }
     [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
         margin-top: 4px;
         gap: 8px;
@@ -698,6 +743,11 @@ def render_business_module_styles():
         border: 1px solid rgba(56, 189, 248, 0.18) !important;
         border-radius: 20px !important;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
+    }
+    [data-testid="stMain"]:has(.business-suite-page) .panel-card:hover {
+        transform: none !important;
+        border-color: rgba(103, 232, 249, 0.26) !important;
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24) !important;
     }
     .business-section-heading {
         display: flex;
@@ -773,6 +823,23 @@ def render_business_module_styles():
         border-radius: 14px;
     }
     @media (max-width: 720px) {
+        [data-testid="stMain"]:has(.business-suite-page) .studio-header {
+            min-height: 0;
+            padding: 18px 16px;
+            border-radius: 21px !important;
+        }
+        .business-hero-mark {
+            flex-basis: 52px;
+            width: 52px;
+            height: 52px;
+            margin-left: 10px;
+            border-radius: 16px;
+            font-size: 24px;
+        }
+        .business-hero-subtitle {
+            max-width: 92%;
+            font-size: 12px !important;
+        }
         [data-testid="stMain"]:has(.business-suite-page) [role="tablist"] {
             gap: 4px;
             padding: 5px;
@@ -790,67 +857,736 @@ def render_business_module_styles():
     """, unsafe_allow_html=True)
 
 
-def render_page_header(title, subtitle, icon="✨"):
-    is_english = st.session_state.get("ui_language", "en") == "en"
-    today_disp = date.today().strftime("%d %b %Y")
-    status_label = "LIVE STUDIO" if is_english else "लाइव्ह स्टुडिओ"
-    st.markdown(f"""
-    <div style="
+def render_rag_sidebar_design_styles():
+    _streamlit_ui.markdown("""
+    <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {{
+        font-family: inherit; 
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }}
+    /* --- END SAFE FONT --- */
+    
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
+        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+        box-sizing: border-box !important;
+        resize: none !important;
+        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
+    }
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: 18.75rem !important;
+        min-width: 18.75rem !important;
+        max-width: 18.75rem !important;
+        flex: 0 0 18.75rem !important;
+    }
+    [data-testid="stSidebarResizer"] {
+        display: none !important;
+        pointer-events: none !important;
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        padding: 6px 10px !important;
+    }
+    [data-testid="stSidebarContent"] {
+        height: 100% !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    [data-testid="stSidebarUserContent"] {
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 5.25rem) !important;
+        padding: 0.3rem 0.15rem 0.5rem !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
+        gap: 0.45rem !important;
+    }
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
+    [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
+        margin-bottom: 0 !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-role-badge {
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 25px !important;
+        width: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 15px 0 0 !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+        line-height: 1.25 !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-role-badge span {
+        font-size: 9px !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-brand {
+        margin-bottom: 1px !important;
+        padding: 0 !important;
+        gap: 8px !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-title {
+        box-sizing: border-box !important;
+        margin: 4px 0 7px 3px !important;
+        font-size: 9px !important;
+        letter-spacing: 1px !important;
+        line-height: 1.4 !important;
+        overflow-wrap: anywhere;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 7px !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 40px !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 8px 11px !important;
+        margin: 0 !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
+        transform: none !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
+        accent-color: #22d3ee !important;
+        flex: 0 0 auto !important;
+        width: 15px !important;
+        height: 15px !important;
+        margin: 0 !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #dceafa !important;
+        font-size: 11.5px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.35 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
+        border-color: rgba(103, 232, 249, 0.75) !important;
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
+        color: #f0fdff !important;
+        transform: translateY(-1px) !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+        border-color: rgba(103, 232, 249, 0.82) !important;
+        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
+    }
+    section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
+        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
+        outline-offset: 2px !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"],
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label,
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        width: 100% !important;
+        min-height: 30px !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 2px 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        min-height: 34px !important;
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        border-radius: 10px !important;
+    }
+    section[data-testid="stSidebar"] .dev-credit-box {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        padding: 7px 9px !important;
+        margin: 4px 0 2px !important;
+        border-radius: 10px !important;
+        line-height: 1.35 !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button {
+        min-height: 34px !important;
+        padding: 6px 9px !important;
+    }
+    @media (max-width: 900px) {
+        section[data-testid="stSidebar"][aria-expanded="true"] {
+            width: min(18rem, 82vw) !important;
+            max-width: min(18rem, 82vw) !important;
+            min-width: min(18rem, 82vw) !important;
+            flex-basis: min(18rem, 82vw) !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def render_application_design_styles():
+    lang = st.session_state.get("ui_language", "en")
+    font_css = ""
+    if lang == "mr":
+        font_css = """
+        @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Hind:wght@400;500;600;700&display=swap');
+        
+        
+        
+        
+        """
+
+    st.markdown("""
+    <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {{
+        font-family: inherit; 
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }}
+    /* --- END SAFE FONT --- */
+    
+
+    """ + font_css + """
+    body:has(.app-ui-polish-scope) .stApp,
+    body:has(.app-ui-polish-scope) [data-testid="stAppViewContainer"] {
+        background-color: #030712 !important;
+        background-image:
+            radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.18), transparent 45%),
+            radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.15), transparent 45%),
+            radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5), transparent 80%),
+            linear-gradient(160deg, #020617 0%, #09090b 50%, #0f172a 100%) !important;
+        color: #e7eef8 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stHeader"] {
+        background: rgba(8, 17, 31, 0.84) !important;
+        border-bottom-color: rgba(148, 163, 184, 0.12) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: clamp(0.45rem, 0.9vw, 0.8rem) clamp(0.75rem, 2vw, 1.75rem) 1.1rem !important;
+    }
+    body:has(section[data-testid="stSidebar"][aria-expanded="false"]) [data-testid="stMainBlockContainer"] {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0c1728 0%, #09111f 100%) !important;
+        border-right: 1px solid rgba(148, 163, 184, 0.13) !important;
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.22) !important;
+        box-sizing: border-box !important;
+        resize: none !important;
+        transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: 18.75rem !important;
+        min-width: 18.75rem !important;
+        max-width: 18.75rem !important;
+        flex: 0 0 18.75rem !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarResizer"] {
+        display: none !important;
+        pointer-events: none !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebar"] > div:first-child {
+        padding: 6px 10px !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarContent"] {
+        height: 100% !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] {
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+        max-height: calc(100dvh - 5.25rem) !important;
+        padding: 0.3rem 0.15rem 0.5rem !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(56, 189, 248, 0.38) transparent;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
+        gap: 0.45rem !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-role-badge),
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.sidebar-title),
+    body:has(.app-ui-polish-scope) [data-testid="stSidebarUserContent"] [data-testid="stMarkdownContainer"]:has(.dev-credit-box) {
+        margin-bottom: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge {
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 25px !important;
+        width: 100% !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 15px 0 0 !important;
+        padding: 4px 8px !important;
+        border-radius: 8px !important;
+        line-height: 1.25 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-role-badge span {
+        font-size: 9px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .sidebar-brand {
+        margin-bottom: 1px !important;
+        padding: 0 !important;
+        gap: 8px !important;
+    }
+    body:has(.app-ui-polish-scope) .sidebar-title {
+        color: #91a9c7 !important;
+        box-sizing: border-box !important;
+        margin: 4px 0 7px 3px !important;
+        font-size: 9px !important;
+        letter-spacing: 1px !important;
+        line-height: 1.4 !important;
+        overflow-wrap: anywhere;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 7px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        min-height: 40px !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 8px 11px !important;
+        margin: 0 !important;
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.09), rgba(37, 99, 235, 0.07)) !important;
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 14px rgba(2, 8, 23, 0.16), inset 0 1px rgba(255, 255, 255, 0.025) !important;
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.2), rgba(99, 102, 241, 0.16)) !important;
+        border-color: rgba(103, 232, 249, 0.75) !important;
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.14), 0 0 20px rgba(34, 211, 238, 0.2), inset 0 1px rgba(255, 255, 255, 0.07) !important;
+        color: #f0fdff !important;
+        transform: translateY(-1px) !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+        background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+        border-color: rgba(103, 232, 249, 0.82) !important;
+        box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
+        outline: 2px solid rgba(103, 232, 249, 0.72) !important;
+        outline-offset: 2px !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"] {
+        accent-color: #22d3ee !important;
+        flex: 0 0 auto !important;
+        width: 15px !important;
+        height: 15px !important;
+        margin: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #dceafa !important;
+        font-size: 11.5px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.35 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"],
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label,
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label {
+        box-sizing: border-box !important;
+        display: flex !important;
+        width: 100% !important;
+        min-height: 30px !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 2px 0 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p {
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        overflow-wrap: anywhere;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        min-height: 34px !important;
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        border-radius: 10px !important;
+    }
+    body:has(.app-ui-polish-scope) .dev-credit-box {
+        background: rgba(15, 29, 48, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.14) !important;
+        border-radius: 10px !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        padding: 7px 9px !important;
+        margin: 4px 0 2px !important;
+        line-height: 1.35 !important;
+    }
+    body:has(.app-ui-polish-scope) section[data-testid="stSidebar"] .stButton > button {
+        min-height: 34px !important;
+        padding: 6px 9px !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header {
         position: relative;
         overflow: hidden;
+        min-height: 118px;
+        padding: clamp(16px, 2vw, 25px) !important;
+        margin-bottom: 15px !important;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(56, 189, 248, 0.15), transparent 32%),
+            linear-gradient(125deg, rgba(16, 31, 51, 0.96), rgba(12, 23, 40, 0.92)) !important;
+        border: 1px solid rgba(148, 163, 184, 0.17) !important;
+        border-radius: 22px !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.045) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header:hover {
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.05) !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header h2 {
+        color: #e9f4ff !important;
+        font-size: clamp(20px, 2.2vw, 28px) !important;
+        line-height: 1.25 !important;
+        letter-spacing: -0.035em !important;
+    }
+    body:has(.app-ui-polish-scope) .studio-header p {
+        color: #9bb0c9 !important;
+        font-size: clamp(12px, 1.15vw, 14px) !important;
+        line-height: 1.6 !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card {
+        box-sizing: border-box !important;
+        padding: clamp(13px, 1.4vw, 18px) !important;
+        margin-bottom: 13px !important;
+        background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75)) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(56, 189, 248, 0.18) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05), inset 0 -1px 2px rgba(14,165,233,0.05) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .panel-card:hover {
+        border-color: rgba(56, 189, 248, 0.24) !important;
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.23) !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) h1,
+    body:has(.app-ui-polish-scope) h2,
+    body:has(.app-ui-polish-scope) h3,
+    body:has(.app-ui-polish-scope) h4 {
+        letter-spacing: -0.025em;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] h4 {
+        color: #dceaf9 !important;
+        font-size: 16px !important;
+        margin-bottom: 14px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+        gap: 6px !important;
+        padding: 6px !important;
+        background: rgba(10, 20, 35, 0.74) !important;
+        border: 1px solid rgba(148, 163, 184, 0.14) !important;
+        border-radius: 15px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+        min-height: 42px !important;
+        padding: 9px 14px !important;
+        color: #9fb2c9 !important;
+        border: 1px solid transparent !important;
+        border-radius: 10px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        color: #e5f6ff !important;
+        background: linear-gradient(120deg, rgba(14, 165, 233, 0.2), rgba(59, 130, 246, 0.13)) !important;
+        border-color: rgba(56, 189, 248, 0.25) !important;
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.06) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea,
+    body:has(.app-ui-polish-scope) [data-baseweb="select"] > div {
+        min-height: 42px;
+        color: #e7eef8 !important;
+        background: rgba(7, 16, 29, 0.78) !important;
+        border-color: rgba(148, 163, 184, 0.2) !important;
+        border-radius: 11px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stTextInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stNumberInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stDateInput"] input:focus,
+    body:has(.app-ui-polish-scope) [data-testid="stTextArea"] textarea:focus {
+        border-color: rgba(56, 189, 248, 0.72) !important;
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.13) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stWidgetLabel"] p,
+    body:has(.app-ui-polish-scope) [data-testid="stMarkdownContainer"] p {
+        line-height: 1.55;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        min-height: 43px !important;
+        padding: 10px 16px !important;
+        border-radius: 11px !important;
+        box-shadow: 0 6px 16px rgba(2, 8, 23, 0.23) !important;
+        transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button[kind="primary"],
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(115deg, #0284c7, #2563eb) !important;
+        border: 1px solid rgba(125, 211, 252, 0.28) !important;
+        color: #f8fbff !important;
+    }
+    body:has(.app-ui-polish-scope) .stButton > button:hover,
+    body:has(.app-ui-polish-scope) .stDownloadButton > button:hover,
+    body:has(.app-ui-polish-scope) [data-testid="stFormSubmitButton"] > button:hover {
+        border-color: rgba(125, 211, 252, 0.58) !important;
+        box-shadow: 0 8px 20px rgba(2, 8, 23, 0.29) !important;
+        transform: translateY(-1px) !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMetric"] {
+        padding: 15px 16px;
+        background: rgba(10, 21, 37, 0.74);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
+    body:has(.app-ui-polish-scope) [data-testid="stDataEditor"] {
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 14px;
+        background: rgba(10, 19, 33, 0.65);
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stFileUploader"],
+    body:has(.app-ui-polish-scope) [data-testid="stCameraInput"] {
+        background: rgba(9, 19, 33, 0.65) !important;
+        border: 1px dashed rgba(56, 189, 248, 0.42) !important;
+        border-radius: 15px !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stAlert"] {
+        border-radius: 13px !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"],
+    body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"],
+    body:has(.app-ui-polish-scope) [data-testid="stColumn"] {
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+        overflow-x: clip;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry {
+        padding: 12px 15px;
+        margin: 4px 0 12px;
+        background: linear-gradient(115deg, rgba(8, 145, 178, 0.12), rgba(59, 130, 246, 0.08));
+        border: 1px solid rgba(103, 232, 249, 0.2);
+        border-radius: 13px;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry-title {
+        color: #d9fbff;
+        font-size: 13px;
+        font-weight: 800;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-entry-caption {
+        margin-top: 3px;
+        color: #9fb2c9;
+        font-size: 11px;
+        line-height: 1.45;
+    }
+    body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
+        height: 27px;
+    }
+    body:has(.app-ui-polish-scope) [data-testid="stForm"] {
+        padding: 13px;
+        background: rgba(5, 13, 27, 0.36);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 15px;
+    }
+    @media (max-width: 900px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            padding: 0.55rem 0.7rem 1rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: calc(50% - 0.4rem) !important;
+            flex: 1 1 calc(50% - 0.4rem) !important;
+        }
+        body:has(.app-ui-polish-scope) section[data-testid="stSidebar"][aria-expanded="true"] {
+            width: min(18rem, 82vw) !important;
+            max-width: min(18rem, 82vw) !important;
+            min-width: min(18rem, 82vw) !important;
+            flex-basis: min(18rem, 82vw) !important;
+        }
+    }
+    @media (max-width: 640px) {
+        body:has(.app-ui-polish-scope) [data-testid="stMainBlockContainer"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.45rem 0.55rem 0.85rem !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header {
+            min-height: 0;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 14px 13px !important;
+            margin-bottom: 12px !important;
+            border-radius: 18px !important;
+        }
+        body:has(.app-ui-polish-scope) .studio-header h2 {
+            font-size: 20px !important;
+        }
+        body:has(.app-ui-polish-scope) .panel-card {
+            box-sizing: border-box;
+            padding: 13px !important;
+            margin-bottom: 10px !important;
+            border-radius: 16px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stDataFrame"],
+        body:has(.app-ui-polish-scope) [data-testid="stDataEditor"],
+        body:has(.app-ui-polish-scope) [data-testid="stPlotlyChart"] {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"] {
+            gap: 4px !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            scrollbar-width: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tablist"]::-webkit-scrollbar {
+            display: none;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stTabs"] [role="tab"] {
+            flex: 0 0 auto !important;
+            min-height: 40px !important;
+            padding: 8px 11px !important;
+            font-size: 11px !important;
+        }
+        body:has(.app-ui-polish-scope) [data-testid="stFileUploader"] {
+            padding: 12px !important;
+        }
+        body:has(.app-ui-polish-scope) .khata-ai-parse-spacer {
+            display: none;
+        }
+    }
+    </style>
+    <div class="app-ui-polish-scope" aria-hidden="true"></div>
+    """, unsafe_allow_html=True)
+
+
+def render_page_header(title, subtitle, icon="✨"):
+    st.markdown(f"""
+    <div style="
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 22px;
-        background: radial-gradient(circle at 90% 10%, rgba(0, 242, 254, 0.15), transparent 40%),
-                    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 16, 32, 0.9) 100%);
-        backdrop-filter: blur(24px);
-        border: 1px solid rgba(0, 242, 254, 0.35);
-        border-radius: 18px;
+        padding: 14px 20px;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(13, 19, 33, 0.8) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 242, 254, 0.25);
+        border-radius: 14px;
         margin-bottom: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(0, 242, 254, 0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
     ">
         <div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; color: #00ff87; background: rgba(0, 255, 135, 0.12); border: 1px solid rgba(0, 255, 135, 0.35); padding: 2px 8px; border-radius: 12px; letter-spacing: 0.5px;">
-                    <span style="width: 6px; height: 6px; background: #00ff87; border-radius: 50%; box-shadow: 0 0 6px #00ff87;"></span>
-                    {status_label}
-                </span>
-                <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">📅 {today_disp}</span>
-            </div>
-            <h2 style="margin: 0; font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #ffffff 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.3px;">{title}</h2>
-            <p style="margin: 3px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; line-height: 1.4;">{subtitle}</p>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: #00f2fe; letter-spacing: -0.5px;">{title}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600;">{subtitle}</p>
         </div>
-        <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(99, 102, 241, 0.15));
-            border: 1px solid rgba(0, 242, 254, 0.3);
-            border-radius: 14px;
-            font-size: 24px;
-            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-            flex-shrink: 0;
-            margin-left: 12px;
-        ">{icon}</div>
+        <div style="font-size: 26px; filter: drop-shadow(0 2px 4px rgba(0,242,254,0.3));">{icon}</div>
     </div>
     """, unsafe_allow_html=True)
 
 def render_customer_khata():
     # Staff can now access this
-    is_english = st.session_state.get("ui_language", "en") == "en"
 
-    header_title = "Customer Khata - Credit Ledger" if is_english else "ग्राहक खाते - उधारी लेजर"
-    header_subtitle = "Manage customer credit, installments, and AI risk." if is_english else "ग्राहकांची उधारी, जमा हप्ते आणि AI जोखीम व्यवस्थापन."
-    render_page_header(header_title, header_subtitle, "📖")
-
-    tab_titles = [
-        "➕ New Credit / Installment Entry" if is_english else "➕ नवीन उधारी / हप्ता नोंद",
-        "📊 Credit Ledger & AI Risk Report" if is_english else "📊 क्रेडिट लेजर & AI रिस्क रिपोर्ट",
-    ]
-    tab1, tab2 = st.tabs(tab_titles)
+    render_page_header("Customer Khata - Credit Ledger", "Manage your customer credits and installments efficiently.", "📖")
+    tab1, tab2 = st.tabs(["New Credit / Installment Entry", "Credit Ledger & AI Risk Report"])
 
     with tab1:
         if st.session_state.pop("khata_form_reset", False):
@@ -868,106 +1604,106 @@ def render_customer_khata():
                 st.session_state.pop(field, None)
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
 
-        exp_label = "🎙️ Voice or AI Text Entry (Optional)" if is_english else "🎙️ बोलून किंवा AI मजकुराद्वारे नोंद भरा (पर्यायी)"
-        with st.expander(exp_label, expanded=False):
-            try:
-                transcript = speech_to_text(
-                    start_prompt="Speak transaction details" if is_english else "व्यवहाराचा तपशील बोला",
-                    stop_prompt="Stop speaking" if is_english else "बोलणे थांबवा",
-                    just_once=True,
-                    language="en-IN" if is_english else "mr-IN",
-                    key="khata_unified_voice_input",
-                )
-            except Exception as exc:
-                logging.exception("Voice transcription failed for customer khata")
-                st.caption(f"Voice recording unavailable: {exc}" if is_english else f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
-                transcript = None
-            if isinstance(transcript, str) and transcript.strip():
-                st.session_state["khata_ai_transcript"] = transcript.strip()
+        st.markdown("""
+        <div class="khata-ai-entry">
+            <div class="khata-ai-entry-title">⌁ AI व्हॉइस किंवा मजकूर नोंद</div>
+            <div class="khata-ai-entry-caption">बोला किंवा व्यवहाराचे वाक्य लिहा; AI तपशील फॉर्ममध्ये भरेल. सेव्ह करण्यापूर्वी तपासा.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        try:
+            transcript = speech_to_text(
+                start_prompt="Speak transaction details",
+                stop_prompt="बोलणे थांबवा",
+                just_once=True,
+                language="mr-IN",
+                key="khata_unified_voice_input",
+            )
+        except Exception as exc:
+            logging.exception("Voice transcription failed for customer khata")
+            st.error(f"व्हॉईस रेकॉर्डिंग उपलब्ध नाही: {exc}")
+            transcript = None
+        if isinstance(transcript, str) and transcript.strip():
+            st.session_state["khata_ai_transcript"] = transcript.strip()
 
-            transcript_col, parse_col = st.columns([4, 1])
-            with transcript_col:
-                st.text_area(
-                    "Speak or type transaction details" if is_english else "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
-                    key="khata_ai_transcript",
-                    height=72,
-                    max_chars=1000,
-                    placeholder="e.g. 200 rupees credit to Saurabh" if is_english else "उदा. सौरभकडे २०० रुपये उधारी",
-                )
-            with parse_col:
-                st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
-                parse_voice = st.button(
-                    "Fill Details with AI" if is_english else "AI तपशील भरा",
-                    key="parse_unified_khata_voice",
-                    type="secondary",
-                )
-            if parse_voice:
-                transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
-                if not transcript_text:
-                    st.warning("Please record voice or enter transaction sentence first." if is_english else "आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
-                else:
-                    try:
-                        draft = parse_voice_khata_details(transcript_text)
-                        st.session_state["khata_voice_draft"] = draft
-                        st.session_state["khata_form_customer_name"] = draft["customer_name"]
-                        st.session_state["khata_form_phone"] = draft["phone"]
-                        st.session_state["khata_form_amount"] = draft["amount"]
-                        st.session_state["khata_form_type"] = draft["transaction_type"]
-                        st.session_state["khata_form_notes"] = draft["notes"]
-                        st.toast("AI parsed details filled in. Review before saving." if is_english else "AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
-                        st.rerun()
-                    except (ValueError, json.JSONDecodeError) as exc:
-                        st.error(f"Could not recognize AI details: {exc}" if is_english else f"AI तपशील ओळखता आले नाहीत: {exc}")
-                    except Exception as exc:
-                        logging.exception("AI voice khata parsing failed")
-                        st.error(f"Error parsing AI details: {exc}" if is_english else f"AI तपशील वाचताना Error: {exc}")
+        transcript_col, parse_col = st.columns([4, 1])
+        with transcript_col:
+            st.text_area(
+                "बोलून किंवा टाइप करून व्यवहाराचा तपशील द्या",
+                key="khata_ai_transcript",
+                height=72,
+                max_chars=1000,
+                placeholder="उदा. सौरभकडे २०० रुपये उधारी",
+            )
+        with parse_col:
+            st.markdown("<div class='khata-ai-parse-spacer'></div>", unsafe_allow_html=True)
+            parse_voice = st.button(
+                "AI तपशील भरा",
+                key="parse_unified_khata_voice",
+                type="secondary",
+                
+            )
+        if parse_voice:
+            transcript_text = st.session_state.get("khata_ai_transcript", "").strip()
+            if not transcript_text:
+                st.warning("आधी व्हॉईस नोंद करा किंवा व्यवहाराचे वाक्य लिहा.")
+            else:
+                try:
+                    draft = parse_voice_khata_details(transcript_text)
+                    st.session_state["khata_voice_draft"] = draft
+                    st.session_state["khata_form_customer_name"] = draft["customer_name"]
+                    st.session_state["khata_form_phone"] = draft["phone"]
+                    st.session_state["khata_form_amount"] = draft["amount"]
+                    st.session_state["khata_form_type"] = draft["transaction_type"]
+                    st.session_state["khata_form_notes"] = draft["notes"]
+                    st.toast("AI तपशील फॉर्ममध्ये भरले. सेव्ह करण्यापूर्वी तपासा.", icon="✨")
+                    st.rerun()
+                except (ValueError, json.JSONDecodeError) as exc:
+                    st.error(f"AI तपशील ओळखता आले नाहीत: {exc}")
+                except Exception as exc:
+                    logging.exception("AI voice khata parsing failed")
+                    st.error(f"AI तपशील वाचताना Error: {exc}")
 
         with st.form("khata_form"):
             fc1, fc2 = st.columns(2)
             with fc1:
                 customer_name = st.text_input(
-                    "Customer Name" if is_english else "ग्राहकाचे नाव",
+                    "ग्राहक नाव (Customer Name)",
                     max_chars=100,
                     key="khata_form_customer_name",
                 )
                 phone = st.text_input(
-                    "Phone Number (10 digits)" if is_english else "फोन नंबर (१० अंक)",
+                    "Phone Number (10 digits)",
                     max_chars=16,
                     key="khata_form_phone",
                 )
                 amount = st.number_input(
-                    "Amount (₹)" if is_english else "रक्कम (₹)",
+                    "Amount",
                     min_value=0.0,
                     step=10.0,
                     key="khata_form_amount",
                 )
             with fc2:
-                khata_type_map = {
-                    KHATA_CREDIT: "Given Credit" if is_english else "उधारी बाकी",
-                    KHATA_PAYMENT: "Received Payment" if is_english else "पैसे जमा / हप्ता",
-                }
                 transaction_type = st.selectbox(
-                    "Transaction Type" if is_english else "व्यवहाराचा प्रकार",
+                    "व्यवहार प्रकार (Transaction Type)",
                     KHATA_TRANSACTION_TYPES,
-                    format_func=lambda x: khata_type_map.get(x, x),
                     key="khata_form_type",
                 )
                 entry_date = st.date_input(
-                    "Transaction Date" if is_english else "व्यवहार तारीख",
+                    "व्यवहार तारीख (Date)",
                     value=date.today(),
                     key="khata_form_entry_date",
                 )
                 due_date = st.date_input(
-                    "Due Date" if is_english else "परतफेडीची मुदत तारीख",
+                    "परतफेची मुदत तारीख (Due Date)",
                     value=date.today(),
                     key="khata_form_due_date",
                 )
             notes = st.text_area(
-                "Itemized Notes / Details (e.g. 2 kg sugar)" if is_english else "टीप / वस्तू तपशील (उदा. २ किलो साखर)",
+                "टीप / वस्तु तपशील (Itemized Notes e.g. 2 kg sugar)",
                 max_chars=1000,
                 key="khata_form_notes",
             )
-            submitted = st.form_submit_button("Save Entry to Khata" if is_english else "खात्यात नोंद सेव्ह करा")
+            submitted = st.form_submit_button("खात्यात नोंद सेव्ह करा")
         if submitted:
             try:
                 record_id = save_khata_transaction(
@@ -978,13 +1714,13 @@ def render_customer_khata():
                     f"Added Khata ID {record_id}",
                 )
                 st.session_state["khata_form_reset"] = True
-                st.toast("Khata entry saved successfully!" if is_english else "खाते नोंद अपडेट झाली!", icon="📝")
+                st.toast("खाते नोंद अपडेट झाली!", icon="📝")
                 st.rerun()
             except ValueError as exc:
                 st.error(str(exc))
             except sqlite3.Error as exc:
                 logging.exception("Could not save customer khata transaction")
-                st.error(f"Could not save record to database: {exc}" if is_english else f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
+                st.error(f"डेटाबेसमध्ये नोंद सेव्ह करता आली नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
@@ -993,582 +1729,205 @@ def render_customer_khata():
             khata_df = load_khata_transactions()
         except sqlite3.Error as exc:
             logging.exception("Could not load customer khata transactions")
-            st.error(f"Could not load ledger data: {exc}" if is_english else f"लेजर डेटा वाचता आला नाही: {exc}")
+            st.error(f"लेजर डेटा वाचता आला नाही: {exc}")
             khata_df = pd.DataFrame(columns=KHATA_COLUMNS)
 
         risk_report = build_khata_risk_report(khata_df)
         amounts = pd.to_numeric(khata_df["amount"], errors="coerce").fillna(0)
-        total_credit = float(amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum())
-        total_payment = float(amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum())
-        total_balance = total_credit - total_payment
-        recovery_pct = (total_payment / total_credit * 100) if total_credit > 0 else 100.0
-
-        if not risk_report.empty:
-            total_overdue = float(risk_report["overdue_balance"].sum())
-            overdue_count = len(risk_report[risk_report["overdue_balance"] > 0])
-            high_risk_count = len(risk_report[risk_report["risk_score"] >= 70])
-            moderate_risk_count = len(risk_report[(risk_report["risk_score"] >= 40) & (risk_report["risk_score"] < 70)])
-            safe_count = len(risk_report[risk_report["risk_score"] < 40])
-        else:
-            total_overdue = 0.0
-            overdue_count = 0
-            high_risk_count = 0
-            moderate_risk_count = 0
-            safe_count = 0
-
-        # --- 1. Portfolio KPI Dashboard ---
-        lbl_tot_credit = "TOTAL CREDIT GIVEN" if is_english else "एकूण दिलेली उधारी"
-        lbl_cust_accounts = f"{len(risk_report)} Customer Accounts" if is_english else f"{len(risk_report)} ग्राहक खाती"
-        lbl_rec_amount = "RECOVERED AMOUNT" if is_english else "वसूल झालेली रक्कम"
-        lbl_rec_rate = f"{recovery_pct:.1f}% Recovery Rate" if is_english else f"{recovery_pct:.1f}% परतफेड प्रमाण"
-        lbl_net_balance = "OUTSTANDING BALANCE" if is_english else "शिल्लक येणे बाकी"
-        lbl_net_desc = "Total Net Receivable" if is_english else "एकूण येणे शिल्लक"
-        lbl_overdue_credit = "OVERDUE CREDIT" if is_english else "मुदतबाह्य उधारी (Overdue)"
-        lbl_overdue_count = f"{overdue_count} Accounts Overdue" if is_english else f"{overdue_count} खाती थकीत"
-
-        safe_rec_pct = min(100.0, max(0.0, recovery_pct))
-        st.markdown(
-            f'''
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px;">
-                <!-- Total Credit Given -->
-                <div style="
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
-                    border: 1px solid rgba(148, 163, 184, 0.25);
-                    border-top: 3px solid #94a3b8;
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 11px; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_tot_credit}</span>
-                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(148, 163, 184, 0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">💳</div>
-                    </div>
-                    <div style="font-size: 22px; font-weight: 800; color: #f8fafc; letter-spacing: -0.5px;">₹{total_credit:,.2f}</div>
-                    <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-weight: 600;">👥 {lbl_cust_accounts}</div>
-                </div>
-
-                <!-- Recovered Amount -->
-                <div style="
-                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.3) 100%);
-                    border: 1px solid rgba(16, 185, 129, 0.35);
-                    border-top: 3px solid #10b981;
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.1);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 11px; color: #a7f3d0; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_rec_amount}</span>
-                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; font-size: 14px;">✅</div>
-                    </div>
-                    <div style="font-size: 22px; font-weight: 800; color: #10b981; letter-spacing: -0.5px;">₹{total_payment:,.2f}</div>
-                    <div>
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #34d399; margin-top: 6px; font-weight: 600;">
-                            <span>{lbl_rec_rate}</span>
-                        </div>
-                        <div style="background: rgba(16, 185, 129, 0.2); height: 4px; border-radius: 2px; margin-top: 4px; overflow: hidden;">
-                            <div style="width: {safe_rec_pct:.1f}%; height: 100%; background: #10b981; border-radius: 2px;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Outstanding Balance -->
-                <div style="
-                    background: linear-gradient(135deg, rgba(14, 165, 233, 0.14) 0%, rgba(3, 105, 161, 0.25) 100%);
-                    border: 1px solid rgba(14, 165, 233, 0.4);
-                    border-top: 3px solid #38bdf8;
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    box-shadow: 0 4px 18px rgba(14, 165, 233, 0.12);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 11px; color: #bae6fd; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_net_balance}</span>
-                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(14, 165, 233, 0.25); display: flex; align-items: center; justify-content: center; font-size: 14px;">⏳</div>
-                    </div>
-                    <div style="font-size: 22px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">₹{total_balance:,.2f}</div>
-                    <div style="font-size: 11px; color: #7dd3fc; margin-top: 6px; font-weight: 600;">💼 {lbl_net_desc}</div>
-                </div>
-
-                <!-- Overdue Credit -->
-                <div style="
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(153, 27, 27, 0.25) 100%);
-                    border: 1px solid rgba(239, 68, 68, 0.4);
-                    border-top: 3px solid #ef4444;
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    box-shadow: 0 4px 18px rgba(239, 68, 68, 0.12);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                ">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 11px; color: #fecaca; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">{lbl_overdue_credit}</span>
-                        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; font-size: 14px;">🚨</div>
-                    </div>
-                    <div style="font-size: 22px; font-weight: 800; color: #ef4444; letter-spacing: -0.5px;">₹{total_overdue:,.2f}</div>
-                    <div style="font-size: 11px; color: #f87171; margin-top: 6px; font-weight: 600;">⚠️ {lbl_overdue_count}</div>
-                </div>
-            </div>
-            ''',
-            unsafe_allow_html=True,
+        total_balance = float(
+            amounts.where(khata_df["transaction_type"] == KHATA_CREDIT, 0).sum()
+            - amounts.where(khata_df["transaction_type"] == KHATA_PAYMENT, 0).sum()
         )
-
-        # --- 2. Live Search, Risk Filter & Actions Toolbar ---
-        sf_col1, sf_col2, sf_col3, sf_col4 = st.columns([1.6, 1.2, 1.2, 0.6])
-        with sf_col1:
-            search = st.text_input(
-                "Search Customer" if is_english else "ग्राहक शोधा",
-                placeholder="🔍 Search name or phone..." if is_english else "🔍 नाव किंवा फोन नंबर शोधा...",
-                key="khata_search",
-                label_visibility="collapsed",
-            ).strip()
-
-        with sf_col2:
-            if is_english:
-                filter_opts = [
-                    f"All Customers ({len(risk_report)})",
-                    f"🔴 High Risk ({high_risk_count})",
-                    f"🟡 Moderate Risk ({moderate_risk_count})",
-                    f"⚠️ Overdue Only ({overdue_count})",
-                    f"🟢 Safe Customers ({safe_count})",
-                ]
-            else:
-                filter_opts = [
-                    f"सर्व ग्राहक ({len(risk_report)})",
-                    f"🔴 हाय रिस्क ({high_risk_count})",
-                    f"🟡 मध्यम जोखीम ({moderate_risk_count})",
-                    f"⚠️ फक्त मुदतबाह्य ({overdue_count})",
-                    f"🟢 सुरक्षित ग्राहक ({safe_count})",
-                ]
-            sel_filter = st.selectbox(
-                "Risk Filter:" if is_english else "जोखीम फिल्टर:",
-                filter_opts,
-                key="khata_filter_cat",
-                label_visibility="collapsed",
+        
+        # Compact top section
+        top_col1, top_col2 = st.columns([1.5, 1])
+        with top_col1:
+            st.markdown(
+                f'''
+                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 12px; padding: 12px; text-align: center;">
+                    <div style="font-size: 13px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">एकूण येणे बाकी · Net Udhari</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #67e8f9; margin-top: 4px;">₹ {total_balance:,.2f}</div>
+                </div>
+                ''',
+                unsafe_allow_html=True,
             )
-
-        with sf_col3:
-            if is_english:
-                sort_opts = [
-                    "Highest Balance First",
-                    "Highest Risk Score First",
-                    "Most Days Overdue First",
-                    "Customer Name (A-Z)",
-                ]
-            else:
-                sort_opts = [
-                    "सर्वात जास्त बाकी रक्कम आधी",
-                    "सर्वात जास्त रिस्क स्कोअर आधी",
-                    "सर्वाधिक दिवस थकीत आधी",
-                    "ग्राहक नाव (A-Z)",
-                ]
-            sel_sort = st.selectbox(
-                "Sort By:" if is_english else "क्रमवारी:",
-                sort_opts,
-                key="khata_sort_cat",
-                label_visibility="collapsed",
-            )
-
-        with sf_col4:
-            if st.button("🔄 Refresh" if is_english else "🔄 रिफ्रेश", key="refresh_khata", use_container_width=True):
+        with top_col2:
+            if st.button("🔄 रिफ्रेश करा", type="primary", key="refresh_khata", use_container_width=True):
                 st.rerun()
+            if st.button("🔊 ऑडिओ सारांश", key="khata_audio_summary", use_container_width=True) and not khata_df.empty:
+                audio_summary_text = f"सध्या एकूण रक्कम रुपये {total_balance:.0f} उधारी येणे बाकी आहे."
+                try:
+                    audio_file = generate_marathi_tts(audio_summary_text)
+                    if audio_file and os.path.exists(audio_file):
+                        st.audio(audio_file, autoplay=True)
+                    else:
+                        st.error("ऑडिओ तयार करता आला नाही.")
+                except Exception as exc:
+                    logging.exception("Could not generate khata audio summary")
+                    st.error(f"ऑडिओ तयार करताना Error: {exc}")
 
-        visible_risk = risk_report.copy()
-        if search and not visible_risk.empty:
-            search_match = (
-                visible_risk["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
-                | visible_risk["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+        st.write("")
+        search = st.text_input(
+            "ग्राहक नाव किंवा नंबर द्वारे शोधा (Search Customer):",
+            placeholder="नाव टाईप करा...",
+            key="khata_search",
+        ).strip()
+        visible_df = khata_df.copy()
+        if search:
+            matches = (
+                visible_df["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | visible_df["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
             )
-            visible_risk = visible_risk[search_match]
+            visible_df = visible_df[matches]
+        visible_risk = risk_report
+        if search and not risk_report.empty:
+            visible_risk = risk_report[
+                risk_report["customer_name"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+                | risk_report["phone"].fillna("").astype(str).str.contains(search, case=False, regex=False)
+            ]
 
-        f_df = visible_risk.copy()
-        if "हाय रिस्क" in sel_filter or "High Risk" in sel_filter:
-            f_df = f_df[f_df["risk_score"] >= 70]
-        elif "मध्यम" in sel_filter or "Moderate Risk" in sel_filter:
-            f_df = f_df[(f_df["risk_score"] >= 40) & (f_df["risk_score"] < 70)]
-        elif "मुदतबाह्य" in sel_filter or "Overdue Only" in sel_filter:
-            f_df = f_df[f_df["overdue_balance"] > 0]
-        elif "सुरक्षित" in sel_filter or "Safe Customers" in sel_filter:
-            f_df = f_df[f_df["risk_score"] < 40]
-
-        if not f_df.empty:
-            if "बाकी रक्कम" in sel_sort or "Highest Balance" in sel_sort:
-                f_df = f_df.sort_values(by="balance", ascending=False)
-            elif "रिस्क स्कोअर" in sel_sort or "Highest Risk Score" in sel_sort:
-                f_df = f_df.sort_values(by="risk_score", ascending=False)
-            elif "दिवस थकीत" in sel_sort or "Most Days Overdue" in sel_sort:
-                f_df = f_df.sort_values(by="overdue_days", ascending=False)
-            elif "नाव" in sel_sort or "Name (A-Z)" in sel_sort:
-                f_df = f_df.sort_values(by="customer_name", ascending=True)
-
-        if f_df.empty:
-            if risk_report.empty:
-                st.info("No customer credit records available currently. Use the 'New Credit / Installment Entry' tab above to add a new record." if is_english else "सध्या कोणतीही उधारी नोंद उपलब्ध नाही. नवीन नोंद जोडण्यासाठी वरील 'नवीन उधारी / हप्ता नोंद' टॅब वापरा.")
-            else:
-                st.warning("No customers matched your search/filter criteria." if is_english else "शोधलेल्या निकषांनुसार कोणतेही ग्राहक आढळले नाहीत.")
-        else:
-            PAGE_SIZE = 10
-            total_custs = len(f_df)
-            if total_custs > PAGE_SIZE:
-                num_pages = math.ceil(total_custs / PAGE_SIZE)
-                p_c1, p_c2 = st.columns([1, 2])
-                with p_c1:
-                    page_label = f"📄 Select Page (1-{num_pages}):" if is_english else f"📄 पान निवडा (1-{num_pages}):"
-                    page_num = st.selectbox(
-                        page_label,
-                        range(1, num_pages + 1),
-                        key="khata_page_num",
-                    )
-                f_df_page = f_df.iloc[(page_num - 1) * PAGE_SIZE : page_num * PAGE_SIZE]
-            else:
-                f_df_page = f_df
-
-            shop_name = get_shop_setting("shop_name", "VernaLedger")
+        sub_t1, sub_t2 = st.tabs(["📊 AI Risk & Actions", "✏️ Edit Ledger Database"])
+        
+        with sub_t1:
+            st.markdown("##### ग्राहकनिहाय उधारी, AI रिस्क, WhatsApp & Direct Call")
+            st.caption("रिस्क स्कोअर उर्वरित शिल्लक आणि मुदत ओलांडलेल्या उधारीवरून स्थानिक पातळीवर मोजला जातो.")
             business_upi_id = load_business_upi_id()
-
-            # --- 3. Compact & Modern Customer Cards with 100% Working Actions ---
-            for c_idx, customer in f_df_page.reset_index(drop=True).iterrows():
-                name = _khata_text(customer["customer_name"])
-                customer_phone = _khata_text(customer["phone"])
-                risk_score = int(customer.get("risk_score", 0))
-                balance = float(customer.get("balance", 0.0))
-                overdue_balance = float(customer.get("overdue_balance", 0.0))
-                overdue_days = int(customer.get("overdue_days", 0))
-                credit = float(customer.get("credit", 0.0))
-                payments = float(customer.get("payments", 0.0))
-                repay_ratio = float(customer.get("repayment_ratio", 0.0))
-                ai_rec = customer.get("ai_rec_mr" if not is_english else "ai_rec_mr", "")
-
-                if risk_score >= 70:
-                    risk_color = "#ef4444"
-                    badge_text = "🔴 High Risk" if is_english else "🔴 हाय रिस्क"
-                elif risk_score >= 40:
-                    risk_color = "#f59e0b"
-                    badge_text = "🟡 Moderate Risk" if is_english else "🟡 मध्यम जोखीम"
-                else:
-                    risk_color = "#10b981"
-                    badge_text = "🟢 Safe Customer" if is_english else "🟢 सुरक्षित ग्राहक"
-
-                od_tag = (f"({overdue_days} days overdue)" if is_english else f"({overdue_days} दिवस थकीत)") if overdue_days > 0 else ""
-
-                ai_alert_html = ""
-                if (risk_score >= 40 or overdue_days > 0) and ai_rec:
-                    ai_alert_lbl = "⚡ AI Insight:" if is_english else "⚡ AI सूचना:"
-                    ai_alert_html = f'''
-                    <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid {risk_color}; padding: 6px 10px; border-radius: 0 6px 6px 0; margin-top: 8px;">
-                        <span style="font-size: 11px; color: #f87171; font-weight: 600;">{ai_alert_lbl} {escape(ai_rec)}</span>
-                    </div>
-                    '''
-
-                phone_display = customer_phone if customer_phone else ("No Phone" if is_english else "फोन नाही")
-                stat_credit_lbl = "Total Credit:" if is_english else "एकूण उधारी:"
-                stat_pay_lbl = "Paid:" if is_english else "जमा:"
-                stat_bal_lbl = "Balance Due:" if is_english else "बाकी शिल्लक:"
-                stat_od_lbl = "Overdue:" if is_english else "मुदतबाह्य:"
-
-                initial_letter = (name.strip()[:1].upper()) if name.strip() else "C"
-                gauge_width = min(100, max(0, risk_score))
-                st.markdown(
-                    f'''
-                    <div style="
-                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.95));
-                        border: 1.5px solid {risk_color}44;
-                        border-radius: 14px;
-                        padding: 14px 16px;
-                        margin-top: 10px;
-                        margin-bottom: 4px;
-                        box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-                        transition: border-color 0.2s ease;
-                    ">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="
-                                    width: 36px;
-                                    height: 36px;
-                                    border-radius: 10px;
-                                    background: rgba(0, 242, 254, 0.1);
-                                    border: 1px solid rgba(0, 242, 254, 0.3);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    font-weight: 800;
-                                    color: #00f2fe;
-                                    font-size: 14px;
-                                    flex-shrink: 0;
-                                ">{escape(initial_letter)}</div>
-                                <div>
-                                    <div style="font-size: 16px; font-weight: 800; color: #f8fafc; line-height: 1.2;">{escape(name)}</div>
-                                    <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">📞 {escape(phone_display)}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
-                                    <div style="background: {risk_color}22; border: 1px solid {risk_color}; color: {risk_color}; padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 700;">
-                                        {escape(badge_text)} · {risk_score}/100
-                                    </div>
-                                    <div style="width: 70px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; overflow: hidden;">
-                                        <div style="width: {gauge_width}%; height: 100%; background: {risk_color}; border-radius: 2px;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);">
-                            <div>
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_credit_lbl}</span><br>
-                                <b style="font-size: 14px; color: #e2e8f0;">₹{credit:,.2f}</b>
-                            </div>
-                            <div>
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_pay_lbl}</span><br>
-                                <b style="font-size: 14px; color: #10b981;">₹{payments:,.2f}</b> <span style="font-size: 10px; color: #6ee7b7; font-weight: 700;">({repay_ratio*100:.0f}%)</span>
-                            </div>
-                            <div>
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_bal_lbl}</span><br>
-                                <b style="font-size: 15px; color: #38bdf8;">₹{balance:,.2f}</b>
-                            </div>
-                            <div>
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">{stat_od_lbl}</span><br>
-                                <b style="font-size: 15px; color: {risk_color};">₹{overdue_balance:,.2f}</b> <span style="font-size: 10px; color: #fca5a5; font-weight: 600;">{escape(od_tag)}</span>
-                            </div>
-                        </div>
-                        {ai_alert_html}
-                    </div>
-                    ''',
-                    unsafe_allow_html=True,
+            upi_configured = bool(
+                re.fullmatch(
+                    r"[A-Za-z0-9._-]{2,256}@[A-Za-z0-9.-]{2,64}",
+                    business_upi_id,
                 )
-
-                # WhatsApp reminder link preparation
-                clean_phone = re.sub(r"\D", "", customer_phone)
-                if len(clean_phone) == 10:
-                    clean_phone = "91" + clean_phone
-                elif len(clean_phone) == 11 and clean_phone.startswith("0"):
-                    clean_phone = "91" + clean_phone[1:]
-
-                if is_english:
-                    if overdue_days > 0:
-                        wa_msg = (
-                            f"Hello {name} ji,\n"
-                            f"Your pending balance at '{shop_name}' is ₹{balance:,.2f}, which is overdue by {overdue_days} days.\n"
-                            f"Kindly arrange to settle this payment at the earliest. Thank you."
-                        )
-                    else:
-                        wa_msg = (
-                            f"Hello {name} ji,\n"
-                            f"Your outstanding balance at '{shop_name}' is ₹{balance:,.2f}.\n"
-                            f"Kindly clear it at your convenience. Thank you!"
-                        )
-                    if business_upi_id and balance > 0:
-                        wa_msg += f"\n\n📲 Pay via Google Pay / PhonePe UPI ID:\n{business_upi_id}"
-                else:
-                    if overdue_days > 0:
-                        wa_msg = (
-                            f"नमस्कार {name} जी,\n"
-                            f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी असून ती गेल्या {overdue_days} दिवसांपासून थकीत आहे.\n"
-                            f"कृपया ही रक्कम लवकरात लवकर जमा करावी ही नम्र विनंती."
-                        )
-                    else:
-                        wa_msg = (
-                            f"नमस्कार {name} जी,\n"
-                            f"आपल्या '{shop_name}' दुकानाचे ₹{balance:,.2f} उधारी बाकी आहे.\n"
-                            f"कृपया सोयीनुसार जमा करावी ही नम्र विनंती. धन्यवाद!"
-                        )
-                    if business_upi_id and balance > 0:
-                        wa_msg += f"\n\n📲 Google Pay / PhonePe द्वारे पेमेंट करण्यासाठी UPI ID:\n{business_upi_id}"
-
-                btn_c1, btn_c2 = st.columns([1, 1])
-                with btn_c1:
-                    if clean_phone:
-                        st.link_button(
-                            "💬 WhatsApp Reminder" if is_english else "💬 WhatsApp आठवण",
-                            f"https://wa.me/{clean_phone}?text={urllib.parse.quote(wa_msg)}",
-                            key=f"wa_btn_{c_idx}_{clean_phone}",
-                            use_container_width=True,
-                        )
-                    else:
-                        st.button("💬 WhatsApp (No Phone)" if is_english else "💬 WhatsApp (फोन नाही)", key=f"wa_dis_{c_idx}", disabled=True, use_container_width=True)
-                with btn_c2:
-                    if customer_phone:
-                        st.link_button(
-                            "📞 Direct Call" if is_english else "📞 थेट कॉल",
-                            f"tel:{customer_phone}",
-                            key=f"call_btn_{c_idx}_{customer_phone}",
-                            use_container_width=True,
-                        )
-                    else:
-                        st.button("📞 Call (No Phone)" if is_english else "📞 कॉल (नंबर नाही)", key=f"call_dis_{c_idx}", disabled=True, use_container_width=True)
-
-                # Unified Single Action Expander per Customer: Payment, Credit & Passbook
-                exp_title = f"📝 {name} - " + ("Record Transaction / Passbook History" if is_english else "व्यवहार नोंदवा / पासबुक इतिहास")
-                with st.expander(exp_title, expanded=False):
-                    tab_pay, tab_cred, tab_pass = st.tabs([
-                        "💵 Receive Payment" if is_english else "💵 पैसे जमा घ्या",
-                        "➕ Add Credit" if is_english else "➕ नवीन उधारी जोडा",
-                        "📜 Passbook & Delete" if is_english else "📜 पासबुक",
-                    ])
-                    with tab_pay:
-                        with st.form(key=f"form_quick_pay_{c_idx}_{name}"):
-                            p_col1, p_col2 = st.columns(2)
-                            with p_col1:
-                                default_pay_val = float(balance) if balance > 0 else 100.0
-                                pay_amount = st.number_input(
-                                    "Payment Amount (₹):" if is_english else "जमा रक्कम (₹):",
-                                    min_value=1.0,
-                                    value=default_pay_val,
-                                    step=50.0,
-                                    key=f"input_pay_amt_{c_idx}",
-                                )
-                                pay_entry_date = st.date_input("Payment Date:" if is_english else "जमा तारीख:", value=date.today(), key=f"input_pay_date_{c_idx}")
-                            with p_col2:
-                                default_pay_notes = ("Cash Payment" if not business_upi_id else "UPI / GPay Payment") if is_english else ("रोख जमा (Cash)" if not business_upi_id else "UPI / GPay द्वारे जमा")
-                                pay_notes = st.text_input(
-                                    "Payment Mode / Notes:" if is_english else "तपशील / पेमेंट पद्धत:",
-                                    value=default_pay_notes,
-                                    key=f"input_pay_notes_{c_idx}",
-                                )
-                                st.write("")
-                                submit_pay = st.form_submit_button("✅ Record Payment" if is_english else "✅ जमा रक्कम नोंदवा", type="primary", use_container_width=True)
-
-                            if submit_pay:
-                                try:
-                                    save_khata_transaction(
-                                        customer_name=name,
-                                        phone=customer_phone,
-                                        amount=pay_amount,
-                                        transaction_type=KHATA_PAYMENT,
-                                        entry_date=pay_entry_date,
-                                        due_date=pay_entry_date,
-                                        notes=pay_notes,
-                                    )
-                                    log_activity(
-                                        st.session_state.get("current_username", "admin"),
-                                        f"Collected payment ₹{pay_amount} from {name}",
-                                    )
-                                    st.toast(f"Recorded ₹{pay_amount:,.2f} payment from {name}!" if is_english else f"{name} यांच्याकडून ₹{pay_amount:,.2f} जमा नोंदवले!", icon="✅")
-                                    st.rerun()
-                                except Exception as exc:
-                                    st.error(f"Could not save payment: {exc}" if is_english else f"पेमेंट नोंद सेव्ह करता आले नाही: {exc}")
-
-                    with tab_cred:
-                        with st.form(key=f"form_quick_cred_{c_idx}_{name}"):
-                            c_col1, c_col2 = st.columns(2)
-                            with c_col1:
-                                cred_amount = st.number_input(
-                                    "Credit Amount (₹):" if is_english else "उधारी रक्कम (₹):",
-                                    min_value=1.0,
-                                    value=100.0,
-                                    step=50.0,
-                                    key=f"input_cred_amt_{c_idx}",
-                                )
-                                cred_entry_date = st.date_input("Credit Date:" if is_english else "उधारी तारीख:", value=date.today(), key=f"input_cred_date_{c_idx}")
-                            with c_col2:
-                                cred_due_date = st.date_input(
-                                    "Due Date:" if is_english else "परतफेडीची मुदत तारीख:",
-                                    value=date.today() + timedelta(days=15),
-                                    key=f"input_cred_due_{c_idx}",
-                                )
-                                cred_notes = st.text_input(
-                                    "Itemized Notes / Details:" if is_english else "वस्तू तपशील / टीप:",
-                                    placeholder="e.g. Grocery items, 2 kg sugar..." if is_english else "उदा. किराणा सामान, २ किलो साखर...",
-                                    key=f"input_cred_notes_{c_idx}",
-                                )
-                            submit_cred = st.form_submit_button("➕ Add Credit to Khata" if is_english else "➕ नवीन उधारी खात्यात जोडा", type="primary", use_container_width=True)
-
-                            if submit_cred:
-                                try:
-                                    save_khata_transaction(
-                                        customer_name=name,
-                                        phone=customer_phone,
-                                        amount=cred_amount,
-                                        transaction_type=KHATA_CREDIT,
-                                        entry_date=cred_entry_date,
-                                        due_date=cred_due_date,
-                                        notes=cred_notes,
-                                    )
-                                    log_activity(
-                                        st.session_state.get("current_username", "admin"),
-                                        f"Added credit ₹{cred_amount} for {name}",
-                                    )
-                                    st.toast(f"Added ₹{cred_amount:,.2f} credit to {name}'s khata!" if is_english else f"{name} यांच्या खात्यात ₹{cred_amount:,.2f} उधारी जोडली!", icon="📝")
-                                    st.rerun()
-                                except Exception as exc:
-                                    st.error(f"Could not save credit entry: {exc}" if is_english else f"उधारी नोंद सेव्ह करता आले नाही: {exc}")
-
-                    with tab_pass:
-                        cust_mask = khata_df["customer_name"].fillna("").astype(str).str.casefold() == name.casefold()
-                        if customer_phone:
-                            cust_mask = cust_mask | (khata_df["phone"].fillna("").astype(str) == customer_phone)
-                        cust_txs = khata_df[cust_mask].sort_values(by="id", ascending=False)
-                        if cust_txs.empty:
-                            st.info("No transaction records found for this customer." if is_english else "या ग्राहकाचा कोणताही व्यवहार सापडला नाही.")
+            )
+            if not upi_configured and not visible_risk.empty:
+                st.info(
+                    "WhatsApp पेमेंट लिंक चालू करण्यासाठी Streamlit secrets मध्ये "
+                    "BUSINESS_UPI_ID कॉन्फिगर करा."
+                )
+            
+            # Use expander for AI Risk to make it more compact
+            with st.expander("📊 View Customer Risk & Send Reminders", expanded=True):
+                for _, customer in visible_risk.iterrows():
+                    name = _khata_text(customer["customer_name"])
+                    customer_phone = _khata_text(customer["phone"])
+                    risk_level = customer["risk_level"]
+                    risk_color = "#f87171" if risk_level.startswith("High") else (
+                        "#f59e0b" if risk_level.startswith("Moderate") else "#00ff87"
+                    )
+                    st.markdown(
+                        f'''
+                        <div style="background: rgba(15,23,42,0.9); border: 1px solid rgba(0,242,254,0.25); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content:space-between; font-weight:700; font-size:15px;">
+                                <span>{escape(name)} ({escape(customer_phone or "फोन उपलब्ध नाही")})</span>
+                                <span style="color:{risk_color};">{escape(risk_level)} · {int(customer["risk_score"])}/100</span>
+                            </div>
+                            <div style="font-size:13px; color:#94a3b8; margin-top:6px;">
+                                बाकी रक्कम: <b style="color:#00f2fe; font-size:15px;">{customer["balance"]:,.2f}</b>
+                                &nbsp; मुदतबाह्य: <b>{customer["overdue_balance"]:,.2f}</b>
+                            </div>
+                        </div>
+                        ''',
+                        unsafe_allow_html=True,
+                    )
+                    clean_phone = re.sub(r"\D", "", customer_phone)
+                    if len(clean_phone) >= 10:
+                        if len(clean_phone) == 10:
+                            clean_phone = "91" + clean_phone
+                        elif len(clean_phone) == 11 and clean_phone.startswith("0"):
+                            clean_phone = "91" + clean_phone[1:]
+                            
+                        if upi_configured and customer["balance"] > 0:
+                            action_col1, action_col2, action_col3 = st.columns(3)
                         else:
-                            show_txs = cust_txs[["id", "date", "transaction_type", "amount", "due_date", "notes"]].copy()
-                            if is_english:
-                                show_txs["transaction_type"] = show_txs["transaction_type"].apply(lambda t: "Given Credit" if t == KHATA_CREDIT else "Received Payment")
-                                show_txs.columns = ["ID", "Date", "Type", "Amount (₹)", "Due Date", "Notes"]
-                            else:
-                                show_txs["transaction_type"] = show_txs["transaction_type"].apply(lambda t: "उधारी बाकी" if t == KHATA_CREDIT else "पैसे जमा")
-                                show_txs.columns = ["ID", "तारीख", "व्यवहार प्रकार", "रक्कम (₹)", "मुदत तारीख", "तपशील / टीप"]
-                            st.dataframe(show_txs, use_container_width=True, hide_index=True)
+                            action_col1, action_col2 = st.columns(2)
+                            action_col3 = None
+                            
+                        if customer["balance"] > 0:
+                            message = (
+                                f"नमस्कार {name} जी, आपल्या दुकानाचे VernaLedger कडील "
+                                f"₹{customer['balance']:,.2f} उधारी येणे बाकी आहे. कृपया लवकर जमा करा!"
+                            )
+                        else:
+                            message = (
+                                f"नमस्कार {name} जी, आपल्या VernaLedger खात्यावर सध्या "
+                                "कोणतीही बाकी उधारी नाही. धन्यवाद!"
+                            )
+                        if upi_configured and customer["balance"] > 0:
+                            payment_link = build_upi_payment_link(
+                                business_upi_id,
+                                "VernaLedger",
+                                name,
+                                customer["balance"],
+                            )
+                            message += (
+                                f"\n\nGoogle Pay किंवा इतर UPI अॅपमधून पेमेंट करण्यासाठी लिंक:\n"
+                                f"{payment_link}"
+                            )
+                            whatsapp_label = "WhatsApp + पेमेंट"
+                        else:
+                            whatsapp_label = "WhatsApp संदेश"
+                            
+                        with action_col1:
+                            st.link_button(whatsapp_label, f"https://wa.me/{clean_phone}?text={urllib.parse.quote(message)}")
+                        with action_col2:
+                            st.link_button("थेट कॉल करा", f"tel:{customer_phone}")
+                        if action_col3 and upi_configured and customer["balance"] > 0:
+                            with action_col3:
+                                st.link_button("Direct UPI Pay", payment_link)
 
-                            del_col1, del_col2 = st.columns([2, 1])
-                            with del_col1:
-                                tx_ids = cust_txs["id"].tolist()
-                                tx_options = {
-                                    tid: f"ID #{tid} - {('Credit' if cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0] == KHATA_CREDIT else 'Payment') if is_english else ('उधारी' if cust_txs.loc[cust_txs['id']==tid, 'transaction_type'].values[0] == KHATA_CREDIT else 'जमा')} ₹{cust_txs.loc[cust_txs['id']==tid, 'amount'].values[0]} ({cust_txs.loc[cust_txs['id']==tid, 'date'].values[0]})"
-                                    for tid in tx_ids
-                                }
-                                sel_del_id = st.selectbox(
-                                    "Delete incorrect record:" if is_english else "चुकीची नोंद डिलीट करा:",
-                                    tx_ids,
-                                    format_func=lambda x: tx_options.get(x, f"ID #{x}"),
-                                    key=f"del_tx_sel_{c_idx}_{name}",
-                                )
-                            with del_col2:
-                                st.write("")
-                                st.write("")
-                                if st.button("🗑️ Delete Record" if is_english else "🗑️ नोंद डिलीट करा", key=f"del_tx_btn_{c_idx}_{name}", type="secondary", use_container_width=True):
-                                    try:
-                                        if delete_khata_transaction(sel_del_id):
-                                            log_activity(
-                                                st.session_state.get("current_username", "admin"),
-                                                f"Deleted Khata ID {sel_del_id} for {name}",
-                                            )
-                                            st.toast(f"Record #{sel_del_id} deleted successfully!" if is_english else f"नोंद #{sel_del_id} यशस्वीरीत्या डिलीट केली!", icon="🗑️")
-                                            st.rerun()
-                                        else:
-                                            st.error("Record not found." if is_english else "नोंद सापडली नाही.")
-                                    except Exception as exc:
-                                        st.error(f"Could not delete record: {exc}" if is_english else f"नोंद डिलीट करता आली नाही: {exc}")
-
-                st.write("")
-
-            # --- 4. Master Ledger Database & CSV Export (At the bottom) ---
-            st.divider()
-            with st.expander("📁 Master Ledger Database & CSV Export (All Transactions)" if is_english else "📁 संपूर्ण लेजर डेटाबेस & एक्सेल/CSV एक्सपोर्ट", expanded=False):
-                st.markdown("##### " + ("📋 All Customer Transactions (Master Khata Records)" if is_english else "📋 सर्व ग्राहकांच्या नोंदींचा कच्चा डेटा (Master Khata Records)"))
-                master_disp = khata_df[KHATA_COLUMNS].copy()
-                if is_english:
-                    master_disp.columns = ["ID", "Customer Name", "Phone", "Amount", "Transaction Type", "Date", "Due Date", "Notes"]
-                else:
-                    master_disp.columns = ["ID", "ग्राहक नाव", "फोन नंबर", "रक्कम", "व्यवहार प्रकार", "तारीख", "मुदत तारीख", "तपशील"]
-                st.dataframe(master_disp, use_container_width=True, hide_index=True)
-                csv_data = khata_df[KHATA_COLUMNS].to_csv(index=False).encode('utf-8-sig')
-                st.download_button(
-                    label="📥 Download Master Ledger CSV" if is_english else "📥 संपूर्ण लेजर CSV फाईल डाउनलोड करा (Download CSV)",
-                    data=csv_data,
-                    file_name=f"Customer_Khata_Ledger_{date.today().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    key="download_full_khata_csv",
-                    use_container_width=True,
+        with sub_t2:
+            st.markdown("##### ✏️ जुने रेकॉर्ड्स आणि उधारी Edit / Settle")
+            if visible_df.empty:
+                st.info("कोणतीही उधारी नोंद उपलब्ध नाही.")
+            else:
+                visible_record_ids = [int(record_id) for record_id in visible_df["id"].tolist()]
+                record_signature = hashlib.sha256(
+                    visible_df[KHATA_COLUMNS].to_json(
+                        orient="split", force_ascii=False
+                    ).encode("utf-8")
+                ).hexdigest()
+                edited_df = st.data_editor(
+                    visible_df[KHATA_COLUMNS],
+                    
+                    key=f"khata_editable_table_{record_signature}",
+                    disabled=["id"],
+                    num_rows="fixed",
                 )
-
+                edit_col, delete_col = st.columns(2)
+                with edit_col:
+                    if st.button("उधारी records अपडेट (Save Edit)", key="save_khata_edits"):
+                        try:
+                            updated_count = update_khata_transactions(visible_df, edited_df)
+                            log_activity(
+                                st.session_state.get("current_username", "admin"),
+                                f"Updated {updated_count} Khata Records",
+                            )
+                            st.toast(f"{updated_count} उधारी रेकॉर्ड अपडेट केले.", icon="✅")
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
+                        except sqlite3.Error as exc:
+                            logging.exception("Could not update customer khata transactions")
+                            st.error(f"रेकॉर्ड अपडेट करता आले नाहीत: {exc}")
+                with delete_col:
+                    delete_id = st.selectbox(
+                        "डिलिट करण्यासाठी रेकॉर्ड आयडी (Delete ID)",
+                        visible_record_ids,
+                        key=f"delete_khata_id_{record_signature}",
+                    )
+                    if st.button("उधारी नोंद डिलीट करा", key="delete_khata_record"):
+                        try:
+                            if delete_khata_transaction(delete_id):
+                                log_activity(
+                                    st.session_state.get("current_username", "admin"),
+                                    f"Deleted Khata ID {delete_id}",
+                                )
+                                st.toast(f"रेकॉर्ड ID {delete_id} डिलीट केला!", icon="🗑️")
+                                st.rerun()
+                            else:
+                                st.error("रेकॉर्ड सापडला नाही; लेजर रिफ्रेश करा.")
+                        except sqlite3.Error as exc:
+                            logging.exception("Could not delete customer khata transaction")
+                        st.error(f"रेकॉर्ड डिलीट करता आला नाही: {exc}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 @st.cache_data(ttl=10)
@@ -1583,7 +1942,6 @@ def load_receipts_data():
     except Exception as e:
         logging.error(f"Error loading receipts: {e}")
         return pd.DataFrame()
-
 
 def cleanup_temp_files():
     try:
@@ -1610,6 +1968,9 @@ if 'forgot_pass_mode' not in st.session_state:
     st.session_state['forgot_pass_mode'] = False
 if 'input_method' not in st.session_state:
     st.session_state['input_method'] = 'Upload File'
+if "ui_language" not in st.session_state:
+    st.session_state["ui_language"] = "en"
+    st.session_state["ui_language_english"] = True
 
 
 _UI_TRANSLATION_PAIRS = {
@@ -1647,14 +2008,15 @@ _UI_TRANSLATION_PAIRS = {
     "Customer Khata": "ग्राहक खाते",
     "Stock & Inventory": "स्टॉक आणि इन्व्हेंटरी",
     "Business Expenses": "व्यवसाय खर्च",
-    "New Credit / Installment Entry": "नवीन उधारी / हप्ता नोंद",
-    "Old Records & AI Smart Search": "जुने रेकॉर्ड्स आणि AI स्मार्ट शोध",
-    "Speak transaction details": "व्यवहाराचा तपशील बोला",
+    "New Credit / Installment Entry": "New Credit / Installment Entry",
+    "Old Records & AI Smart Search": "Old Records & AI Smart Search",
+    "Speak transaction details": "Speak transaction details",
+    "New Credit / Installment Entry": "New Credit / Installment Entry",
     "Credit Ledger & AI Risk Report": "उधारी लेजर & AI रिस्क रिपोर्ट",
     "Speak the order (Voice Billing)": "बोलून ऑर्डर द्या (वॉइस बिलिंग)",
     "Press here when done speaking": "बोलणे पूर्ण झाल्यावर इथे दाबा",
 
-    "Stop recording": "रेकॉर्डिंग थांबवा",
+    "Stop recording": "Stop recording",
     "Old Transactions & AI Search": "जुने व्यवहार आणि AI शोधक",
     "Log of past transactions and smart AI search.": "मागील सर्व व्यवहारांची नोंद आणि AI द्वारे स्मार्ट सर्च.",
     "No past transactions found in the system.": "सिस्टीममध्ये कोणताही जुना व्यवहार सापडला नाही.",
@@ -1663,36 +2025,36 @@ _UI_TRANSLATION_PAIRS = {
     "No goods found in inventory.": "इन्व्हेंटरी मध्ये कोणताही माल सापडला नाही.",
     "Save Stock Update": "स्टॉक अपडेट सेव्ह करा",
     "New stock item successfully added to inventory!": "नवीन माल इन्व्हेंटरीमध्ये Successfully जोडला गेला!",
-    "Expense successfully recorded!": "खर्च यशस्वीरित्या नोंदवला गेला!",
+    "Expense successfully recorded!": "Expense successfully recorded!",
 
-    "Item Name": "वस्तूचे नाव",
-    "Stock Quantity": "उपलब्ध साठा",
-    "Unit (e.g. kg, pcs, ltr)": "मोजमापाचे एकक (उदा. kg, नग, ltr)",
-    "Low Stock Alert Limit": "कमी साठ्याची सूचना मर्यादा",
+    "Item Name": "वस्तूचे नाव (Item Name)",
+    "Stock Quantity": "उपलब्ध नग/साठा (Stock Quantity)",
+    "Unit (e.g. kg, pcs, ltr)": "मोजमाप एकक (Unit e.g. kg, pcs, ltr)",
+    "Low Stock Alert Limit": "किमान वार्निंग लिमिट (Low Stock Alert Limit)",
     "Save Stock": "स्टॉक सेव्ह करा",
-    "Please enter item name!": "कृपया वस्तूचे नाव टाका!",
+    "Please enter item name!": "Please enter item name!",
     "Item ID to delete": "डिलिट करण्यासाठी आयटम ID",
-    "No stock available.": "कोणताही स्टॉक उपलब्ध नाही.",
+    "No stock available.": "No stock available.",
     "Total Business Expenses": "एकूण व्यवसाय खर्च",
     "Expense Records": "खर्च नोंदी",
     "Expense ID to delete": "डिलिट करण्यासाठी खर्च ID",
     "Delete Expense Record": "खर्च नोंद डिलीट करा",
-    "No expenses recorded.": "कोणताही खर्च नोंदवलेला नाही.",
+    "No expenses recorded.": "No expenses recorded.",
     "Restricted Area: Staff not allowed on Staff Management page!": "प्रतिबंधीत क्षेत्रः कामागार/स्टाफला स्टाफ मॅनेजमेंट पेजवर प्रवेश करण्याची परवानगी नाही!",
-    "Add New Staff or Admin": "नवीन स्टाफ किंवा ॲडमिन जोडा",
-    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अंक/अक्षरे)",
+    "Add New Staff or Admin": "नवीन स्टाफ किंवा अॅडमिन जोडा",
+    "Password (Min 6 digits)": "पासवर्ड (Password - किमान ६ अंक)",
     "Role": "भूमिका",
-    "Staff (Cashier - Limited Access)": "कर्मचारी (मर्यादित प्रवेश)",
-    "Admin (Owner - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
-    "Create Account": "खाते तयार करा",
+    "Staff (Cashier - Limited Access)": "Staff (कामगार/कॅशियर - Limited Access)",
+    "Admin (Owner - Full Access)": "Admin (मालक - Full Access)",
+    "Create Account": "अकाऊंट तयार करा",
     "Please fill all fields and password must be at least 6 characters!": "कृपया सर्व फील्ड भरा आणि पासवर्ड किमान ६ अंकांचा असावा!",
-    "Username to delete account": "खाते हटवण्यासाठी वापरकर्ता नाव",
-    "Delete Account": "खाते हटवा",
-    "System Audit Logs": "सिस्टीम ऑडिट नोंदी",
-    "Total Revenue Today": "आजचा एकूण महसूल",
-    "Total Bills Today": "आजची एकूण बिले",
-    "Average Ticket Size": "सरासरी बिल रक्कम",
-    "Top Performing Shop": "सर्वोत्कृष्ट दुकान",
+    "Username to delete account": "Username to delete account",
+    "Delete Account": "Delete Account",
+    "System Audit Logs": "System Audit Logs",
+    "Total Revenue Today": "Total Revenue Today",
+    "Total Bills Today": "Total Bills Today",
+    "Average Ticket Size": "Average Ticket Size",
+    "Top Performing Shop": "Top Performing Shop",
 
     "Stock & <span>Inventory</span>": "स्टॉक आणि <span>इन्व्हेंटरी</span>",
     "Manage your goods, prices, and availability here.": "तुमचा माल, त्याचे दर आणि उपलब्धतेची माहिती येथे ठेवा.",
@@ -1728,7 +2090,10 @@ _UI_TRANSLATION_PAIRS = {
     "Add to Inventory": "माल इन्व्हेंटरीत जोडा",
     "Delete from Inventory": "इन्व्हेंटरी मधून हटवा",
     "Delete Stock Item": "Delete Stock Item",
-    "Customer Name": "ग्राहकाचे नाव",
+    "Customer Name": "कस्टमर नाव (Customer Name)",
+    "Phone Number (10 digits)": "मोबाईल नंबर (Phone Number - 10 digits)",
+    "Phone Number": "मोबाईल नंबर (Phone Number)",
+    "Amount": "रक्कम (Amount)",
     "Transaction Type": "व्यवहाराचा प्रकार (Transaction Type)",
     "Credit Given": "उधारी दिली (Credit Given)",
     "Payment Received": "पैसे मिळाले (Payment Received)",
@@ -1750,7 +2115,8 @@ _UI_TRANSLATION_PAIRS = {
     "Logout System": "लॉगआउट",
     "ROLE: ADMIN": "भूमिका: प्रशासक",
     "ROLE: STAFF": "भूमिका: कर्मचारी",
-    "उधारी लेजर & AI रिस्क रिपोर्ट": "लेजर आणि AI जोखीम अहवाल",
+    "Customer Khata": "ग्राहक खाते",
+        "उधारी लेजर & AI रिस्क रिपोर्ट": "लेजर आणि AI जोखीम अहवाल",
     "स्मार्ट AI व्हॉईस नोंद (Multi-Language Voice-to-Khata)": "AI व्हॉइस नोंद",
     "Customer Khata - Credit Ledger": "ग्राहक खाते - उधारी वही",
     "नवीन व्यवहार नोंदवा": "Add a new transaction",
@@ -1789,6 +2155,7 @@ _UI_TRANSLATION_PAIRS = {
     "रक्कम वैध संख्या असणे आवश्यक आहे.": "Enter a valid amount.",
     "व्यवहार प्रकार उपलब्ध पर्यायांपैकी निवडा.": "Select a valid transaction type.",
     "टीप 1000 अक्षरांपेक्षा मोठी असू शकत नाही.": "Notes cannot exceed 1,000 characters.",
+    "ग्राहकाचे नाव 100 अक्षरांपेक्षा मोठे असू शकत नाही.": "Customer name cannot exceed 100 characters.",
     "फोन नंबर रिकामा ठेवा किंवा वैध 10 अंकी मोबाईल नंबर भरा.": "Leave the phone number blank or enter a valid 10-digit mobile number.",
     "डेटाबेसमध्ये नोंद सेव्ह करता आली नाही:": "Could not save the database record:",
     "नोंद सेव्ह करता आली नाही:": "Could not save the record:",
@@ -1847,6 +2214,11 @@ _UI_TRANSLATION_PAIRS = {
     "Shop Revenue Overview": "दुकाननिहाय उत्पन्न",
     "स्टॉक आणि इन्व्हेंटरी": "Stock & Inventory",
     "उपलब्ध माल, कमी साठा आणि वस्तूंची स्थिती एका नजरेत.": "View available stock, low inventory and item status at a glance.",
+    "Save Stock": "Save stock",
+    "Item Name": "वस्तूचे नाव",
+    "Stock Quantity": "उपलब्ध साठा",
+    "Unit (e.g. kg, pcs, ltr)": "मोजमापाचे एकक (उदा. kg, नग, ltr)",
+    "Low Stock Alert Limit": "कमी साठ्याची सूचना मर्यादा",
     "स्टॉक आयटम डिलिट करा": "Delete stock item",
     "डिलिट करण्यासाठी स्टॉक ID": "Stock ID to delete",
     "कोणताही स्टॉक जोडलेला नाही.": "No stock items have been added.",
@@ -1856,17 +2228,34 @@ _UI_TRANSLATION_PAIRS = {
     "वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.": "Items in stock and items to reorder.",
     "व्यवसाय खर्च · नोंदवही": "Business Expenses",
     "भाडे, वीज, पगार आणि रोजच्या खर्चांचा स्पष्ट हिशोब.": "Track rent, utilities, payroll and everyday business costs.",
+    "Record New Expense": "Add an expense",
     "खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.": "Enter the expense type, amount and date.",
     "खर्चाचे शीर्षक (Expense Title e.g. Light Bill)": "खर्चाचे शीर्षक (उदा. वीज बिल)",
+    "Expense Amount": "खर्चाची रक्कम",
     "खर्चाचा प्रकार (Category)": "खर्चाचा प्रकार",
+    "Date": "तारीख",
     "तपशील / टीप (Notes)": "तपशील / टीप",
     "खर्च सेव्ह करा": "Save expense",
-    "Admin Staff Management": "स्टाफ व्यवस्थापन",
-    "Create and manage staff accounts with role-based access control.": "नवीन कर्मचारी खाती तयार करा आणि भूमिका नियंत्रण व्यवस्थापित करा.",
-    "Registered Users List": "नोंदणीकृत वापरकर्त्यांची यादी",
-    "Enter username to delete": "डिलिट करण्यासाठी वापरकर्ता नाव टाईप करा",
-    "Delete User": "वापरकर्ता डिलीट करा",
-    "Master Admin account cannot be deleted!": "मुख्य मास्टर ॲडमिन खाते डिलीट करता येणार नाही!",
+    "Total Business Expenses": "Total business expenses",
+    "Expense ID to delete": "Expense ID to delete",
+    "Delete Expense Record": "Delete expense record",
+    "No expenses recorded.": "No expenses have been recorded.",
+    "Admin Staff Management & Audit Logs": "स्टाफ व्यवस्थापन आणि ऑडिट लॉग",
+    "Create Staff Accounts & View Complete System Activity Audit Trail": "स्टाफ खाती तयार करा आणि प्रणालीतील हालचाली पहा",
+    "Staff Management": "स्टाफ व्यवस्थापन",
+    "System Audit Logs": "सिस्टीम ऑडिट लॉग",
+    "Add New Staff or Admin": "नवीन स्टाफ किंवा प्रशासक जोडा",
+    "Username": "वापरकर्ता नाव",
+    "Phone Number": "मोबाईल नंबर",
+    "Password (Min 6 digits)": "पासवर्ड (किमान ६ अक्षरे)",
+    "Role": "भूमिका",
+    "Create Account": "Create account",
+    "नोंदणीकृत युझर्सची यादी": "नोंदणीकृत वापरकर्ते",
+    "डिलिट करण्यासाठी युजरनेम टाईप करा (Username to delete)": "हटवण्यासाठी वापरकर्ता नाव लिहा",
+    "युजर डिलीट करा": "वापरकर्ता हटवा",
+    "मुख्य मास्टर अॅडमिन युजर डिलीट करता येणार नाही!": "The master administrator account cannot be deleted.",
+    "कोणतेही ऑडिट लॉग्ज उपलब्ध नाहीत.": "No audit logs are available.",
+    "ऑडिट लॉग्ज लोड करण्यात त्रुटी.": "Could not load audit logs.",
     "Ledger Database & Multi-Language Export": "लेजर डेटाबेस आणि अहवाल डाउनलोड",
     "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads": "डेटा, प्रगत फिल्टर आणि अहवाल डाउनलोड",
     "Select Shop / Vendor": "दुकान / विक्रेता निवडा",
@@ -1902,6 +2291,9 @@ _UI_TRANSLATION_PAIRS = {
     "Select an option": "पर्याय निवडा",
     "All Shops/Vendors": "सर्व दुकाने / विक्रेते",
     "All Categories": "सर्व वर्ग",
+    "Staff (Cashier - Limited Access)": "कर्मचारी (मर्यादित प्रवेश)",
+    "Admin (Owner - Full Access)": "प्रशासक (पूर्ण प्रवेश)",
+    "Shop Rent": "दुकान भाडे",
     "वीज बिल (Electricity Bill)": "वीज बिल",
     "स्टाफ पगार (Staff Salary)": "स्टाफ पगार",
     "वाहतूक (Transport)": "वाहतूक",
@@ -2071,56 +2463,24 @@ def render_custom_logo(size="large"):
 st.markdown("""
 <style>
 
-    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Mukta:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
-    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
-
-    /* --- SAFE FONT & MARATHI UNBROKEN TEXT APPLICATION --- */
-    html, body, .stApp, 
-    h1, h2, h3, h4, h5, h6, 
-    p, li, label, 
-    .stMarkdown, .stMarkdown p,
-    .stTextInput input, .stTextArea textarea, .stSelectbox select,
-    [data-testid="stWidgetLabel"] p, [data-testid="stMarkdownContainer"] p {
-        font-family: 'Mukta', 'Baloo 2', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        word-break: keep-all !important;
-        overflow-wrap: break-word !important;
-        hyphens: none !important;
-    }
-    /* Protect all Streamlit Material Icons from font overrides */
-    [data-testid="stIconMaterial"],
-    [data-testid^="stIcon"],
-    [data-testid*="Icon"],
-    [data-testid="stSidebarCollapseButton"] button span,
-    [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="collapsedControl"] button span,
-    [data-testid="collapsedControl"] span,
-    [data-testid="stFileUploader"] span[data-testid="stIconMaterial"],
-    .material-symbols-rounded,
-    .material-symbols-outlined,
-    .material-icons,
-    [class*="material-symbols"],
-    [class*="material-icons"] {
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {{
+        font-family: inherit; 
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-        font-weight: normal !important;
-        font-style: normal !important;
-        font-size: 24px !important;
-        line-height: 1 !important;
-        letter-spacing: normal !important;
-        text-transform: none !important;
-        display: inline-block !important;
-        white-space: nowrap !important;
-        word-wrap: normal !important;
-        direction: ltr !important;
-        -webkit-font-feature-settings: 'liga' !important;
-        font-feature-settings: 'liga' !important;
-        -webkit-font-smoothing: antialiased !important;
-    }
-    /* Protect SVG elements */
-    svg, svg * {
-        font-family: inherit !important; 
-    }
+    }}
     /* --- END SAFE FONT --- */
+    
+
+@import url('https://fonts.googleapis.com/css?family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @keyframes pulseGlow {
     0% { box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
     100% { box-shadow: 0 0 22px rgba(0, 242, 254, 0.7); }
@@ -2251,14 +2611,9 @@ section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
     transform: translateY(-1px) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-    background: linear-gradient(115deg, rgba(0, 242, 254, 0.22) 0%, rgba(79, 70, 229, 0.22) 100%) !important;
-    border-color: #00f2fe !important;
-    box-shadow: inset 4px 0 #00f2fe, 0 0 16px rgba(0, 242, 254, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
-}
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
-    color: #ffffff !important;
-    font-weight: 800 !important;
-    text-shadow: 0 0 10px rgba(0, 242, 254, 0.5) !important;
+    background: linear-gradient(115deg, rgba(14, 165, 233, 0.24), rgba(79, 70, 229, 0.2)) !important;
+    border-color: rgba(103, 232, 249, 0.82) !important;
+    box-shadow: inset 3px 0 #22d3ee, 0 0 0 1px rgba(34, 211, 238, 0.1), 0 0 18px rgba(34, 211, 238, 0.17) !important;
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] > label:focus-within {
     outline: 2px solid rgba(103, 232, 249, 0.72) !important;
@@ -2273,14 +2628,12 @@ section[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"
 }
 section[data-testid="stSidebar"] div[role="radiogroup"] label p {
     color: #dceafa !important;
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     font-weight: 650 !important;
-    letter-spacing: normal !important;
+    letter-spacing: 0.01em !important;
     line-height: 1.35 !important;
     margin: 0 !important;
-    word-break: keep-all !important;
-    overflow-wrap: break-word !important;
-    white-space: normal !important;
+    overflow-wrap: anywhere;
 }
 div[data-testid="stFileUploader"] {
     background: linear-gradient(135deg, rgba(11, 17, 32, 0.95) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
@@ -2295,48 +2648,8 @@ div[data-testid="stFileUploader"]:hover {
     box-shadow: 0 0 35px rgba(0, 255, 135, 0.55), inset 0 0 20px rgba(0, 255, 135, 0.25) !important;
     transform: translateY(-2px) !important;
 }
-div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] {
-    display: block !important;
-    width: 100% !important;
-    margin-bottom: 14px !important;
-    padding-bottom: 10px !important;
-    border-bottom: 1px dashed rgba(0, 242, 254, 0.25) !important;
-}
-div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] p {
-    color: #cbd5e1 !important;
-    font-size: 12.5px !important;
-    line-height: 1.6 !important;
-    margin: 0 !important;
-}
-div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] strong {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 3px 10px !important;
-    border-radius: 20px !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    background: rgba(0, 242, 254, 0.12) !important;
-    color: #00f2fe !important;
-    border: 1px solid rgba(0, 242, 254, 0.35) !important;
-    margin-right: 8px !important;
-}
-div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] em {
-    font-style: normal !important;
-    font-size: 11px !important;
-    color: #94a3b8 !important;
-    float: right !important;
-}
-@media (max-width: 600px) {
-    div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] em {
-        float: none !important;
-        display: block !important;
-        margin-top: 4px !important;
-    }
-}
 div[data-testid="stFileUploader"] section {
     background: transparent !important;
-    border: none !important;
 }
 .dev-credit-box {
     background: rgba(0, 242, 254, 0.06);
@@ -2477,6 +2790,24 @@ def render_login_portal():
 
     st.markdown(f"""
     <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }}
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {{
+        font-family: inherit; 
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }}
+    /* --- END SAFE FONT --- */
+    
+
     header, [data-testid="stHeader"] {{ display: none !important; }}
     html, body {{
         overflow: {overflow_css} !important;
@@ -2538,42 +2869,29 @@ def render_login_portal():
     """, unsafe_allow_html=True)
     
     _render_language_toggle()
-    is_english = st.session_state.get("ui_language", "en") == "en"
     render_custom_logo("compact")
-    login_tagline = "Next-Gen Merchant & AI Financial Suite" if is_english else "आधुनिक व्यापारी व एआय आर्थिक प्रणाली"
-    st.markdown(f"""
+    st.markdown("""
     <div style="text-align: center; margin-bottom: 6px;">
         <h2 style="font-size: 18px; font-weight: 800; margin: 0; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #00ff87 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             VernaLedger.AI
         </h2>
-        <p style="font-size: 9.5px; color: #94a3b8; font-weight: 600; margin-top: 1px;">{login_tagline}</p>
+        <p style="font-size: 9.5px; color: #94a3b8; font-weight: 600; margin-top: 1px;">Next-Gen Merchant & AI Financial Suite</p>
     </div>
     """, unsafe_allow_html=True)
     
     if is_reset_page:
-        reset_title = "Reset Password" if is_english else "पासवर्ड रिसेट करा"
-        st.markdown(f"<h4 style='color:#00f2fe; text-align:center; font-size:13px; margin-bottom: 6px;'>{reset_title}</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#00f2fe; text-align:center; font-size:13px; margin-bottom: 6px;'>पासवर्ड रिसेट करा (Reset Password)</h4>", unsafe_allow_html=True)
         with st.form("forgot_pass_form_standalone"):
-            f_user_lbl = "Username" if is_english else "युजरनेम"
-            f_user_ph = "Enter username" if is_english else "तुमचा युजरनेम"
-            f_phone_lbl = "Mobile Number" if is_english else "मोबाईल नंबर"
-            f_phone_ph = "10-digit mobile number" if is_english else "१० अंकी मोबाईल नंबर"
-            f_p1_lbl = "New Password" if is_english else "नवीन पासवर्ड"
-            f_p1_ph = "Min 6 characters" if is_english else "किमान ६ अक्षरे"
-            f_p2_lbl = "Confirm Password" if is_english else "पासवर्ड कन्फर्म करा"
-            f_p2_ph = "Re-enter new password" if is_english else "नवीन पासवर्ड पुन्हा टाका"
-            f_btn_lbl = "Reset Password" if is_english else "पासवर्ड रिसेट करा"
-
-            f_user = st.text_input(f_user_lbl, placeholder=f_user_ph)
-            f_phone = st.text_input(f_phone_lbl, placeholder=f_phone_ph)
-            new_p1 = st.text_input(f_p1_lbl, type="password", placeholder=f_p1_ph)
-            new_p2 = st.text_input(f_p2_lbl, type="password", placeholder=f_p2_ph)
-            reset_btn = st.form_submit_button(f_btn_lbl)
+            f_user = st.text_input("Username", placeholder="तुमचा युजरनेम")
+            f_phone = st.text_input("मोबाईल नंबर (Phone)", placeholder="10-digit mobile number")
+            new_p1 = st.text_input("नवीन पासवर्ड (New Password)", type="password", placeholder="Min 6 chars")
+            new_p2 = st.text_input("कन्फर्म पासवर्ड (Confirm Password)", type="password", placeholder="Re-enter password")
+            reset_btn = st.form_submit_button("पासवर्ड रिसेट करा")
             if reset_btn:
                 if not f_user.strip() or not f_phone.strip() or len(new_p1) < 6:
-                    st.error("All fields are required and password must be at least 6 characters!" if is_english else "सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
+                    st.error("सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
                 elif new_p1 != new_p2:
-                    st.error("Passwords do not match!" if is_english else "पासवर्ड जुळत नाहीत!")
+                    st.error("पासवर्ड जुळत नाहीत!")
                 else:
                     with sqlite3.connect("ledger.db") as conn:
                         try:
@@ -2585,18 +2903,17 @@ def render_login_portal():
                                 cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (new_hashed, f_user.strip()))
                                 conn.commit()
                                 log_activity(f_user.strip(), "Password Reset via Forgot Password")
-                                st.success("Password reset successfully! Please login with your new password." if is_english else "पासवर्ड यशस्वीरित्या रिसेट झाला! नवीन पासवर्डने लॉगिन करा.")
+                                st.success("पासवर्ड रिसेट झाला! नवीन पासवर्डने लॉगिन करा.")
                                 time.sleep(1.2)
                                 st.session_state['forgot_pass_mode'] = False
                                 st.rerun()
                             else:
                                 conn.rollback()
-                                st.error("Invalid username or mobile number!" if is_english else "युजरनेम किंवा मोबाईल नंबर चुकीचा आहे!")
+                                st.error("युजरनेम किंवा नंबर चुकीचा आहे!")
                         except Exception as ex:
                             conn.rollback()
                             st.error(f"Error: {ex}")
-        back_btn_lbl = "Back to Login Screen" if is_english else "मूळ लॉगिन स्क्रीनवर जा"
-        if st.button(back_btn_lbl, key="back_to_login"):
+        if st.button("मूळ लॉगिन स्क्रीनवर जा", key="back_to_login"):
             st.session_state['forgot_pass_mode'] = False
             st.rerun()
     else:
@@ -2605,24 +2922,17 @@ def render_login_portal():
             cursor.execute("SELECT count(*) FROM users WHERE role = 'Admin'")
             admin_count = cursor.fetchone()[0]
             
-        auth_tab = "Login" if admin_count > 0 else st.radio("Auth Mode", ["Login", "Admin Sign Up"] if is_english else ["लॉगिन", "अॅडमिन नोंदणी"], horizontal=True, label_visibility="collapsed")
+        auth_tab = "Login" if admin_count > 0 else st.radio("Auth Mode", ["Login", "Admin Sign Up"], horizontal=True, label_visibility="collapsed")
         
-        if auth_tab in ["Login", "लॉगिन"]:
+        if auth_tab == "Login":
             with st.form("login_form"):
-                u_lbl = "Username" if is_english else "युजरनेम"
-                u_ph = "Enter username (e.g. admin)" if is_english else "युजरनेम टाका (उदा. admin)"
-                p_lbl = "Password" if is_english else "पासवर्ड"
-                p_ph = "Enter password" if is_english else "पासवर्ड टाका"
-                rem_lbl = "Auto-Login Persistent Session" if is_english else "सत्र चालू ठेवा (Auto-Login)"
-                sub_lbl = "Access VernaLedger Studio" if is_english else "व्हर्ना लेजरमध्ये प्रवेश करा"
-
-                uname_input = st.text_input(u_lbl, placeholder=u_ph)
-                pass_input = st.text_input(p_lbl, type="password", placeholder=p_ph)
-                remember_me = st.checkbox(rem_lbl, value=True)
-                submit_login = st.form_submit_button(sub_lbl)
+                uname_input = st.text_input("Username", placeholder="Enter username (e.g. admin)")
+                pass_input = st.text_input("Password", type="password", placeholder="Enter password")
+                remember_me = st.checkbox("Auto-Login Persistent Session", value=True)
+                submit_login = st.form_submit_button("Access VernaLedger Studio")
                 if submit_login:
                     if not uname_input.strip() or not pass_input.strip():
-                        st.error("Please enter both username and password!" if is_english else "कृपया युजरनेम आणि पासवर्ड दोन्ही भरा!")
+                        st.error("कृपया युजरनेम आणि पासवर्ड दोन्ही भरा!")
                     else:
                         hashed_pass = hash_password_secure(pass_input)
                         with sqlite3.connect("ledger.db") as conn:
@@ -2637,40 +2947,27 @@ def render_login_portal():
                                 if remember_me:
                                     st.session_state['remember_me'] = True
                                     st.query_params["logged_in"] = "true"
-                                welcome_msg = f"Welcome! ({st.session_state['user_role']} Role)" if is_english else f"स्वागत आहे! ({st.session_state['user_role']} भूमिका)"
-                                st.toast(welcome_msg, icon="⚡")
+                                st.toast(f"स्वागत आहे! ({st.session_state['user_role']} Role)", icon="⚡")
                                 time.sleep(0.4)
                                 st.rerun()
                             else:
-                                st.error("Invalid username or password!" if is_english else "चुकीचे युजरनेम किंवा पासवर्ड!")
-            forgot_lbl = "Forgot Password? (Reset)" if is_english else "पासवर्ड विसरलात? (रिसेट करा)"
-            if st.button(forgot_lbl, key="btn_forgot_redirect"):
+                                st.error("Invalid username or password!")
+            if st.button("पासवर्ड विसरलात? (Reset Password)", key="btn_forgot_redirect"):
                 st.session_state['forgot_pass_mode'] = True
                 st.rerun()
         else:
             with st.form("signup_form"):
-                signup_heading = "##### Initial Admin Registration" if is_english else "##### मास्टर अॅडमिन नोंदणी"
-                st.markdown(signup_heading)
-                adm_u_lbl = "Admin Username" if is_english else "अॅडमिन युजरनेम"
-                adm_u_ph = "Choose admin username" if is_english else "अॅडमिन युजरनेम निवडा"
-                adm_ph_lbl = "Mobile Number" if is_english else "मोबाईल नंबर"
-                adm_ph_ph = "10-digit mobile number" if is_english else "१० अंकी मोबाईल नंबर"
-                adm_p_lbl = "Admin Password" if is_english else "अॅडमिन पासवर्ड"
-                adm_p_ph = "Min 6 chars password" if is_english else "किमान ६ अक्षरांचा पासवर्ड"
-                adm_cp_lbl = "Confirm Password" if is_english else "पासवर्ड कन्फर्म करा"
-                adm_cp_ph = "Confirm password" if is_english else "पासवर्ड पुन्हा टाका"
-                adm_sub_lbl = "Create Master Admin" if is_english else "मास्टर अॅडमिन तयार करा"
-
-                new_user = st.text_input(adm_u_lbl, placeholder=adm_u_ph)
-                new_phone = st.text_input(adm_ph_lbl, placeholder=adm_ph_ph)
-                new_pass = st.text_input(adm_p_lbl, type="password", placeholder=adm_p_ph)
-                confirm_pass = st.text_input(adm_cp_lbl, type="password", placeholder=adm_cp_ph)
-                submit_signup = st.form_submit_button(adm_sub_lbl)
+                st.markdown("##### Initial Admin Registration")
+                new_user = st.text_input("Admin Username", placeholder="Choose admin username")
+                new_phone = st.text_input("Mobile Number", placeholder="10-digit mobile number")
+                new_pass = st.text_input("Admin Password", type="password", placeholder="Min 6 chars password")
+                confirm_pass = st.text_input("Confirm Password", type="password", placeholder="Confirm password")
+                submit_signup = st.form_submit_button("Create Master Admin")
                 if submit_signup:
                     if not new_user.strip() or not new_phone.strip() or len(new_pass) < 6:
-                        st.error("All fields are required and password must be at least 6 characters!" if is_english else "सर्व माहिती आणि पासवर्ड किमान ६ अंकी भरणे आवश्यक आहे!")
+                        st.error("सर्व माहिती आणि पासवर्ड किमान ६ अंकी भरणे आवश्यक आहे!")
                     elif new_pass != confirm_pass:
-                        st.error("Passwords do not match!" if is_english else "पासवर्ड जुळत नाहीत!")
+                        st.error("पासवर्ड जुळत नाहीत!")
                     else:
                         with sqlite3.connect("ledger.db") as conn:
                             try:
@@ -2680,7 +2977,7 @@ def render_login_portal():
                                 cursor.execute("INSERT OR REPLACE INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)", (new_user.strip(), new_hashed_pass, "Admin", new_phone.strip()))
                                 conn.commit()
                                 log_activity(new_user.strip(), "Master Admin Created")
-                                st.success("Master Admin successfully created! Please login now." if is_english else "मास्टर अॅडमिन Successfully तयार झाला! आता लॉगीन करा.")
+                                st.success("मास्टर अॅडमिन Successfully तयार झाला! आता लॉगीन करा.")
                                 time.sleep(0.8)
                                 st.rerun()
                             except Exception as ex:
@@ -2730,7 +3027,7 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
                     <td style="padding:8px 12px; border-bottom:1px solid #334155; text-align:right; font-weight:700; color:#00f2fe;">{tot:,.2f}</td>
                 </tr>"""
         except Exception:
-            items_rows = "<tr><td colspan='4' style='padding:8px; color:#94a3b8; text-align:center;'>No itemized details</td></tr>"
+            items_rows = f"<tr><td colspan='4' style='padding:8px; color:#94a3b8; text-align:center;'>No itemized details</td></tr>"
             
         cards_html += f"""
         <div style="background:#0d1321; border:1px solid rgba(0,242,254,0.3); border-radius:14px; padding:20px; margin-bottom:20px;">
@@ -2773,181 +3070,6 @@ def generate_pdf_report(dataframe, shop_name="All Receipts", lang="मराठ�
     buffer = BytesIO(html_content.encode('utf-8'))
     buffer.seek(0)
     return buffer
-
-def generate_upi_qr_base64(amount: float, vpa: str = "", payee_name: str = "", note: str = "POS Bill") -> str:
-    try:
-        if qrcode is None:
-            return ""
-        vpa = (vpa or get_shop_setting("shop_upi_id", "vernaledger@upi")).strip()
-        payee_name = (payee_name or get_shop_setting("shop_name", "VernaLedger Store")).strip()
-        clean_amount = f"{max(0.0, float(amount)):.2f}"
-        upi_url = f"upi://pay?pa={vpa}&pn={urllib.parse.quote(payee_name)}&am={clean_amount}&cu=INR&tn={urllib.parse.quote(note)}"
-        qr = qrcode.QRCode(version=1, box_size=5, border=2)
-        qr.add_data(upi_url)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        buf = BytesIO()
-        img.save(buf, format="PNG")
-        return base64.b64encode(buf.getvalue()).decode("utf-8")
-    except Exception as e:
-        ai_logger.error(f"UPI QR generation failed: {e}")
-        return ""
-
-def generate_thermal_receipt_html(vendor: str, date_str: str, category: str, items: list, total: float, upi_qr_b64: str = "", receipt_no: str = "1", is_english: bool = False) -> str:
-    item_rows = ""
-    for idx, itm in enumerate(items, 1):
-        name = str(itm.get("item_name", f"Item {idx}")).strip()
-        qty = str(itm.get("quantity", itm.get("qty", "1"))).strip()
-        rate = float(itm.get("rate", itm.get("price", 0)) or 0)
-        t_price = float(itm.get("total_price", rate * 1) or 0)
-        item_rows += f"<tr><td style='word-break: break-word; padding-right: 4px;'>{escape(name)}</td><td style='text-align:center; white-space:nowrap;'>{escape(qty)}</td><td style='text-align:right; white-space:nowrap;'>{rate:.1f}</td><td style='text-align:right; white-space:nowrap;'>{t_price:.2f}</td></tr>"
-
-    title_label = "RETAIL CASH SLIP" if is_english else "किराणा खरेदी पावती"
-    tot_label = "GRAND TOTAL" if is_english else "एकूण रक्कम"
-    thanks_label = "THANK YOU! VISIT AGAIN" if is_english else "धन्यवाद! पुन्हा भेट द्या"
-
-    cfg_shop_name = get_shop_setting("shop_name", vendor if vendor and vendor != "अनामित" else "VERNALEDGER AI POS")
-    cfg_shop_addr = get_shop_setting("shop_address", "")
-    cfg_shop_phone = get_shop_setting("shop_phone", "")
-    cfg_footer_tagline = get_shop_setting("shop_tagline", thanks_label)
-    addr_line = f"<div class='center' style='font-size: 8.5px; color:#333;'>{escape(cfg_shop_addr)}</div>" if cfg_shop_addr else ""
-    phone_line = f"<div class='center' style='font-size: 8.5px; color:#333;'>मोबाईल: {escape(cfg_shop_phone)}</div>" if cfg_shop_phone else ""
-
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>POS Thermal Slip #{receipt_no}</title>
-<style>
-    @page {{
-        size: 58mm auto;
-        margin: 0;
-    }}
-    body {{
-        font-family: 'Courier New', Courier, monospace;
-        width: 54mm;
-        margin: 0 auto;
-        padding: 10px 6px 14px 6px;
-        color: #050505;
-        background: #ffffff;
-        font-size: 11px;
-        line-height: 1.25;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-    }}
-    .center {{ text-align: center; }}
-    .bold {{ font-weight: bold; }}
-    .divider {{ border-top: 1px dashed #000; margin: 5px 0; }}
-    .double-divider {{ border-top: 2px dashed #000; margin: 6px 0; }}
-    table {{ width: 100%; border-collapse: collapse; font-size: 10px; }}
-    th {{ border-bottom: 1px dashed #000; text-align: left; padding: 2px 0; }}
-    td {{ padding: 2px 0; }}
-    @media print {{
-        body {{ border: none !important; box-shadow: none !important; border-radius: 0 !important; width: 54mm !important; }}
-        .no-print {{ display: none !important; }}
-    }}
-</style>
-</head>
-<body>
-    <div class="center bold" style="font-size: 13px;">{escape(cfg_shop_name)}</div>
-    {addr_line}
-    {phone_line}
-    <div class="center" style="font-size: 9px; margin-top: 2px;">{title_label}</div>
-    <div class="divider"></div>
-    <div>Date: {escape(date_str)}</div>
-    <div>Slip No: #{receipt_no} | Cat: {escape(category)}</div>
-    <div class="divider"></div>
-    <table>
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th style="text-align:center;">Qty</th>
-                <th style="text-align:right;">Rate</th>
-                <th style="text-align:right;">Tot</th>
-            </tr>
-        </thead>
-        <tbody>
-            {item_rows}
-        </tbody>
-    </table>
-    <div class="double-divider"></div>
-    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
-        <span>{tot_label}:</span>
-        <span>₹{total:,.2f}</span>
-    </div>
-    <div class="divider"></div>
-    <div class="center bold" style="margin-top: 8px; font-size: 10px;">*** {escape(cfg_footer_tagline)} ***</div>
-    <div class="center" style="font-size: 8px; color:#555;">Powered by VernaLedger-AI</div>
-</body>
-</html>"""
-    return html
-
-def generate_daily_whatsapp_digest(is_english: bool = False) -> str:
-    today_str = date.today().strftime("%Y-%m-%d")
-    today_disp = date.today().strftime("%d-%m-%Y")
-    total_sales = 0.0
-    total_bills = 0
-    total_expenses = 0.0
-    cash_recovered = 0.0
-    pending_khata = 0.0
-
-    try:
-        with sqlite3.connect("ledger.db") as conn:
-            rec_df = pd.read_sql_query("SELECT grand_total, date FROM receipts", conn)
-            if not rec_df.empty:
-                today_rec = rec_df[rec_df['date'].astype(str).str.contains(today_str, na=False)]
-                if today_rec.empty:
-                    today_rec = rec_df
-                total_sales = float(today_rec['grand_total'].sum() or 0.0)
-                total_bills = len(today_rec)
-
-            exp_df = pd.read_sql_query("SELECT amount, date FROM business_expenses", conn)
-            if not exp_df.empty:
-                today_exp = exp_df[exp_df['date'].astype(str).str.contains(today_str, na=False)]
-                if today_exp.empty:
-                    today_exp = exp_df
-                total_expenses = float(today_exp['amount'].sum() or 0.0)
-
-            khata_df = pd.read_sql_query("SELECT customer_name, amount, transaction_type FROM customer_khata", conn)
-            if not khata_df.empty:
-                credit_sum = float(khata_df[khata_df['transaction_type'] == 'Credit Given']['amount'].sum() or 0.0)
-                pay_sum = float(khata_df[khata_df['transaction_type'] == 'Payment Received']['amount'].sum() or 0.0)
-                cash_recovered = pay_sum
-                pending_khata = max(0.0, credit_sum - pay_sum)
-    except Exception as e:
-        ai_logger.error(f"WhatsApp digest error: {e}")
-
-    net_profit = total_sales - total_expenses
-
-    if is_english:
-        return (
-            f"📊 *VERNALEDGER AI - DAILY BUSINESS DIGEST*\n"
-            f"📅 *Date:* {today_disp}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 *Total Sales:* ₹{total_sales:,.2f} ({total_bills} bills)\n"
-            f"📉 *Total Expenses:* ₹{total_expenses:,.2f}\n"
-            f"💵 *Estimated Net Margin:* ₹{net_profit:,.2f}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ *Khata Cash Recovered:* ₹{cash_recovered:,.2f}\n"
-            f"⏳ *Total Outstanding Credit:* ₹{pending_khata:,.2f}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🤖 _Automated Report Generated by VernaLedger-AI_"
-        )
-    else:
-        return (
-            f"📊 *वर्ना लेजर AI - दैनिक बिझनेस रिपोर्ट*\n"
-            f"📅 *तारीख:* {today_disp}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 *आजची एकूण विक्री:* ₹{total_sales:,.2f} ({total_bills} पावत्या)\n"
-            f"📉 *एकूण दैनंदिन खर्च:* ₹{total_expenses:,.2f}\n"
-            f"💵 *अंदाजे निव्वळ नफा:* ₹{net_profit:,.2f}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ *उधारीतून जमा रोख:* ₹{cash_recovered:,.2f}\n"
-            f"⏳ *बाकी एकूण उधारी:* ₹{pending_khata:,.2f}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"🤖 _VernaLedger-AI द्वारे स्वयंचलित जनरेट केलेला अहवाल_"
-        )
 
 df = load_receipts_data()
 
@@ -3036,17 +3158,16 @@ with st.sidebar:
     ''', unsafe_allow_html=True)
 
     _render_language_toggle()
-    is_english = st.session_state.get("ui_language", "en") == "en"
     render_custom_logo("small")
     current_role = st.session_state.get('user_role', 'Admin')
     role_badge_color = "#00ff87" if current_role == 'Admin' else "#f59e0b"
-    role_badge_text = f"● ROLE: {current_role.upper()}" if is_english else f"● भूमिका: {current_role.upper()}"
     st.markdown(f"""
-    <div style="text-align: center; margin: 2px 0 8px 0;">
-        <span style="font-size: 10px; font-weight: 700; color: {role_badge_color}; background: rgba(15, 23, 42, 0.85); border: 1px solid {role_badge_color}55; padding: 2px 10px; border-radius: 12px; letter-spacing: 0.5px;">{role_badge_text}</span>
+    <div class="sidebar-role-badge" style="background: rgba(15, 23, 42, 0.9); border: 1px solid {role_badge_color}; padding: 4px 8px; border-radius: 4px; margin-bottom: 10px; text-align: center; box-shadow: 0 0 5px {role_badge_color}44;">
+        <span style="font-size: 10px; font-weight: 800; color: {role_badge_color}; letter-spacing: 1px;">🟢 ROLE: {current_role.upper()}</span>
     </div>
     """, unsafe_allow_html=True)
     
+    st.markdown("<div style='font-size:10px; color:#8892b0; font-weight:bold; margin-bottom:5px; letter-spacing:1px;'>NAVIGATION MENU</div>", unsafe_allow_html=True)
     if current_role == 'Staff':
         nav_options = ["OCR Scanner", "Customer Khata", "Business Operations", "RAG AI Chat"]
     else:
@@ -3055,52 +3176,25 @@ with st.sidebar:
     default_page = st.query_params.get("page", "OCR Scanner")
     if default_page not in nav_options:
         default_page = nav_options[0]
-
-    nav_labels_en = {
-        "OCR Scanner": "⚡ OCR Scanner",
-        "Customer Khata": "💳 Customer Khata",
-        "Business Operations": "🏬 Business Operations",
-        "Ledger Database": "📊 Ledger Database",
-        "RAG AI Chat": "🤖 RAG AI Chat",
-        "Staff Management": "👥 Staff Management",
-    }
-    nav_labels_mr = {
-        "OCR Scanner": "⚡ स्मार्ट स्कॅनर (OCR)",
-        "Customer Khata": "💳 ग्राहक खाते (Khata)",
-        "Business Operations": "🏬 व्यवसाय व्यवस्थापन",
-        "Ledger Database": "📊 लेजर डेटाबेस",
-        "RAG AI Chat": "🤖 AI चॅटबॉट",
-        "Staff Management": "👥 कर्मचारी व्यवस्थापन",
-    }
-    nav_labels = nav_labels_en if is_english else nav_labels_mr
-
-    selected_page = st.radio(
-        "Navigation",
-        nav_options,
-        index=nav_options.index(default_page),
-        format_func=lambda page_key: nav_labels.get(page_key, page_key),
-        label_visibility="collapsed"
-    )
+        
+    selected_page = st.radio("Navigation", nav_options, index=nav_options.index(default_page), label_visibility="collapsed")
     if selected_page != st.query_params.get("page"):
         st.query_params["page"] = selected_page
         st.rerun()
     
-    st.markdown("<hr style='margin: 8px 0; border-color: rgba(0, 242, 254, 0.15);'>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin: 10px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
     
-    dev_title = "👨‍💻 Project Developers" if is_english else "👨‍💻 प्रकल्प विकासक"
-    st.markdown(f'''
-    <div class="dev-credit-box" style="margin-bottom: 10px; padding: 8px 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; border-left: 3px solid #00f2fe;">
-        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 3px;">{dev_title}</div>
-        <div style="font-size: 10px; font-weight: 700; color: #ffffff; line-height: 1.3;">
-            Sanket Kirdat &nbsp;|&nbsp; Sakshi Bhagat<br>
-            Vaishnavi Dhavale &nbsp;|&nbsp; Rushikesh Mulik
+    st.markdown('''
+    <div class="dev-credit-box" style="margin-bottom:10px; padding:6px; background:rgba(0,0,0,0.2); border-radius:4px; border-left:3px solid #00f2fe;">
+        <div style="font-size: 8px; text-transform: uppercase; color: #00f2fe; font-weight: 800; margin-bottom: 2px;">Project Developers</div>
+        <div style="font-size: 9px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+            Sanket Kirdat | Sakshi Bhagat<br>Vaishnavi Dhavale | Rushikesh Mulik
         </div>
     </div>
     ''', unsafe_allow_html=True)
     
     st.markdown('<div class="logout-container">', unsafe_allow_html=True)
-    logout_btn_text = "🚪 Logout System" if is_english else "🚪 लॉगआउट करा"
-    if st.button(logout_btn_text):
+    if st.button("\U0001f6aa Logout System"):
         log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out")
         st.session_state.clear()
         st.query_params.clear()
@@ -3108,652 +3202,248 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 if selected_page == "OCR Scanner":
-    is_english = st.session_state.get("ui_language", "en") == "en"
-    header_title = "Universal Smart Scanner" if is_english else "युनिव्हर्सल स्मार्ट स्कॅनर"
-    header_subtitle = "Receipts OCR & Voice Billing" if is_english else "पावत्या आणि व्हॉईस बिलिंग एकाच ठिकाणी"
-    render_page_header(header_title, header_subtitle, "⚡")
-
-    st.markdown("""
-    <style>
-    .scanner-viewfinder {
-        border: 1px dashed rgba(0, 242, 254, 0.4);
-        border-radius: 10px;
-        padding: 12px 14px;
-        background: rgba(0, 0, 0, 0.25);
-        margin-bottom: 12px;
-    }
-    .scanner-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        background: rgba(0, 242, 254, 0.1);
-        color: #00f2fe;
-        border: 1px solid rgba(0, 242, 254, 0.3);
-    }
-    .scanner-pill-success {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        background: rgba(0, 255, 135, 0.1);
-        color: #00ff87;
-        border: 1px solid rgba(0, 255, 135, 0.3);
-    }
-    .thermal-preview-wrap {
-        background: #ffffff;
-        color: #000000;
-        border-radius: 12px;
-        padding: 14px 12px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-        max-height: 350px;
-        overflow-y: auto;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 11px;
-        margin-bottom: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-    }
-    [data-testid="stCameraInput"] video {
-        max-height: 200px !important;
-        border-radius: 8px !important;
-    }
-    [data-testid="stCameraInput"] img {
-        max-height: 180px !important;
-        border-radius: 8px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    render_page_header("OCR Scanner & Voice Billing", "Instant Digital POS Receipt Parsing & Audio Confirmation", "📷")
 
     col_u, col_p = st.columns([1.1, 0.9])
     with col_u:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        force_save_option = st.checkbox(
+            _translate_ui_text("⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"),
+            value=False,
+        )
         
-        curr_mode = st.session_state.get('input_method', 'Upload File')
-        if curr_mode not in ["Upload File", "Live Camera", "Multi-Language Voice Bill"]:
-            curr_mode = "Upload File"
-            st.session_state['input_method'] = "Upload File"
-
-        input_method = curr_mode
-        is_receipt = input_method in ["Upload File", "Live Camera"]
-        is_voice = input_method == "Multi-Language Voice Bill"
-
-        # 3 Clean Input Modes (फक्त ३ बटणे)
-        m_c1, m_c2, m_c3 = st.columns(3)
-        with m_c1:
-            if st.button(
-                "📁 फाईल गॅलरी" if not is_english else "📁 Gallery",
-                type="primary" if input_method == "Upload File" else "secondary",
-                use_container_width=True,
-                key="btn_mode_gallery"
-            ):
+        m_col1, m_col2, m_col3 = st.columns(3)
+        with m_col1:
+            if st.button("Upload File", type="primary" if st.session_state['input_method'] == "Upload File" else "secondary"):
                 st.session_state['input_method'] = "Upload File"
-                st.session_state['receipt_source'] = "Upload File"
                 st.rerun()
-        with m_c2:
-            if st.button(
-                "📸 थेट कॅमेरा" if not is_english else "📸 Camera",
-                type="primary" if input_method == "Live Camera" else "secondary",
-                use_container_width=True,
-                key="btn_mode_camera"
-            ):
+        with m_col2:
+            if st.button("Live Camera", type="primary" if st.session_state['input_method'] == "Live Camera" else "secondary"):
                 st.session_state['input_method'] = "Live Camera"
-                st.session_state['receipt_source'] = "Live Camera"
                 st.rerun()
-        with m_c3:
-            if st.button(
-                "🎙️ व्हॉईस बिल" if not is_english else "🎙️ Voice Bill",
-                type="primary" if is_voice else "secondary",
-                use_container_width=True,
-                key="btn_mode_voice"
-            ):
+        with m_col3:
+            if st.button("Voice Bill", type="primary" if st.session_state['input_method'] == "Multi-Language Voice Bill" else "secondary"):
                 st.session_state['input_method'] = "Multi-Language Voice Bill"
                 st.rerun()
-
-        if is_receipt:
-            ctrl_c1, ctrl_c2 = st.columns([1.2, 0.8])
-            with ctrl_c1:
-                force_save_lbl = "⚠️ Save duplicate receipt (Force Save)" if is_english else "⚠️ ड्युप्लिकेट पावती सेव्ह करा (Force Save)"
-                force_save_help = "When enabled, receipts from the same shop and amount will be saved even if already recorded in the database." if is_english else "सक्षम केल्यास एकाच दुकानाची आणि समान रकमेची पावती आधीच डेटाबेसमध्ये असली तरीही पुन्हा सेव्ह केली जाईल."
-                force_save_option = st.checkbox(
-                    force_save_lbl,
-                    value=False,
-                    help=force_save_help
-                )
-            with ctrl_c2:
-                if st.session_state.get('processed_batch'):
-                    reset_lbl = "🔄 Reset" if is_english else "🔄 रिसेट (Reset)"
-                    if st.button(reset_lbl, key="reset_ocr_data", use_container_width=True):
-                        st.session_state['processed_batch'] = []
-                        st.session_state['processed_data'] = None
-                        st.session_state['warning_msg'] = None
-                        st.rerun()
-        else:
-            force_save_option = False
-
+                
+        input_method = st.session_state['input_method']
         up_files = []
         up_cam = None
-        if input_method == "Upload File":
-            uploader_lbl = "Select receipt photo(s) (JPG, JPEG, PNG):" if is_english else "पावतीचा फोटो निवडा (JPG, JPEG, PNG):"
-            up_files = st.file_uploader(
-                uploader_lbl,
-                type=["jpg", "jpeg", "png"],
-                accept_multiple_files=True,
-                key="ocr_receipt_files"
-            )
+        if input_method == "Live Camera":
+            up_cam = st.camera_input("Take photo", label_visibility="collapsed")
+        elif input_method == "Upload File":
+            up_files = st.file_uploader("Choose Receipts", type=["jpg", "jpeg", "png"], accept_multiple_files=True, label_visibility="collapsed")
             if up_files:
-                sel_lbl = f"Selected receipts ({len(up_files)}):" if is_english else f"निवडलेल्या पावत्या ({len(up_files)}):"
-                st.markdown(f"<div style='font-size: 11px; color: #00ff87; font-weight: 700; margin: 4px 0;'>📸 {sel_lbl}</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 10px; margin-top: 10px;'>📸 Uploaded Previews:</div>", unsafe_allow_html=True)
                 cols = st.columns(min(len(up_files), 5))
                 for idx, uf in enumerate(up_files[:5]):
-                    with cols[idx]:
-                        st.image(uf, width=65)
+                    cols[idx].image(uf,  caption=f"({idx+1})")
                 if len(up_files) > 5:
-                    more_lbl = f"+ {len(up_files)-5} more receipts" if is_english else f"+ आणखी {len(up_files)-5} पावत्या"
-                    st.caption(more_lbl)
-
-        elif input_method == "Live Camera":
-            cam_note = "📸 Keep receipt flat and clear inside viewfinder:" if is_english else "📸 पावती फ्रेममध्ये सपाट व स्पष्ट दिसू द्या:"
-            st.markdown(f"""
-            <div style='font-size: 11px; color: #94a3b8; margin-bottom: 4px;'>
-                {cam_note}
-            </div>
-            """, unsafe_allow_html=True)
-            up_cam = st.camera_input("Take photo" if is_english else "फोटो घ्या", label_visibility="collapsed", key="ocr_live_cam")
-
+                    st.markdown(f"<div style='font-size: 12px; color: #94a3b8; font-weight: 600;'>+ {len(up_files)-5} more receipts ready...</div>", unsafe_allow_html=True)
         elif input_method == "Multi-Language Voice Bill":
-            pill_voice_ready = "● Voice Recognition Ready" if is_english else "● ध्वनी ओळख सज्ज"
-            voice_inst = "Click mic and speak bill details. AI will calculate items, quantities, and prices automatically." if is_english else "माइकवर क्लिक करून बिल बोला. AI सर्व वस्तू, प्रमाण आणि किमती आपोआप मोजून बिल तयार करेल."
-            st.markdown(f"""
-            <div class='scanner-viewfinder' style='border-color: rgba(0, 242, 254, 0.5);'>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
-                    <span class='scanner-pill'>🎙️ AI Voice Studio (Neural Audio Engine)</span>
-                    <span class='scanner-pill-success'>{pill_voice_ready}</span>
-                </div>
-                <div style='font-size: 12px; color: #cbd5e1; line-height: 1.4;'>
-                    {voice_inst}
-                </div>
+            st.markdown("""
+            <div style="background: rgba(0,242,254,0.08); border: 1px solid #00f2fe; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 13px; font-weight: bold; color: #00f2fe;">🎙️ Voice Billing (Marathi, Hindi, English)</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            lang_radio_lbl = "Select Language:" if is_english else "भाषा निवडा (Select Language):"
-            voice_lang_choice = st.radio(
-                lang_radio_lbl,
-                ["मराठी (mr-IN)", "हिंदी (hi-IN)", "English (en-IN)"],
-                index=0,
-                horizontal=True,
-                key="voice_billing_lang_radio"
-            )
-            lang_code_map = {
-                "मराठी (mr-IN)": "mr-IN",
-                "हिंदी (hi-IN)": "hi-IN",
-                "English (en-IN)": "en-IN"
-            }
-            chosen_lang = lang_code_map.get(voice_lang_choice, "mr-IN")
-            
-            spoken_bill = speech_to_text(
-                start_prompt="🎙️ Start Speaking (Click mic)" if is_english else "🎙️ बोलणे सुरू करा (माइक दाबा)",
-                stop_prompt="⏹️ Stop Speaking (Generate Bill)" if is_english else "⏹️ बोलणे थांबवा (तयार करा)",
-                just_once=True,
-                language=chosen_lang,
-                key='voice_billing_mic_auto'
-            )
-            
-            if 'voice_billing_transcript' not in st.session_state:
-                st.session_state['voice_billing_transcript'] = ""
-                
-            if spoken_bill and spoken_bill.strip():
-                if spoken_bill.strip() != st.session_state.get('last_spoken_bill'):
-                    st.session_state['last_spoken_bill'] = spoken_bill.strip()
-                    st.session_state['voice_billing_transcript'] = spoken_bill.strip()
-            
-            rec_text_heading = "📝 Recognized text / Type to generate bill:" if is_english else "📝 ओळखलेला मजकूर / टाइप करून बिल बनवा:"
-            rec_placeholder = "e.g. Ganesh Store: 5 kg sugar 200 rupees, 2 liter oil 300 rupees" if is_english else "उदा. श्री गणेश किराणा: ५ किलो साखर २०० रुपये, २ लिटर तेल ३०० रुपये"
-            st.markdown(f"<div style='font-size: 12px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 4px;'>{rec_text_heading}</div>", unsafe_allow_html=True)
-            voice_text_input = st.text_area(
-                "Voice Input Text",
-                value=st.session_state.get('voice_billing_transcript', ''),
-                height=75,
-                placeholder=rec_placeholder,
-                label_visibility="collapsed",
-                key="voice_billing_transcript_input"
-            )
-            st.session_state['voice_billing_transcript'] = voice_text_input
-            
-            btn_proc_voice_lbl = "⚡ Generate Voice Bill" if is_english else "⚡ व्हॉईस बिल प्रोसेस करा (Generate Bill)"
-            submit_voice = st.button(btn_proc_voice_lbl, type="primary", use_container_width=True, key="btn_process_voice_bill")
-            
-            active_voice_text = st.session_state.get('voice_billing_transcript', '').strip()
-            if submit_voice:
-                if not active_voice_text:
-                    st.warning("⚠️ Please speak into the mic or type text above first." if is_english else "⚠️ कृपया आधी माईकवर बोला किंवा वरील बॉक्समध्ये मजकूर टाइप करा.")
-                else:
-                    voice_spinner = "🤖 AI verifying calculations and generating accurate bill from voice..." if is_english else "🤖 AI गणिती पडताळणी करत आहे... व्हॉईसवरून अचूक बिल तयार होत आहे..."
-                    with st.spinner(voice_spinner):
-                        try:
-                            v_data = process_voice_billing_advanced(active_voice_text, API_KEY)
-                            st.session_state['processed_data'] = v_data
-                            st.session_state['processed_batch'] = [v_data]
-                            log_activity(st.session_state.get('current_username', 'admin'), "Processed Voice Bill")
-                            st.success("✅ Voice bill generated and saved to database successfully!" if is_english else "✅ व्हॉईस बिल यशस्वीरित्या तयार होऊन डेटाबेसमध्ये सेव्ह झाले!")
-                            st.toast("Voice bill saved!" if is_english else "व्हॉईस बिल सेव्ह झाले!", icon="🎤")
-                            st.rerun()
-                        except Exception as ve:
-                            logging.error(f"Voice billing error: {ve}")
-                            st.error(f"Voice billing error: {ve}" if is_english else f"व्हॉईस बिल Error: {ve}")
-
-        if input_method != "Multi-Language Voice Bill":
-            st.write("")
-            btn_scan_lbl = "⚡ Process Receipts" if is_english else "⚡ पावत्या स्कॅन करा (Process Receipts)"
-            process_clicked = st.button(btn_scan_lbl, type="primary", use_container_width=True, key="btn_process_receipts")
-            if process_clicked:
-                target_files = []
-                if input_method == "Live Camera" and up_cam:
-                    target_files = [up_cam]
-                elif input_method == "Upload File" and up_files:
-                    target_files = up_files
-                
-                if target_files:
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    processed_batch = []
-                    warning_messages = []
-                    total_f = len(target_files)
-                    
-                    def process_single_file(idx, single_file):
-                        try:
-                            data = process_receipt_advanced(single_file, API_KEY, force_save=force_save_option)
-                            f_name = getattr(single_file, "name", f"Receipt #{idx+1}" if is_english else f"पावती #{idx+1}")
-                            if data.get("is_duplicate"):
-                                warn_msg = (f"Bill of ₹{data.get('grand_total')} from '{data.get('vendor_name')}' is already recorded." if is_english else f"दुकान '{data.get('vendor_name')}' चे ₹{data.get('grand_total')} चे बिल आधीच रेकॉर्ड केलेले आहे.")
-                                return (idx, data, (f_name, f"Duplicate Warning: {warn_msg}"))
-                            return (idx, data, None)
-                        except Exception as e:
-                            f_name = getattr(single_file, "name", f"Receipt #{idx+1}" if is_english else f"पावती #{idx+1}")
-                            err_str = str(e)
-                            return (idx, None, (f_name, err_str))
-
-                    spinner_scan = (f"🚀 AI Vision Engine is scanning {total_f} receipt(s) in parallel... Please wait!" if is_english else f"🚀 AI Vision Engine {total_f} पावत्या एकाच वेळी स्कॅन करत आहे... कृपया वाट पहा!")
-                    with st.spinner(spinner_scan):
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=min(total_f, 10)) as executor:
-                            futures = {executor.submit(process_single_file, i, f): i for i, f in enumerate(target_files)}
-                            
-                            results = []
-                            completed_count = 0
-                            for future in concurrent.futures.as_completed(futures):
-                                results.append(future.result())
-                                completed_count += 1
-                                progress_bar.progress(completed_count / total_f)
-                                scan_pill = f"⚡ Scanning receipts ({completed_count}/{total_f})..." if is_english else f"⚡ पावती स्कॅन सुरू ({completed_count}/{total_f})..."
-                                status_text.markdown(f"<span class='scanner-pill'>{scan_pill}</span>", unsafe_allow_html=True)
-                                
-                            results.sort(key=lambda x: x[0])
-                            
-                            for idx, data, err in results:
-                                if data:
-                                    processed_batch.append(data)
-                                if err:
-                                    fname, err_str = err
-                                    if "Duplicate Warning:" in err_str:
-                                        clean_err = err_str.split("Duplicate Warning:")[-1].strip()
-                                        warning_messages.append(f"⚠️ {clean_err}")
-                                    else:
-                                        warning_messages.append(f"❌ {fname}: {err_str}")
-                    
-                    progress_bar.empty()
-                    status_text.empty()
-                    if processed_batch:
-                        st.session_state['processed_batch'] = processed_batch
-                        st.session_state['processed_data'] = processed_batch[0]
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Scanned {len(processed_batch)} Receipts")
-                        if warning_messages:
-                            st.session_state['warning_msg'] = " | ".join(warning_messages)
-                            st.session_state['warning_time'] = time.time()
-                        else:
-                            st.session_state['warning_msg'] = None
-                        succ_scan_msg = f"✅ {len(processed_batch)} receipt(s) successfully scanned!" if is_english else f"✅ {len(processed_batch)} पावती/पावत्या यशस्वीरित्या स्कॅन झाल्या!"
-                        st.success(succ_scan_msg)
-                        st.toast("Receipt scanned successfully!" if is_english else "पावती Successfully स्कॅन झाली!", icon="✅")
+            spoken_bill = speech_to_text(start_prompt="बोलणे सुरू करा (माइक दाबा)", stop_prompt="थांबवा आणि बिल सेव्ह करा", just_once=True, language='mr-IN', key='voice_billing_mic_auto')
+            if spoken_bill:
+                with st.spinner("प्रोग्रेस सुरू आहे... व्हॉईसवरून बिल तयार होत आहे."):
+                    try:
+                        v_data = process_voice_billing_advanced(spoken_bill, API_KEY)
+                        st.session_state['processed_data'] = v_data
+                        st.session_state['processed_batch'] = [v_data]
+                        log_activity(st.session_state.get('current_username', 'admin'), "Processed Voice Bill")
+                        st.success("व्हॉईस बिल Successfully तयार होऊन डेटाबेसमध्ये सेव्ह झाले !")
+                        st.toast("व्हॉईस बिल सेव्ह झाले!", icon="🎤")
                         st.rerun()
+                    except Exception as ve:
+                        logging.error(f"Voice billing error: {ve}")
+                        st.error(f"व्हॉईस बिल Error: {ve}")
+                        
+        st.write("")
+        process_clicked = st.button("Process Receipt(s)", type="primary")
+        if process_clicked and input_method != "Multi-Language Voice Bill":
+            target_files = []
+            if input_method == "Live Camera" and up_cam:
+                target_files = [up_cam]
+            elif input_method == "Upload File" and up_files:
+                target_files = up_files
+            if target_files:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                processed_batch = []
+                warning_messages = []
+                total_f = len(target_files)
+                import concurrent.futures
+                
+                def process_single_file(idx, single_file):
+                    temp_f = f"temp_{os.urandom(4).hex()}.png"
+                    try:
+                        with open(temp_f, "wb") as f:
+                            f.write(single_file.getbuffer())
+                        data = process_receipt_advanced(temp_f, API_KEY, force_save=force_save_option)
+                        if os.path.exists(temp_f):
+                            os.remove(temp_f)
+                        return (idx, data, None)
+                    except Exception as e:
+                        if os.path.exists(temp_f):
+                            os.remove(temp_f)
+                        err_str = str(e)
+                        return (idx, None, (single_file.name, err_str))
+
+                with st.spinner(f"🚀 AI is processing {total_f} receipts simultaneously... Please wait!"):
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=min(total_f, 10)) as executor:
+                        futures = {executor.submit(process_single_file, i, f): i for i, f in enumerate(target_files)}
+                        
+                        results = []
+                        completed_count = 0
+                        for future in concurrent.futures.as_completed(futures):
+                            results.append(future.result())
+                            completed_count += 1
+                            progress_bar.progress(completed_count / total_f)
+                            status_text.text(f"⚡ पावती स्कॅन होत आहे ({completed_count}/{total_f})...")
+                            
+                        # Sort by original index to maintain order
+                        results.sort(key=lambda x: x[0])
+                        
+                        for idx, data, err in results:
+                            if data:
+                                processed_batch.append(data)
+                            if err:
+                                fname, err_str = err
+                                if "Duplicate Warning:" in err_str:
+                                    clean_err = err_str.split("Duplicate Warning:")[-1].strip()
+                                    warning_messages.append(f"⚠️ {fname}: {clean_err}")
+                                else:
+                                    warning_messages.append(f"❌ {fname}: {err_str}")
+                
+                progress_bar.empty()
+                status_text.empty()
+                if processed_batch:
+                    st.session_state['processed_batch'] = processed_batch
+                    st.session_state['processed_data'] = processed_batch[0]
+                    log_activity(st.session_state.get('current_username', 'admin'), f"Scanned {len(processed_batch)} Receipts")
+                    if warning_messages:
+                        st.session_state['warning_msg'] = " | ".join(warning_messages)
+                        st.session_state['warning_time'] = time.time()
                     else:
-                        if warning_messages:
-                            st.error(("Error scanning receipts: " if is_english else "पावती स्कॅन करताना अडचण आली: ") + " | ".join(warning_messages))
-                        else:
-                            st.error("Could not scan receipt. Please ensure receipt photo is clear." if is_english else "पावती स्कॅन करता आली नाही. कृपया पावतीचा फोटो स्पष्ट असल्याची खात्री करा.")
-                else:
-                    st.warning("⚠️ Please select at least one receipt or take a photo." if is_english else "⚠️ कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.")
-        
+                        st.session_state['warning_msg'] = None
+                    st.success(f"Successfully processed {len(processed_batch)} receipt(s)!")
+                    st.toast("पावती Successfully स्कॅन झाली!", icon="✅")
+                    st.rerun()
+            else:
+                st.warning("कृपया किमान एक पावती निवडा किंवा कॅमेऱ्याने फोटो घ्या.")
         if st.session_state.get('warning_msg'):
             elapsed = time.time() - st.session_state.get('warning_time', 0)
             if elapsed < 15:
-                dup_alert_hdr = "Duplicate Receipt Alert:" if is_english else "ड्युप्लिकेट पावती अलर्ट:"
-                st.warning(f"{dup_alert_hdr} {st.session_state['warning_msg']}")
+                st.warning(f"ड्युप्लिकेट पावती अलर्ट: {st.session_state['warning_msg']}")
         st.markdown("</div>", unsafe_allow_html=True)
         
     with col_p:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#00f2fe; margin-top:0; font-size: 14px;'>📋 Summary</h4>", unsafe_allow_html=True)
         batch_data = st.session_state.get('processed_batch', [])
         if batch_data:
             if len(batch_data) == 1:
                 p_item = batch_data[0]
                 v_disp = decode_unicode(p_item.get('vendor_name'))
-                tot = float(p_item.get('grand_total', 0) or 0)
+                tot = p_item.get('grand_total', 0)
                 items_raw = p_item.get('items', [])
-                date_disp = p_item.get('date', 'Today') or 'Today'
-                cat_disp = p_item.get('category', 'General') or 'General'
                 
-                # Compact Receipt Header (No big POS card)
-                tot_lbl = "Grand Total" if is_english else "एकूण रक्कम"
-                items_cnt_lbl = "items" if is_english else "वस्तू"
-                st.markdown(f"""
-                <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
-                    <div>
-                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>🧾 {v_disp}</div>
-                        <div style='font-size: 11px; color: #94a3b8;'>📅 {date_disp} • 🏷️ {cat_disp} • {len(items_raw)} {items_cnt_lbl}</div>
-                    </div>
-                    <div style='text-align: right;'>
-                        <div style='font-size: 10px; color: #94a3b8;'>{tot_lbl}</div>
-                        <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{tot:,.2f}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"**Shop Name:** {v_disp}")
+                st.markdown(f"**Grand Total:** <h2 style='color:#00ff87; margin:0;'>₹{tot:,.2f}</h2>", unsafe_allow_html=True)
                 
-                # Pure Thermal Receipt (No Scan & Pay, No Sound Box)
-                thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, receipt_no="1", is_english=is_english)
-                
-                # Embedded Compact Thermal Receipt Preview
-                st.components.v1.html(thermal_html, height=310, scrolling=True)
-                
-                # Clearly Display Scanned Items Table
-                if items_raw:
-                    scanned_items_heading = "📋 Scanned Items Details:" if is_english else "📋 स्कॅन केलेल्या वस्तूंचा तपशील (Scanned Items):"
-                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>{scanned_items_heading}</div>", unsafe_allow_html=True)
-                    clean_items_display = []
-                    for idx_item, itm in enumerate(items_raw, 1):
-                        name_val = str(itm.get("item_name", f"Item {idx_item}")).strip()
-                        qty_val = str(itm.get("quantity", itm.get("qty", "1"))).strip()
-                        rate_val = float(itm.get("rate", itm.get("price", 0)) or 0)
-                        tot_val = float(itm.get("total_price", rate_val) or 0)
-                        if is_english:
-                            clean_items_display.append({
-                                "Sr. No.": idx_item,
-                                "Item Name": name_val,
-                                "Quantity": qty_val,
-                                "Rate (₹)": f"₹{rate_val:,.2f}",
-                                "Total (₹)": f"₹{tot_val:,.2f}"
-                            })
-                        else:
-                            clean_items_display.append({
-                                "क्र.": idx_item,
-                                "वस्तूचे नाव (Item)": name_val,
-                                "प्रमाण (Qty)": qty_val,
-                                "दर (Rate ₹)": f"₹{rate_val:,.2f}",
-                                "एकूण (Total ₹)": f"₹{tot_val:,.2f}"
-                            })
-                    st.dataframe(pd.DataFrame(clean_items_display), hide_index=True, use_container_width=True)
-                
-                # Action Buttons Row
-                btn_col1, btn_col2 = st.columns(2)
-                with btn_col1:
-                    dl_receipt_lbl = "🖨️ Thermal Receipt (Print / Download)" if is_english else "🖨️ थर्मल पावती (Print / Download)"
-                    st.download_button(
-                        label=dl_receipt_lbl,
-                        data=thermal_html,
-                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}.html",
-                        mime="text/html",
-                        use_container_width=True,
-                        type="primary",
-                        key="btn_download_thermal_single"
-                    )
-                with btn_col2:
-                    sync_stock_lbl = "📦 Sync Stock" if is_english else "📦 इन्व्हेंटरी अपडेट (Sync Stock)"
-                    if st.button(sync_stock_lbl, key='inv_sync_single', use_container_width=True):
+                import pandas as pd
+                items_df = pd.DataFrame(items_raw)
+                if not items_df.empty:
+                    edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
+                    p_item['items'] = edited_df.to_dict('records')
+                    
+                    if st.button('📦 Update Inventory', key='inv_sync_single'):
                         try:
+                            import sqlite3
                             with sqlite3.connect('ledger.db') as conn:
                                 cursor = conn.cursor()
                                 for item in p_item.get('items', []):
-                                    i_name = str(item.get('item_name', '')).strip()
-                                    if not i_name:
-                                        continue
-                                    q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                    try:
-                                        q_val = float(q_raw)
-                                    except (ValueError, TypeError):
-                                        q_val = 1.0
-                                    r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
-                                    cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
-                                    row = cursor.fetchone()
-                                    if row:
-                                        new_qty = float(row[1] or 0.0) + q_val
-                                        cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
-                                    else:
-                                        cursor.execute(
-                                            "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
-                                            (i_name, q_val, 'units', 5.0, '', r_val)
-                                        )
+                                    q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                    if not q.isdigit(): q = 1
+                                    cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
                                 conn.commit()
-                            st.toast('Inventory stock synced automatically!' if is_english else '📦 स्टॉक आपोआप अपडेट झाला!', icon="📦")
-                            st.success('Inventory updated successfully!' if is_english else 'इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
-                        except Exception as e:
-                            st.error(str(e))
-                
-                # Compact Optional Edit Items in collapsed expander
-                items_df = pd.DataFrame(items_raw)
-                if not items_df.empty:
-                    edit_exp_lbl = "✏️ Edit Items & Prices" if is_english else "✏️ वस्तू / किमती तपासा किंवा बदला (Edit Items)"
-                    with st.expander(edit_exp_lbl, expanded=False):
-                        edited_df = st.data_editor(items_df, use_container_width=True, key='data_editor_single')
-                        p_item['items'] = edited_df.to_dict('records')
+                            st.toast('📦 Stock automatically updated!')
+                            st.success('Inventory synced successfully!')
+                        except Exception as e: st.error(str(e))
+                        
+                audio_text = f"{v_disp} कडून खरेदी केलेली पावती. एकूण रक्कम {tot} रुपये."
+                aud_path = generate_marathi_tts(audio_text)
+                if aud_path and os.path.exists(aud_path):
+                    st.audio(aud_path)
             else:
-                combined_tot = sum(float(b.get('grand_total', 0) or 0) for b in batch_data)
-                total_items_count = sum(len(b.get('items', [])) for b in batch_data)
+                st.markdown(f"**Processed {len(batch_data)} Receipts Successfully**")
+                for idx, p_item in enumerate(batch_data):
+                    v_disp = decode_unicode(p_item.get('vendor_name'))
+                    tot = p_item.get('grand_total', 0)
+                    with st.expander(f"🧾 Receipt #{idx+1} - {v_disp} (₹{tot:,.2f})"):
+                        import pandas as pd
+                        items_df = pd.DataFrame(p_item.get('items', []))
+                        if not items_df.empty:
+                            edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_{idx}')
+                            p_item['items'] = edited_df.to_dict('records')
+                            
+                        if st.button('📦 Update Inventory', key=f'inv_sync_{idx}'):
+                            try:
+                                import sqlite3
+                                with sqlite3.connect('ledger.db') as conn:
+                                    cursor = conn.cursor()
+                                    for item in p_item.get('items', []):
+                                        q = str(item.get('quantity', item.get('qty', '1'))).split()[0]
+                                        if not q.isdigit(): q = 1
+                                        cursor.execute('INSERT INTO shop_inventory (item_name, quantity, unit) VALUES (?, ?, ?)', (item.get('item_name'), float(q), 'units'))
+                                    conn.commit()
+                                st.toast('📦 Stock automatically updated!')
+                                st.success('Inventory synced successfully!')
+                            except Exception as e: st.error(str(e))
+                            
+                st.markdown("---")
+                st.markdown("#### Marathi Audio Summary")
+                vendor_names_list = [decode_unicode(item.get('vendor_name', 'अनामित')) for item in batch_data]
+                audio_text = "तुमच्या स्कॅन केलेल्या पावत्यांची दुकाने: " + ", ".join(vendor_names_list)
+                aud_path = generate_marathi_tts(audio_text)
+                if aud_path and os.path.exists(aud_path):
+                    st.audio(aud_path)
+                    
+            # Instant Invoice Download
+            inv_html = f"""
+            <html><body style='font-family:sans-serif; padding:20px; color:#333;'>
+            <h2 style='color:#0ea5e9;'>INVOICE - {v_disp}</h2>
+            <hr>
+            <table width='100%' cellpadding='8' style='border-collapse:collapse; text-align:left;'>
+                <tr style='background:#f1f5f9;'><th>Item Name</th><th>Quantity</th><th>Price</th><th>Total</th></tr>
+            """
+            for itm in items_raw:
+                inv_html += f"<tr><td style='border-bottom:1px solid #e2e8f0;'>{itm.get('item_name')}</td><td style='border-bottom:1px solid #e2e8f0;'>{itm.get('qty')}</td><td style='border-bottom:1px solid #e2e8f0;'>₹{itm.get('price')}</td><td style='border-bottom:1px solid #e2e8f0;'>₹{itm.get('total_price')}</td></tr>"
+            inv_html += f"</table><h3 style='text-align:right; margin-top:20px;'>Grand Total: ₹{tot:,.2f}</h3></body></html>"
+            
+            st.download_button(
+                label="📄 Download Invoice",
+                data=inv_html,
+                file_name=f"Invoice_{v_disp.replace(' ', '_')}.html",
+                mime="text/html",
                 
-                # Compact Batch Header
-                b_scan_lbl = f"🧾 {len(batch_data)} Receipts Scanned" if is_english else f"🧾 {len(batch_data)} पावत्या स्कॅन झाल्या"
-                b_item_lbl = f"Total {total_items_count} items" if is_english else f"एकूण {total_items_count} वस्तू"
-                b_comb_lbl = "Combined Total" if is_english else "एकत्रित रक्कम"
-                st.markdown(f"""
-                <div style='display: flex; justify-content: space-between; align-items: center; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;'>
-                    <div>
-                        <div style='font-size: 15px; font-weight: 800; color: #00f2fe;'>{b_scan_lbl}</div>
-                        <div style='font-size: 11px; color: #94a3b8;'>{b_item_lbl}</div>
-                    </div>
-                    <div style='text-align: right;'>
-                        <div style='font-size: 10px; color: #94a3b8;'>{b_comb_lbl}</div>
-                        <div style='font-size: 18px; font-weight: 800; color: #00ff87;'>₹{combined_tot:,.2f}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Top Action Row: Sync All + Download All Slips
-                c_sync_all, c_dl_all = st.columns(2)
-                with c_sync_all:
-                    sync_all_lbl = "📦 Sync All Stock" if is_english else "📦 सर्व पावत्या इन्व्हेंटरीमध्ये जोडा (Sync All Stock)"
-                    if st.button(sync_all_lbl, key='inv_sync_all_batch', use_container_width=True):
-                        try:
-                            with sqlite3.connect('ledger.db') as conn:
-                                cursor = conn.cursor()
-                                for b_item in batch_data:
-                                    for item in b_item.get('items', []):
-                                        i_name = str(item.get('item_name', '')).strip()
-                                        if not i_name:
-                                            continue
-                                        q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                        try:
-                                            q_val = float(q_raw)
-                                        except (ValueError, TypeError):
-                                            q_val = 1.0
-                                        r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
-                                        cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
-                                        row = cursor.fetchone()
-                                        if row:
-                                            new_qty = float(row[1] or 0.0) + q_val
-                                            cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
-                                        else:
-                                            cursor.execute(
-                                                "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
-                                                (i_name, q_val, 'units', 5.0, '', r_val)
-                                            )
-                                conn.commit()
-                            st.toast('All receipts synced to inventory!' if is_english else '📦 सर्व पावत्यांचा स्टॉक जोडला गेला!', icon="📦")
-                            st.success('Inventory updated successfully!' if is_english else 'इन्व्हेंटरी यशस्वीरित्या अपडेट झाली!')
-                        except Exception as e:
-                            st.error(str(e))
-                with c_dl_all:
-                    # Generate all thermal slips in 1 HTML file for batch printing
-                    all_slips_html = """<!DOCTYPE html><html><head><meta charset='utf-8'><title>All Receipts</title><style>@page { size: 58mm auto; margin: 0; } body { width: 54mm; margin: 0 auto; padding: 4px; font-family: 'Courier New', monospace; } .page-sep { page-break-after: always; border-top: 2px dashed #000; margin: 20px 0; }</style></head><body>"""
-                    for b_i, b_obj in enumerate(batch_data, 1):
-                        b_v = decode_unicode(b_obj.get('vendor_name'))
-                        b_tot = float(b_obj.get('grand_total', 0) or 0)
-                        b_its = b_obj.get('items', [])
-                        b_dt = b_obj.get('date', 'Today') or 'Today'
-                        all_slips_html += generate_thermal_receipt_html(b_v, b_dt, "General", b_its, b_tot, receipt_no=str(b_i), is_english=is_english)
-                        if b_i < len(batch_data):
-                            all_slips_html += "<div class='page-sep'></div>"
-                    all_slips_html += "</body></html>"
-                    dl_all_lbl = f"🖨️ Download All {len(batch_data)} Receipts" if is_english else f"🖨️ सर्व {len(batch_data)} पावत्या एकत्र डाउनलोड"
-                    st.download_button(
-                        label=dl_all_lbl,
-                        data=all_slips_html,
-                        file_name=f"All_{len(batch_data)}_Thermal_Slips.html",
-                        mime="text/html",
-                        use_container_width=True,
-                        key="btn_dl_all_slips_batch"
-                    )
+                type="primary"
+            )
 
-                st.markdown("<hr style='margin: 10px 0 8px 0; border-color: rgba(0, 242, 254, 0.2);'>", unsafe_allow_html=True)
-                
-                # Receipt Selector Dropdown (पावती सिलेक्टर ड्रॉपडाऊन)
-                if is_english:
-                    receipt_labels = [
-                        f"🧾 Receipt #{i+1}: {decode_unicode(b.get('vendor_name', 'Unnamed'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} items)"
-                        for i, b in enumerate(batch_data)
-                    ]
-                    sel_prompt = "📋 Select Receipt to View:"
-                else:
-                    receipt_labels = [
-                        f"🧾 पावती #{i+1}: {decode_unicode(b.get('vendor_name', 'अनामित'))} — ₹{float(b.get('grand_total', 0) or 0):,.2f} ({len(b.get('items', []))} वस्तू)"
-                        for i, b in enumerate(batch_data)
-                    ]
-                    sel_prompt = "📋 पाहण्यासाठी पावती निवडा (Select Receipt):"
-                st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>{sel_prompt}</div>", unsafe_allow_html=True)
-                selected_idx = st.selectbox(
-                    "Select Receipt" if is_english else "पावती निवडा",
-                    range(len(batch_data)),
-                    format_func=lambda i: receipt_labels[i],
-                    label_visibility="collapsed",
-                    key="batch_receipt_dropdown_selector"
-                )
-
-                # Show Selected Receipt Details
-                p_item = batch_data[selected_idx]
-                v_disp = decode_unicode(p_item.get('vendor_name'))
-                tot = float(p_item.get('grand_total', 0) or 0)
-                items_raw = p_item.get('items', [])
-                date_disp = p_item.get('date', 'Today') or 'Today'
-                cat_disp = p_item.get('category', 'General') or 'General'
-
-                # Thermal Slip Preview of Selected Receipt
-                b_thermal_html = generate_thermal_receipt_html(v_disp, date_disp, cat_disp, items_raw, tot, receipt_no=str(selected_idx+1), is_english=is_english)
-                st.components.v1.html(b_thermal_html, height=310, scrolling=True)
-
-                # Items Table of Selected Receipt
-                if items_raw:
-                    items_hdr = f"📋 Receipt #{selected_idx+1} Items ({len(items_raw)} items):" if is_english else f"📋 पावती #{selected_idx+1} चा वस्तू तपशील ({len(items_raw)} वस्तू):"
-                    st.markdown(f"<div style='font-size: 13px; font-weight: 700; color: #00f2fe; margin-top: 10px; margin-bottom: 6px;'>{items_hdr}</div>", unsafe_allow_html=True)
-                    clean_b_items = []
-                    for bi_idx, bi in enumerate(items_raw, 1):
-                        if is_english:
-                            clean_b_items.append({
-                                "Sr. No.": bi_idx,
-                                "Item Name": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
-                                "Quantity": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
-                                "Rate (₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
-                                "Total (₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
-                            })
-                        else:
-                            clean_b_items.append({
-                                "क्र.": bi_idx,
-                                "वस्तूचे नाव (Item)": str(bi.get("item_name", f"Item {bi_idx}")).strip(),
-                                "प्रमाण (Qty)": str(bi.get("quantity", bi.get("qty", "1"))).strip(),
-                                "दर (Rate ₹)": f"₹{float(bi.get('rate', bi.get('price', 0)) or 0):,.2f}",
-                                "एकूण (Total ₹)": f"₹{float(bi.get('total_price', 0) or 0):,.2f}"
-                            })
-                    st.dataframe(pd.DataFrame(clean_b_items), hide_index=True, use_container_width=True)
-
-                # Action Buttons for Selected Receipt
-                b_c1, b_c2 = st.columns(2)
-                with b_c1:
-                    dl_sel_lbl = f"🖨️ Download / Print Receipt #{selected_idx+1}" if is_english else f"🖨️ पावती #{selected_idx+1} डाउनलोड / प्रिंट"
-                    st.download_button(
-                        label=dl_sel_lbl,
-                        data=b_thermal_html,
-                        file_name=f"Thermal_Slip_{v_disp.replace(' ', '_')}_{selected_idx+1}.html",
-                        mime="text/html",
-                        use_container_width=True,
-                        type="primary",
-                        key=f"btn_dl_thermal_sel_{selected_idx}"
-                    )
-                with b_c2:
-                    sync_sel_lbl = f'📦 Sync Receipt #{selected_idx+1} Stock' if is_english else f'📦 पावती #{selected_idx+1} स्टॉक अपडेट'
-                    if st.button(sync_sel_lbl, key=f'inv_sync_sel_{selected_idx}', use_container_width=True):
-                        try:
-                            with sqlite3.connect('ledger.db') as conn:
-                                cursor = conn.cursor()
-                                for item in items_raw:
-                                    i_name = str(item.get('item_name', '')).strip()
-                                    if not i_name:
-                                        continue
-                                    q_raw = str(item.get('quantity', item.get('qty', '1'))).split()[0]
-                                    try:
-                                        q_val = float(q_raw)
-                                    except (ValueError, TypeError):
-                                        q_val = 1.0
-                                    r_val = float(item.get('rate', item.get('price', 0.0)) or 0.0)
-                                    cursor.execute("SELECT id, stock_qty FROM shop_inventory WHERE item_name = ?", (i_name,))
-                                    row = cursor.fetchone()
-                                    if row:
-                                        new_qty = float(row[1] or 0.0) + q_val
-                                        cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_qty, row[0]))
-                                    else:
-                                        cursor.execute(
-                                            "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price) VALUES (?, ?, ?, ?, ?, ?)",
-                                            (i_name, q_val, 'units', 5.0, '', r_val)
-                                        )
-                                conn.commit()
-                            st.toast(f'Receipt #{selected_idx+1} stock updated!' if is_english else f'पावती #{selected_idx+1} चा स्टॉक अपडेट झाला!', icon="📦")
-                            st.success(f'Receipt #{selected_idx+1} stock updated successfully!' if is_english else f'पावती #{selected_idx+1} चा स्टॉक यशस्वीरित्या अपडेट झाला!')
-                        except Exception as e:
-                            st.error(str(e))
-
-                # Optional Edit Items in Expander
-                items_df = pd.DataFrame(items_raw)
-                if not items_df.empty:
-                    edit_sel_exp = f"✏️ Edit Items / Prices for Receipt #{selected_idx+1}" if is_english else f"✏️ पावती #{selected_idx+1} मधील वस्तू / किमती तपासा किंवा बदला (Edit Items)"
-                    with st.expander(edit_sel_exp, expanded=False):
-                        edited_df = st.data_editor(items_df, use_container_width=True, key=f'data_editor_batch_sel_{selected_idx}')
-                        p_item['items'] = edited_df.to_dict('records')
+            st.markdown("---")
+            st.markdown("#### Marathi Audio Summary")
+            aud_path = generate_marathi_tts(f"{v_disp} कडील पावतीची एकूण रक्कम रुपये {tot} आहे.")
+            if aud_path and os.path.exists(aud_path):
+                st.audio(aud_path)
         else:
-            empty_title = "Smart Receipt Scanner" if is_english else "स्मार्ट पावती स्कॅनर"
-            empty_desc = "Select a receipt file or capture a photo on the left to instantly generate a 58mm thermal slip." if is_english else "डाव्या बाजूला पावती निवडा किंवा फोटो काढा, क्षणात ५८mm थर्मल पावती तयार होईल."
-            st.markdown(f"""
-            <div style='text-align: center; padding: 25px 15px;'>
-                <div style='font-size: 36px; margin-bottom: 8px;'>🧾</div>
-                <div style='font-size: 15px; font-weight: 700; color: #00f2fe; margin-bottom: 4px;'>{empty_title}</div>
-                <div style='font-size: 12px; color: #94a3b8; max-width: 300px; margin: 0 auto; line-height: 1.5;'>
-                    {empty_desc}
-                </div>
-                <div style='margin-top: 14px; display: flex; justify-content: center; gap: 8px;'>
-                    <span class='scanner-pill'>⚡ 58mm Thermal Slip</span>
-                    <span class='scanner-pill-success'>🎙️ Voice Bill</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.caption(
+                _translate_ui_text(
+                    "Scan receipt(s) or use Multi-Language Voice Bill to display extracted items & summary."
+                )
+            )
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 3: ADVANCED CUSTOMER KHATA ---
@@ -3762,71 +3452,56 @@ elif selected_page == "Customer Khata":
 
 # FEATURE 4: STOCK & INVENTORY ---
 elif selected_page == "Business Operations":
-    is_english = st.session_state.get("ui_language", "en") == "en"
     render_business_module_styles()
-    bo_title = "Business Operations" if is_english else "व्यवसाय संचालन"
-    bo_subtitle = "Manage inventory stock, business expenses, and store profile in one place." if is_english else "इन्व्हेंटरी, साठा आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा."
-    render_page_header(bo_title, bo_subtitle, "💼")
+    render_page_header("Business Operations", "इन्व्हेंटरी आणि व्यवसाय खर्च एकाच ठिकाणी व्यवस्थापित करा.", "💼")
 
-    tab_labels = [
-        "📦 Stock & Inventory" if is_english else "📦 स्टॉक आणि इन्व्हेंटरी", 
-        "💸 Business Expenses" if is_english else "💸 व्यवसाय खर्च", 
-        "⚙️ Shop Profile & UPI" if is_english else "⚙️ दुकानाचे प्रोफाइल & UPI"
-    ]
-    tab_stock, tab_expenses, tab_shop_profile = st.tabs(tab_labels)
+    tab_stock, tab_expenses = st.tabs(["📦 Stock & Inventory", "💸 Business Expenses"])
     
     with tab_stock:
         # Staff can now access this
-        stock_dash_title = "📦 Stock & Inventory Dashboard" if is_english else "📦 साठा आणि इन्व्हेंटरी डॅशबोर्ड"
-        st.markdown(f"<div style='font-size: 16px; font-weight: 800; color: #00ff87; margin-bottom: 12px;'>{stock_dash_title}</div>", unsafe_allow_html=True)
 
         ic1, ic2 = st.columns([1, 1])
         with ic1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            add_stock_title = "Add New Stock" if is_english else "नवीन माल जोडा"
-            add_stock_caption = "Enter item name, quantity, price, and alert limit." if is_english else "वस्तूचे नाव, प्रमाण, दर आणि कमी-साठा मर्यादा भरा."
-            st.markdown(f"""
+            st.markdown("""
             <div class="business-section-heading">
                 <div class="business-section-icon">＋</div>
-                <div><h3 class="business-section-title">{add_stock_title}</h3>
-                <p class="business-section-caption">{add_stock_caption}</p></div>
+                <div><h3 class="business-section-title">Add New Stock</h3>
+                <p class="business-section-caption">वस्तूचे नाव, प्रमाण आणि कमी-साठा मर्यादा भरा.</p></div>
             </div>
             """, unsafe_allow_html=True)
             with st.form("stock_form"):
-                s_name = st.text_input("Item Name" if is_english else "वस्तूचे नाव")
-                s_qty = st.number_input("Stock Quantity" if is_english else "साठा प्रमाण", min_value=0.0, step=1.0)
-                s_price = st.number_input("Selling Price (₹)" if is_english else "विक्री दर (₹)", min_value=0.0, step=5.0, value=0.0)
-                s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)" if is_english else "मोजमापाचे एकक (उदा. kg, नग, ltr)", value="kg")
-                s_limit = st.number_input("Low Stock Alert Limit" if is_english else "कमी साठा सूचना मर्यादा", min_value=0.0, step=1.0, value=5.0)
-                submit_stock = st.form_submit_button("Save Stock" if is_english else "स्टॉक सेव्ह करा")
+                s_name = st.text_input("Item Name")
+                s_qty = st.number_input("Stock Quantity", min_value=0.0, step=1.0)
+                s_unit = st.text_input("Unit (e.g. kg, pcs, ltr)", value="kg")
+                s_limit = st.number_input("Low Stock Alert Limit", min_value=0.0, step=1.0, value=5.0)
+                submit_stock = st.form_submit_button("Save Stock")
                 if submit_stock:
                     if not s_name.strip():
-                        st.error("Please enter item name!" if is_english else "कृपया वस्तूचे नाव टाका!")
+                        st.error("Please enter item name!")
                     else:
                         try:
                             with sqlite3.connect("ledger.db") as conn:
                                 conn.execute("BEGIN TRANSACTION;")
                                 cursor = conn.cursor()
                                 cursor.execute("""
-                                INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, barcode, selling_price)
-                                VALUES (?, ?, ?, ?, ?, ?)
-                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit, "", s_price))
+                                INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit)
+                                VALUES (?, ?, ?, ?)
+                                """, (s_name.strip(), s_qty, s_unit.strip(), s_limit))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Stock item {s_name.strip()}")
-                            st.success(f"Stock '{s_name}' successfully added!" if is_english else f"नवीन माल '{s_name}' यशस्वीरित्या जोडला गेला!")
+                            st.success(f"Stock '{s_name}' successfully added!")
                             st.rerun()
                         except Exception as ex:
                             st.error(f"Error: {ex}")
             st.markdown("</div>", unsafe_allow_html=True)
         with ic2:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            overview_title = "Inventory Overview" if is_english else "साठ्याचा आढावा"
-            overview_caption = "List of items and replenishment recommendations." if is_english else "वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू."
-            st.markdown(f"""
+            st.markdown("""
             <div class="business-section-heading">
                 <div class="business-section-icon">▤</div>
-                <div><h3 class="business-section-title">{overview_title}</h3>
-                <p class="business-section-caption">{overview_caption}</p></div>
+                <div><h3 class="business-section-title">साठ्याचा आढावा</h3>
+                <p class="business-section-caption">वस्तूंची यादी आणि पुन्हा मागवायच्या वस्तू.</p></div>
             </div>
             """, unsafe_allow_html=True)
             try:
@@ -3836,109 +3511,43 @@ elif selected_page == "Business Operations":
                 stock_df = pd.DataFrame()
                 
             if not stock_df.empty:
-                stock_df['alert_limit'] = pd.to_numeric(stock_df.get('alert_limit', 5.0), errors='coerce').fillna(5.0)
-                stock_df['stock_qty'] = pd.to_numeric(stock_df.get('stock_qty', 0.0), errors='coerce').fillna(0.0)
-                if 'selling_price' in stock_df.columns:
-                    stock_df['selling_price'] = pd.to_numeric(stock_df['selling_price'], errors='coerce').fillna(0.0)
-                else:
-                    stock_df['selling_price'] = 0.0
-
                 low_stock_items = stock_df[stock_df['stock_qty'] <= stock_df['alert_limit']]
                 stock_metric1, stock_metric2 = st.columns(2)
                 with stock_metric1:
-                    tot_items_lbl = "TOTAL ITEMS" if is_english else "एकूण वस्तू"
-                    tot_items_desc = "Registered inventory items" if is_english else "नोंदवलेल्या इन्व्हेंटरी आयटम्स"
                     st.markdown(
                         f"""
                         <div class="business-metric-card" style="margin-bottom:14px;">
-                            <div class="business-metric-label">{tot_items_lbl}</div>
+                            <div class="business-metric-label">एकूण वस्तू</div>
                             <div class="business-metric-value">{len(stock_df)}</div>
-                            <div class="business-metric-note">{tot_items_desc}</div>
+                            <div class="business-metric-note">नोंदवलेल्या इन्व्हेंटरी आयटम्स</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
                 with stock_metric2:
-                    low_stock_lbl = "LOW STOCK" if is_english else "कमी साठा"
-                    low_stock_desc = "Below or equal to limit" if is_english else "मर्यादेपेक्षा कमी किंवा समान"
                     low_color = "#fca5a5" if not low_stock_items.empty else "#86efac"
                     st.markdown(
                         f"""
                         <div class="business-metric-card" style="margin-bottom:14px;">
-                            <div class="business-metric-label">{low_stock_lbl}</div>
+                            <div class="business-metric-label">कमी साठा</div>
                             <div class="business-metric-value" style="color:{low_color};">{len(low_stock_items)}</div>
-                            <div class="business-metric-note">{low_stock_desc}</div>
+                            <div class="business-metric-note">मर्यादेपेक्षा कमी किंवा समान</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
                 display_df = stock_df.copy()
-                if 'barcode' in display_df.columns:
-                    display_df = display_df.drop(columns=['barcode'])
-                status_low = "🚨 Low Stock" if is_english else "🚨 कमी साठा"
-                status_ok = "✅ In Stock" if is_english else "✅ पुरेसा साठा"
-                display_df.insert(0, 'Status', display_df.apply(lambda row: status_low if float(row.get('stock_qty', 0.0) or 0.0) <= float(row.get('alert_limit', 5.0) or 5.0) else status_ok, axis=1))
-                if is_english:
-                    renames = {"id": "ID", "item_name": "Item Name", "stock_qty": "Stock Qty", "unit": "Unit", "alert_limit": "Alert Limit", "selling_price": "Selling Price (₹)"}
-                else:
-                    renames = {"id": "ID", "item_name": "वस्तूचे नाव", "stock_qty": "साठा प्रमाण", "unit": "एकक", "alert_limit": "सूचना मर्यादा", "selling_price": "विक्री दर (₹)"}
-                st.dataframe(display_df.rename(columns=renames), hide_index=True)
+                display_df.insert(0, 'Status', display_df.apply(lambda row: "🚨 Low Stock" if row['stock_qty'] <= row['alert_limit'] else "✅ In Stock", axis=1))
+                st.dataframe(display_df,  hide_index=True)
                 if not low_stock_items.empty:
-                    # 🧠 AI PREDICTIVE REORDER LIST & WHOLESALE ORDER
-                    reorder_exp_lbl = "🧠 AI Predictive Reorder List & Wholesale Order" if is_english else "🧠 AI स्मार्ट साठा अंदाज आणि खरेदी यादी (AI Reorder List)"
-                    with st.expander(reorder_exp_lbl, expanded=True):
-                        reorder_note = "AI estimated the following replenishment requirements based on current stock levels:" if is_english else "AI ने खपाच्या गतीनुसार खालीलप्रमाणे नवीन माल भरण्याचा अंदाज तयार केला आहे:"
-                        st.markdown(f"<div style='font-size:12px; color:#94a3b8; margin-bottom:8px;'>{reorder_note}</div>", unsafe_allow_html=True)
-                        reorder_rows = []
-                        order_lines = []
-                        for _, r in low_stock_items.iterrows():
-                            try:
-                                c_qty = float(r.get('stock_qty', 0.0) or 0.0)
-                            except (ValueError, TypeError):
-                                c_qty = 0.0
-                            try:
-                                a_lim = float(r.get('alert_limit', 5.0) or 5.0)
-                            except (ValueError, TypeError):
-                                a_lim = 5.0
-                            t_unit = str(r.get('unit', 'units') or 'units')
-                            needed = max(1.0, math.ceil((a_lim * 3.0) - c_qty))
-                            if is_english:
-                                reorder_rows.append({
-                                    "Item": str(r.get('item_name', '')),
-                                    "Current Stock": f"{c_qty:g} {t_unit}",
-                                    "Alert Limit": f"{a_lim:g} {t_unit}",
-                                    "Recommended Order": f"{needed:g} {t_unit}"
-                                })
-                            else:
-                                reorder_rows.append({
-                                    "वस्तू (Item)": str(r.get('item_name', '')),
-                                    "सध्याचा साठा": f"{c_qty:g} {t_unit}",
-                                    "सूचना मर्यादा": f"{a_lim:g} {t_unit}",
-                                    "खरेदी शिफारस": f"{needed:g} {t_unit}"
-                                })
-                            order_lines.append(f"• {r.get('item_name', '')}: {needed:g} {t_unit}")
-                        
-                        st.dataframe(pd.DataFrame(reorder_rows), hide_index=True, use_container_width=True)
-                        
-                        curr_shop_title = get_shop_setting("shop_name", "VernaLedger Store")
-                        if is_english:
-                            wh_order_text = f"🛒 *Wholesale Purchase Order*\nStore: {curr_shop_title}\nDate: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nPlease dispatch this order at your earliest convenience. Thank you!"
-                            wh_btn_text = "📲 Send Wholesale Order via WhatsApp"
-                        else:
-                            wh_order_text = f"🛒 *नवीन माल खरेदी ऑर्डर (Wholesale Purchase Order)*\nदुकानाचे नाव: {curr_shop_title}\nतारीख: " + date.today().strftime('%d-%m-%Y') + "\n\n" + "\n".join(order_lines) + "\n\nकृपया लवकरात लवकर डिलिव्हरी पाठवावी. धन्यवाद!"
-                            wh_btn_text = "📲 घाऊक व्यापाऱ्याला व्हॉट्सॲप ऑर्डर पाठवा"
-                        wh_link = f"https://wa.me/?text={urllib.parse.quote(wh_order_text)}"
-                        st.markdown(f"""
-                        <a href="{wh_link}" target="_blank" style="text-decoration: none;">
-                            <button style="width: 100%; height: 38px; border-radius: 8px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; margin-bottom: 12px;">
-                                {wh_btn_text}
-                            </button>
-                        </a>
-                        """, unsafe_allow_html=True)
-                del_s_lbl = "Stock ID to delete" if is_english else "डिलिट करण्यासाठी स्टॉक ID"
-                del_s_id = st.number_input(del_s_lbl, min_value=1, step=1, key="del_stock_id")
-                del_s_btn_lbl = "Delete Stock Item" if is_english else "स्टॉक आयटम डिलीट करा"
-                if st.button(del_s_btn_lbl):
+                    low_names = ", ".join(low_stock_items['item_name'].tolist())
+                    st.markdown(f"""
+                    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 12px; border-radius: 12px; margin-top: 14px; color: #f87171;">
+                        <b>लो स्टॉक वार्निंग (Low Stock Alert):</b> खालील वस्तू संपत आल्या आहेत: <b>{low_names}</b>
+                    </div>
+                    """, unsafe_allow_html=True)
+                del_s_id = st.number_input("डिलिट करण्यासाठी स्टॉक ID", min_value=1, step=1, key="del_stock_id")
+                if st.button("Delete Stock Item"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -3946,43 +3555,38 @@ elif selected_page == "Business Operations":
                             cursor.execute("DELETE FROM shop_inventory WHERE id=?", (del_s_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Stock ID {del_s_id}")
-                        st.success(f"Stock ID {del_s_id} deleted!" if is_english else f"स्टॉक ID {del_s_id} यशस्वीरित्या डिलीट केला!")
+                        st.success(f"Stock ID {del_s_id} deleted!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
             else:
-                st.info("No stock items added yet." if is_english else "कोणताही स्टॉक जोडलेला नाही.")
+                st.info("कोणताही स्टॉक जोडलेला नाही.")
             st.markdown("</div>", unsafe_allow_html=True)
-
+    
 # FEATURE 5: BUSINESS EXPENSES TRACKER ---
     with tab_expenses:
         # Staff can now access this
+
         ec1, ec2 = st.columns([1, 1])
         with ec1:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            exp_sec_title = "Record New Expense" if is_english else "नवीन खर्च नोंदवा"
-            exp_sec_caption = "Record expense title, category, amount, and date." if is_english else "खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा."
-            st.markdown(f"""
+            st.markdown("""
             <div class="business-section-heading">
                 <div class="business-section-icon">＋</div>
-                <div><h3 class="business-section-title">{exp_sec_title}</h3>
-                <p class="business-section-caption">{exp_sec_caption}</p></div>
+                <div><h3 class="business-section-title">Record New Expense</h3>
+                <p class="business-section-caption">खर्चाचा प्रकार, रक्कम आणि तारीख नोंदवा.</p></div>
             </div>
             """, unsafe_allow_html=True)
             with st.form("expense_form"):
-                e_title = st.text_input("Expense Title (e.g. Light Bill)" if is_english else "खर्चाचे शीर्षक (उदा. वीज बिल)")
-                e_amount = st.number_input("Expense Amount (₹)" if is_english else "खर्च रक्कम (₹)", min_value=0.0, step=50.0)
-                if is_english:
-                    exp_categories = ["Shop Rent", "Electricity Bill", "Staff Salary", "Transport", "Miscellaneous"]
-                else:
-                    exp_categories = ["दुकान भाडे", "वीज बिल", "कर्मचारी पगार", "वाहतूक", "इतर खर्च"]
-                e_cat = st.selectbox("Category" if is_english else "खर्चाचा प्रकार", exp_categories)
-                e_date = st.text_input("Date" if is_english else "तारीख", value=time.strftime("%Y-%m-%d"))
-                e_notes = st.text_area("Notes / Details" if is_english else "तपशील / टीप")
-                submit_exp = st.form_submit_button("Save Expense" if is_english else "खर्च सेव्ह करा")
+                e_title = st.text_input("खर्चाचे शीर्षक (Expense Title e.g. Light Bill)")
+                e_amount = st.number_input("Expense Amount", min_value=0.0, step=50.0)
+                e_cat = st.selectbox("खर्चाचा प्रकार (Category)", ["Shop Rent", "वीज बिल (Electricity)", "कर्मचारी पगार (Staff Salary)", "Transport", "Miscellaneous"])
+                e_date = st.text_input("Date", value=time.strftime("%Y-%m-%d"))
+                e_notes = st.text_area("तपशील / टीप (Notes)")
+                submit_exp = st.form_submit_button("खर्च सेव्ह करा")
                 if submit_exp:
                     if not e_title.strip() or e_amount <= 0:
-                        st.error("Please enter expense title and valid amount!" if is_english else "कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
+                        st.error("कृपया खर्चाचे नाव आणि योग्य रक्कम भरा!")
                     else:
                         try:
                             with sqlite3.connect("ledger.db") as conn:
@@ -3994,20 +3598,18 @@ elif selected_page == "Business Operations":
                                 """, (e_title.strip(), e_amount, e_cat, e_date, e_notes))
                                 conn.commit()
                             log_activity(st.session_state.get('current_username', 'admin'), f"Added Expense {e_title.strip()} - {e_amount}")
-                            st.success(f"Expense '{e_title}' successfully recorded!" if is_english else f"खर्च '{e_title}' यशस्वीरित्या नोंदवला गेला!")
+                            st.success(f"Expense '{e_title}' successfully recorded!")
                             st.rerun()
                         except Exception as ex:
                             st.error(f"Error: {ex}")
             st.markdown("</div>", unsafe_allow_html=True)
         with ec2:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            exp_ov_title = "Expenses Overview" if is_english else "खर्चाचा आढावा"
-            exp_ov_caption = "Recorded transactions and total expenditure." if is_english else "नोंदवलेले व्यवहार आणि एकूण खर्च."
-            st.markdown(f"""
+            st.markdown("""
             <div class="business-section-heading">
                 <div class="business-section-icon">▤</div>
-                <div><h3 class="business-section-title">{exp_ov_title}</h3>
-                <p class="business-section-caption">{exp_ov_caption}</p></div>
+                <div><h3 class="business-section-title">खर्चाचा आढावा</h3>
+                <p class="business-section-caption">नोंदवलेले व्यवहार आणि एकूण खर्च.</p></div>
             </div>
             """, unsafe_allow_html=True)
             try:
@@ -4016,26 +3618,17 @@ elif selected_page == "Business Operations":
             except Exception:
                 exp_df = pd.DataFrame()
             if not exp_df.empty:
-                exp_df['amount'] = pd.to_numeric(exp_df['amount'], errors='coerce').fillna(0.0)
                 total_expenses = exp_df['amount'].sum()
-                tot_exp_lbl = "TOTAL BUSINESS EXPENSES" if is_english else "एकूण व्यवसाय खर्च"
-                tot_exp_count = f"{len(exp_df)} expense records" if is_english else f"{len(exp_df)} खर्च नोंदी"
                 st.markdown(f"""
                 <div class="business-metric-card" style="margin-bottom:14px;">
-                    <div class="business-metric-label">{tot_exp_lbl}</div>
+                    <div class="business-metric-label">एकूण व्यवसाय खर्च</div>
                     <div class="business-metric-value" style="color:#fca5a5;">₹ {total_expenses:,.2f}</div>
-                    <div class="business-metric-note">{tot_exp_count}</div>
+                    <div class="business-metric-note">{len(exp_df)} खर्च नोंदी</div>
                 </div>
                 """, unsafe_allow_html=True)
-                if is_english:
-                    exp_disp = exp_df.rename(columns={"id": "ID", "expense_title": "Title", "amount": "Amount (₹)", "category": "Category", "date": "Date", "notes": "Notes"})
-                else:
-                    exp_disp = exp_df.rename(columns={"id": "ID", "expense_title": "खर्चाचे शीर्षक", "amount": "रक्कम (₹)", "category": "प्रकार", "date": "तारीख", "notes": "तपशील"})
-                st.dataframe(exp_disp, use_container_width=True)
-                del_exp_lbl = "Expense ID to delete" if is_english else "डिलिट करण्यासाठी खर्च ID"
-                del_exp_id = st.number_input(del_exp_lbl, min_value=1, step=1, key="del_exp_id")
-                del_exp_btn_lbl = "Delete Expense Record" if is_english else "खर्च नोंद डिलीट करा"
-                if st.button(del_exp_btn_lbl):
+                st.dataframe(exp_df, use_container_width=True)
+                del_exp_id = st.number_input("Expense ID to delete", min_value=1, step=1, key="del_exp_id")
+                if st.button("Delete Expense Record"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -4043,276 +3636,108 @@ elif selected_page == "Business Operations":
                             cursor.execute("DELETE FROM business_expenses WHERE id=?", (del_exp_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Expense ID {del_exp_id}")
-                        st.success(f"Expense ID {del_exp_id} deleted!" if is_english else f"खर्च ID {del_exp_id} डिलीट झाला!")
+                        st.success(f"Expense ID {del_exp_id} deleted!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
             else:
-                st.info("No expenses recorded yet." if is_english else "कोणताही खर्च नोंदवलेला नाही.")
+                st.info("No expenses recorded.")
             st.markdown("</div>", unsafe_allow_html=True)
-
-    with tab_shop_profile:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        prof_heading_title = "Shop Profile & UPI Configuration" if is_english else "दुकानाचे प्रोफाइल आणि UPI कॉन्फिगरेशन"
-        prof_heading_caption = "Set store name, address, and live UPI ID. These details are automatically used in thermal slips, QR codes, and WhatsApp messages." if is_english else "दुकानाचे नाव, पत्ता आणि खरा UPI ID सेट करा. हे तपशील थर्मल पावती, QR कोड आणि व्हॉट्सॲप मेसेजमध्ये आपोआप वापरले जातील."
-        st.markdown(f"""
-        <div class="business-section-heading">
-            <div class="business-section-icon">⚙️</div>
-            <div>
-                <h3 class="business-section-title">{prof_heading_title}</h3>
-                <p class="business-section-caption">{prof_heading_caption}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        cur_shop_name = get_shop_setting("shop_name", "VernaLedger Store")
-        cur_shop_owner = get_shop_setting("shop_owner", "VernaLedger Admin")
-        cur_shop_upi = get_shop_setting("shop_upi_id", "vernaledger@upi")
-        cur_shop_phone = get_shop_setting("shop_phone", "+91 9822000000")
-        cur_shop_addr = get_shop_setting("shop_address", "Main Market Road, Satara, Maharashtra" if is_english else "मेन मार्केट रोड, सातारा, महाराष्ट्र")
-        cur_shop_tagline = get_shop_setting("shop_tagline", "Thank you! Visit again." if is_english else "धन्यवाद! पुन्हा भेट द्या.")
-        cur_shop_gstin = get_shop_setting("shop_gstin", "27AAAAA0000A1Z5")
-
-        prof_c1, prof_c2 = st.columns([1.1, 0.9])
-        with prof_c1:
-            with st.form("shop_profile_form"):
-                st.markdown("##### " + ("🏪 Store Information:" if is_english else "🏪 दुकानाचे मूळ तपशील:"))
-                f_name = st.text_input("Shop / Store Name:" if is_english else "दुकानाचे नाव:", value=cur_shop_name)
-                f_owner = st.text_input("Payee / Owner Name:" if is_english else "मालक / प्राप्तकर्त्याचे नाव:", value=cur_shop_owner)
-                f_upi = st.text_input(
-                    "Business UPI ID (e.g. shop@okaxis):" if is_english else "व्यवसायाचा खरा UPI ID (उदा. shop@okaxis):",
-                    value=cur_shop_upi,
-                    help="Payments from customer QR scans will be credited directly to this UPI ID." if is_english else "ग्राहक QR स्कॅन केल्यावर या UPI आयडीवर थेट रक्कम जमा होईल."
-                )
-                
-                f_col_sub1, f_col_sub2 = st.columns(2)
-                with f_col_sub1:
-                    f_phone = st.text_input("Mobile / Contact Number:" if is_english else "मोबाईल / संपर्क क्रमांक:", value=cur_shop_phone)
-                with f_col_sub2:
-                    f_gstin = st.text_input("GSTIN (Optional):" if is_english else "GSTIN (ऐच्छिक):", value=cur_shop_gstin)
-                
-                f_addr = st.text_area("Shop Address:" if is_english else "दुकानाचा पत्ता:", value=cur_shop_addr, height=70)
-                f_tagline = st.text_input("Receipt Footer Tagline:" if is_english else "पावतीवरील शुभेच्छा / तळटीप:", value=cur_shop_tagline)
-
-                save_prof_btn_lbl = "💾 Save Configuration & UPI" if is_english else "💾 प्रोफाइल व UPI सेव्ह करा"
-                save_prof_btn = st.form_submit_button(save_prof_btn_lbl, type="primary", use_container_width=True)
-                if save_prof_btn:
-                    if not f_name.strip() or not f_upi.strip():
-                        st.error("Please enter shop name and UPI ID!" if is_english else "कृपया दुकानाचे नाव आणि UPI ID भरा!")
-                    else:
-                        set_shop_setting("shop_name", f_name.strip())
-                        set_shop_setting("shop_owner", f_owner.strip())
-                        set_shop_setting("shop_upi_id", f_upi.strip())
-                        set_shop_setting("shop_phone", f_phone.strip())
-                        set_shop_setting("shop_address", f_addr.strip())
-                        set_shop_setting("shop_tagline", f_tagline.strip())
-                        set_shop_setting("shop_gstin", f_gstin.strip())
-                        log_activity(st.session_state.get('current_username', 'admin'), "Updated Shop Profile & UPI Settings")
-                        st.toast("Shop info & UPI saved successfully!" if is_english else "✅ दुकानाची माहिती व UPI ID सुरक्षित सेव्ह झाले!", icon="💾")
-                        st.success("Configuration saved successfully! Receipts and QR codes updated instantly." if is_english else "सर्व बदल यशस्वीरित्या जतन झाले! पावती व QR कोड त्वरित अपडेट झाले आहेत.")
-                        st.rerun()
-
-        with prof_c2:
-            st.markdown("##### " + ("⚡ Live UPI Test QR Code:" if is_english else "⚡ थेट UPI टेस्ट QR कोड:"))
-            test_amt = st.number_input("Test Amount (₹):" if is_english else "चाचणी रक्कम (₹):", min_value=1.0, value=10.0, step=10.0, key="upi_test_amt_input")
-            
-            test_qr_b64 = generate_upi_qr_base64(test_amt, vpa=cur_shop_upi, payee_name=cur_shop_owner or cur_shop_name, note="UPI Verification")
-            
-            qr_scan_note = "Scan this QR with Google Pay, PhonePe, or Paytm to verify payments directly." if is_english else "हा QR तुमच्या मोबाईलवरील GPay, PhonePe किंवा Paytm ने स्कॅन करून थेट पडताळणी करू शकता."
-            st.markdown(f"""
-            <div style='background:rgba(0,0,0,0.35); border:1px dashed rgba(0, 242, 254, 0.5); border-radius:12px; padding:16px; text-align:center;'>
-                <div style='font-size:12px; font-weight:700; color:#00f2fe; margin-bottom:4px;'>{cur_shop_name}</div>
-                <div style='font-size:11px; color:#94a3b8; margin-bottom:10px;'>UPI ID: <code style='color:#00ff87;'>{cur_shop_upi}</code></div>
-                <img src="data:image/png;base64,{test_qr_b64}" style="width: 140px; height: 140px; border-radius: 8px; background: white; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
-                <div style='font-size:16px; font-weight:800; color:#00ff87; margin-top:8px;'>₹{test_amt:,.2f}</div>
-                <div style='font-size:10px; color:#cbd5e1; margin-top:4px;'>
-                    {qr_scan_note}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown("<div style='margin-top:14px;'>", unsafe_allow_html=True)
-            slip_hdr_title = "🧾 POS Receipt Header Preview:" if is_english else "🧾 पावती हेडर पूर्वावलोकन:"
-            phone_lbl_text = "Phone:" if is_english else "मोबाईल:"
-            st.markdown(f"""
-            <div style='background:rgba(255,255,255,0.04); border-left:3px solid #00f2fe; padding:10px; border-radius:4px;'>
-                <div style='font-size:11px; font-weight:700; color:#00f2fe;'>{slip_hdr_title}</div>
-                <div style='font-size:12px; font-weight:bold; color:#fff; margin-top:4px;'>{cur_shop_name}</div>
-                <div style='font-size:10px; color:#94a3b8;'>{cur_shop_addr}</div>
-                <div style='font-size:10px; color:#94a3b8;'>{phone_lbl_text} {cur_shop_phone} | GST: {cur_shop_gstin}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
     
 # FEATURE 6: ADMIN STAFF MANAGEMENT ---
 elif selected_page == "Staff Management":
-    is_english = st.session_state.get("ui_language", "en") == "en"
     if st.session_state.get('user_role') == 'Staff':
-        st.error("Restricted Area: Staff not allowed on Staff Management page!" if is_english else "प्रतिबंधित क्षेत्र: कर्मचाऱ्यांना स्टाफ व्यवस्थापन पानावर प्रवेश नाही!")
+        st.error("Restricted Area: Staff not allowed on Staff Management page!")
         st.stop()
-
-    page_title = "Staff Management" if is_english else "स्टाफ व्यवस्थापन"
-    page_subtitle = "Create and manage staff accounts with role-based access control." if is_english else "नवीन कर्मचारी खाती तयार करा आणि भूमिका नियंत्रण व्यवस्थापित करा."
-    render_page_header(page_title, page_subtitle, "👥")
-
-    sc1, sc2 = st.columns([1, 1])
-    with sc1:
+    render_page_header("Admin Staff Management", "Create Staff Accounts & View Complete System Activity Audit Trail", "👥")
+    tab_st1, tab_st2 = st.tabs(["Staff Management", "System Audit Logs"])
+    with tab_st1:
+        sc1, sc2 = st.columns([1, 1])
+        with sc1:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नवीन स्टाफ किंवा अॅडमिन जोडा</h4>", unsafe_allow_html=True)
+            with st.form("new_staff_form"):
+                s_user = st.text_input("Username")
+                s_phone = st.text_input("Phone Number")
+                s_pass = st.text_input("Password (Min 6 digits)", type="password")
+                s_role = st.selectbox("Role", ["Staff (Cashier - Limited Access)", "Admin (Owner - Full Access)"])
+                submit_new_user = st.form_submit_button("Create Account")
+                if submit_new_user:
+                    if not s_user.strip() or not s_phone.strip() or len(s_pass) < 6:
+                        st.error("सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!")
+                    else:
+                        role_val = "Staff" if "Staff" in s_role else "Admin"
+                        pass_hashed = hash_password_secure(s_pass)
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("BEGIN TRANSACTION;")
+                                cursor = conn.cursor()
+                                cursor.execute("INSERT INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)", (s_user.strip(), pass_hashed, role_val, s_phone.strip()))
+                                conn.commit()
+                            log_activity(st.session_state.get('current_username', 'admin'), f"Created User {s_user.strip()} as {role_val}")
+                            st.success(f"नवीन '{role_val}' अकाऊंट ({s_user}) Successfully तयार झाले!")
+                            st.rerun()
+                        except Exception as ex:
+                            st.error(f"Error: हा युजरनेम आधीपासून अस्तित्वात आहे किंवा डेटाबेस त्रुटी.")
+            st.markdown("</div>", unsafe_allow_html=True)
+        with sc2:
+            st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>नोंदणीकृत युझर्सची यादी</h4>", unsafe_allow_html=True)
+            try:
+                with sqlite3.connect("ledger.db") as conn:
+                    users_df = pd.read_sql_query("SELECT username, role, phone FROM users", conn)
+                st.dataframe(users_df, use_container_width=True)
+                del_uname = st.text_input("डिलिट करण्यासाठी युजरनेम टाईप करा (Username to delete)")
+                if st.button("युजर डिलीट करा"):
+                    if del_uname.strip() == "admin" or del_uname.strip() == "sanket":
+                        st.error("मुख्य मास्टर अॅडमिन युजर डिलीट करता येणार नाही!")
+                    else:
+                        try:
+                            with sqlite3.connect("ledger.db") as conn:
+                                conn.execute("BEGIN TRANSACTION;")
+                                cursor = conn.cursor()
+                                cursor.execute("DELETE FROM users WHERE username = ?", (del_uname.strip(),))
+                                conn.commit()
+                            log_activity(st.session_state.get('current_username', 'admin'), f"Deleted User {del_uname.strip()}")
+                            st.success(f"User '{del_uname}' successfully deleted!")
+                            st.rerun()
+                        except Exception as ex:
+                            st.error(f"Error: {ex}")
+            except Exception as e:
+                st.error(f"Error loading data: {e}")
+            st.markdown("</div>", unsafe_allow_html=True)
+    with tab_st2:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        form_heading = "Add New Staff or Admin" if is_english else "नवीन स्टाफ किंवा ॲडमिन जोडा"
-        st.markdown(f"<h4 style='color:#00f2fe; margin-top:0;'>{form_heading}</h4>", unsafe_allow_html=True)
-
-        with st.form("new_staff_form"):
-            user_lbl = "Username" if is_english else "वापरकर्ता नाव"
-            phone_lbl = "Phone Number" if is_english else "मोबाईल नंबर"
-            pass_lbl = "Password (Min 6 digits)" if is_english else "पासवर्ड (किमान ६ अंक/अक्षरे)"
-            role_lbl = "Role" if is_english else "भूमिका"
-
-            s_user = st.text_input(user_lbl, key="staff_reg_user")
-            s_phone = st.text_input(phone_lbl, key="staff_reg_phone")
-            s_pass = st.text_input(pass_lbl, type="password", key="staff_reg_pass")
-
-            if is_english:
-                role_opts = ["Staff (Cashier - Limited Access)", "Admin (Owner - Full Access)"]
-            else:
-                role_opts = ["कर्मचारी (कॅशियर - मर्यादित प्रवेश)", "ॲडमिन (मालक - पूर्ण प्रवेश)"]
-
-            s_role = st.selectbox(role_lbl, role_opts, key="staff_reg_role")
-            submit_btn_lbl = "Create Account" if is_english else "खाते तयार करा"
-            submit_new_user = st.form_submit_button(submit_btn_lbl)
-
-            if submit_new_user:
-                if not s_user.strip() or not s_phone.strip() or len(s_pass) < 6:
-                    err_msg = "Please fill all fields and enter a password of at least 6 digits!" if is_english else "सर्व माहिती भरणे आणि पासवर्ड किमान ६ अंकी असणे आवश्यक आहे!"
-                    st.error(err_msg)
-                else:
-                    role_val = "Staff" if ("Staff" in s_role or "कर्मचारी" in s_role) else "Admin"
-                    pass_hashed = hash_password_secure(s_pass)
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute(
-                                "INSERT INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)",
-                                (s_user.strip(), pass_hashed, role_val, s_phone.strip()),
-                            )
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Created User {s_user.strip()} as {role_val}")
-                        succ_msg = f"New '{role_val}' account ({s_user.strip()}) successfully created!" if is_english else f"नवीन '{role_val}' खाते ({s_user.strip()}) यशस्वीरित्या तयार झाले!"
-                        st.success(succ_msg)
-                        time.sleep(0.5)
-                        st.rerun()
-                    except Exception:
-                        dup_msg = "Error: Username already exists or database error occurred." if is_english else "त्रुटी: हे वापरकर्ता नाव आधीच अस्तित्वात आहे किंवा डेटाबेस त्रुटी आली."
-                        st.error(dup_msg)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with sc2:
-        st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        list_heading = "Registered Users List" if is_english else "नोंदणीकृत वापरकर्त्यांची यादी"
-        st.markdown(f"<h4 style='color:#00f2fe; margin-top:0;'>{list_heading}</h4>", unsafe_allow_html=True)
-
+        st.markdown("<h4 style='color:#00f2fe; margin-top:0;'>सिस्टीम ऑडिट लॉग्ज (Who did what)</h4>", unsafe_allow_html=True)
         try:
             with sqlite3.connect("ledger.db") as conn:
-                users_df = pd.read_sql_query("SELECT username, role, phone FROM users", conn)
-
-            if not users_df.empty:
-                if is_english:
-                    disp_df = users_df.rename(columns={"username": "Username", "role": "Role", "phone": "Phone Number"})
-                else:
-                    disp_df = users_df.rename(columns={"username": "वापरकर्ता नाव", "role": "भूमिका", "phone": "मोबाईल नंबर"})
-                st.dataframe(disp_df, use_container_width=True)
+                logs_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100", conn)
+            if not logs_df.empty:
+                st.dataframe(logs_df, use_container_width=True)
             else:
-                st.info("No registered users found." if is_english else "कोणतेही वापरकर्ते नोंदणीकृत नाहीत.")
-
-            del_lbl = "Enter username to delete" if is_english else "डिलिट करण्यासाठी वापरकर्ता नाव टाईप करा"
-            del_uname = st.text_input(del_lbl, key="staff_del_uname")
-
-            del_btn_lbl = "Delete User" if is_english else "वापरकर्ता डिलीट करा"
-            if st.button(del_btn_lbl, key="btn_del_staff_user"):
-                target_user = del_uname.strip().lower()
-                if target_user in ["admin", "sanket"]:
-                    master_err = "Master Admin account cannot be deleted!" if is_english else "मुख्य मास्टर ॲडमिन खाते डिलीट करता येणार नाही!"
-                    st.error(master_err)
-                elif not del_uname.strip():
-                    empty_err = "Please enter a valid username to delete." if is_english else "कृपया डिलीट करण्यासाठी योग्य वापरकर्ता नाव टाका."
-                    st.warning(empty_err)
-                else:
-                    try:
-                        with sqlite3.connect("ledger.db") as conn:
-                            conn.execute("BEGIN TRANSACTION;")
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM users WHERE username = ?", (del_uname.strip(),))
-                            conn.commit()
-                        log_activity(st.session_state.get('current_username', 'admin'), f"Deleted User {del_uname.strip()}")
-                        succ_del = f"User '{del_uname.strip()}' successfully deleted!" if is_english else f"वापरकर्ता '{del_uname.strip()}' यशस्वीरित्या डिलीट झाला!"
-                        st.success(succ_del)
-                        time.sleep(0.5)
-                        st.rerun()
-                    except Exception as ex:
-                        st.error(f"Error: {ex}")
-        except Exception as e:
-            st.error(f"Error loading users: {e}")
+                st.info("कोणतेही ऑडिट लॉग्ज उपलब्ध नाहीत.")
+        except Exception:
+            st.info("ऑडिट लॉग्ज लोड करण्यात त्रुटी.")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 7: LEDGER DATABASE ---
 elif selected_page == "Ledger Database":
-    is_english = st.session_state.get("ui_language", "en") == "en"
-    db_title = "Ledger Database & Export" if is_english else "लेजर डेटाबेस आणि निर्यात"
-    db_sub = "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads" if is_english else "डेटा साठा, प्रगत फिल्टर्स, सुलभ मांडणी आणि अहवाल डाऊनलोड"
-    render_page_header(db_title, db_sub, "📊")
+    render_page_header("Ledger Database & Export", "Enterprise Storage, Advanced Filters, Clean Layout & Report Downloads", "📊")
 
     # KPI Widgets
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         tot_exp = f"{df['grand_total'].sum():,.2f}" if not df.empty else "0.00"
-        kpi1_title = "TOTAL REVENUE / SALES" if is_english else "एकूण महसूल / विक्री"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #00f2fe;'>
-            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi1_title}</span>
-                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(0, 242, 254, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>💰</div>
-            </div>
-            <div style='font-size: 20px; font-weight: 800; color: #00f2fe; letter-spacing: -0.5px;'>₹{tot_exp}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL REVENUE / SALES</div><div style='font-size: 18px; font-weight:800; color:#00f2fe; margin-top:4px;'>₹{tot_exp}</div></div>", unsafe_allow_html=True)
     with k2:
         tot_rec = len(df) if not df.empty else 0
-        kpi2_title = "TOTAL BILLS/ORDERS" if is_english else "एकूण बिले / ऑर्डर्स"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #38bdf8;'>
-            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi2_title}</span>
-                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>🧾</div>
-            </div>
-            <div style='font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;'>{tot_rec}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOTAL BILLS/ORDERS</div><div style='font-size:18px; font-weight:800; color:#4facfe; margin-top:4px;'>{tot_rec}</div></div>", unsafe_allow_html=True)
     with k3:
         avg_exp = f"{df['grand_total'].mean():,.2f}" if not df.empty else "0.00"
-        kpi3_title = "AVG TICKET SIZE" if is_english else "सरासरी बिल रक्कम"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #00ff87;'>
-            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi3_title}</span>
-                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(0, 255, 135, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>📈</div>
-            </div>
-            <div style='font-size: 20px; font-weight: 800; color: #00ff87; letter-spacing: -0.5px;'>₹{avg_exp}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>AVG TICKET SIZE</div><div style='font-size:18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{avg_exp}</div></div>", unsafe_allow_html=True)
     with k4:
         top_v = df.groupby('vendor_name')['grand_total'].sum().idxmax() if not df.empty and 'vendor_name' in df.columns else "N/A"
-        kpi4_title = "TOP PERFORMING SHOP" if is_english else "सर्वोत्कृष्ट दुकान"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-top: 3px solid #c084fc;'>
-            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;'>
-                <span style='font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;'>{kpi4_title}</span>
-                <div style='width: 26px; height: 26px; border-radius: 7px; background: rgba(192, 132, 252, 0.15); display: flex; align-items: center; justify-content: center; font-size: 13px;'>🏪</div>
-            </div>
-            <div style='font-size: 16px; font-weight: 800; color: #c084fc; letter-spacing: -0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'>{top_v[:18]}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>TOP PERFORMING SHOP</div><div style='font-size:15px; font-weight:800; color:#c084fc; margin-top:4px;'>{top_v[:14]}</div></div>", unsafe_allow_html=True)
 
     # Quick Cashflow / Udhar Summary (Khatabook Style)
     try:
@@ -4324,55 +3749,19 @@ elif selected_page == "Ledger Database":
     except Exception:
         total_unpaid = total_collected = total_overdue = 0.0
 
-    cf_heading = "##### ⚡ Quick Cashflow / Udhar Summary" if is_english else "##### ⚡ रोख प्रवाह व उधारी गोषवारा"
-    st.markdown(cf_heading)
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1.2])
+    st.markdown("##### ⚡ Quick Cashflow / Udhar Summary")
+    c1, c2, c3 = st.columns(3)
     with c1:
-        c1_title = "CASH RECOVERED" if is_english else "रोख वसूल रक्कम"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #00ff87; background: linear-gradient(135deg, rgba(0, 255, 135, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <span style='font-size: 11px; color: #a7f3d0; font-weight: 700; text-transform: uppercase;'>✅ {c1_title}</span>
-            </div>
-            <div style='font-size: 19px; font-weight: 800; color: #00ff87; margin-top: 4px;'>₹{total_collected:,.2f}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #00ff87;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>✅ CASH RECOVERED</div><div style='font-size: 18px; font-weight:800; color:#00ff87; margin-top:4px;'>₹{total_collected:,.2f}</div></div>", unsafe_allow_html=True)
     with c2:
-        c2_title = "PENDING UDHAR" if is_english else "बाकी उधारी"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <span style='font-size: 11px; color: #fde68a; font-weight: 700; text-transform: uppercase;'>⏳ {c2_title}</span>
-            </div>
-            <div style='font-size: 19px; font-weight: 800; color: #f59e0b; margin-top: 4px;'>₹{total_unpaid:,.2f}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #f59e0b;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>⏳ PENDING UDHAR</div><div style='font-size: 18px; font-weight:800; color:#f59e0b; margin-top:4px;'>₹{total_unpaid:,.2f}</div></div>", unsafe_allow_html=True)
     with c3:
-        c3_title = "OVERDUE (AT RISK)" if is_english else "थकीत (जोखीम)"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid #ef4444; background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <span style='font-size: 11px; color: #fecaca; font-weight: 700; text-transform: uppercase;'>🚨 {c3_title}</span>
-            </div>
-            <div style='font-size: 19px; font-weight: 800; color: #ef4444; margin-top: 4px;'>₹{total_overdue:,.2f}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c4:
-        daily_digest_msg = generate_daily_whatsapp_digest(is_english=is_english)
-        daily_wa_url = f"https://wa.me/?text={urllib.parse.quote(daily_digest_msg)}"
-        c4_title = "DAILY BUSINESS DIGEST" if is_english else "दैनिक व्यवसाय गोषवारा"
-        wa_btn_text = "💬 WhatsApp Report" if is_english else "💬 व्हॉट्सॲपवर पाठवा"
-        st.markdown(f"""
-        <div class='panel-card' style='margin-bottom: 16px; padding: 12px 14px; border-left: 4px solid #25d366; background: linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);'>
-            <div style='font-size: 11px; color: #bbf7d0; font-weight: 700; text-transform: uppercase;'>🌙 {c4_title}</div>
-            <a href='{daily_wa_url}' target='_blank' style='text-decoration: none;'>
-                <button style='width: 100%; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #25d366, #128c7e); color: #ffffff; font-weight: 800; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: transform 0.2s;'>
-                    {wa_btn_text}
-                </button>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div class='panel-card' style='margin-bottom:15px; border-left:4px solid #ef4444;'><div style='font-size:11px; color:#94a3b8; font-weight:700;'>🚨 OVERDUE (AT RISK)</div><div style='font-size: 18px; font-weight:800; color:#ef4444; margin-top:4px;'>₹{total_overdue:,.2f}</div></div>", unsafe_allow_html=True)
 
+
+    
+
+    
     if not df.empty:
         col_db_left, col_db_right = st.columns([1.2, 0.8])
         
@@ -4381,20 +3770,18 @@ elif selected_page == "Ledger Database":
             
             f_col1, f_col2, f_col3 = st.columns(3)
             with f_col1:
-                all_shops_txt = "All Shops/Vendors" if is_english else "सर्व दुकाने / व्यापारी"
-                v_options = [all_shops_txt] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else [all_shops_txt]
-                selected_db_shop = st.selectbox("Select Shop / Vendor" if is_english else "दुकान / व्यापारी निवडा", v_options)
+                v_options = ["All Shops/Vendors"] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else ["All Shops/Vendors"]
+                selected_db_shop = st.selectbox("Select Shop / Vendor", v_options)
             with f_col2:
-                all_cats_txt = "All Categories" if is_english else "सर्व वर्ग"
-                cat_options = [all_cats_txt] + list(df['category'].dropna().unique()) if 'category' in df.columns else [all_cats_txt]
-                selected_db_cat = st.selectbox("Select Category" if is_english else "वर्ग निवडा", cat_options)
+                cat_options = ["All Categories"] + list(df['category'].dropna().unique()) if 'category' in df.columns else ["All Categories"]
+                selected_db_cat = st.selectbox("Select Category", cat_options)
             with f_col3:
-                search_query = st.text_input("Quick Search" if is_english else "जलद शोध", placeholder="Search anything..." if is_english else "काहीही शोधा...")
+                search_query = st.text_input("Quick Search", placeholder="Search anything...")
 
             display_df = df.copy()
-            if selected_db_shop not in ["All Shops/Vendors", "सर्व दुकाने / व्यापारी"]:
+            if selected_db_shop != "All Shops/Vendors":
                 display_df = display_df[display_df['vendor_name'] == selected_db_shop]
-            if selected_db_cat not in ["All Categories", "सर्व वर्ग"]:
+            if selected_db_cat != "All Categories":
                 display_df = display_df[display_df['category'] == selected_db_cat]
             if search_query.strip():
                 q = search_query.strip().lower()
@@ -4406,23 +3793,20 @@ elif selected_page == "Ledger Database":
             
             h_col_title, h_col_plus = st.columns([0.85, 0.15])
             with h_col_title:
-                sheet_heading = "#### 📋 Ledger Database Sheet" if is_english else "#### 📋 लेजर डेटाबेस शीट"
-                st.markdown(sheet_heading)
+                st.markdown("#### 📋 Ledger Database Sheet")
             with h_col_plus:
-                add_row_help = "Add New Row" if is_english else "नवीन नोंद जोडा"
-                if st.button("➕", help=add_row_help):
+                if st.button("➕", help="नवीन रो जोडा (Add New Row)"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
                             cursor = conn.cursor()
-                            shop_init = "New Shop" if is_english else "नवीन दुकान"
                             cursor.execute("""
                             INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json)
                             VALUES (?, ?, ?, ?, ?)
-                            """, (shop_init, time.strftime("%Y-%m-%d"), "General", 0.0, '{"items":[]}'))
+                            """, ("नवीन दुकान", time.strftime("%Y-%m-%d"), "General", 0.0, '{"items":[]}'))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), "Added New Empty Receipt Row via Plus Icon")
-                        st.success("New row successfully added!" if is_english else "नवीन रो यशस्वीरित्या जोडली गेली!")
+                        st.success("नवीन रो Successfully जोडली गेली!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
@@ -4436,17 +3820,14 @@ elif selected_page == "Ledger Database":
                     return "N/A"
 
             sheet_preview_df = display_df[['id', 'vendor_name', 'date', 'category', 'grand_total']].copy()
-            summary_col_name = "Items Summary" if is_english else "वस्तूंचा गोषवारा"
-            sheet_preview_df[summary_col_name] = display_df['raw_json'].apply(get_items_clean_summary) if 'raw_json' in display_df.columns else "N/A"
-            select_col_name = "Select" if is_english else "निवडा"
-            sheet_preview_df.insert(0, select_col_name, False)
+            sheet_preview_df['Items Summary'] = display_df['raw_json'].apply(get_items_clean_summary) if 'raw_json' in display_df.columns else "N/A"
+            sheet_preview_df.insert(0, "Select", False)
             
-            edited_sheet_df = st.data_editor(sheet_preview_df, key="ledger_checkbox_table")
+            edited_sheet_df = st.data_editor(sheet_preview_df,  key="ledger_checkbox_table")
             
-            selected_ids = edited_sheet_df[edited_sheet_df[select_col_name] == True]['id'].tolist()
+            selected_ids = edited_sheet_df[edited_sheet_df['Select'] == True]['id'].tolist()
             if selected_ids:
-                del_records_btn_lbl = f"🗑️ Delete Selected Records ({len(selected_ids)})" if is_english else f"🗑️ निवडलेले रेकॉर्ड्स डिलीट करा ({len(selected_ids)})"
-                if st.button(del_records_btn_lbl, type="primary"):
+                if st.button(f"🗑️ निवडलेले records डिलीट करा ({len(selected_ids)})", type="primary"):
                     try:
                         with sqlite3.connect("ledger.db") as conn:
                             conn.execute("BEGIN TRANSACTION;")
@@ -4455,7 +3836,7 @@ elif selected_page == "Ledger Database":
                                 cursor.execute("DELETE FROM receipts WHERE id = ?", (s_id,))
                             conn.commit()
                         log_activity(st.session_state.get('current_username', 'admin'), f"Deleted Receipt IDs via checkbox: {selected_ids}")
-                        st.success(f"Successfully deleted {len(selected_ids)} record(s)!" if is_english else f"यशस्वीरित्या {len(selected_ids)} रेकॉर्ड डिलीट केले!")
+                        st.success(f"Successfully {len(selected_ids)} रेकॉर्ड deleted!")
                         st.rerun()
                     except Exception as ex:
                         st.error(f"Error: {ex}")
@@ -4464,25 +3845,33 @@ elif selected_page == "Ledger Database":
             
         with col_db_right:
             st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-            export_heading = "#### 📥 Reports & Export" if is_english else "#### 📥 अहवाल आणि निर्यात"
-            export_sub = "Select date and shop to export reports:" if is_english else "तारीख आणि दुकान निवडून अहवाल डाऊनलोड करा:"
-            st.markdown(export_heading)
-            st.markdown(f"<div style='font-size:12px; color:#94a3b8; margin-bottom:10px;'>{export_sub}</div>", unsafe_allow_html=True)
+            st.markdown("#### 📥 Backups & Report Downloads")
+            if os.path.exists("ledger.db"):
+                with open("ledger.db", "rb") as db_file:
+                    db_bytes = db_file.read()
+                st.download_button(
+                    label="Download Full DB Backup (.db)",
+                    data=db_bytes,
+                    file_name="vernaledger_backup.db",
+                    mime="application/octet-stream",
+                    help="सध्याचा संपूर्ण डेटाबेस एका क्लिकवर सुरक्षित डाऊनलोड करा."
+                )
             
-            dl_all_shops = "All Shops/Vendors" if is_english else "सर्व दुकाने / व्यापारी"
-            dl_shop_options = [dl_all_shops] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else [dl_all_shops]
-            dl_selected_shop = st.selectbox("Select Shop to Export" if is_english else "अहवालासाठी दुकान निवडा", dl_shop_options, key="dl_shop_filter_select")
-            report_lang_lbl = "Receipt Language:" if is_english else "पावतीची भाषा निवडा:"
-            report_lang = st.selectbox(report_lang_lbl, ["मराठी", "हिंदी", "English"], key="dl_report_lang_select")
+            st.markdown("---")
+            st.markdown("**📥 रिपोर्ट डाऊनलोड फिल्टर (Date-Range & Shop Filters)**")
+            
+            dl_shop_options = ["All Shops/Vendors"] + list(df['vendor_name'].unique()) if 'vendor_name' in df.columns else ["All Shops/Vendors"]
+            dl_selected_shop = st.selectbox("दुकान निवडून डाउनलोड करा (Select Shop)", dl_shop_options, key="dl_shop_filter_select")
+            report_lang = st.selectbox("पावतीची भाषा निवडा:", ["मराठी", "हिंदी", "English"], key="dl_report_lang_select")
             
             d_col1, d_col2 = st.columns(2)
             with d_col1:
-                start_date_filter = st.date_input("From (Start Date)" if is_english else "पासून (सुरुवात तारीख)", value=pd.to_datetime("2026-01-01").date())
+                start_date_filter = st.date_input("पासून (Start Date)", value=pd.to_datetime("2026-01-01").date())
             with d_col2:
-                end_date_filter = st.date_input("To (End Date)" if is_english else "पर्यंत (अंतिम तारीख)", value=pd.Timestamp.now().date())
+                end_date_filter = st.date_input("पर्यंत (End Date)", value=pd.Timestamp.now().date())
             
             report_df = df.copy()
-            if dl_selected_shop not in ["All Shops/Vendors", "सर्व दुकाने / व्यापारी"]:
+            if dl_selected_shop != "All Shops/Vendors":
                 report_df = report_df[report_df['vendor_name'] == dl_selected_shop]
                 
             if not report_df.empty and 'date' in report_df.columns:
@@ -4499,61 +3888,15 @@ elif selected_page == "Ledger Database":
             if 'raw_json' in csv_df.columns:
                 csv_df['Items Summary'] = csv_df['raw_json'].apply(get_items_clean_summary)
                 csv_df = csv_df.drop(columns=['raw_json'])
-            if not csv_df.empty and 'grand_total' in csv_df.columns:
-                csv_df['Taxable Value (₹)'] = csv_df['grand_total'].apply(lambda x: round(float(x or 0) / 1.05, 2))
-                csv_df['CGST 2.5% (₹)'] = csv_df['grand_total'].apply(lambda x: round((float(x or 0) - round(float(x or 0) / 1.05, 2)) / 2.0, 2))
-                csv_df['SGST 2.5% (₹)'] = csv_df.apply(lambda r: round(float(r['grand_total'] or 0) - r['Taxable Value (₹)'] - r['CGST 2.5% (₹)'], 2), axis=1)
                 
             csv_data = csv_df.to_csv(index=False).encode('utf-8-sig')
-            csv_btn_lbl = "📊 Export Clean CSV (with GST & Items)" if is_english else "📊 संपूर्ण CSV डाऊनलोड (GST सह)"
-            st.download_button(csv_btn_lbl, data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv", use_container_width=True)
-            html_btn_lbl = f"📄 Export {report_lang} Report (.html)" if is_english else f"📄 {report_lang} अहवाल (.html) डाऊनलोड"
-            st.download_button(html_btn_lbl, data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html", use_container_width=True)
-            
-            # Database Backup & Restore Card
-            st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
-            backup_restore_heading = "##### 💾 Database Backup & Restore" if is_english else "##### 💾 डेटाबेस बॅकअप आणि रिस्टोअर"
-            st.markdown(backup_restore_heading)
-            
-            db_bytes = b""
-            if os.path.exists("ledger.db"):
-                try:
-                    with open("ledger.db", "rb") as f_db:
-                        db_bytes = f_db.read()
-                except Exception as e:
-                    ai_logger.error(f"Failed to read ledger.db: {e}")
-            
-            dl_backup_lbl = "📥 Download Full Database Backup (.db)" if is_english else "📥 संपूर्ण डेटाबेस बॅकअप (.db डाउनलोड)"
-            st.download_button(
-                dl_backup_lbl,
-                data=db_bytes,
-                file_name=f"VernaLedger_Backup_{date.today().strftime('%Y-%m-%d')}.db",
-                mime="application/x-sqlite3",
-                use_container_width=True,
-                key="btn_download_db_backup"
-            )
-            
-            exp_restore_title = "📤 Restore Database Backup" if is_english else "📤 डेटाबेस रिस्टोअर करा"
-            with st.expander(exp_restore_title, expanded=False):
-                upload_db_lbl = "Select Backup File (.db)" if is_english else "बॅकअप फाईल निवडा (.db)"
-                uploaded_db = st.file_uploader(upload_db_lbl, type=["db", "sqlite", "sqlite3"], key="uploader_restore_db")
-                if uploaded_db is not None:
-                    confirm_restore_lbl = "⚠️ Confirm Restore" if is_english else "⚠️ रिस्टोअरची पुष्टी करा"
-                    if st.button(confirm_restore_lbl, type="primary", use_container_width=True):
-                        try:
-                            with open("ledger.db", "wb") as f_restore:
-                                f_restore.write(uploaded_db.getbuffer())
-                            st.toast("✅ Database restored successfully!" if is_english else "✅ डेटाबेस यशस्वीरित्या रिस्टोअर झाला!", icon="💾")
-                            st.success("Database restored successfully! Refreshing app..." if is_english else "डेटाबेस यशस्वीरित्या रिस्टोअर झाला! ॲप रिफ्रेश होत आहे...")
-                            time.sleep(1)
-                            st.rerun()
-                        except Exception as re_err:
-                            st.error(f"Restore Error: {re_err}" if is_english else f"रिस्टोअर त्रुटी: {re_err}")
+            st.download_button("Export Clean CSV", data=csv_data, file_name=f"ledger_{dl_selected_shop}.csv", mime="text/csv")
+            st.download_button(f"Export {report_lang} Report (.html)", data=generate_pdf_report(report_df, dl_selected_shop, report_lang), file_name=f"report_{dl_selected_shop}_{report_lang}.html", mime="text/html")
             
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='panel-card'>", unsafe_allow_html=True)
-        st.info("Ledger database is empty." if is_english else "लेजर डेटाबेस रिकामा आहे.")
+        st.info("Ledger database is empty.")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # FEATURE 8: RAG AI CHATBOT ---
@@ -4654,9 +3997,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     color: #d5deeb;
     font-size: 0.98rem;
     line-height: 1.7;
-    overflow-wrap: break-word;
-    word-break: keep-all;
-    hyphens: none;
+    overflow-wrap: anywhere;
 }
 .st-key-rag_chat_history {
     box-sizing: border-box;
@@ -4679,24 +4020,10 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 .st-key-rag_chat_history [data-testid="stMarkdownContainer"] {
-    overflow-wrap: break-word;
-    word-break: keep-all;
-    hyphens: none;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
-.st-key-verna_hidden_sync,
-.st-key-verna_hidden_sync [data-testid="stCustomComponentV1"],
-div[class*="verna_hidden_sync"],
-iframe[height="0"] {
-    display: none !important;
-    pointer-events: none !important;
-    position: absolute !important;
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-}
-.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+[data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
@@ -4707,13 +4034,7 @@ div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
     padding: 0 !important;
     z-index: 20 !important;
 }
-.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"] iframe,
-div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] iframe {
-    border: none !important;
-    width: 100% !important;
-}
-body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
     left: calc(50% + 9.375rem) !important;
     width: calc(100vw - 18.75rem - 3rem) !important;
 }
@@ -4721,8 +4042,7 @@ main.block-container {
     padding-bottom: 9rem !important;
 }
 @media (max-width: 900px) and (min-width: 641px) {
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: calc(50% + 9rem) !important;
         width: calc(100vw - 18rem - 3rem) !important;
     }
@@ -4742,14 +4062,12 @@ main.block-container {
     .verna-ai-greeting-inner {
         padding: 1rem 0.85rem;
     }
-    .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
         width: calc(100vw - 1.25rem) !important;
     }
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         width: calc(100vw - 1.25rem) !important;
     }
@@ -4794,12 +4112,11 @@ main.block-container {
                         do_play = st.session_state.pop("play_latest_audio", False)
                     st.audio(chat["audio_file"], autoplay=do_play)
 
-    with st.container(key="verna_chat_input_wrapper"):
-        chat_input_event = CHAT_INPUT_COMPONENT(
-            key="verna_chat_input_component",
-            default=None,
-            language=st.session_state.get("ui_language", "en"),
-        )
+    chat_input_event = CHAT_INPUT_COMPONENT(
+        key="verna_chat_input_component",
+        default=None,
+        language=st.session_state.get("ui_language", "en"),
+    )
     prompt = None
     voice_captured = None
     if (
@@ -4903,14 +4220,8 @@ main.block-container {
         )
         assistant_instruction = (
             "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
-            "project details, creators, developers, guide, college, or ledger records such as receipts, credit, "
+            "project details, people and ownership, or ledger records such as receipts, credit, "
             "expenses, and stock, use the supplied reference context as the source of truth. "
-            "When asked who made the project, who the developers are, or who the guide is, ALWAYS explicitly and completely state the names:\n"
-            "- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)\n"
-            "- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)\n"
-            "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
-            "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
-            "If answering in Marathi, write all names strictly in Marathi Devanagari script without English translations or brackets. "
             "Do not invent internal project facts or database values. If a requested internal "
             "fact is absent from the supplied context, say that it is not present in the "
             "available context instead of guessing. The database context contains at most the "
@@ -4929,11 +4240,10 @@ main.block-container {
         The following are reference facts only. They do not set the response language.
 
         [Reference context]:
-        - Project: VernaLedger AI
-        - Project Guide: प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)
-        - Lead Developer: संकेत किर्दत (Sanket Kirdat)
-        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
-        - College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
+        - Lead Developer: संकेत किर्दत
+        - Project Guide: कैसर अतार सर
+        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
+        - College: Arvind Gavali College of Engineering, Satara.
         - Database Context:
         {db_context}
         - Database Action Result:
@@ -4943,7 +4253,6 @@ main.block-container {
         {past_turns}
 
         """
-
 
         clean_ans = ""
         last_error = None
@@ -5026,66 +4335,19 @@ main.block-container {
 
             tts_voice = get_tts_voice(audio_text)
             if tts_voice.startswith("mr-"):
-                # Clean English abbreviations into natural Marathi pronunciation
-                audio_text = re.sub(r"\bVernaLedger\s*AI\b", "व्हर्ना लेजर ए आय", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bVernaLedger\b", "व्हर्ना लेजर", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bUPI\b", "यु पी आय", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bSMS\b", "एस एम एस", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
-                
-                # Convert English name occurrences to Marathi so Aarohi won't stumble on English
-                audio_text = re.sub(r"\bSanket\s+Kirdat\b", "संकेत किर-दत", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bSanket\b", "संकेत", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bSakshi\s+Bhagat\b", "साक्षी भगत", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bVaishnavi\s+(?:Dhavale|Dhawale)\b", "वैष्णवी ढव्-ळे", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+Attar(?:\s+Sir)?\b", "प्राध्यापक कै-सर अत्तार सर", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bLead\s+Developer\b", "प्रमुख विकासक", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bProject\s+Guide\b", "प्रकल्प मार्गदर्शक", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bDevelopers\b", "इतर विकासक", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bCollege\b", "महाविद्यालय", audio_text, flags=re.IGNORECASE)
-
                 pronunciation_hints = {
                     "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
                     "ढवाळे": "ढव्-ळे",
                     "ढवळे": "ढव्-ळे",
-                    "अरविंद गवळी": "अरविंद गव्-ळी",
                     "गवाली": "गव्-ळी",
                     "गवळी": "गव्-ळी",
-                    "कैसर अतार": "कै-सर अत्तार",
-                    "कॅसर अतार": "कै-सर अत्तार",
-                    "कैसर अत्तार": "कै-सर अत्तार",
-                    "कॅसर अत्तार": "कै-सर अत्तार",
                     "कैसर": "कै-सर",
-                    "कॅसर": "कै-सर",
                     "कौसर": "कै-सर",
-                    "अतार सर": "अत्तार सर",
-                    "किर्दत": "किर-दत",
-                    "किरदत": "किर-दत",
-                    "साक्षी भगत": "साक्षी भगत",
-                    "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
                 }
                 for name, pronunciation in pronunciation_hints.items():
                     audio_text = audio_text.replace(name, pronunciation)
                 audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
-            elif tts_voice.startswith("en-"):
-                audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
-                audio_text = re.sub(r"\bAGCE\b", "A G C E", audio_text, flags=re.IGNORECASE)
-                en_pronunciations = {
-                    "Kirdat": "Keer-dat",
-                    "Attar": "At-tar",
-                    "Dhavale": "Dhaw-ley",
-                    "Dhawale": "Dhaw-ley",
-                    "Mulik": "Moo-lik",
-                    "Gavali": "Gawali",
-                }
-                for name, pronunciation in en_pronunciations.items():
-                    audio_text = audio_text.replace(name, pronunciation)
 
             audio_text = re.sub(r"[ \t]+", " ", audio_text)
             audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
