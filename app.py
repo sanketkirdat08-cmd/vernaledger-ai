@@ -96,18 +96,17 @@ def sync_local_storage():
     if st.session_state.get("last_synced_lang") != lang or st.session_state.get("last_synced_page") != page:
         st.session_state["last_synced_lang"] = lang
         st.session_state["last_synced_page"] = page
-        with st.container(key="verna_hidden_sync"):
-            components.html(
-                f'''
-                <script>
-                    try {{
-                        window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
-                        window.parent.localStorage.setItem('vernaledger_page', '{page}');
-                    }} catch (e) {{}}
-                </script>
-                ''',
-                height=0, width=0
-            )
+        components.html(
+            f'''
+            <script>
+                try {{
+                    window.parent.localStorage.setItem('vernaledger_lang', '{lang}');
+                    window.parent.localStorage.setItem('vernaledger_page', '{page}');
+                }} catch (e) {{}}
+            </script>
+            ''',
+            height=0, width=0
+        )
 sync_local_storage()
 
 
@@ -4555,6 +4554,23 @@ elif selected_page == "Ledger Database":
 elif selected_page == "RAG AI Chat":
     st.markdown("""
 <style>
+
+    /* --- SAFE FONT APPLICATION --- */
+    .stApp {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+        font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
+    }
+    /* Protect all Streamlit default icons and SVG from font overrides */
+    svg, svg * {
+        font-family: inherit; 
+    }
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+    /* --- END SAFE FONT --- */
+    
     [data-testid="stMainBlockContainer"] {
     box-sizing: border-box !important;
     width: 100% !important;
@@ -4661,20 +4677,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     word-break: keep-all;
     hyphens: none;
 }
-.st-key-verna_hidden_sync,
-.st-key-verna_hidden_sync [data-testid="stCustomComponentV1"],
-div[class*="verna_hidden_sync"],
-iframe[height="0"] {
-    display: none !important;
-    pointer-events: none !important;
-    position: absolute !important;
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-}
-.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+[data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
@@ -4685,13 +4688,7 @@ div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
     padding: 0 !important;
     z-index: 20 !important;
 }
-.st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"] iframe,
-div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] iframe {
-    border: none !important;
-    width: 100% !important;
-}
-body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
     left: calc(50% + 9.375rem) !important;
     width: calc(100vw - 18.75rem - 3rem) !important;
 }
@@ -4699,8 +4696,7 @@ main.block-container {
     padding-bottom: 9rem !important;
 }
 @media (max-width: 900px) and (min-width: 641px) {
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: calc(50% + 9rem) !important;
         width: calc(100vw - 18rem - 3rem) !important;
     }
@@ -4720,14 +4716,12 @@ main.block-container {
     .verna-ai-greeting-inner {
         padding: 1rem 0.85rem;
     }
-    .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         bottom: max(0.55rem, env(safe-area-inset-bottom)) !important;
         width: calc(100vw - 1.25rem) !important;
     }
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) .st-key-verna_chat_input_wrapper [data-testid="stCustomComponentV1"],
-    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) div[class*="verna_chat_input_wrapper"] [data-testid="stCustomComponentV1"] {
+    body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: 50% !important;
         width: calc(100vw - 1.25rem) !important;
     }
@@ -4738,22 +4732,15 @@ main.block-container {
 </style>
 """, unsafe_allow_html=True)
 
-    is_english = st.session_state.get("ui_language", "en") == "en"
-    rag_title = "Verna AI Chatbot" if is_english else "व्हर्ना एआय चॅटबॉट"
-    rag_sub = "Your Smart Ledger & Business Assistant" if is_english else "तुमचा स्मार्ट लेजर आणि व्यवसाय सहाय्यक"
-    render_page_header(rag_title, rag_sub, "✨")
+    render_page_header("Verna AI Chatbot", "Your Smart Ledger & Business Assistant", "✨")
     _, toggle_col, _ = st.columns([1, 2, 1])
     with toggle_col:
-        voice_lbl = "Voice Output" if is_english else "व्हॉईस आउटपुट"
-        voice_help = "Toggle audio response ON/OFF" if is_english else "ऑडिओ उत्तर चालू किंवा बंद करा"
-        enable_voice_output = st.toggle(voice_lbl, value=True, help=voice_help)
+        enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
 
     if not API_KEY:
         st.warning(
             "Gemini is not configured. Add GEMINI_API_KEY to Streamlit secrets "
             "or the environment to enable AI chat. Never share the key publicly."
-            if is_english else
-            "Gemini कॉन्फिगर केलेले नाही. AI चॅट सक्षम करण्यासाठी GEMINI_API_KEY Streamlit secrets मध्ये जोडा."
         )
 
     if "chat_history" not in st.session_state:
@@ -4761,11 +4748,10 @@ main.block-container {
 
     with st.container(key="rag_chat_history"):
         if not st.session_state["chat_history"]:
-            greeting_text = "Hello! Ask me anything about your shop ledger, stock, or expenses." if is_english else "नमस्कार! तुमच्या दुकानाचे लेजर, साठा किंवा खर्चाबद्दल मला काहीही विचारा."
-            st.markdown(f"""
+            st.markdown("""
 <section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
   <div class="verna-ai-greeting-inner">
-    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">{greeting_text}</p>
+    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
   </div>
 </section>
 """, unsafe_allow_html=True)
@@ -4780,12 +4766,11 @@ main.block-container {
                         do_play = st.session_state.pop("play_latest_audio", False)
                     st.audio(chat["audio_file"], autoplay=do_play)
 
-    with st.container(key="verna_chat_input_wrapper"):
-        chat_input_event = CHAT_INPUT_COMPONENT(
-            key="verna_chat_input_component",
-            default=None,
-            language=st.session_state.get("ui_language", "en"),
-        )
+    chat_input_event = CHAT_INPUT_COMPONENT(
+        key="verna_chat_input_component",
+        default=None,
+        language=st.session_state.get("ui_language", "en"),
+    )
     prompt = None
     voice_captured = None
     if (
