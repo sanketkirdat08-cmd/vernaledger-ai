@@ -6,6 +6,7 @@ import re
 import os
 import logging
 import asyncio
+from gtts import gTTS
 import edge_tts
 from schema import ReceiptData
 
@@ -247,12 +248,52 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", vo
             except PermissionError:
                 output_path = f"summary_{os.urandom(4).hex()}.mp3"
 
-        async def _main():
-            communicate = edge_tts.Communicate(text_marathi, voice, rate="+15%")
-            await communicate.save(output_path)
+        # Clean text for high quality TTS
+        clean_text = re.sub(r'[*#_`~>]', ' ', text_marathi)
+        clean_text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', clean_text)
+        clean_text = re.sub(r'https?://\S+', '', clean_text)
+        clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', clean_text)
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
 
-        asyncio.run(_main())
-        return output_path
+        if not clean_text:
+            return None
+
+        # Take first ~380 chars for fast response (< 1.2s)
+        spoken_text = clean_text[:380]
+        sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
+        if sentence_end and sentence_end.end() > 60:
+            spoken_text = spoken_text[:sentence_end.end()]
+
+        v_lower = (voice or "").lower()
+        if v_lower.startswith("mr") or "marathi" in v_lower:
+            lang = "mr"
+        elif v_lower.startswith("hi") or "hindi" in v_lower:
+            lang = "hi"
+        else:
+            lang = "en"
+
+        # Primary: gTTS (fast, reliable, natural pronunciation)
+        try:
+            tts = gTTS(text=spoken_text, lang=lang, slow=False)
+            tts.save(output_path)
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
+        except Exception as gtts_err:
+            logger.warning("gTTS generation error, trying edge_tts fallback: %s", gtts_err)
+
+        # Fallback: edge_tts with strict 3-second timeout
+        try:
+            async def _main():
+                communicate = edge_tts.Communicate(spoken_text, voice, rate="+15%")
+                await communicate.save(output_path)
+
+            asyncio.run(asyncio.wait_for(_main(), timeout=3.0))
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
+        except Exception as edge_err:
+            logger.error("edge_tts fallback failed: %s", edge_err)
+
+        return None
     except Exception as exc:
         logger.error("TTS Generation Error: %s", exc)
         return None
