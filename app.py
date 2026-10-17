@@ -4899,8 +4899,14 @@ main.block-container {
         )
         assistant_instruction = (
             "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
-            "project details, people and ownership, or ledger records such as receipts, credit, "
+            "project details, creators, developers, guide, college, or ledger records such as receipts, credit, "
             "expenses, and stock, use the supplied reference context as the source of truth. "
+            "When asked who made the project, who the developers are, or who the guide is, ALWAYS explicitly and completely state the names:\n"
+            "- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)\n"
+            "- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)\n"
+            "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
+            "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
+            "If answering in Marathi, write all names strictly in Marathi Devanagari script without English translations or brackets. "
             "Do not invent internal project facts or database values. If a requested internal "
             "fact is absent from the supplied context, say that it is not present in the "
             "available context instead of guessing. The database context contains at most the "
@@ -4919,10 +4925,11 @@ main.block-container {
         The following are reference facts only. They do not set the response language.
 
         [Reference context]:
-        - Lead Developer: संकेत किर्दत
-        - Project Guide: कैसर अतार सर
-        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
-        - College: Arvind Gavali College of Engineering, Satara.
+        - Project: VernaLedger AI
+        - Project Guide: प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)
+        - Lead Developer: संकेत किर्दत (Sanket Kirdat)
+        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
+        - College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
         - Database Context:
         {db_context}
         - Database Action Result:
@@ -4932,6 +4939,7 @@ main.block-container {
         {past_turns}
 
         """
+
 
         clean_ans = ""
         last_error = None
@@ -5024,23 +5032,38 @@ main.block-container {
                 audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
                 
+                # Convert English name occurrences to Marathi so Aarohi won't stumble on English
+                audio_text = re.sub(r"\bSanket\s+Kirdat\b", "संकेत किर-दत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSanket\b", "संकेत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSakshi\s+Bhagat\b", "साक्षी भगत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bVaishnavi\s+(?:Dhavale|Dhawale)\b", "वैष्णवी ढव्-ळे", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+Attar(?:\s+Sir)?\b", "प्राध्यापक कै-सर अत्तार सर", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
+
                 pronunciation_hints = {
-                    "संकेत किर्दत": "संकेत किर्दत",
-                    "कैसर अतार": "कैसर अत्तार",
-                    "कैसर": "कैसर",
-                    "कौसर": "कैसर",
-                    "वैष्णवी ढवळे": "वैष्णवी ढवळे",
-                    "ढवाळे": "ढवळे",
-                    "ढवळे": "ढवळे",
+                    "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
+                    "ढवाळे": "ढव्-ळे",
+                    "ढवळे": "ढव्-ळे",
+                    "अरविंद गवळी": "अरविंद गव्-ळी",
+                    "गवाली": "गव्-ळी",
+                    "गवळी": "गव्-ळी",
+                    "कैसर अतार": "कै-सर अत्तार",
+                    "कॅसर अतार": "कै-सर अत्तार",
+                    "कैसर अत्तार": "कै-सर अत्तार",
+                    "कॅसर अत्तार": "कै-सर अत्तार",
+                    "कैसर": "कै-सर",
+                    "कॅसर": "कै-सर",
+                    "कौसर": "कै-सर",
+                    "अतार सर": "अत्तार सर",
+                    "किर्दत": "किर-दत",
+                    "किरदत": "किर-दत",
                     "साक्षी भगत": "साक्षी भगत",
                     "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
-                    "अरविंद गवळी": "अरविंद गवळी",
-                    "गवाली": "गवळी",
-                    "सातारा": "सातारा",
                 }
                 for name, pronunciation in pronunciation_hints.items():
                     audio_text = audio_text.replace(name, pronunciation)
-                audio_text = re.sub(r"\bGavali\b", "गवळी", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
             elif tts_voice.startswith("en-"):
                 audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)

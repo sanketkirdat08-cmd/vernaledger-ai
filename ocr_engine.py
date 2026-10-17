@@ -260,11 +260,15 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", vo
         if not clean_text:
             return None
 
-        # Take first ~450 chars for fluent natural voice answer
-        spoken_text = clean_text[:450]
-        sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
-        if sentence_end and sentence_end.end() > 60:
-            spoken_text = spoken_text[:sentence_end.end()]
+        # Keep full answer text (up to 750 chars) so names and sentences are never cut off
+        if len(clean_text) > 750:
+            spoken_text = clean_text[:750]
+            sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
+            if sentence_end and sentence_end.end() > 600:
+                spoken_text = spoken_text[:sentence_end.end()]
+        else:
+            spoken_text = clean_text
+
 
         # 1. Primary: Edge-TTS Aarohi (mr-IN-AarohiNeural) or Neerja (en-IN-NeerjaNeural) with IPv4 connector
         try:
@@ -273,7 +277,7 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", vo
                 communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%", connector=connector)
                 await communicate.save(output_path)
 
-            asyncio.run(asyncio.wait_for(_main(), timeout=6.0))
+            asyncio.run(asyncio.wait_for(_main(), timeout=8.0))
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                 return output_path
         except Exception as edge_err:
