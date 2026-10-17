@@ -141,21 +141,25 @@ def get_tts_voice(text: str) -> str:
     """Choose an Edge TTS voice based on the language of the generated answer."""
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
     latin_count = len(re.findall(r"[A-Za-z]", text))
-    if latin_count > devanagari_count:
-        return "en-IN-NeerjaNeural"
+    
+    # If the response contains Devanagari text, it must be spoken by a Devanagari voice (Aarohi or Swara)
+    if devanagari_count >= 8 or (devanagari_count > 0 and latin_count < 50):
+        marathi_markers = (
+            "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
+            "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
+            "विचारू शकता", "प्रकल्प", "नाव", "सर", "विकासक", "महाविद्यालय",
+        )
+        hindi_markers = (
+            "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
+            "करता है", "होता है",
+        )
+        marathi_score = sum(text.count(marker) for marker in marathi_markers)
+        hindi_score = sum(text.count(marker) for marker in hindi_markers)
+        return "hi-IN-SwaraNeural" if hindi_score > marathi_score else "mr-IN-AarohiNeural"
 
-    marathi_markers = (
-        "ळ", "ऱ", "आहे", "आहेत", "आणि", "तुमच्या", "तुम्ही", "तुम्हाला",
-        "साठी", "मध्ये", "म्हणून", "उधारी", "किती", "नमस्कार", "ठरू शकते",
-        "विचारू शकता",
-    )
-    hindi_markers = (
-        "है", "हैं", "और", "आपके", "आपकी", "के लिए", "क्योंकि", "सकते हैं",
-        "करता है", "होता है",
-    )
-    marathi_score = sum(text.count(marker) for marker in marathi_markers)
-    hindi_score = sum(text.count(marker) for marker in hindi_markers)
-    return "hi-IN-SwaraNeural" if hindi_score > marathi_score else "mr-IN-AarohiNeural"
+    # Otherwise, it's primarily English
+    return "en-IN-NeerjaNeural"
+
 
 
 
@@ -5040,6 +5044,10 @@ main.block-container {
                 audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+Attar(?:\s+Sir)?\b", "प्राध्यापक कै-सर अत्तार सर", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bLead\s+Developer\b", "प्रमुख विकासक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bProject\s+Guide\b", "प्रकल्प मार्गदर्शक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bDevelopers\b", "इतर विकासक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bCollege\b", "महाविद्यालय", audio_text, flags=re.IGNORECASE)
 
                 pronunciation_hints = {
                     "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
