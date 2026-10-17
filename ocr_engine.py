@@ -6,6 +6,8 @@ import re
 import os
 import logging
 import asyncio
+import socket
+import aiohttp
 from gtts import gTTS
 import edge_tts
 from schema import ReceiptData
@@ -258,40 +260,35 @@ def generate_marathi_tts(text_marathi: str, output_path: str = "summary.mp3", vo
         if not clean_text:
             return None
 
-        # Take first ~380 chars for fast response (< 1.2s)
-        spoken_text = clean_text[:380]
+        # Take first ~450 chars for fluent natural voice answer
+        spoken_text = clean_text[:450]
         sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
         if sentence_end and sentence_end.end() > 60:
             spoken_text = spoken_text[:sentence_end.end()]
 
-        v_lower = (voice or "").lower()
-        if v_lower.startswith("mr") or "marathi" in v_lower:
-            lang = "mr"
-        elif v_lower.startswith("hi") or "hindi" in v_lower:
-            lang = "hi"
-        else:
-            lang = "en"
-
-        # Primary: gTTS (fast, reliable, natural pronunciation)
+        # 1. Primary: Edge-TTS Aarohi (mr-IN-AarohiNeural) or Neerja (en-IN-NeerjaNeural) with IPv4 connector
         try:
+            async def _main():
+                connector = aiohttp.TCPConnector(family=socket.AF_INET)
+                communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%", connector=connector)
+                await communicate.save(output_path)
+
+            asyncio.run(asyncio.wait_for(_main(), timeout=6.0))
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                return output_path
+        except Exception as edge_err:
+            logger.warning("Edge-TTS (%s) generation error: %s, falling back to gTTS", voice, edge_err)
+
+        # 2. Resilient fallback: gTTS
+        try:
+            v_lower = (voice or "").lower()
+            lang = "mr" if (v_lower.startswith("mr") or "marathi" in v_lower) else ("hi" if (v_lower.startswith("hi") or "hindi" in v_lower) else "en")
             tts = gTTS(text=spoken_text, lang=lang, slow=False)
             tts.save(output_path)
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                 return output_path
         except Exception as gtts_err:
-            logger.warning("gTTS generation error, trying edge_tts fallback: %s", gtts_err)
-
-        # Fallback: edge_tts with strict 3-second timeout
-        try:
-            async def _main():
-                communicate = edge_tts.Communicate(spoken_text, voice, rate="+15%")
-                await communicate.save(output_path)
-
-            asyncio.run(asyncio.wait_for(_main(), timeout=3.0))
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                return output_path
-        except Exception as edge_err:
-            logger.error("edge_tts fallback failed: %s", edge_err)
+            logger.error("gTTS fallback failed: %s", gtts_err)
 
         return None
     except Exception as exc:

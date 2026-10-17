@@ -155,7 +155,8 @@ def get_tts_voice(text: str) -> str:
     )
     marathi_score = sum(text.count(marker) for marker in marathi_markers)
     hindi_score = sum(text.count(marker) for marker in hindi_markers)
-    return "mr-IN-AarohiNeural" if marathi_score > hindi_score else "hi-IN-SwaraNeural"
+    return "hi-IN-SwaraNeural" if hindi_score > marathi_score else "mr-IN-AarohiNeural"
+
 
 
 
@@ -5013,19 +5014,47 @@ main.block-container {
 
             tts_voice = get_tts_voice(audio_text)
             if tts_voice.startswith("mr-"):
+                # Clean English abbreviations into natural Marathi pronunciation
+                audio_text = re.sub(r"\bVernaLedger\s*AI\b", "व्हर्ना लेजर ए आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bVernaLedger\b", "व्हर्ना लेजर", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bUPI\b", "यु पी आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSMS\b", "एस एम एस", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
+                
                 pronunciation_hints = {
-                    "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
-                    "ढवाळे": "ढव्-ळे",
-                    "ढवळे": "ढव्-ळे",
-                    "गवाली": "गव्-ळी",
-                    "गवळी": "गव्-ळी",
-                    "कैसर": "कै-सर",
-                    "कौसर": "कै-सर",
+                    "संकेत किर्दत": "संकेत किर्दत",
+                    "कैसर अतार": "कैसर अत्तार",
+                    "कैसर": "कैसर",
+                    "कौसर": "कैसर",
+                    "वैष्णवी ढवळे": "वैष्णवी ढवळे",
+                    "ढवाळे": "ढवळे",
+                    "ढवळे": "ढवळे",
+                    "साक्षी भगत": "साक्षी भगत",
+                    "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
+                    "अरविंद गवळी": "अरविंद गवळी",
+                    "गवाली": "गवळी",
+                    "सातारा": "सातारा",
                 }
                 for name, pronunciation in pronunciation_hints.items():
                     audio_text = audio_text.replace(name, pronunciation)
-                audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bGavali\b", "गवळी", audio_text, flags=re.IGNORECASE)
+            elif tts_voice.startswith("en-"):
+                audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bAGCE\b", "A G C E", audio_text, flags=re.IGNORECASE)
+                en_pronunciations = {
+                    "Kirdat": "Keer-dat",
+                    "Attar": "At-tar",
+                    "Dhavale": "Dhaw-ley",
+                    "Dhawale": "Dhaw-ley",
+                    "Mulik": "Moo-lik",
+                    "Gavali": "Gawali",
+                }
+                for name, pronunciation in en_pronunciations.items():
+                    audio_text = audio_text.replace(name, pronunciation)
 
             audio_text = re.sub(r"[ \t]+", " ", audio_text)
             audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
