@@ -4556,25 +4556,40 @@ elif selected_page == "RAG AI Chat":
 <style>
 
     /* --- SAFE FONT APPLICATION --- */
-    .stApp {
+    .stApp {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
-    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {
+    }}
+    h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown {{
         font-family: 'Plus Jakarta Sans', 'Mukta', 'Hind', 'Baloo 2', sans-serif;
-    }
+    }}
     /* Protect all Streamlit default icons and SVG from font overrides */
-    svg, svg * {
+    svg, svg * {{
         font-family: inherit; 
-    }
-    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {
+    }}
+    .material-symbols-rounded, .material-symbols-outlined, .material-icons, [class*="icon"] {{
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
-    }
+    }}
     /* --- END SAFE FONT --- */
     
-    [data-testid="stMainBlockContainer"] {
+
+.stApp,
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse at 14% 4%, rgba(14, 165, 233, 0.075), transparent 43%),
+        radial-gradient(ellipse at 88% 32%, rgba(124, 58, 237, 0.065), transparent 46%),
+        linear-gradient(145deg, #0e1117 0%, #101725 52%, #0b1020 100%) !important;
+    color: #f4f7ff !important;
+}
+[data-testid="stHeader"] {
+    background: rgba(14, 17, 23, 0.72) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+}
+[data-testid="stMainBlockContainer"] {
     box-sizing: border-box !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: min(100%, 960px) !important;
+    max-width: 960px !important;
     min-width: 0 !important;
     margin-inline: auto !important;
     padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.5rem) 9rem !important;
@@ -4648,14 +4663,12 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     color: #d5deeb;
     font-size: 0.98rem;
     line-height: 1.7;
-    overflow-wrap: break-word;
-    word-break: keep-all;
-    hyphens: none;
+    overflow-wrap: anywhere;
 }
 .st-key-rag_chat_history {
     box-sizing: border-box;
     display: flex;
-    width: 100% !important;
+    width: min(100%, 760px) !important;
     max-width: 100% !important;
     flex-direction: column;
     align-items: center;
@@ -4673,16 +4686,15 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 .st-key-rag_chat_history [data-testid="stMarkdownContainer"] {
-    overflow-wrap: break-word;
-    word-break: keep-all;
-    hyphens: none;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 [data-testid="stCustomComponentV1"] {
     position: fixed !important;
     left: 50% !important;
     bottom: max(1.1rem, env(safe-area-inset-bottom)) !important;
     transform: translateX(-50%) !important;
-    width: calc(100vw - 3rem) !important;
+    width: min(760px, calc(100vw - 2rem)) !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -4690,7 +4702,7 @@ body:has(.verna-ai-heading) [data-testid="stHorizontalBlock"] [data-testid="stEl
 }
 body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
     left: calc(50% + 9.375rem) !important;
-    width: calc(100vw - 18.75rem - 3rem) !important;
+    width: min(760px, calc(100vw - 18.75rem - 2rem)) !important;
 }
 main.block-container {
     padding-bottom: 9rem !important;
@@ -4698,7 +4710,7 @@ main.block-container {
 @media (max-width: 900px) and (min-width: 641px) {
     body:has(section[data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stCustomComponentV1"] {
         left: calc(50% + 9rem) !important;
-        width: calc(100vw - 18rem - 3rem) !important;
+        width: min(760px, calc(100vw - 18rem - 3rem)) !important;
     }
 }
 @media (max-width: 640px) {
@@ -4769,7 +4781,7 @@ main.block-container {
     chat_input_event = CHAT_INPUT_COMPONENT(
         key="verna_chat_input_component",
         default=None,
-        language=st.session_state.get("ui_language", "en"),
+        language=st.session_state.get("ui_language", "mr"),
     )
     prompt = None
     voice_captured = None
