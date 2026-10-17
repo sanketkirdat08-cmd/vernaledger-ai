@@ -7,4 +7,13 @@ textColor = "#f8fafc"
 font = "sans serif"
 
 [server]
-runOnSave = false
+runOnSave = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[runner]
+fastReruns = true

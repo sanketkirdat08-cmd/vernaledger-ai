@@ -194,7 +194,8 @@
       window.parent.postMessage({
         isStreamlitMessage: true,
         type: "streamlit:setComponentValue",
-        value
+        apiVersion: 1,
+        value: value
       }, "*");
     }
 
@@ -276,6 +277,19 @@
       }
     });
 
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "streamlit:render") {
+        const args = event.data.args || {};
+        if (args.language === "en") {
+          input.placeholder = "Ask a question or speak here...";
+          input.setAttribute("aria-label", "Ask a question or speak here...");
+        } else {
+          input.placeholder = "येथे प्रश्न विचारा किंवा बोला...";
+          input.setAttribute("aria-label", "येथे प्रश्न विचारा किंवा बोला...");
+        }
+      }
+    });
+
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: "streamlit:componentReady",
@@ -284,6 +298,7 @@
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: "streamlit:setFrameHeight",
+      apiVersion: 1,
       height: 76
     }, "*");
   </script>

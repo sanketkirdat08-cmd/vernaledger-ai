@@ -4,9 +4,10 @@ import json
 import sqlite3
 import re
 import os
-import time
 import logging
 import asyncio
+import time
+from gtts import gTTS
 import edge_tts
 from schema import ReceiptData
 
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 def init_db() -> None:
     conn = sqlite3.connect("ledger.db")
     cursor = conn.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL;")
+    cursor.execute("PRAGMA synchronous = NORMAL;")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS receipts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,6 +29,7 @@ def init_db() -> None:
         raw_json TEXT
     )
     """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_receipts_lookup ON receipts(vendor_name, date, grand_total);")
     conn.commit()
     conn.close()
 
@@ -44,53 +48,53 @@ def extract_valid_json(text: str) -> dict:
         
     return json.loads(text)
 
-def get_active_gemini_models():
-    """Dynamically fetch the best available Gemini model."""
-    try:
-        import google.generativeai as genai
-        online_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                model_name = m.name.replace('models/', '')
-                online_models.append(model_name)
-        
-        # Priority: flash models, then pro models
-        flash_models = [m for m in online_models if 'flash' in m]
-        pro_models = [m for m in online_models if 'pro' in m]
-        
-        # Sort descending to get highest version number first (e.g., 3.5 > 2.5)
-        flash_models.sort(reverse=True)
-        pro_models.sort(reverse=True)
-        
-        best = pro_models + flash_models
-        if best:
-            return best
-        return online_models
-    except Exception as exc:
-        return ['gemini-3.5-flash', 'gemini-2.5-flash']
+_PRIORITY_FAST_MODELS = [
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+]
+_CACHED_WORKING_MODELS = None
 
-def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = False) -> dict:
+def get_active_gemini_models():
+    """Returns fastest working vision models instantly without expensive blocking network discovery."""
+    global _CACHED_WORKING_MODELS
+    if _CACHED_WORKING_MODELS:
+        return _CACHED_WORKING_MODELS
+    return _PRIORITY_FAST_MODELS
+
+def update_working_model(model_name: str):
+    global _CACHED_WORKING_MODELS
+    _CACHED_WORKING_MODELS = [model_name] + [m for m in _PRIORITY_FAST_MODELS if m != model_name]
+
+def process_receipt_advanced(image_input, api_key: str, force_save: bool = False) -> dict:
     genai.configure(api_key=api_key)
     
-    with Image.open(image_path) as img:
-        img_copy = img.copy()
-        img_copy.thumbnail((800, 800))
+    if isinstance(image_input, (str, os.PathLike)):
+        img = Image.open(image_input)
+    else:
+        if hasattr(image_input, "seek"):
+            image_input.seek(0)
+        img = Image.open(image_input)
+
+    img_copy = img.convert('RGB')
+    img_copy.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
 
     prompt = """
-    You are an expert document OCR scanner for Marathi/Hindi handwritten and printed ledgers/receipts.
-    CRITICAL MATHEMATICAL TASK:
-    1. Extract the Vendor/Shop Name at the top in Marathi script.
-    2. Extract ALL item rows listed in the table or list.
-    3. For each row, parse accurately:
-       item_name: Name of item.
-       quantity: Specify numeric quantity along with exact measurement unit (e.g. '10 kg', '1 ltr'). Remove commas from numbers. If no unit, just the number.
-       rate: Price per unit in numeric rupees (e.g. 20.0). Remove commas.
-       total_price: Total amount for this line item in rupees.
-    
-    VERIFICATION RULES:
-    - You MUST mathematically verify that: (quantity numeric part) * rate = total_price.
-    - If the math on the receipt is wrong or unreadable, YOU MUST CORRECT IT. Set total_price = quantity * rate.
-    - You MUST mathematically verify that grand_total = SUM(all item total_price). Do NOT blindly copy a wrong total from the image.
+    You are an expert document OCR scanner specialized in Marathi, Devanagari handwritten and printed ledgers, invoices, and retail receipts.
+    CRITICAL OCR INSTRUCTIONS:
+    1. Extract the Vendor/Shop Name at the top in complete Marathi or English script.
+    2. Carefully scan and extract EVERY single line item row listed in the receipt. DO NOT skip or omit any rows.
+    3. Read the complete item name accurately in original Marathi / English script (e.g., 'शेंगदाणा तेल १ लि', 'साखर ५ किलो', 'हळद पावडर', 'गहू', 'तूर डाळ'). DO NOT truncate or abbreviate names.
+    4. For each row, accurately extract:
+       - item_name: Full name of the item.
+       - quantity: Numeric quantity along with exact measurement unit (e.g. '1 kg', '2 pcs', '500 gm', '1 ltr', '1 pkt'). If unit is not written, specify count as string (e.g. '1').
+       - rate: Price per unit in rupees as a numeric float (e.g. 45.0). Remove commas or currency symbols.
+       - total_price: Total amount for this item line in rupees as a numeric float (quantity * rate).
+    5. MATHEMATICAL VERIFICATION:
+       - Verify that total_price = numeric quantity * rate for each item.
+       - Verify that grand_total = sum of all item total_price values.
+       - If the receipt total is blurry, faint, or mathematically incorrect, compute and set the correct sum.
 
     Output strictly in this JSON structure:
     {
@@ -115,14 +119,16 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
             res = model.generate_content([prompt, img_copy])
             if res and res.text:
                 response = res
+                update_working_model(model_name)
                 logger.info(f"Successfully processed receipt using active model: {model_name}")
                 break
         except Exception as exc:
             last_error = exc
+            logger.warning(f"Model {model_name} failed: {exc}, trying next model...")
             continue
 
     if not response or not response.text:
-        raise RuntimeError(f"API Connection Error: {last_error!s}")
+        raise RuntimeError(f"AI स्कॅनिंग त्रुटी: {last_error!s}")
 
     raw_text = response.text
     data_dict = extract_valid_json(raw_text)
@@ -151,6 +157,8 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
     validated_data.vendor_name = clean_vendor
     validated_data.category = clean_cat
 
+    ret_dict = validated_data.model_dump()
+
     with sqlite3.connect("ledger.db") as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -160,18 +168,19 @@ def process_receipt_advanced(image_path: str, api_key: str, force_save: bool = F
         existing_record = cursor.fetchone()
 
         if existing_record and not force_save:
-            raise ValueError(
-                f"Duplicate Warning: दुकान '{validated_data.vendor_name}' चे ₹{validated_data.grand_total} चे बिल आधीच रेकॉर्ड केलेले आहे!"
+            ret_dict["is_duplicate"] = True
+            ret_dict["existing_id"] = existing_record[0]
+            logger.info(f"Duplicate receipt detected for {validated_data.vendor_name} (ID: {existing_record[0]})")
+        else:
+            raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
+            cursor.execute(
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
             )
+            conn.commit()
+            ret_dict["is_duplicate"] = False
 
-        raw_json_str = json.dumps(validated_data.model_dump(), ensure_ascii=False)
-        cursor.execute(
-            "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-            (validated_data.vendor_name, validated_data.date, validated_data.category, validated_data.grand_total, raw_json_str)
-        )
-        conn.commit()
-
-    return validated_data.model_dump()
+    return ret_dict
 
 def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
     genai.configure(api_key=api_key)
@@ -208,6 +217,7 @@ def process_voice_billing_advanced(voice_text: str, api_key: str) -> dict:
             model = genai.GenerativeModel(model_name)
             res = model.generate_content(prompt)
             if res and res.text:
+                update_working_model(model_name)
                 logger.info(f"Successfully processed voice bill using active model: {model_name}")
                 break
         except Exception as exc:
