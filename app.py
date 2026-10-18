@@ -4731,9 +4731,14 @@ main.block-container {
 """, unsafe_allow_html=True)
 
     render_page_header("Verna AI Chatbot", "Your Smart Ledger & Business Assistant", "✨")
-    _, toggle_col, _ = st.columns([1, 2, 1])
-    with toggle_col:
-        enable_voice_output = st.toggle("Voice Output", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+    ctl_col1, ctl_col2 = st.columns([3, 1])
+    with ctl_col1:
+        enable_voice_output = st.toggle("Voice Output (ऑडिओ उत्तर)", value=True, help="ऑडिओ उत्तर चालू किंवा बंद करा")
+    with ctl_col2:
+        if st.button("🗑️ Clear Chat", key="btn_clear_rag_chat", help="नवीन संभाषण सुरू करा (Reset Chat)", use_container_width=True):
+            st.session_state["chat_history"] = []
+            st.session_state.pop("play_latest_audio", False)
+            st.rerun()
 
     if not API_KEY:
         st.warning(
@@ -4746,13 +4751,31 @@ main.block-container {
 
     with st.container(key="rag_chat_history"):
         if not st.session_state["chat_history"]:
-            st.markdown("""
+            is_eng = st.session_state.get("ui_language", "en") == "en"
+            greeting_msg = "Hello! Ask me anything about your shop ledger, stock, or expenses." if is_eng else "नमस्कार! दुकानाचे हिशोब, साठा किंवा उधारीबद्दल मला काहीही विचारा."
+            st.markdown(f"""
 <section class="verna-ai-greeting" aria-label="Welcome to Verna AI">
   <div class="verna-ai-greeting-inner">
-    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">Hello! Ask me anything about your shop ledger, stock, or expenses.</p>
+    <p style="color:#00f2fe; font-size:16px; font-weight:600; margin:0;">{greeting_msg}</p>
   </div>
 </section>
 """, unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; color:#94a3b8; font-size:0.85rem; margin-top:2px; margin-bottom:8px;'>💡 त्वरीत प्रश्न विचारा (Quick Actions):</p>", unsafe_allow_html=True)
+            chip_col1, chip_col2 = st.columns(2)
+            with chip_col1:
+                if st.button("📊 आजचा एकूण हिशोब व विक्री?", key="chip_sales", use_container_width=True):
+                    st.session_state["chat_history"].append({"role": "user", "text": "आजचा एकूण हिशोब आणि विक्री किती झाली आहे?"})
+                    st.rerun()
+                if st.button("👥 कोणाकडे किती उधारी बाकी आहे?", key="chip_khata", use_container_width=True):
+                    st.session_state["chat_history"].append({"role": "user", "text": "ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?"})
+                    st.rerun()
+            with chip_col2:
+                if st.button("🚨 कोणता साठा (Stock) संपत आला आहे?", key="chip_stock", use_container_width=True):
+                    st.session_state["chat_history"].append({"role": "user", "text": "कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?"})
+                    st.rerun()
+                if st.button("🎓 प्रकल्प मार्गदर्शक व डेव्हलपर्स कोण आहेत?", key="chip_team", use_container_width=True):
+                    st.session_state["chat_history"].append({"role": "user", "text": "हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?"})
+                    st.rerun()
 
         for idx, chat in enumerate(st.session_state["chat_history"]):
             message_role = "user" if chat["role"] == "user" else "assistant"
@@ -4799,7 +4822,8 @@ main.block-container {
         last_user_msg = st.session_state["chat_history"][-1]["text"]
         
         action_status_msg = ""
-        if any(kw in last_user_msg for kw in ["उधारी जोड", "उधारी लिही", "खात्यात जोड", "उधारी नोंदव"]):
+        # 1. उधारी जोडणे (Record Customer Credit)
+        if any(kw in last_user_msg for kw in ["उधारी जोड", "उधारी लिही", "खात्यात जोड", "उधारी नोंदव", "उधारी नोंदवा", "उधारी सेव्ह", "credit add"]):
             try:
                 phone_match = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", last_user_msg)
                 phone = phone_match.group(0) if phone_match else ""
@@ -4818,16 +4842,9 @@ main.block-container {
                     if not re.search(r"\d", word) and word.casefold() not in ignored_terms
                 ]
                 customer_name = " ".join(part for part in customer_parts if part)
-                transaction_type = (
-                    KHATA_PAYMENT
-                    if any(term in last_user_msg.casefold() for term in ("हप्ता", "जमा", "payment"))
-                    else KHATA_CREDIT
-                )
+                transaction_type = KHATA_CREDIT
                 if not customer_name or not amount_matches:
-                    action_status_msg = (
-                        "उधारी नोंद सेव्ह झाली नाही. कृपया ग्राहकाचे नाव आणि वैध रक्कम "
-                        "स्पष्टपणे द्या; किंवा Customer Khata फॉर्म वापरा."
-                    )
+                    action_status_msg = "उधारी नोंद सेव्ह झाली नाही. कृपया ग्राहकाचे नाव आणि वैध रक्कम स्पष्टपणे द्या."
                 else:
                     record_id = save_khata_transaction(
                         customer_name, phone, amount, transaction_type,
@@ -4835,30 +4852,146 @@ main.block-container {
                     )
                     action_status_msg = (
                         f"Customer Khata मध्ये {customer_name} साठी रुपये {amount:,.2f} "
-                        f"ची नोंद सेव्ह झाली (रेकॉर्ड {record_id})."
+                        f"उधारी नोंद सेव्ह झाली (रेकॉर्ड {record_id})."
                     )
-            except ValueError as exc:
-                action_status_msg = f"उधारी नोंद सेव्ह झाली नाही: {exc}"
-            except sqlite3.Error as exc:
-                logging.exception("Could not save khata transaction from AI chat")
-                action_status_msg = f"डेटाबेसमध्ये उधारी नोंद सेव्ह करता आली नाही: {exc}"
+            except Exception as exc:
+                action_status_msg = f"उधारी नोंद सेव्ह त्रुटी: {exc}"
+
+        # 2. जमा / वसुली नोंदवणे (Record Customer Payment)
+        elif any(kw in last_user_msg for kw in ["जमा कर", "जमा लिही", "जमा नोंदव", "जमा झाले", "पैसे दिले", "पावती कर", "पेमेंट जमा", "हप्ता दिला"]):
+            try:
+                phone_match = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", last_user_msg)
+                phone = phone_match.group(0) if phone_match else ""
+                amount_text = last_user_msg.replace(phone, "") if phone else last_user_msg
+                amount_matches = re.findall(r"\d+(?:[.,]\d+)?", amount_text)
+                amount = float(amount_matches[0].replace(",", "")) if amount_matches else 0
+                ignored_terms = {
+                    "जमा", "कर", "करा", "लिही", "लिहा", "नोंदव", "नोंदवा", "झाले",
+                    "पैसे", "दिले", "पावती", "पेमेंट", "हप्ता", "दिला", "सेव्ह", "रुपये", "रु", "₹"
+                }
+                customer_parts = [
+                    re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", word)
+                    for word in amount_text.split()
+                    if not re.search(r"\d", word) and word.casefold() not in ignored_terms
+                ]
+                customer_name = " ".join(part for part in customer_parts if part)
+                if not customer_name or not amount_matches:
+                    action_status_msg = "जमा नोंद सेव्ह झाली नाही. कृपया ग्राहकाचे नाव आणि रक्कम स्पष्टपणे द्या."
+                else:
+                    record_id = save_khata_transaction(
+                        customer_name, phone, amount, KHATA_PAYMENT,
+                        date.today(), date.today(), last_user_msg,
+                    )
+                    action_status_msg = f"Customer Khata मध्ये {customer_name} यांच्याकडून रुपये {amount:,.2f} जमा नोंद सेव्ह झाली (रेकॉर्ड {record_id})."
+            except Exception as exc:
+                action_status_msg = f"जमा नोंद सेव्ह त्रुटी: {exc}"
+
+        # 3. व्यवसाय खर्च नोंदवणे (Record Expense)
+        elif any(kw in last_user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "खर्च सेव्ह", "expense add"]):
+            try:
+                amount_matches = re.findall(r"\d+(?:[.,]\d+)?", last_user_msg)
+                amount = float(amount_matches[0].replace(",", "")) if amount_matches else 0
+                ignored_terms = {
+                    "खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला",
+                    "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"
+                }
+                title_parts = [
+                    re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", word)
+                    for word in last_user_msg.split()
+                    if not re.search(r"\d", word) and word.casefold() not in ignored_terms
+                ]
+                expense_title = " ".join(part for part in title_parts if part) or "दुकान खर्च"
+                if not amount_matches or amount <= 0:
+                    action_status_msg = "खर्च नोंद सेव्ह झाली नाही. कृपया खर्चाची वैध रक्कम द्या."
+                else:
+                    with sqlite3.connect("ledger.db") as conn:
+                        conn.execute(
+                            "INSERT INTO business_expenses (expense_title, category, amount, date) VALUES (?, ?, ?, ?)",
+                            (expense_title, "General", amount, date.today().strftime("%Y-%m-%d"))
+                        )
+                        conn.commit()
+                    action_status_msg = f"दुकान खर्च नोंद: '{expense_title}' साठी रुपये {amount:,.2f} यशस्वीरीत्या सेव्ह झाले."
+            except Exception as exc:
+                action_status_msg = f"खर्च नोंद सेव्ह त्रुटी: {exc}"
 
         db_context = ""
         try:
             with sqlite3.connect("ledger.db") as conn:
-                rec_df = pd.read_sql_query("SELECT * FROM receipts ORDER BY id DESC LIMIT 5", conn)
-                khata_data = pd.read_sql_query("SELECT * FROM customer_khata ORDER BY id DESC LIMIT 5", conn)
-                stock_data = pd.read_sql_query("SELECT * FROM shop_inventory ORDER BY id DESC LIMIT 5", conn)
-                exp_data = pd.read_sql_query("SELECT * FROM business_expenses ORDER BY id DESC LIMIT 5", conn)
+                # 1. Live Sales Summary
+                sales_row = conn.execute("SELECT COUNT(*), COALESCE(SUM(grand_total), 0) FROM receipts").fetchone()
+                total_receipts_cnt = sales_row[0] or 0
+                total_sales_amt = float(sales_row[1] or 0.0)
                 
-                r_list = [f"दुकानः {r.get('vendor_name')}, रक्कम: {r.get('grand_total')} रुपये" for _, r in rec_df.iterrows()] if not rec_df.empty else []
-                k_list = [f"ग्राहकः {k.get('customer_name')}, उधारी: {k.get('amount')} रुपये, फोनः {k.get('phone')}" for _, k in khata_data.iterrows()] if not khata_data.empty else []
-                s_list = [f"वस्तू: {s.get('item_name')}, साठा: {s.get('stock_qty')} {s.get('unit')}" for _, s in stock_data.iterrows()] if not stock_data.empty else []
-                e_list = [f"खर्च: {e.get('expense_title')}, रक्कम: {e.get('amount')} रुपये" for _, e in exp_data.iterrows()] if not exp_data.empty else []
-                
-                db_context = f"पावत्याः {'; '.join(r_list)}\nउधारी: {'; '.join(k_list)}\nस्टॉकः {'; '.join(s_list)}\nखर्च: {'; '.join(e_list)}"
-        except Exception:
-            db_context = "डेटा उपलब्ध नाही."
+                today_str = date.today().strftime("%Y-%m-%d")
+                today_sales_row = conn.execute("SELECT COUNT(*), COALESCE(SUM(grand_total), 0) FROM receipts WHERE date LIKE ?", (f"%{today_str}%",)).fetchone()
+                today_cnt = today_sales_row[0] or 0
+                today_sales_amt = float(today_sales_row[1] or 0.0)
+
+                rec_df = pd.read_sql_query("SELECT vendor_name, grand_total, date FROM receipts ORDER BY id DESC LIMIT 5", conn)
+                r_list = [f"दुकानः {r.get('vendor_name')}, रक्कम: {r.get('grand_total')} रुपये ({r.get('date')})" for _, r in rec_df.iterrows()] if not rec_df.empty else []
+
+                # 2. Customer Khata Balances (Credit vs Payment)
+                khata_df = pd.read_sql_query("SELECT customer_name, phone, transaction_type, amount FROM customer_khata", conn)
+                khata_summary = []
+                total_outstanding_credit = 0.0
+                if not khata_df.empty:
+                    khata_df['net'] = khata_df.apply(lambda row: float(row['amount'] or 0) if str(row['transaction_type']).lower() == 'credit' else -float(row['amount'] or 0), axis=1)
+                    cust_grouped = khata_df.groupby('customer_name')['net'].sum().reset_index()
+                    debtors = cust_grouped[cust_grouped['net'] > 0].sort_values(by='net', ascending=False)
+                    total_outstanding_credit = float(debtors['net'].sum() if not debtors.empty else 0.0)
+                    for _, d_row in debtors.head(5).iterrows():
+                        khata_summary.append(f"{d_row['customer_name']}: {d_row['net']:,.0f} रुपये उधारी")
+
+                # 3. Live Inventory Items & Low-Stock Alerts
+                inv_df = pd.read_sql_query("SELECT item_name, stock_qty, unit, alert_limit, selling_price FROM shop_inventory", conn)
+                total_inv_items = len(inv_df)
+                low_stock_list = []
+                out_of_stock_list = []
+                if not inv_df.empty:
+                    inv_df['stock_qty'] = pd.to_numeric(inv_df['stock_qty'], errors='coerce').fillna(0.0)
+                    inv_df['alert_limit'] = pd.to_numeric(inv_df['alert_limit'], errors='coerce').fillna(5.0)
+                    out_items = inv_df[inv_df['stock_qty'] <= 0]
+                    low_items = inv_df[(inv_df['stock_qty'] > 0) & (inv_df['stock_qty'] <= inv_df['alert_limit'])]
+                    for _, o in out_items.head(5).iterrows():
+                        out_of_stock_list.append(f"{o['item_name']} (साठा: 0 {o['unit']})")
+                    for _, l in low_items.head(5).iterrows():
+                        low_stock_list.append(f"{l['item_name']} (शिल्लक: {l['stock_qty']:g} {l['unit']}, अलर्ट: {l['alert_limit']:g})")
+
+                # 4. Expenses
+                exp_row = conn.execute("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM business_expenses").fetchone()
+                total_exp_cnt = exp_row[0] or 0
+                total_exp_amt = float(exp_row[1] or 0.0)
+                exp_df = pd.read_sql_query("SELECT expense_title, amount, category, date FROM business_expenses ORDER BY id DESC LIMIT 5", conn)
+                e_list = [f"{e.get('expense_title')}: {e.get('amount')} रुपये ({e.get('category')})" for _, e in exp_df.iterrows()] if not exp_df.empty else []
+
+                # 5. Targeted Query Search (Dynamic Entity Lookup)
+                specific_context = []
+                clean_q_words = re.findall(r'[\u0900-\u097fA-Za-z]+', last_user_msg)
+                for w in clean_q_words:
+                    if len(w) >= 3 and w.lower() not in ["किती", "आहे", "सांगा", "माहिती", "काय", "कसे", "कोठे", "येणे", "बाकी", "shop", "what", "how"]:
+                        c_match = conn.execute("SELECT customer_name, SUM(CASE WHEN transaction_type = 'credit' THEN amount ELSE -amount END) as bal FROM customer_khata WHERE customer_name LIKE ? GROUP BY customer_name", (f"%{w}%",)).fetchone()
+                        if c_match and c_match[0]:
+                            specific_context.append(f"शोधलेला ग्राहक '{c_match[0]}': शिल्लक उधारी = {float(c_match[1] or 0):,.2f} रुपये")
+                        s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w}%",)).fetchall()
+                        for sm in s_match:
+                            specific_context.append(f"शोधलेली वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
+
+                db_context = f"""
+[लाइव्ह दुकानाची आकडेवारी (Live Shop Statistics)]:
+- आजची विक्री: {today_cnt} पावत्या, एकूण रक्कम = ₹{today_sales_amt:,.2f}
+- एकूण विक्री (सर्व पावत्या): {total_receipts_cnt} पावत्या, एकूण रक्कम = ₹{total_sales_amt:,.2f}
+- बाजारातील एकूण उधारी येणे बाकी: ₹{total_outstanding_credit:,.2f}
+- प्रमुख उधारी ग्राहक: {', '.join(khata_summary) if khata_summary else 'कोणाचीही मोठी उधारी बाकी नाही.'}
+- एकूण इन्व्हेंटरी वस्तू: {total_inv_items}
+- संपलेला साठा (Out of Stock): {', '.join(out_of_stock_list) if out_of_stock_list else 'कोणतीही वस्तू संपलेली नाही.'}
+- कमी साठा (Low Stock Warning): {', '.join(low_stock_list) if low_stock_list else 'सर्व वस्तूंचा पुरेसा साठा आहे.'}
+- एकूण व्यवसाय खर्च: {total_exp_cnt} नोंदी, एकूण खर्च = ₹{total_exp_amt:,.2f}
+- अलीकडील पावत्या: {'; '.join(r_list) if r_list else 'कोणतीही पावती नाही.'}
+- अलीकडील खर्च: {'; '.join(e_list) if e_list else 'कोणताही खर्च नाही.'}
+{('- विशिष्ट शोध परिणाम: ' + '; '.join(specific_context)) if specific_context else ''}
+"""
+        except Exception as db_err:
+            db_context = f"डेटाबेस संदर्भ लोड त्रुटी: {db_err}"
 
         past_turns = "\n".join([f"{h['role'].upper()}: {h['text']}" for h in st.session_state["chat_history"][-7:-1]])
         
@@ -4872,17 +5005,18 @@ main.block-container {
         )
         assistant_instruction = (
             "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
-            "project details, people and ownership, or ledger records such as receipts, credit, "
-            "expenses, and stock, use the supplied reference context as the source of truth. "
+            "project details, creators, developers, guide, college, or ledger records such as receipts, credit, "
+            "expenses, and stock, use the supplied reference context as the source of truth.\n"
+            "When asked who made the project, who the developers are, or who the guide is, ALWAYS explicitly and completely state the names:\n"
+            "- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)\n"
+            "- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)\n"
+            "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
+            "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
+            "If answering in Marathi, write all names strictly in Marathi Devanagari script without brackets or English translations. "
+            "Format monetary answers clearly and professionally. Use bold text or bullet points where appropriate. "
             "Do not invent internal project facts or database values. If a requested internal "
             "fact is absent from the supplied context, say that it is not present in the "
-            "available context instead of guessing. The database context contains at most the "
-            "five most recent rows for each listed ledger table, so do not imply it is a complete "
-            "database search. For unrelated general-knowledge questions (including science, "
-            "history, coding, and general facts), answer helpfully using your general knowledge; "
-            "do not require the answer to appear in the project database. If a question combines "
-            "both, use the supplied context for project-specific facts and general knowledge "
-            "for the rest. Always follow the response-language instruction."
+            "available context instead of guessing. Always follow the response-language instruction."
         )
         generation_config = {
             "temperature": 0.3,
@@ -4892,10 +5026,11 @@ main.block-container {
         The following are reference facts only. They do not set the response language.
 
         [Reference context]:
-        - Lead Developer: संकेत किर्दत
-        - Project Guide: कैसर अतार सर
-        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक.
-        - College: Arvind Gavali College of Engineering, Satara.
+        - Project: VernaLedger AI
+        - Project Guide: प्रा. कैसर अत्तार सर (Prof. Kaisar Attar Sir)
+        - Lead Developer: संकेत किर्दत (Sanket Kirdat)
+        - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
+        - College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
         - Database Context:
         {db_context}
         - Database Action Result:
@@ -4987,19 +5122,65 @@ main.block-container {
 
             tts_voice = get_tts_voice(audio_text)
             if tts_voice.startswith("mr-"):
+                audio_text = re.sub(r"\bVernaLedger\s*AI\b", "व्हर्ना लेजर ए आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bVernaLedger\b", "व्हर्ना लेजर", audio_text, flags=re.IGNORECASE)
                 audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bUPI\b", "यु पी आय", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSMS\b", "एस एम एस", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
+
+                # Convert English name occurrences to Marathi so Aarohi won't stumble on English
+                audio_text = re.sub(r"\bSanket\s+Kirdat\b", "संकेत किर-दत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSanket\b", "संकेत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bSakshi\s+Bhagat\b", "साक्षी भगत", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bVaishnavi\s+(?:Dhavale|Dhawale)\b", "वैष्णवी ढव्-ळे", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+Attar(?:\s+Sir)?\b", "प्राध्यापक कै-सर अत्तार सर", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bLead\s+Developer\b", "प्रमुख विकासक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bProject\s+Guide\b", "प्रकल्प मार्गदर्शक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bDevelopers\b", "इतर विकासक", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bCollege\b", "महाविद्यालय", audio_text, flags=re.IGNORECASE)
+
                 pronunciation_hints = {
                     "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
                     "ढवाळे": "ढव्-ळे",
                     "ढवळे": "ढव्-ळे",
+                    "अरविंद गवळी": "अरविंद गव्-ळी",
                     "गवाली": "गव्-ळी",
                     "गवळी": "गव्-ळी",
+                    "कैसर अतार": "कै-सर अत्तार",
+                    "कॅसर अतार": "कै-सर अत्तार",
+                    "कैसर अत्तार": "कै-सर अत्तार",
+                    "कॅसर अत्तार": "कै-सर अत्तार",
                     "कैसर": "कै-सर",
+                    "कॅसर": "कै-सर",
                     "कौसर": "कै-सर",
+                    "अतार सर": "अत्तार सर",
+                    "किर्दत": "किर-दत",
+                    "किरदत": "किर-दत",
+                    "साक्षी भगत": "साक्षी भगत",
+                    "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
                 }
                 for name, pronunciation in pronunciation_hints.items():
                     audio_text = audio_text.replace(name, pronunciation)
                 audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
+            elif tts_voice.startswith("en-"):
+                audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
+                audio_text = re.sub(r"\bAGCE\b", "A G C E", audio_text, flags=re.IGNORECASE)
+                en_pronunciations = {
+                    "Kirdat": "Keer-dat",
+                    "Attar": "At-tar",
+                    "Dhavale": "Dhaw-ley",
+                    "Dhawale": "Dhaw-ley",
+                    "Mulik": "Moo-lik",
+                    "Gavali": "Gawali",
+                }
+                for name, pronunciation in en_pronunciations.items():
+                    audio_text = audio_text.replace(name, pronunciation)
 
             audio_text = re.sub(r"[ \t]+", " ", audio_text)
             audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
@@ -5014,3 +5195,4 @@ main.block-container {
         })
         st.session_state["play_latest_audio"] = True
         st.rerun()
+
