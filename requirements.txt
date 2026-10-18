@@ -6,3 +6,4 @@ edge-tts
 qrcode
 pillow
 pydantic
+gTTS

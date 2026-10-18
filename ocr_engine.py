@@ -7,7 +7,6 @@ import os
 import logging
 import asyncio
 import time
-from gtts import gTTS
 import edge_tts
 from schema import ReceiptData
 
