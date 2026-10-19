@@ -827,6 +827,167 @@
             .split-layout { grid-template-columns: 1fr; }
             .step-flow-h { grid-template-columns: 1fr; }
         }
+    
+        /* ====================================================================
+           SLIDE-SPECIFIC CONTEXTUAL BACKGROUND MOTIFS
+        ==================================================================== */
+        .slide-bg-deco {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            opacity: 0.35;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 01 Cover: Cyberpunk Radar & Tech Brackets */
+        .deco-cover {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.12) 0%, transparent 65%),
+                        linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px),
+                        linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 02 Intro: Grassroots Commerce Network Mesh */
+        .deco-intro {
+            background: radial-gradient(circle at 20% 40%, rgba(0, 255, 135, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 60%, rgba(0, 242, 254, 0.08) 0%, transparent 50%),
+                        repeating-linear-gradient(45deg, rgba(0, 242, 254, 0.02) 0px, rgba(0, 242, 254, 0.02) 2px, transparent 2px, transparent 24px);
+        }
+
+        /* 03 Problem: Crimson Warning Hazard Grid */
+        .deco-problems {
+            background: radial-gradient(circle at 50% 30%, rgba(255, 0, 85, 0.12) 0%, transparent 60%),
+                        repeating-linear-gradient(-45deg, rgba(255, 0, 85, 0.04) 0px, rgba(255, 0, 85, 0.04) 3px, transparent 3px, transparent 32px);
+        }
+
+        /* 04 Motivation: Ascending Neon Aurora Rays */
+        .deco-motivation {
+            background: linear-gradient(135deg, rgba(0, 255, 135, 0.06) 0%, rgba(0, 242, 254, 0.06) 50%, transparent 80%),
+                        repeating-linear-gradient(65deg, rgba(0, 255, 135, 0.025) 0px, rgba(0, 255, 135, 0.025) 2px, transparent 2px, transparent 40px);
+        }
+
+        /* 05 Gap Analysis: Data Matrix Laser Coordinates */
+        .deco-gap {
+            background: linear-gradient(90deg, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+                        linear-gradient(rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* 06 Objectives: 4-Pillar Foundation Grid */
+        .deco-objectives {
+            background: radial-gradient(circle at 25% 25%, rgba(0, 242, 254, 0.07) 0%, transparent 45%),
+                        radial-gradient(circle at 75% 25%, rgba(0, 255, 135, 0.07) 0%, transparent 45%),
+                        radial-gradient(circle at 25% 75%, rgba(176, 38, 255, 0.07) 0%, transparent 45%),
+                        radial-gradient(circle at 75% 75%, rgba(79, 172, 254, 0.07) 0%, transparent 45%);
+        }
+
+        /* 07 Pipeline: Data Stream Conduit Chevrons */
+        .deco-pipeline {
+            background: linear-gradient(to right, rgba(0, 242, 254, 0.04), rgba(176, 38, 255, 0.04), rgba(0, 255, 135, 0.04)),
+                        repeating-linear-gradient(90deg, rgba(0, 242, 254, 0.02) 0px, rgba(0, 242, 254, 0.02) 4px, transparent 4px, transparent 60px);
+        }
+
+        /* 08 Tech Stack: Circuit Board PCB Traces */
+        .deco-tech {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.08) 0%, transparent 60%),
+                        linear-gradient(90deg, rgba(0, 255, 135, 0.03) 2px, transparent 2px),
+                        linear-gradient(rgba(0, 255, 135, 0.03) 2px, transparent 2px);
+            background-size: 100% 100%, 60px 60px, 60px 60px;
+        }
+
+        /* 09 Architecture: 3-Tier Layered Plane Guides */
+        .deco-arch {
+            background: linear-gradient(180deg, rgba(0, 242, 254, 0.05) 0%, rgba(176, 38, 255, 0.05) 50%, rgba(0, 255, 135, 0.05) 100%),
+                        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 30px);
+        }
+
+        /* 10 Flow: Sequential Pipeline Chevrons */
+        .deco-flow {
+            background: repeating-linear-gradient(90deg, rgba(0, 242, 254, 0.03) 0px, rgba(0, 242, 254, 0.03) 2px, transparent 2px, transparent 50px);
+        }
+
+        /* 11 Performance: Speedometer Telemetry Arcs */
+        .deco-perf {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.1) 0%, transparent 55%),
+                        radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 255, 135, 0.05) 41%, transparent 42%);
+        }
+
+        /* 12 Result 1 (Login): Biometric Cyber Vault Hexagon */
+        .deco-login {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 50%),
+                        repeating-radial-gradient(circle at 80% 50%, transparent 0, transparent 40px, rgba(0, 242, 254, 0.03) 40px, rgba(0, 242, 254, 0.03) 42px);
+        }
+
+        /* 13 Result 2 (OCR & Voice): Optic Scan Laser & Audio Waveform */
+        .deco-ocr {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        repeating-linear-gradient(90deg, transparent 0, transparent 10px, rgba(0, 255, 135, 0.02) 10px, rgba(0, 255, 135, 0.02) 12px);
+        }
+
+        /* 14 Result 3 (Analytics): Financial Market Trend Matrix */
+        .deco-analytics {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.12) 0%, transparent 50%),
+                        linear-gradient(to top, rgba(0, 242, 254, 0.04) 0%, transparent 60%);
+        }
+
+        /* 15 Result 4 (Khata): WhatsApp Dialogue Ledger Rings */
+        .deco-khata {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        radial-gradient(circle at 20% 50%, rgba(176, 38, 255, 0.08) 0%, transparent 50%);
+        }
+
+        /* 16 Result 5 (Database): ACID Cylinder Wireframe Backdrop */
+        .deco-database {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 50%),
+                        linear-gradient(90deg, rgba(0, 242, 254, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px;
+        }
+
+        /* 17 Result 6 (RAG Chat): Neural Synaptic Brain Network */
+        .deco-rag {
+            background: radial-gradient(circle at 80% 50%, rgba(176, 38, 255, 0.16) 0%, transparent 55%),
+                        radial-gradient(circle at 20% 30%, rgba(0, 242, 254, 0.08) 0%, transparent 45%);
+        }
+
+        /* 18 Result 7 (Staff): Security Shield Perimeter & Audit Log */
+        .deco-staff {
+            background: radial-gradient(circle at 80% 50%, rgba(79, 172, 254, 0.14) 0%, transparent 50%),
+                        repeating-linear-gradient(0deg, rgba(79, 172, 254, 0.02) 0px, rgba(79, 172, 254, 0.02) 2px, transparent 2px, transparent 25px);
+        }
+
+        /* 19 Result 8 (Reports): Thermal Receipt Barcode Stripes */
+        .deco-reports {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 3px, transparent 3px, transparent 18px);
+        }
+
+        /* 20 Advantages: Diamond Prism Polygon Facets */
+        .deco-advantages {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.1) 0%, transparent 60%),
+                        repeating-linear-gradient(45deg, rgba(0, 255, 135, 0.02) 0px, rgba(0, 255, 135, 0.02) 2px, transparent 2px, transparent 35px);
+        }
+
+        /* 21 Limitations: Cautionary Hazard Disconnect Pattern */
+        .deco-limitations {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 0, 85, 0.1) 0%, transparent 60%),
+                        repeating-linear-gradient(-45deg, rgba(255, 0, 85, 0.03) 0px, rgba(255, 0, 85, 0.03) 3px, transparent 3px, transparent 28px);
+        }
+
+        /* 22 Future: Hyperspace Warp Velocity Rails */
+        .deco-future {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 60%),
+                        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 50px, rgba(0, 242, 254, 0.03) 50px, rgba(0, 242, 254, 0.03) 52px);
+        }
+
+        /* 23 Conclusion: Grand Radiant Aurora Horizon */
+        .deco-conclusion {
+            background: radial-gradient(ellipse at 50% 100%, rgba(0, 255, 135, 0.16) 0%, rgba(0, 242, 254, 0.08) 40%, transparent 70%),
+                        radial-gradient(circle at 50% 30%, rgba(176, 38, 255, 0.08) 0%, transparent 50%);
+        }
+
     </style>
 </head>
 
@@ -891,6 +1052,7 @@
 
             <!-- SLIDE 01: TITLE / COVER SLIDE -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-cover"></div>
                 <div class="hero-container">
                     <div class="hero-badge">B.Tech Computer Engineering • Major Project Final Defense</div>
                     <h1 class="hero-title">VernaLedger.AI<br><span style="font-size: 0.6em; font-weight:700; color:#fff; -webkit-text-fill-color: #fff;">Merchant Pro v7.5</span></h1>
@@ -915,6 +1077,7 @@
             
             <!-- SLIDE 02: INTRODUCTION -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-intro"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">02 • Project Overview</div>
                     <h2 class="slide-title">Introduction: VernaLedger.AI Suite</h2>
@@ -962,6 +1125,7 @@
 
             <!-- SLIDE 03: PROBLEM STATEMENT -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-problems"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">03 • Market Realities</div>
                     <h2 class="slide-title">Problem Statement</h2>
@@ -1009,6 +1173,7 @@
 
             <!-- SLIDE 04: MOTIVATION -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-motivation"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">04 • The Vision</div>
                     <h2 class="slide-title">Motivation</h2>
@@ -1047,6 +1212,7 @@
 
             <!-- SLIDE 05: GAP ANALYSIS (UPDATED MARKET COMPARISON - NO BHARATPE, REAL COMPETITORS) -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-gap"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">05 • Competitive Benchmarks</div>
                     <h2 class="slide-title">Gap Analysis</h2>
@@ -1129,6 +1295,7 @@
 
             <!-- SLIDE 06: PROJECT OBJECTIVES -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-objectives"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">06 • Core Mission</div>
                     <h2 class="slide-title">Project Objectives</h2>
@@ -1176,6 +1343,7 @@
 
             <!-- SLIDE 07: PROPOSED SYSTEM -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-pipeline"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">07 • Operational Architecture</div>
                     <h2 class="slide-title">Proposed System</h2>
@@ -1223,6 +1391,7 @@
 
             <!-- SLIDE 08: TECHNOLOGIES & TOOLS -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-tech"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">08 • Engineering Stack</div>
                     <h2 class="slide-title">Technologies &amp; Tools</h2>
@@ -1276,6 +1445,7 @@
 
             <!-- SLIDE 09: SYSTEM ARCHITECTURE -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-arch"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">09 • Structural Design</div>
                     <h2 class="slide-title">System Architecture</h2>
@@ -1310,6 +1480,7 @@
 
             <!-- SLIDE 10: WORKING FLOW -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-flow"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">10 • Execution Pipeline</div>
                     <h2 class="slide-title">Working Flow</h2>
@@ -1351,6 +1522,7 @@
 
             <!-- SLIDE 11: PERFORMANCE ANALYSIS -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-perf"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">11 • Empirical Evaluation</div>
                     <h2 class="slide-title">Performance Analysis</h2>
@@ -1380,6 +1552,7 @@
 
             <!-- SLIDE 12: RESULT 1 - LOGIN PORTAL -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-login"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 1: Secure Login Portal</h2>
@@ -1414,6 +1587,7 @@
 
             <!-- SLIDE 13: RESULT 2 - OCR & VOICE BILLING -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-ocr"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 2: OCR &amp; Voice Billing Module</h2>
@@ -1448,6 +1622,7 @@
 
             <!-- SLIDE 14: RESULT 3 - MERCHANT ANALYTICS HUB -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-analytics"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 3: Merchant Analytics Hub</h2>
@@ -1482,6 +1657,7 @@
 
             <!-- SLIDE 15: RESULT 4 - CUSTOMER KHATA (UDHARI) -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-khata"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 4: Customer Khata (Udhari)</h2>
@@ -1516,6 +1692,7 @@
 
             <!-- SLIDE 16: RESULT 5 - LEDGER DATABASE EDITOR -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-database"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 5: Ledger Database Editor</h2>
@@ -1550,6 +1727,7 @@
 
             <!-- SLIDE 17: RESULT 6 - NEURAL AI STUDIO (RAG) -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-rag"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 6: Neural AI Studio (RAG)</h2>
@@ -1584,6 +1762,7 @@
 
             <!-- SLIDE 18: RESULT 7 - STAFF MANAGEMENT & AUDIT -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-staff"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 7: Staff Management &amp; Audit</h2>
@@ -1618,6 +1797,7 @@
 
             <!-- SLIDE 19: RESULT 8 - CLEAN REPORTS & EXPORTS (NOW WITH SCREENSHOT!) -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-reports"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">19 • Live System Showcase</div>
                     <h2 class="slide-title">Result 8: Clean Reports &amp; Exports</h2>
@@ -1652,6 +1832,7 @@
 
             <!-- SLIDE 20: ADVANTAGES & STRENGTHS -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-advantages"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">20 • Value Proposition</div>
                     <h2 class="slide-title">Advantages &amp; Strengths</h2>
@@ -1690,6 +1871,7 @@
 
             <!-- SLIDE 21: SYSTEM LIMITATIONS -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-limitations"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">21 • Engineering Constraints</div>
                     <h2 class="slide-title">System Limitations</h2>
@@ -1719,6 +1901,7 @@
 
             <!-- SLIDE 22: FUTURE ENHANCEMENTS -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-future"></div>
                 <div class="slide-title-wrap">
                     <div class="slide-badge">22 • Future Roadmap</div>
                     <h2 class="slide-title">Future Enhancements</h2>
@@ -1766,6 +1949,7 @@
 
             <!-- SLIDE 23: CONCLUSION & Q&A -->
             <section data-auto-animate>
+                <div class="slide-bg-deco deco-conclusion"></div>
                 <div class="hero-container" style="max-width: 950px;">
                     <div class="hero-badge" style="color: var(--neon-green); border-color: rgba(0, 255, 135, 0.4);">Final Defense • Concluding Remarks</div>
                     <h1 class="hero-title" style="font-size: 3.2rem !important; margin-bottom: 12px;">Conclusion &amp; Q&amp;A</h1>
