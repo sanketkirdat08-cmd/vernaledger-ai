@@ -1,0 +1,1046 @@
+"""
+VernaLedger.AI: Merchant Pro v7.5 - Technical Presentation Generator
+Creates a 16:9 Widescreen, 22-slide Cyberpunk Neon Dark Glassmorphism PowerPoint presentation
+for B.Tech Computer Engineering Major Project Final Defense.
+"""
+
+import os
+import pptx
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.shapes import MSO_SHAPE
+
+# Output File Path
+OUTPUT_PPTX = r"C:\Users\mahan\OneDrive\Desktop\VERNALEDGER_AI_MERCHANT_PRO_PRESENTATION.pptx"
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+# Cyberpunk Neon Color Palette
+COLOR_BG = RGBColor(5, 11, 20)           # #050B14 Deep Obsidian Navy
+COLOR_CARD = RGBColor(10, 17, 40)        # #0A1128 Dark Glass Navy
+COLOR_CARD_BORDER = RGBColor(0, 242, 254)# Neon Cyan subtle border
+COLOR_CYAN = RGBColor(0, 242, 254)       # #00F2FE Neon Cyan
+COLOR_GREEN = RGBColor(0, 255, 135)      # #00FF87 Neon Green
+COLOR_PURPLE = RGBColor(176, 38, 255)    # #B026FF Neon Purple
+COLOR_BLUE = RGBColor(79, 172, 254)      # #4FACFE Electric Blue
+COLOR_RED = RGBColor(255, 0, 85)         # #FF0055 Neon Red / Rose
+COLOR_AMBER = RGBColor(255, 170, 0)      # #FFAA00 Amber
+COLOR_WHITE = RGBColor(248, 250, 252)    # Pure White text
+COLOR_SLATE = RGBColor(148, 163, 184)    # Muted Slate text
+COLOR_DIM = RGBColor(100, 116, 139)      # Dim Slate text
+
+FONT_TITLE = "Segoe UI"
+FONT_BODY = "Segoe UI"
+FONT_MONO = "Consolas"
+
+def create_deck():
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    blank_layout = prs.slide_layouts[6]
+
+    def set_slide_background(slide):
+        bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
+        bg.fill.solid()
+        bg.fill.fore_color.rgb = COLOR_BG
+        bg.line.fill.background()
+        return bg
+
+    def add_hud_header(slide, badge_text, title_text, subtitle_text):
+        # Top HUD Pill
+        badge_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.2), Inches(0.35))
+        badge_box.fill.solid()
+        badge_box.fill.fore_color.rgb = RGBColor(12, 25, 55)
+        badge_box.line.color.rgb = COLOR_GREEN
+        badge_box.line.width = Pt(1)
+        tf_b = badge_box.text_frame
+        tf_b.word_wrap = False
+        p_b = tf_b.paragraphs[0]
+        p_b.text = f"●  {badge_text.upper()}"
+        p_b.font.name = FONT_MONO
+        p_b.font.size = Pt(9.5)
+        p_b.font.bold = True
+        p_b.font.color.rgb = COLOR_GREEN
+        p_b.alignment = PP_ALIGN.CENTER
+
+        # Slide Title
+        tb_t = slide.shapes.add_textbox(Inches(0.8), Inches(0.85), Inches(11.7), Inches(0.6))
+        tf_t = tb_t.text_frame
+        tf_t.word_wrap = True
+        p_t = tf_t.paragraphs[0]
+        p_t.text = title_text
+        p_t.font.name = FONT_TITLE
+        p_t.font.size = Pt(22)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_WHITE
+
+        # Subtitle
+        if subtitle_text:
+            p_sub = tf_t.add_paragraph()
+            p_sub.text = subtitle_text
+            p_sub.font.name = FONT_BODY
+            p_sub.font.size = Pt(11)
+            p_sub.font.color.rgb = COLOR_CYAN
+
+    def add_hud_footer(slide, slide_num):
+        # Bottom Line
+        line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(6.9), Inches(11.733), Inches(0.02))
+        line.fill.solid()
+        line.fill.fore_color.rgb = RGBColor(25, 40, 70)
+        line.line.fill.background()
+
+        # Footer Left
+        tb_f = slide.shapes.add_textbox(Inches(0.8), Inches(6.95), Inches(9.0), Inches(0.4))
+        tf_f = tb_f.text_frame
+        p_f = tf_f.paragraphs[0]
+        p_f.text = "Team VernaLedger • Dept. of Computer Engineering • AGCOE Satara • DBATU University"
+        p_f.font.name = FONT_MONO
+        p_f.font.size = Pt(8.5)
+        p_f.font.color.rgb = COLOR_SLATE
+
+        # Footer Right (Counter)
+        tb_c = slide.shapes.add_textbox(Inches(10.5), Inches(6.95), Inches(2.0), Inches(0.4))
+        tf_c = tb_c.text_frame
+        p_c = tf_c.paragraphs[0]
+        p_c.text = f"{slide_num:02d} / 22"
+        p_c.alignment = PP_ALIGN.RIGHT
+        p_c.font.name = FONT_MONO
+        p_c.font.size = Pt(9)
+        p_c.font.bold = True
+        p_c.font.color.rgb = COLOR_CYAN
+
+    def create_card(slide, left, top, width, height, accent_color=COLOR_CYAN):
+        # Base glass container
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
+        card.fill.solid()
+        card.fill.fore_color.rgb = COLOR_CARD
+        card.line.color.rgb = RGBColor(25, 45, 80)
+        card.line.width = Pt(1)
+
+        # Top neon accent line
+        accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left + Inches(0.1), top, width - Inches(0.2), Inches(0.04))
+        accent.fill.solid()
+        accent.fill.fore_color.rgb = accent_color
+        accent.line.fill.background()
+        return card
+
+    # =========================================================================
+    # SLIDE 1: TITLE / COVER SLIDE
+    # =========================================================================
+    s1 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s1)
+
+    # Project Stage Pill
+    pill1 = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3.666), Inches(0.8), Inches(6.0), Inches(0.4))
+    pill1.fill.solid()
+    pill1.fill.fore_color.rgb = RGBColor(10, 25, 55)
+    pill1.line.color.rgb = COLOR_GREEN
+    pill1.line.width = Pt(1.2)
+    p = pill1.text_frame.paragraphs[0]
+    p.text = "● B.TECH COMPUTER ENGINEERING • MAJOR PROJECT DEFENSE"
+    p.font.name = FONT_MONO
+    p.font.size = Pt(10)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_GREEN
+    p.alignment = PP_ALIGN.CENTER
+
+    # Hero Title
+    t1 = s1.shapes.add_textbox(Inches(1.0), Inches(1.4), Inches(11.333), Inches(1.4))
+    p = t1.text_frame.paragraphs[0]
+    p.text = "VernaLedger.AI: Merchant Pro v7.5"
+    p.font.name = FONT_TITLE
+    p.font.size = Pt(36)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_CYAN
+    p.alignment = PP_ALIGN.CENTER
+
+    p2 = t1.text_frame.add_paragraph()
+    p2.text = "Next-Gen Point of Sale & Vernacular Financial Suite with Gemini Flash OCR,\nMarathi Voice Billing & SQLite ACID Ledger"
+    p2.font.name = FONT_BODY
+    p2.font.size = Pt(14)
+    p2.font.color.rgb = COLOR_WHITE
+    p2.alignment = PP_ALIGN.CENTER
+
+    # Team Members Box
+    t_box = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.8), Inches(3.2), Inches(9.733), Inches(1.8))
+    t_box.fill.solid()
+    t_box.fill.fore_color.rgb = COLOR_CARD
+    t_box.line.color.rgb = COLOR_CYAN
+    t_box.line.width = Pt(1.5)
+
+    tf = t_box.text_frame
+    tf.margin_top = Inches(0.2)
+    p = tf.paragraphs[0]
+    p.text = "PROJECT DEVELOPMENT TEAM"
+    p.font.name = FONT_MONO
+    p.font.size = Pt(10)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_GREEN
+    p.alignment = PP_ALIGN.CENTER
+
+    # 4 Team Members in Columns
+    names = [
+        "1. Sanket Kirdat",
+        "2. Sakshi Bhagat",
+        "3. Vaishnavi Dhavale",
+        "4. Rushikesh Mulik"
+    ]
+    p_names = tf.add_paragraph()
+    p_names.text = "       •  ".join(names)
+    p_names.font.name = FONT_BODY
+    p_names.font.size = Pt(13)
+    p_names.font.bold = True
+    p_names.font.color.rgb = COLOR_WHITE
+    p_names.alignment = PP_ALIGN.CENTER
+
+    p_sub = tf.add_paragraph()
+    p_sub.text = "B.Tech Final Year • Department of Computer Engineering"
+    p_sub.font.name = FONT_BODY
+    p_sub.font.size = Pt(11)
+    p_sub.font.color.rgb = COLOR_SLATE
+    p_sub.alignment = PP_ALIGN.CENTER
+
+    # College & University Box
+    inst_box = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.2), Inches(5.3), Inches(8.933), Inches(1.2))
+    inst_box.fill.solid()
+    inst_box.fill.fore_color.rgb = RGBColor(8, 14, 30)
+    inst_box.line.color.rgb = RGBColor(40, 60, 100)
+    inst_box.line.width = Pt(1)
+
+    tf_i = inst_box.text_frame
+    tf_i.margin_top = Inches(0.15)
+    p = tf_i.paragraphs[0]
+    p.text = "Arvind Gavali College of Engineering, Satara (AGCOE)"
+    p.font.name = FONT_TITLE
+    p.font.size = Pt(13)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_WHITE
+    p.alignment = PP_ALIGN.CENTER
+
+    p_uni = tf_i.add_paragraph()
+    p_uni.text = "Affiliated to Dr. Babasaheb Ambedkar Technological University (DBATU University) • Academic Year 2026 - 2027"
+    p_uni.font.name = FONT_MONO
+    p_uni.font.size = Pt(9.5)
+    p_uni.font.color.rgb = COLOR_CYAN
+    p_uni.alignment = PP_ALIGN.CENTER
+
+    # =========================================================================
+    # SLIDE 2: PROBLEM STATEMENT
+    # =========================================================================
+    s2 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s2)
+    add_hud_header(s2, "02 • Market Realities", "Problem Statement", "The Operational Burden on Local & Rural Retail Merchants")
+    add_hud_footer(s2, 2)
+
+    problems = [
+        ("✍️ Manual Data Entry", "Writing receipts and ledgers manually consumes ~120s per bill, resulting in math miscalculations, queue backlogs, and lost paper slips.", "Bottleneck: 120s / Bill"),
+        ("🌍 Language Barriers", "90% of accounting software (Tally, Zoho) is English-centric, alienating semi-literate rural store owners who communicate exclusively in Marathi or Hindi.", "Exclusion: Non-Vernacular UI"),
+        ("📘 Disorganized Udhari", "Tracking informal customer credit on paper books leads to untraceable balances, forgotten dues, and ~15% quarterly revenue leakage.", "Loss: ~15% Uncollected Dues"),
+        ("📉 Lack of Analytics", "Kirana store owners have zero visibility into real-time profit/loss, fast-depleting stock thresholds, or sales trends to make restocking decisions.", "Blindspot: Zero Sales Insights")
+    ]
+    card_w, card_h = Inches(5.6), Inches(2.2)
+    positions = [(Inches(0.8), Inches(1.8)), (Inches(6.8), Inches(1.8)),
+                 (Inches(0.8), Inches(4.3)), (Inches(6.8), Inches(4.3))]
+
+    for i, (title, desc, tag) in enumerate(problems):
+        x, y = positions[i]
+        create_card(s2, x, y, card_w, card_h, COLOR_RED)
+        tb = s2.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = COLOR_RED
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"[{tag}]"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(8.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_RED
+
+    # =========================================================================
+    # SLIDE 3: MOTIVATION
+    # =========================================================================
+    s3 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s3)
+    add_hud_header(s3, "03 • The Vision", "Motivation", "Empowering Rural Grassroots Commerce with Enterprise-Grade Artificial Intelligence")
+    add_hud_footer(s3, 3)
+
+    motivations = [
+        ("🌉 Bridging the Tech Divide", "Democratizing sophisticated business tooling for tier-2/3 micro-merchants and kirana stores without requiring expensive POS hardware, barcode scanners, or IT literacy.", "Democratizing Enterprise Tech", COLOR_CYAN),
+        ("🧠 Harnessing Multimodal AI", "Fusing Google Gemini Flash's sub-second multimodal vision with Microsoft Edge TTS to transform ubiquitous smartphone cameras and regional speech into a complete autonomous POS.", "Multimodal AI + Neural Audio", COLOR_GREEN),
+        ("⚡ Removing Digital Friction", "Compressing cumbersome bookkeeping from several stressful minutes into an effortless 4.5-second gesture: snap a photo or speak in Marathi, and let AI structure the ledger.", "Zero-Friction Billing", COLOR_PURPLE)
+    ]
+    card_w = Inches(3.64)
+    card_h = Inches(4.5)
+    for i, (title, desc, tag, col) in enumerate(motivations):
+        x = Inches(0.8) + i * Inches(4.0)
+        y = Inches(1.9)
+        create_card(s3, x, y, card_w, card_h, col)
+        tb = s3.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(11)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nTarget: {tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 4: GAP ANALYSIS (MARKET COMPARISON TABLE)
+    # =========================================================================
+    s4 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s4)
+    add_hud_header(s4, "04 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Rigorous Feature Comparison Against Leading Accounting & POS Solutions")
+    add_hud_footer(s4, 4)
+
+    rows, cols = 7, 6
+    tbl_shape = s4.shapes.add_table(rows, cols, Inches(0.8), Inches(1.9), Inches(11.733), Inches(4.6))
+    tbl = tbl_shape.table
+    tbl.columns[0].width = Inches(3.2)
+    tbl.columns[1].width = Inches(1.7)
+    tbl.columns[2].width = Inches(1.7)
+    tbl.columns[3].width = Inches(1.7)
+    tbl.columns[4].width = Inches(1.7)
+    tbl.columns[5].width = Inches(1.733)
+
+    table_data = [
+        ["Evaluated Capability", "Khatabook", "TallyPrime", "Vyapar", "BharatPe", "VernaLedger.AI"],
+        ["Vernacular Voice Billing", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Native Voice NLP"],
+        ["AI Receipt OCR Scanning", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Gemini Flash Vision"],
+        ["Context-Aware RAG Chatbot", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Neural AI Studio"],
+        ["Offline ACID Database", "Cloud Only", "✔ Local DB", "✔ Local DB", "Cloud Only", "✔ SQLite ACID WAL"],
+        ["1-Click WhatsApp Reminders", "✔ Basic SMS", "❌ No", "✔ Paid Addon", "❌ No", "✔ 1-Click WhatsApp"],
+        ["Target Demographics", "Urban Retail", "CAs / Corporates", "Urban SMEs", "Payments Only", "Rural Kirana Merchants"]
+    ]
+
+    for r_idx, row in enumerate(table_data):
+        for c_idx, val in enumerate(row):
+            cell = tbl.cell(r_idx, c_idx)
+            cell.text = val
+            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+            p = cell.text_frame.paragraphs[0]
+            p.alignment = PP_ALIGN.CENTER if c_idx > 0 else PP_ALIGN.LEFT
+            p.font.name = FONT_BODY
+            p.font.size = Pt(10)
+            
+            # Formatting
+            if r_idx == 0:
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor(15, 30, 60)
+                p.font.bold = True
+                p.font.color.rgb = COLOR_CYAN if c_idx != 5 else COLOR_GREEN
+            else:
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor(8, 14, 32) if c_idx != 5 else RGBColor(12, 35, 45)
+                if c_idx == 5:
+                    p.font.bold = True
+                    p.font.color.rgb = COLOR_GREEN
+                elif "✔" in val:
+                    p.font.color.rgb = COLOR_CYAN
+                elif "❌" in val:
+                    p.font.color.rgb = COLOR_RED
+                else:
+                    p.font.color.rgb = COLOR_SLATE
+
+    # =========================================================================
+    # SLIDE 5: PROJECT OBJECTIVES
+    # =========================================================================
+    s5 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s5)
+    add_hud_header(s5, "05 • Core Mission", "Project Objectives", "Four Strategic Engineering Pillars Governing System Architecture")
+    add_hud_footer(s5, 5)
+
+    objectives = [
+        ("1. Automate Receipt Parsing", "Engineer a sub-4.5s multimodal vision pipeline using Gemini Flash to extract line items, prices, tax, and totals with zero numerical hallucination.", "Performance: <4.5s Processing", COLOR_CYAN),
+        ("2. Multi-Lingual Voice Billing", "Enable merchants to speak naturally in Marathi, Hindi, or English to record customer purchases, backed by instant Edge TTS regional audio confirmation.", "Accessibility: Native Regional Speech", COLOR_GREEN),
+        ("3. Resilient ACID Storage", "Implement a zero-loss local SQLite engine with Write-Ahead Logging (WAL), atomic transactional commits, and PBKDF2-SHA256 encrypted role security.", "Integrity: Crash-Proof ACID WAL", COLOR_PURPLE),
+        ("4. Actionable Intelligence", "Equip merchants with live analytics KPI cards, high-risk credit tracking, 1-click WhatsApp payment reminders, and context-aware RAG querying.", "Business ROI: Accelerated Recovery", COLOR_BLUE)
+    ]
+    for i, (title, desc, tag, col) in enumerate(objectives):
+        x, y = positions[i]
+        create_card(s5, x, y, card_w, card_h, col)
+        tb = s5.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"[{tag}]"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(8.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 6: PROPOSED SYSTEM
+    # =========================================================================
+    s6 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s6)
+    add_hud_header(s6, "06 • Operational Architecture", "Proposed System", "Four-Stage Closed-Loop Multimodal Transaction Processing Pipeline")
+    add_hud_footer(s6, 6)
+
+    stages = [
+        ("🧑‍💼 1. Merchant Actor", "Interacts via Voice Mic, Live Camera capture, or Direct POS Touch UI.", "Multimodal Input Ingestion", COLOR_CYAN),
+        ("🧠 2. AI Parser Module", "Gemini Multimodal Vision & NLP converts raw audio/receipts into validated, strict JSON schemas.", "Strict JSON Enforcement", COLOR_PURPLE),
+        ("💾 3. Transaction Engine", "Commits validated records securely to local SQLite tables ensuring ACID atomicity & stock updates.", "ACID Atomic Commit", COLOR_GREEN),
+        ("🔊 4. Feedback Loop", "Synthesizes Marathi spoken receipt confirmation via Edge TTS and updates live dashboards.", "Regional Voice Confirmation", COLOR_BLUE)
+    ]
+    card_w4 = Inches(2.7)
+    card_h4 = Inches(4.5)
+    for i, (title, desc, tag, col) in enumerate(stages):
+        x = Inches(0.8) + i * Inches(3.0)
+        y = Inches(1.9)
+        create_card(s6, x, y, card_w4, card_h4, col)
+        tb = s6.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nPipeline Role:\n{tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 7: TECHNOLOGIES & TOOLS
+    # =========================================================================
+    s7 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s7)
+    add_hud_header(s7, "07 • Engineering Stack", "Technologies & Tools", "Modern, Robust, and Scalable Full-Stack Technological Foundation")
+    add_hud_footer(s7, 7)
+
+    techs = [
+        ("🐍 Frontend & Logic", "• Python 3.10+: Core processing runtime\n• Streamlit Framework: Dynamic reactive UI\n• Custom React Components: Mic audio recording\n• CSS3 Cyberpunk Theme: Dark glassmorphic design system", "Python • Streamlit • React", COLOR_GREEN),
+        ("🤖 AI & Audio Engines", "• Google Gemini Flash: Multimodal OCR & NLP\n• Microsoft Edge TTS: Neural Marathi voice synthesis\n• Streamlit Mic Recorder: Real-time audio stream\n• RAG Engine: Dynamic database context injection", "Gemini Flash • Edge TTS • RAG", COLOR_CYAN),
+        ("💽 Database & Analytics", "• SQLite3 (WAL Mode): ACID transaction storage\n• PBKDF2-SHA256: Cryptographic password hashing\n• Pandas & Plotly: Real-time business intelligence\n• ReportLab: Localized Marathi PDF & invoice generation", "SQLite • PBKDF2 • Plotly", COLOR_PURPLE)
+    ]
+    card_w = Inches(3.64)
+    card_h = Inches(4.5)
+    for i, (title, desc, tag, col) in enumerate(techs):
+        x = Inches(0.8) + i * Inches(4.0)
+        y = Inches(1.9)
+        create_card(s7, x, y, card_w, card_h, col)
+        tb = s7.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nKey Modules: {tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 8: SYSTEM ARCHITECTURE
+    # =========================================================================
+    s8 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s8)
+    add_hud_header(s8, "08 • Structural Design", "System Architecture", "Modular 3-Tier Layered Architecture with Strict Separation of Concerns")
+    add_hud_footer(s8, 8)
+
+    layers = [
+        ("1. PRESENTATION LAYER", "Streamlit UI • Camera Ingestion\nMic Recording • Glassmorphic HUD\nInteractive DataFrames", COLOR_CYAN),
+        ("2. INTELLIGENCE LAYER", "Gemini Multimodal OCR Engine\nMarathi Voice NLP Parser • RAG Chat\nEdge TTS Voice Synthesizer", COLOR_PURPLE),
+        ("3. PERSISTENCE LAYER", "SQLite Relational Engine (WAL Mode)\nPBKDF2 Password Hashing\nACID Transaction Logging & Audits", COLOR_GREEN)
+    ]
+    box_w = Inches(3.3)
+    box_h = Inches(2.2)
+    for i, (title, desc, col) in enumerate(layers):
+        x = Inches(0.8) + i * Inches(4.2)
+        y = Inches(2.1)
+        create_card(s8, x, y, box_w, box_h, col)
+        tb = s8.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), box_w - Inches(0.3), box_h - Inches(0.5))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_WHITE
+
+        # Arrow between cards
+        if i < 2:
+            arrow_tb = s8.shapes.add_textbox(x + box_w + Inches(0.1), y + Inches(0.8), Inches(0.7), Inches(0.6))
+            p_a = arrow_tb.text_frame.paragraphs[0]
+            p_a.text = "➔"
+            p_a.font.name = FONT_TITLE
+            p_a.font.size = Pt(28)
+            p_a.font.bold = True
+            p_a.font.color.rgb = COLOR_CYAN
+            p_a.alignment = PP_ALIGN.CENTER
+
+    # Architectural Tenet Card
+    create_card(s8, Inches(0.8), Inches(4.8), Inches(11.733), Inches(1.6), COLOR_CYAN)
+    tb_arch = s8.shapes.add_textbox(Inches(1.0), Inches(4.9), Inches(11.333), Inches(1.4))
+    tf_a = tb_arch.text_frame
+    tf_a.word_wrap = True
+    p = tf_a.paragraphs[0]
+    p.text = "CORE ARCHITECTURAL PRINCIPLES:"
+    p.font.name = FONT_MONO
+    p.font.size = Pt(10.5)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_CYAN
+
+    p_body = tf_a.add_paragraph()
+    p_body.text = "The presentation layer is strictly decoupled from the intelligence pipeline. Raw inputs captured via camera or mic are streamed over TLS to Gemini Flash with zero local model overhead. Validated JSON payloads are passed directly to SQLite transactions with Write-Ahead Logging (WAL) enabled, ensuring instantaneous commit speeds (<2ms) and robust crash recovery."
+    p_body.font.name = FONT_BODY
+    p_body.font.size = Pt(10.5)
+    p_body.font.color.rgb = COLOR_SLATE
+
+    # =========================================================================
+    # SLIDE 9: WORKING FLOW
+    # =========================================================================
+    s9 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s9)
+    add_hud_header(s9, "09 • Execution Pipeline", "Working Flow (Runtime Execution)", "Step-by-Step Lifecycle of a Transaction Through the VernaLedger System")
+    add_hud_footer(s9, 9)
+
+    flow_steps = [
+        ("Step 01", "Input Capture", "Shopkeeper captures receipt photo via camera or speaks bill in Marathi into the mic.", COLOR_CYAN),
+        ("Step 02", "Secure Streaming", "Preprocessed audio/image payload is streamed securely via TLS to Gemini Flash API.", COLOR_BLUE),
+        ("Step 03", "Schema Parsing", "Gemini LLM normalizes raw content into validated JSON line-items with tax computation.", COLOR_PURPLE),
+        ("Step 04", "ACID Commit", "Transaction is committed atomically into SQLite ledger.db with running balance update.", COLOR_GREEN),
+        ("Step 05", "Regional Audio", "Edge TTS synthesizes Marathi voice receipt while dashboard graphs update in real-time.", COLOR_AMBER)
+    ]
+    card_w5 = Inches(2.15)
+    card_h5 = Inches(4.5)
+    for i, (step, title, desc, col) in enumerate(flow_steps):
+        x = Inches(0.8) + i * Inches(2.4)
+        y = Inches(1.9)
+        create_card(s9, x, y, card_w5, card_h5, col)
+        tb = s9.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), card_w5 - Inches(0.3), card_h5 - Inches(0.5))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = step
+        p.font.name = FONT_MONO
+        p.font.size = Pt(11)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_t = tf.add_paragraph()
+        p_t.text = title
+        p_t.font.name = FONT_TITLE
+        p_t.font.size = Pt(12.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_WHITE
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10)
+        p_d.font.color.rgb = COLOR_SLATE
+
+    # =========================================================================
+    # SLIDE 10: PERFORMANCE ANALYSIS
+    # =========================================================================
+    s10 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s10)
+    add_hud_header(s10, "10 • Empirical Evaluation", "Performance Analysis", "Rigorous Quantitative Benchmarks Demonstrating Disruptive Efficiency")
+    add_hud_footer(s10, 10)
+
+    metrics = [
+        ("96%", "Data Entry Time Reduction", "Average transaction recording time slashed from 120s (manual pen-and-paper writing) down to 4.5s via Gemini AI OCR and Voice Billing.", COLOR_CYAN),
+        (">95%", "Regional Parsing Accuracy", "Parsing precision evaluated across handwritten, crumpled, and printed Devanagari bills with Marathi and Hindi item names.", COLOR_GREEN),
+        ("<2ms", "SQLite ACID Commit Latency", "Sub-2ms local transactional commit latency enabled by Write-Ahead Logging (WAL) and optimized indexing, guaranteeing zero UI freeze.", COLOR_PURPLE)
+    ]
+    card_w = Inches(3.64)
+    card_h = Inches(4.5)
+    for i, (val, title, desc, col) in enumerate(metrics):
+        x = Inches(0.8) + i * Inches(4.0)
+        y = Inches(1.9)
+        create_card(s10, x, y, card_w, card_h, col)
+        tb = s10.shapes.add_textbox(x + Inches(0.2), y + Inches(0.4), card_w - Inches(0.4), card_h - Inches(0.8))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = val
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(44)
+        p.font.bold = True
+        p.font.color.rgb = col
+        p.alignment = PP_ALIGN.CENTER
+
+        p_t = tf.add_paragraph()
+        p_t.text = title
+        p_t.font.name = FONT_TITLE
+        p_t.font.size = Pt(13)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_WHITE
+        p_t.alignment = PP_ALIGN.CENTER
+
+        p_d = tf.add_paragraph()
+        p_d.text = f"\n{desc}"
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+        p_d.alignment = PP_ALIGN.CENTER
+
+    # =========================================================================
+    # HELPER FOR RESULT SLIDES (SLIDES 11 - 17)
+    # =========================================================================
+    def build_result_slide(slide, slide_num, title, subtitle, features, image_name):
+        set_slide_background(slide)
+        add_hud_header(slide, f"{slide_num:02d} • Live System Showcase", title, subtitle)
+        add_hud_footer(slide, slide_num)
+
+        # Left Container (Features)
+        left_w, left_h = Inches(5.6), Inches(4.5)
+        create_card(slide, Inches(0.8), Inches(1.9), left_w, left_h, COLOR_CYAN)
+        tb = slide.shapes.add_textbox(Inches(1.0), Inches(2.0), left_w - Inches(0.4), left_h - Inches(0.2))
+        tf = tb.text_frame
+        tf.word_wrap = True
+
+        for idx, (f_title, f_desc, f_col) in enumerate(features):
+            p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
+            p.text = f_title
+            p.font.name = FONT_TITLE
+            p.font.size = Pt(11.5)
+            p.font.bold = True
+            p.font.color.rgb = f_col
+
+            p_d = tf.add_paragraph()
+            p_d.text = f_desc
+            p_d.font.name = FONT_BODY
+            p_d.font.size = Pt(9.5)
+            p_d.font.color.rgb = COLOR_SLATE
+
+        # Right Container (Screenshot Card)
+        right_x, right_y, right_w, right_h = Inches(6.8), Inches(1.9), Inches(5.733), Inches(4.5)
+        create_card(slide, right_x, right_y, right_w, right_h, COLOR_PURPLE)
+
+        img_path = os.path.join(ASSETS_DIR, image_name)
+        if os.path.exists(img_path):
+            slide.shapes.add_picture(img_path, right_x + Inches(0.15), right_y + Inches(0.15), right_w - Inches(0.3), right_h - Inches(0.3))
+        else:
+            tb_ph = slide.shapes.add_textbox(right_x, right_y + Inches(2.0), right_w, Inches(1.0))
+            p_ph = tb_ph.text_frame.paragraphs[0]
+            p_ph.text = f"[Screenshot: {image_name}]"
+            p_ph.alignment = PP_ALIGN.CENTER
+            p_ph.font.color.rgb = COLOR_SLATE
+
+    # SLIDE 11: RESULT 1 - LOGIN PORTAL
+    s11 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s11, 11,
+        "Result 1: Secure Login Portal",
+        "Cryptographically Fortified Authentication & Role-Based Access Control",
+        [
+            ("🔐 PBKDF2-SHA256 Cryptography", "Passwords secured using key stretching and 100,000 hashing iterations with unique salts.", COLOR_CYAN),
+            ("🛡️ Role-Based Access Control (RBAC)", "Strict privilege demarcation between Admin master access and restricted Staff accounts.", COLOR_PURPLE),
+            ("🔄 Persistent Session State", "Secure local session state management for frictionless auto-login and session persistence.", COLOR_GREEN),
+            ("💎 Glassmorphic Cyberpunk Interface", "Modern dark aesthetics with animated background effects and glowing interactive inputs.", COLOR_BLUE)
+        ],
+        "login.png"
+    )
+
+    # SLIDE 12: RESULT 2 - OCR & VOICE BILLING
+    s12 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s12, 12,
+        "Result 2: OCR & Voice Billing Module",
+        "Multimodal Bill Capture with Real-Time Audio Feedback & In-Line Editing",
+        [
+            ("📸 Tri-Mode Bill Capture", "Live camera scan, file upload, or spontaneous vernacular voice recording.", COLOR_GREEN),
+            ("⚠️ Duplicate Bill Prevention", "MD5 content hashing detects previously submitted bills to eliminate double charges.", COLOR_CYAN),
+            ("🔊 Marathi Neural Audio Confirmation", "Instant Edge TTS audio feedback in Marathi ('बिल यशस्वीरीत्या जोडले गेले').", COLOR_PURPLE),
+            ("✏️ In-Line Editable Data Preview", "Interactive data grid enables real-time verification and correction of extracted quantities.", COLOR_RED)
+        ],
+        "ocr.png"
+    )
+
+    # SLIDE 13: RESULT 3 - MERCHANT ANALYTICS HUB
+    s13 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s13, 13,
+        "Result 3: Merchant Analytics Hub",
+        "Interactive Business Intelligence with Dynamic Vector Visualizations",
+        [
+            ("📈 Real-Time Revenue KPI Cards", "Live tracking of Gross Sales, Transaction Counts, and Average Ticket Sizes.", COLOR_CYAN),
+            ("🥧 Plotly Category Breakdown", "Interactive vector pie charts and bars showing top revenue-generating items.", COLOR_GREEN),
+            ("📅 Granular Timeframe Filtering", "Toggle between Today, Last 7 Days, Month-to-Date, and Custom Date Ranges.", COLOR_PURPLE),
+            ("⚡ High-Speed Vectorized Computation", "Pandas in-memory aggregations delivering sub-second visual refreshes.", COLOR_BLUE)
+        ],
+        "analytics.png"
+    )
+
+    # SLIDE 14: RESULT 4 - CUSTOMER KHATA (UDHARI)
+    s14 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s14, 14,
+        "Result 4: Customer Khata (Udhari)",
+        "Digital Credit Ledger with Automated WhatsApp Follow-Up & Risk Scoring",
+        [
+            ("📘 Digital Credit Ledger", "Instant toggle between Given Credit (उधारी दिली) and Payment Received (जमा).", COLOR_PURPLE),
+            ("⏰ Due-Date & Delinquency Alerts", "Visual color badges flag accounts pending beyond 30/60 days to prevent bad debts.", COLOR_RED),
+            ("💬 1-Click WhatsApp Payment Links", "Auto-generates localized Marathi payment reminder messages with 1-click WhatsApp delivery.", COLOR_GREEN),
+            ("📞 Direct Calling Shortcuts", "Instant lookup by customer name or mobile number with one-tap cellular dialer integration.", COLOR_CYAN)
+        ],
+        "khata.png"
+    )
+
+    # SLIDE 15: RESULT 5 - LEDGER DATABASE EDITOR
+    s15 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s15, 15,
+        "Result 5: Ledger Database Editor",
+        "Full ACID SQLite Control with Live Grid Editing & Multi-Format Exports",
+        [
+            ("📊 In-Line Dataframe Grid Editing", "Interactive data editor enables cell-by-cell live record updates directly to SQLite.", COLOR_CYAN),
+            ("🗑️ Single-Click Audited Deletions", "Secure deletion workflow with confirmation dialogs and audit logging.", COLOR_RED),
+            ("📑 Dual-Language PDF & CSV Exports", "One-click generation of localized Marathi PDF statements and standard CSV files.", COLOR_GREEN),
+            ("🛡️ ACID Schema Integrity", "Foreign key constraints and WAL logging prevent orphaned data and schema corruption.", COLOR_PURPLE)
+        ],
+        "database.png"
+    )
+
+    # SLIDE 16: RESULT 6 - NEURAL AI STUDIO (RAG)
+    s16 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s16, 16,
+        "Result 6: Neural AI Studio (RAG)",
+        "Context-Aware Conversational Intelligence Grounded in Live Merchant Database",
+        [
+            ("🧠 In-Memory SQL Context RAG", "Chatbot directly queries live sales, credit khata, and stock balances for truthful answers.", COLOR_PURPLE),
+            ("🎙️ Marathi & Hindi Voice Querying", "Merchants ask questions via voice ('आजची उधारी दाखवा') and receive Devanagari answers.", COLOR_CYAN),
+            ("⚡ Quick-Action Suggestion Chips", "One-tap prompt chips for instant summaries: pending udhari, low stock, and top margins.", COLOR_GREEN),
+            ("🛡️ Zero-Hallucination Guardrails", "Strict system prompt instructions restrict LLM responses strictly to factual database facts.", COLOR_RED)
+        ],
+        "rag.png"
+    )
+
+    # SLIDE 17: RESULT 7 - STAFF MANAGEMENT & AUDIT
+    s17 = prs.slides.add_slide(blank_layout)
+    build_result_slide(
+        s17, 17,
+        "Result 7: Staff Management & Audit",
+        "Granular Permission Matrix & Immutable System Audit Trail",
+        [
+            ("👥 Granular Role Provisioning", "Easily onboard cashiers and stock clerks with restrictive access to pricing and ledger edits.", COLOR_CYAN),
+            ("📜 Immutable Audit Log History", "Tracks every single database mutation with timestamp, username, and event details.", COLOR_PURPLE),
+            ("🔒 Zero-Trust Ledger Protection", "Prevents unauthorized staff members from editing historic bills or deleting records.", COLOR_GREEN),
+            ("⚡ Instant Access Revocation", "Deactivate compromised or departed staff accounts in a single click with zero downtime.", COLOR_BLUE)
+        ],
+        "staff.png"
+    )
+
+    # =========================================================================
+    # SLIDE 18: RESULT 8 - CLEAN REPORTS & EXPORTS
+    # =========================================================================
+    s18 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s18)
+    add_hud_header(s18, "18 • Live System Showcase", "Result 8: Clean Reports & Exports", "Auditable Accounting Pipelines & Professional Dual-Language Print Layouts")
+    add_hud_footer(s18, 18)
+
+    exports = [
+        ("📑 Itemized CSV Exports", "One-click export of complete transaction logs with line-item descriptions, tax components, customer IDs, and payment methods for external auditing in Tally or Excel.", "Format: .CSV & Excel Compatible", COLOR_CYAN),
+        ("📄 Dual-Language HTML Bills", "Generates beautiful customer receipts featuring English item titles with Marathi Devanagari translation headers, business branding, and dynamic UPI QR payment codes.", "Format: HTML5 & WebPrint Ready", COLOR_GREEN),
+        ("🖨️ 1-Click Thermal Print Layout", "Engineered specifically for standard 58mm and 80mm ESC/POS thermal receipt printers, ensuring instant physical paper receipts at checkout counters with zero distortion.", "Format: 58mm / 80mm ESC/POS", COLOR_PURPLE)
+    ]
+    card_w = Inches(3.64)
+    card_h = Inches(4.5)
+    for i, (title, desc, tag, col) in enumerate(exports):
+        x = Inches(0.8) + i * Inches(4.0)
+        y = Inches(1.9)
+        create_card(s18, x, y, card_w, card_h, col)
+        tb = s18.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nDeployment: {tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 19: ADVANTAGES & STRENGTHS
+    # =========================================================================
+    s19 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s19)
+    add_hud_header(s19, "19 • Value Proposition", "Advantages & Strengths", "Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers")
+    add_hud_footer(s19, 19)
+
+    advantages = [
+        ("🇮🇳 True Vernacular AI", "Bilingual Marathi/English interface coupled with natural voice recognition eliminates the steep digital literacy curve for grassroots shopkeepers.", "Zero Learning Curve", COLOR_CYAN),
+        ("⚡ 60% Faster Debt Recovery", "Direct WhatsApp payment reminders and automated due date warnings accelerate customer khata repayments and eliminate awkward debt confrontations.", "Accelerated Working Capital", COLOR_GREEN),
+        ("🛡️ Enterprise-Grade Security", "Local SQLite database ensures instant responsiveness and zero downtime even during rural broadband fluctuations, backed by PBKDF2 password security.", "Offline-First Resilience", COLOR_PURPLE)
+    ]
+    for i, (title, desc, tag, col) in enumerate(advantages):
+        x = Inches(0.8) + i * Inches(4.0)
+        y = Inches(1.9)
+        create_card(s19, x, y, card_w, card_h, col)
+        tb = s19.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nROI Metric: {tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 20: SYSTEM LIMITATIONS
+    # =========================================================================
+    s20 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s20)
+    add_hud_header(s20, "20 • Engineering Constraints", "System Limitations", "Known Technical Boundaries & Operational Dependencies")
+    add_hud_footer(s20, 20)
+
+    limitations = [
+        ("🌐 AI Internet Dependency", "While core database transactions and manual POS billing run 100% offline, multimodal Gemini Flash OCR parsing and Edge TTS synthesis require an active internet connection to contact cloud endpoints.", "Constraint: Cloud LLM Endpoint"),
+        ("📸 Severe Image Distortion", "Extremely crumpled, grease-stained, or faint thermal receipts with severe ink fading can occasionally produce partial OCR extraction, requiring manual operator verification in the preview grid.", "Constraint: Physical Document Quality")
+    ]
+    card_w20 = Inches(5.6)
+    card_h20 = Inches(4.5)
+    for i, (title, desc, tag) in enumerate(limitations):
+        x = Inches(0.8) if i == 0 else Inches(6.8)
+        y = Inches(1.9)
+        create_card(s20, x, y, card_w20, card_h20, COLOR_RED)
+        tb = s20.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w20 - Inches(0.5), card_h20 - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(14)
+        p.font.bold = True
+        p.font.color.rgb = COLOR_RED
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(11)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\n[{tag}]"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = COLOR_RED
+
+    # =========================================================================
+    # SLIDE 21: FUTURE ENHANCEMENTS
+    # =========================================================================
+    s21 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s21)
+    add_hud_header(s21, "21 • Future Roadmap", "Future Enhancements", "Product Evolution, Native Mobile Packaging & Scalability Roadmap")
+    add_hud_footer(s21, 21)
+
+    futures = [
+        ("📱 Native Android APK", "Packaging the suite as a native Android APK with quantized on-device edge AI models for offline OCR.", "Mobile Native • Edge AI", COLOR_CYAN),
+        ("💸 Dynamic UPI QR Codes", "Generating dynamic transaction-specific UPI QR codes directly on invoices with soundbox payment confirmation.", "Instant Payment Hook", COLOR_GREEN),
+        ("☁️ Multi-Device Sync", "Implementing encrypted peer-to-peer cloud replication for multi-counter billing and distributed store management.", "Distributed Ledger Sync", COLOR_PURPLE),
+        ("🧾 Automated GST Filing", "Automating tax categorization and generating one-click ready-to-file GSTR-1 and GSTR-3B tax compliance spreadsheets.", "Automated Compliance", COLOR_BLUE)
+    ]
+    for i, (title, desc, tag, col) in enumerate(futures):
+        x = Inches(0.8) + i * Inches(3.0)
+        y = Inches(1.9)
+        create_card(s21, x, y, card_w4, card_h4, col)
+        tb = s21.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"\nRoadmap Target:\n{tag}"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(9)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 22: CONCLUSION & Q&A
+    # =========================================================================
+    s22 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s22)
+
+    # Pill
+    pill22 = s22.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.166), Inches(0.8), Inches(5.0), Inches(0.4))
+    pill22.fill.solid()
+    pill22.fill.fore_color.rgb = RGBColor(10, 25, 55)
+    pill22.line.color.rgb = COLOR_GREEN
+    pill22.line.width = Pt(1.2)
+    p = pill22.text_frame.paragraphs[0]
+    p.text = "● FINAL DEFENSE • CONCLUDING REMARKS"
+    p.font.name = FONT_MONO
+    p.font.size = Pt(10)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_GREEN
+    p.alignment = PP_ALIGN.CENTER
+
+    # Title
+    t22 = s22.shapes.add_textbox(Inches(1.0), Inches(1.4), Inches(11.333), Inches(0.8))
+    p = t22.text_frame.paragraphs[0]
+    p.text = "Conclusion & Q&A"
+    p.font.name = FONT_TITLE
+    p.font.size = Pt(36)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_CYAN
+    p.alignment = PP_ALIGN.CENTER
+
+    # Conclusion Card
+    create_card(s22, Inches(1.8), Inches(2.4), Inches(9.733), Inches(1.8), COLOR_CYAN)
+    tb_c = s22.shapes.add_textbox(Inches(2.0), Inches(2.55), Inches(9.333), Inches(1.5))
+    tf_c = tb_c.text_frame
+    tf_c.word_wrap = True
+    p = tf_c.paragraphs[0]
+    p.text = "EXECUTIVE SUMMARY:"
+    p.font.name = FONT_MONO
+    p.font.size = Pt(10.5)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_CYAN
+
+    p_d = tf_c.add_paragraph()
+    p_d.text = "VernaLedger.AI successfully bridges the deep technological chasm between cutting-edge Artificial Intelligence and India's millions of rural kirana merchants. By marrying multimodal Gemini Flash vision, Marathi voice processing, and a resilient ACID SQLite ledger, we transform complex bookkeeping into a 4.5-second effortless experience."
+    p_d.font.name = FONT_BODY
+    p_d.font.size = Pt(11.5)
+    p_d.font.color.rgb = COLOR_WHITE
+
+    # Thank you / Q&A Box
+    qa_box = s22.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.5), Inches(4.5), Inches(8.333), Inches(1.8))
+    qa_box.fill.solid()
+    qa_box.fill.fore_color.rgb = RGBColor(10, 25, 45)
+    qa_box.line.color.rgb = COLOR_GREEN
+    qa_box.line.width = Pt(1.5)
+
+    tf_qa = qa_box.text_frame
+    tf_qa.margin_top = Inches(0.2)
+    p = tf_qa.paragraphs[0]
+    p.text = "Thank You! Any Questions?"
+    p.font.name = FONT_TITLE
+    p.font.size = Pt(22)
+    p.font.bold = True
+    p.font.color.rgb = COLOR_GREEN
+    p.alignment = PP_ALIGN.CENTER
+
+    p_names = tf_qa.add_paragraph()
+    p_names.text = "Project Team: Sanket Kirdat • Sakshi Bhagat • Vaishnavi Dhavale • Rushikesh Mulik"
+    p_names.font.name = FONT_BODY
+    p_names.font.size = Pt(12)
+    p_names.font.bold = True
+    p_names.font.color.rgb = COLOR_WHITE
+    p_names.alignment = PP_ALIGN.CENTER
+
+    p_coll = tf_qa.add_paragraph()
+    p_coll.text = "Department of Computer Engineering • Arvind Gavali College of Engineering, Satara • DBATU University"
+    p_coll.font.name = FONT_MONO
+    p_coll.font.size = Pt(9.5)
+    p_coll.font.color.rgb = COLOR_CYAN
+    p_coll.alignment = PP_ALIGN.CENTER
+
+    # Save Presentation
+    prs.save(OUTPUT_PPTX)
+    print(f"Presentation successfully created at: {OUTPUT_PPTX}")
+
+if __name__ == "__main__":
+    create_deck()

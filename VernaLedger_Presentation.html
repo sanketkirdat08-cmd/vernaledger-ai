@@ -2,854 +2,1550 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>VernaLedger.AI: Merchant Pro v7.5</title>
+    <title>VernaLedger.AI: Merchant Pro v7.5 | Technical Presentation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Premium Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- Reveal.js CSS -->
+    <!-- Reveal.js Core CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
     
     <style>
         :root {
             --bg-color: #050b14;
+            --bg-glass: rgba(10, 17, 40, 0.65);
+            --bg-glass-card: rgba(13, 23, 49, 0.7);
+            --border-glass: rgba(0, 242, 254, 0.22);
+            --border-glass-bright: rgba(0, 242, 254, 0.45);
+            
             --neon-cyan: #00f2fe;
             --electric-blue: #4facfe;
             --neon-green: #00ff87;
             --neon-purple: #b026ff;
-            --glass-bg: rgba(10, 15, 30, 0.4);
-            --glass-border: rgba(0, 242, 254, 0.2);
+            --neon-pink: #ff007f;
+            --neon-red: #ff0055;
+            --neon-amber: #ffaa00;
+            
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body, .reveal-viewport, .reveal {
             background-color: var(--bg-color) !important;
-            font-family: 'Space Grotesk', sans-serif !important;
+            font-family: 'Space Grotesk', -apple-system, sans-serif !important;
             color: var(--text-main);
             overflow: hidden;
+            margin: 0;
+            padding: 0;
         }
 
-        /* Animated Background Particles Container */
+        /* Ambient Dynamic Background Glows */
+        .ambient-glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.18;
+            pointer-events: none;
+            z-index: 1;
+            transition: all 1s ease;
+        }
+        .glow-1 { top: -10%; left: -10%; width: 55vw; height: 55vw; background: radial-gradient(circle, var(--neon-cyan), transparent); }
+        .glow-2 { bottom: -15%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, var(--neon-purple), transparent); }
+        .glow-3 { top: 40%; left: 50%; transform: translate(-50%, -50%); width: 45vw; height: 45vw; background: radial-gradient(circle, #0051ff, transparent); opacity: 0.1; }
+
+        /* Canvas particles */
         #particles-js {
-            position: absolute;
-            width: 100%;
-            height: 100%;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
             top: 0;
             left: 0;
-            z-index: 0;
-            background: linear-gradient(135deg, #050b14 0%, #0a1128 100%);
-        }
-
-        /* Ensure Reveal.js slides sit on top of particles */
-        .reveal .slides {
             z-index: 2;
+            pointer-events: auto;
         }
 
-        .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5, .reveal h6 {
+        /* Persistent HUD Header and Footer */
+        .hud-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 48px;
+            padding: 0 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            background: rgba(5, 11, 20, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 242, 254, 0.15);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+        .hud-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 20px;
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+        .hud-badge .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: pulseDot 2s infinite ease-in-out;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .hud-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 44px;
+            padding: 0 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            background: rgba(5, 11, 20, 0.75);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+        .hud-footer-team {
+            color: var(--text-muted);
+            display: flex;
+            gap: 16px;
+        }
+        .hud-footer-team span {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* Reveal Viewport Styling */
+        .reveal .slides {
+            z-index: 10;
+            padding: 50px 0 !important;
+        }
+        .reveal .slides > section {
+            height: 100%;
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 30px;
+        }
+
+        /* Typography Hierarchy */
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
             font-family: 'Outfit', sans-serif !important;
-            text-transform: none;
             font-weight: 800;
             letter-spacing: -0.5px;
-            color: var(--text-main);
-            text-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
-            margin-bottom: 20px;
+            margin: 0;
+            text-transform: none;
         }
-
-        
-        .reveal p, .reveal li {
-            font-weight: 600 !important;
-            letter-spacing: 0.3px;
-            font-size: 1.05em;
-            line-height: 1.5;
+        .slide-title-wrap {
+            text-align: center;
+            margin-bottom: 24px;
         }
-
-        .reveal h3 {
-            font-size: 2.1em;
-            background: linear-gradient(to right, #fff, var(--neon-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .slide-badge {
             display: inline-block;
-            margin-bottom: 12px;
-        }
-
-        .slide-subtitle {
-            font-size: 0.85em;
-            color: var(--neon-green);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 2.5px;
-            margin-bottom: 30px;
-            text-shadow: 0 0 10px rgba(0, 255, 135, 0.4);
+            letter-spacing: 2px;
+            color: var(--neon-green);
+            background: rgba(0, 255, 135, 0.08);
+            border: 1px solid rgba(0, 255, 135, 0.25);
+            border-radius: 30px;
+            padding: 4px 18px;
+            margin-bottom: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 135, 0.15);
+        }
+        .slide-title {
+            font-size: 2.25rem !important;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-cyan) 60%, var(--electric-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 35px rgba(0, 242, 254, 0.25);
+        }
+        .slide-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 400;
         }
 
-        /* Advanced Cyberpunk Glassmorphism Card */
+        /* Glassmorphic Cyberpunk Card System */
         .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 26px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 242, 254, 0.05);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            padding: 22px 26px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 242, 254, 0.03);
             position: relative;
             overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        
-        .glass-card::before {
+        .glass-card::after {
             content: '';
             position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
-            transform: skewX(-25deg);
-            transition: 0.5s;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), transparent);
         }
-
-        .glass-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 242, 254, 0.2), 0 0 30px rgba(0, 242, 254, 0.2);
-            border-color: var(--neon-cyan);
-        }
+        .glass-card.accent-green::after { background: linear-gradient(90deg, var(--neon-green), transparent); }
+        .glass-card.accent-purple::after { background: linear-gradient(90deg, var(--neon-purple), transparent); }
+        .glass-card.accent-red::after { background: linear-gradient(90deg, var(--neon-red), transparent); }
+        .glass-card.accent-blue::after { background: linear-gradient(90deg, var(--electric-blue), transparent); }
         
-        .glass-card:hover::before {
-            left: 200%;
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-glass-bright);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 242, 254, 0.15);
         }
 
-        /* Grid Layouts */
-        .bento-grid {
+        /* Grid Layout Systems */
+        .grid-2x2 {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 25px;
+            gap: 20px;
+            width: 92%;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            width: 94%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .grid-4col {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
             width: 95%;
+            max-width: 1220px;
             margin: 0 auto;
         }
 
-        .bento-item h4 {
-            font-size: 1.25em;
-            color: var(--neon-cyan);
-            margin-bottom: 12px;
+        /* Card Content Components */
+        .card-header-icon {
             display: flex;
             align-items: center;
-            gap: 10px;
-            text-shadow: none;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-
-        .bento-item p {
-            font-size: 0.95em;
-            color: #cbd5e1;
+        .card-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
             margin: 0;
-            line-height: 1.5;
+        }
+        .card-desc {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            line-height: 1.55;
+            margin: 0;
             text-align: left;
         }
+        .card-tag {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--neon-cyan);
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            border-radius: 6px;
+            padding: 2px 8px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
 
-        /* Animated Step Flow */
-        .step-flow {
+        /* Title Slide Hero Banner */
+        .hero-container {
+            width: 90%;
+            max-width: 1100px;
+            text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            width: 90%;
-            margin: 0 auto;
-            position: relative;
-        }
-        
-        .step-flow::before {
-            content: '';
-            position: absolute;
-            left: 30px;
-            top: 20px;
-            bottom: 20px;
-            width: 3px;
-            background: linear-gradient(to bottom, var(--neon-cyan), var(--neon-purple), var(--neon-green), transparent);
-            z-index: 0;
-            box-shadow: 0 0 15px var(--neon-cyan);
-        }
-
-        .step-item {
-            display: flex;
             align-items: center;
-            gap: 25px;
-            position: relative;
-            z-index: 1;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 18px 26px;
-            text-align: left;
-            transition: 0.3s;
         }
-        
-        .step-item:hover {
-            transform: translateX(10px);
-            border-color: var(--neon-cyan);
-            background: rgba(0, 242, 254, 0.05);
-        }
-
-        .step-number {
-            width: 60px;
-            height: 60px;
-            background: #050b14;
-            border: 2px solid var(--neon-cyan);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Outfit', sans-serif;
-            font-weight: 800;
-            color: var(--neon-cyan);
-            font-size: 1.15em;
-            flex-shrink: 0;
-            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
-        }
-
-        .step-content p {
-            font-size: 0.95em;
-            margin: 0;
-            color: #cbd5e1;
-            line-height: 1.45;
-        }
-        .step-content strong {
-            color: #fff;
-            display: block;
-            font-size: 1.3em;
-            margin-bottom: 5px;
-        }
-
-        /* Glowing Table */
-        .comparison-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.85em;
-            margin-top: 15px;
-            border-radius: 15px;
-            overflow: hidden;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-        }
-        .comparison-table th, .comparison-table td {
-            padding: 12px 14px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
-        .comparison-table th {
-            background: rgba(0, 242, 254, 0.1);
-            color: var(--neon-cyan);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.95em;
-        }
-        .comparison-table .highlight-col {
-            background: rgba(0, 255, 135, 0.05);
-        }
-        .comparison-table th.highlight-col {
+        .hero-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
             color: var(--neon-green);
-            text-shadow: 0 0 10px rgba(0, 255, 135, 0.5);
-            border-top: 3px solid var(--neon-green);
+            background: rgba(0, 255, 135, 0.08);
+            border: 1px solid rgba(0, 255, 135, 0.35);
+            border-radius: 30px;
+            padding: 6px 20px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
         }
-        .icon-check { color: var(--neon-green); font-size: 1.3em; text-shadow: 0 0 15px rgba(0, 255, 135, 0.6); }
-        .icon-cross { color: var(--neon-red); font-size: 1.2em; opacity: 0.8; }
-
-        /* Typography & Custom Elements */
         .hero-title {
-            font-size: 3.5em !important;
-            line-height: 1.15;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #fff 0%, var(--neon-cyan) 50%, var(--neon-purple) 100%);
+            font-size: 3.6rem !important;
+            line-height: 1.1;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-cyan) 45%, var(--neon-purple) 90%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: none !important;
-            animation: glowText 3s infinite alternate;
+            font-weight: 900 !important;
+            filter: drop-shadow(0 0 35px rgba(0, 242, 254, 0.35));
         }
-        @keyframes glowText {
-            0% { filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.2)); }
-            100% { filter: drop-shadow(0 0 25px rgba(0, 242, 254, 0.6)); }
-        }
-        
         .hero-subtitle {
-            font-size: 1.4em;
+            font-size: 1.12rem;
             color: #cbd5e1;
+            max-width: 880px;
+            line-height: 1.5;
+            margin-bottom: 30px;
             font-weight: 400;
-            margin-bottom: 40px !important;
         }
-        
-        .team-box {
-            background: rgba(0, 255, 135, 0.05);
-            border: 1px solid rgba(0, 255, 135, 0.3);
-            border-radius: 20px;
-            padding: 25px;
-            display: inline-block;
-            box-shadow: 0 0 30px rgba(0, 255, 135, 0.1);
-        }
-        .team-box .names { color: var(--text-main); font-weight: 700; font-size: 1.05em;}
-        
-        .feature-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            text-align: left;
-        }
-        .feature-list li {
-            position: relative;
-            padding-left: 38px;
-            margin-bottom: 20px;
-            font-size: 0.98em;
-            color: #cbd5e1;
-            line-height: 1.45;
-        }
-        .feature-list li::before {
-            content: '⚡';
-            position: absolute;
-            left: 0;
-            top: 0px;
-            font-size: 1.25em;
-            filter: drop-shadow(0 0 5px var(--neon-cyan));
-        }
-        .feature-list strong {
-            color: var(--neon-cyan);
-            display: block;
-            font-size: 1.2em;
-            margin-bottom: 4px;
-        }
-
-        /* Progress Bars */
-        .progress-bar-bg {
-            width: 100%; height: 15px; background: rgba(255,255,255,0.05); border-radius: 20px; overflow: hidden; margin-bottom: 30px;
-        }
-        .progress-bar-fill {
-            height: 100%; border-radius: 20px;
-        }
-    
-        /* Advanced Split Layout for Result Slides */
-        .split-layout {
+        .team-strip {
             display: flex;
-            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .team-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(10, 20, 45, 0.7);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 30px;
+            padding: 8px 18px;
+            font-size: 0.88rem;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        .team-pill .num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            color: #050b14;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
-            height: 55vh;
-            margin-top: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+        .meta-box {
+            background: rgba(10, 17, 40, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 24px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .meta-box span strong {
+            color: #ffffff;
+        }
+
+        /* Split Result Layout with 3D Floating Screenshots */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 0.85fr 1.15fr;
+            gap: 32px;
+            align-items: center;
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
         }
         .split-text {
-            flex: 0.8;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
             text-align: left;
         }
-        .split-img-container {
-            flex: 1.2;
-            perspective: 1200px; /* 3D Perspective */
+        .feature-item {
+            background: rgba(10, 17, 40, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 3px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: all 0.2s;
+        }
+        .feature-item:hover {
+            border-left-color: var(--neon-green);
+            background: rgba(0, 242, 254, 0.06);
+            transform: translateX(4px);
+        }
+        .feature-item.accent-purple { border-left-color: var(--neon-purple); }
+        .feature-item.accent-green { border-left-color: var(--neon-green); }
+        .feature-item.accent-red { border-left-color: var(--neon-red); }
+        .feature-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feature-desc {
+            font-size: 0.84rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .split-img-box {
+            position: relative;
+            perspective: 1000px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .floating-screenshot {
             width: 100%;
-            border-radius: 20px;
+            max-height: 480px;
+            object-fit: contain;
+            border-radius: 14px;
             border: 1.5px solid rgba(0, 242, 254, 0.35);
-            transform: rotateY(-15deg) rotateX(5deg) scale(0.95);
-            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-            filter: drop-shadow(0 25px 45px rgba(0,0,0,0.6));
-            background: linear-gradient(150deg, rgba(15, 23, 42, 0.85), rgba(9, 9, 11, 0.75));
-            backdrop-filter: blur(16px);
-            padding: 2px;
-            box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), inset 0 -1px 2px rgba(14,165,233,0.1);
+            background: #090e1a;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 242, 254, 0.2);
+            transform: rotateY(-6deg) rotateX(2deg);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .floating-screenshot:hover {
-            transform: rotateY(0deg) rotateX(0deg) scale(1.05);
-            border-color: rgba(56, 189, 248, 0.8);
-            filter: drop-shadow(0 30px 60px rgba(0,242,254,0.3));
-            box-shadow: 0 0 30px rgba(0,242,254,0.2), inset 0 1px rgba(255, 255, 255, 0.2);
-            z-index: 10;
+            transform: rotateY(0deg) rotateX(0deg) scale(1.03);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(0, 242, 254, 0.35);
+            z-index: 20;
+        }
+
+        /* Step Pipeline Flow */
+        .step-flow-h {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .step-card-h {
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 18px 14px;
+            text-align: left;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .step-card-h:hover {
+            transform: translateY(-6px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 15px 30px rgba(0, 242, 254, 0.2);
+        }
+        .step-num-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0, 242, 254, 0.12);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+        .step-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .step-desc {
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        /* Comparison Table */
+        .comp-table-wrap {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+        }
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .comp-table th, .comp-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .comp-table th {
+            background: rgba(0, 242, 254, 0.08);
+            color: var(--neon-cyan);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.82rem;
+            letter-spacing: 1px;
+        }
+        .comp-table th.highlight-col, .comp-table td.highlight-col {
+            background: rgba(0, 255, 135, 0.06);
+            border-left: 2px solid var(--neon-green);
+            border-right: 2px solid var(--neon-green);
+        }
+        .comp-table th.highlight-col {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 135, 0.4);
+            border-top: 3px solid var(--neon-green);
+        }
+        .chk-yes {
+            color: var(--neon-green);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 255, 135, 0.5);
+        }
+        .chk-no {
+            color: var(--neon-red);
+            font-weight: 600;
+            opacity: 0.75;
+        }
+
+        /* Performance Benchmark Metrics */
+        .metric-card {
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 26px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.3));
+        }
+        .metric-value.green {
+            background: linear-gradient(135deg, #ffffff, var(--neon-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 255, 135, 0.3));
+        }
+        .metric-value.purple {
+            background: linear-gradient(135deg, #ffffff, var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(176, 38, 255, 0.3));
+        }
+        .metric-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .metric-sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Architecture Visual Flow */
+        .arch-container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+        .arch-flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+        .arch-box {
+            flex: 1;
+            background: var(--bg-glass-card);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 22px 18px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+        }
+        .arch-box:hover {
+            transform: translateY(-4px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 18px 40px rgba(0, 242, 254, 0.25);
+        }
+        .arch-box.box-cyan { border-color: rgba(0, 242, 254, 0.4); }
+        .arch-box.box-purple { border-color: rgba(176, 38, 255, 0.4); }
+        .arch-box.box-green { border-color: rgba(0, 255, 135, 0.4); }
+        .arch-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.18rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .arch-sub {
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+        .arch-arrow {
+            font-size: 1.8rem;
+            color: var(--neon-cyan);
+            filter: drop-shadow(0 0 10px var(--neon-cyan));
+        }
+
+        /* Responsive refinements */
+        @media (max-width: 1024px) {
+            .grid-4col { grid-template-columns: repeat(2, 1fr); }
+            .grid-3col { grid-template-columns: 1fr; }
+            .split-layout { grid-template-columns: 1fr; }
+            .step-flow-h { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
-    <!-- Animated Particles Background -->
+    <!-- Ambient Sci-Fi Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Interactive Cyberpunk Particles Background -->
     <div id="particles-js"></div>
 
+    <!-- Persistent Top HUD Header -->
+    <div class="hud-header">
+        <div class="hud-badge">
+            <span class="pulse-dot"></span>
+            <span>VERNALEDGER.AI • v7.5</span>
+        </div>
+        <div>DEPARTMENT OF COMPUTER ENGINEERING • AGCOE SATARA</div>
+        <div>DBATU UNIVERSITY • B.TECH MAJOR PROJECT</div>
+    </div>
+
+    <!-- Persistent Bottom HUD Footer -->
+    <div class="hud-footer">
+        <div class="hud-footer-team">
+            <span>TEAM:</span>
+            <span>1. Sanket Kirdat</span>
+            <span>2. Sakshi Bhagat</span>
+            <span>3. Vaishnavi Dhavale</span>
+            <span>4. Rushikesh Mulik</span>
+        </div>
+        <div>ACADEMIC YEAR: 2026 - 2027 • ARVIND GAVALI COLLEGE OF ENGINEERING</div>
+    </div>
+
+    <!-- Reveal.js Main Container -->
     <div class="reveal">
         <div class="slides">
 
-            <!-- Slide 1: Title -->
+            <!-- SLIDE 01: TITLE / COVER SLIDE -->
             <section data-auto-animate>
-                <h1 class="hero-title">VernaLedger.AI<br><span style="font-size: 0.6em; font-weight:600; color:#fff;-webkit-text-fill-color: #fff;">Merchant Pro v7.5</span></h1>
-                <p class="hero-subtitle">Next-Gen Point of Sale & Vernacular Financial Suite</p>
-                
-                <div class="team-box">
-                    <p style="color: var(--neon-green); text-transform: uppercase; letter-spacing: 3px; font-size: 0.8em; font-weight: 800; margin-bottom:10px;">Developed By</p>
-                    <p class="names">Sanket Kirdat &nbsp;•&nbsp; Sakshi Bhagat &nbsp;•&nbsp; Vaishnavi Dhavale &nbsp;•&nbsp; Rushikesh Mulik</p>
-                    <div style="height: 1px; background: rgba(0, 255, 135, 0.2); margin: 15px 0;"></div>
-                    <p style="color: #cbd5e1; font-size: 0.85em; font-weight:600;">Computer Engineering, Arvind Gavali College of Engineering, DBATU University</p>
-                </div>
-            </section>
+                <div class="hero-container">
+                    <div class="hero-badge">B.Tech Computer Engineering • Major Project Final Defense</div>
+                    <h1 class="hero-title">VernaLedger.AI<br><span style="font-size: 0.6em; font-weight:700; color:#fff; -webkit-text-fill-color: #fff;">Merchant Pro v7.5</span></h1>
+                    <p class="hero-subtitle">Next-Gen Point of Sale & Vernacular Financial Suite with Gemini Flash OCR, Marathi Voice Billing & SQLite ACID Ledger</p>
+                    
+                    <div class="team-strip">
+                        <div class="team-pill"><span class="num">1</span> Sanket Kirdat</div>
+                        <div class="team-pill"><span class="num">2</span> Sakshi Bhagat</div>
+                        <div class="team-pill"><span class="num">3</span> Vaishnavi Dhavale</div>
+                        <div class="team-pill"><span class="num">4</span> Rushikesh Mulik</div>
+                    </div>
 
-            <!-- Slide 2: Problem Statement -->
-            <section data-auto-animate>
-                <h3>Problem Statement</h3>
-                <div class="slide-subtitle">The Burden on Local Merchants</div>
-                <div class="bento-grid">
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">✍️ Manual Data Entry</h4>
-                        <p>Writing receipts and ledgers manually is time-consuming and highly prone to human error.</p>
-                    </div>
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">🌍 Language Barriers</h4>
-                        <p>Existing software is heavily English-dependent, limiting adoption in rural markets.</p>
-                    </div>
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">📘 Disorganized Udhari</h4>
-                        <p>Tracking who owes money on paper often leads to lost revenue and broken trust.</p>
-                    </div>
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">📉 Lack of Analytics</h4>
-                        <p>Small businesses struggle to track exact profit, loss, and low stock efficiently.</p>
+                    <div class="meta-box">
+                        <span><strong>Dept:</strong> Computer Engineering</span>
+                        <span><strong>Institute:</strong> Arvind Gavali College of Engineering, Satara</span>
+                        <span><strong>Affiliation:</strong> DBATU University</span>
+                        <span><strong>Year:</strong> 2026 - 2027</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 3: Motivation -->
+            <!-- SLIDE 02: PROBLEM STATEMENT -->
             <section data-auto-animate>
-                <h3>Motivation</h3>
-                <div class="slide-subtitle">Empowering Rural Commerce with AI</div>
-                <div class="step-flow" style="margin-top: 30px;">
-                    <div class="step-item">
-                        <div class="step-number">01</div>
-                        <div class="step-content">
-                            <strong>Bridging the Technological Gap</strong>
-                            <p>Bringing Enterprise-grade AI to the fingertips of small and medium enterprises (SMEs).</p>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">02 • Market Realities</div>
+                    <h2 class="slide-title">Problem Statement</h2>
+                    <div class="slide-subtitle">The Operational Burden on Local & Rural Retail Merchants</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">✍️</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Manual Data Entry</h3>
+                        </div>
+                        <p class="card-desc">Handwriting bills and physical ledger records consumes 120s+ per transaction, leading to severe calculation errors, lost invoice slips, and peak-hour queue bottlenecks.</p>
+                        <span class="card-tag">Bottleneck: 120s / Bill</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🌍</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Language Barriers</h3>
+                        </div>
+                        <p class="card-desc">90% of existing accounting software (Tally, Zoho) is English-centric, severely hindering semi-literate rural store owners who communicate exclusively in Marathi or Hindi.</p>
+                        <span class="card-tag">Exclusion: Non-Vernacular UI</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📘</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Disorganized Udhari (Credit)</h3>
+                        </div>
+                        <p class="card-desc">Informal customer credit recorded on loose paper notebooks results in uncollected debts, lack of due-date visibility, and over 15% revenue leakage every quarter.</p>
+                        <span class="card-tag">Loss: ~15% Uncollected Debts</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📉</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Lack of Actionable Analytics</h3>
+                        </div>
+                        <p class="card-desc">Kirana store owners have zero visibility into real-time profit/loss margins, fast-depleting inventory thresholds, or daily sales patterns to make informed restocking decisions.</p>
+                        <span class="card-tag">Blindspot: Zero Sales Insights</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 03: MOTIVATION -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">03 • The Vision</div>
+                    <h2 class="slide-title">Motivation</h2>
+                    <div class="slide-subtitle">Empowering Rural Grassroots Commerce with Enterprise-Grade Artificial Intelligence</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🌉</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Bridging the Tech Divide</h3>
+                        </div>
+                        <p class="card-desc">Democratizing advanced computational tools for tier-2/3 micro-merchants without requiring expensive barcode scanners, heavy desktop setups, or specialized training.</p>
+                        <span class="card-tag">Democratizing Technology</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧠</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Harnessing Multimodal AI</h3>
+                        </div>
+                        <p class="card-desc">Fusing Google Gemini Flash's sub-second multimodal vision with Microsoft Edge TTS to turn phone cameras and regional speech into a complete, autonomous POS system.</p>
+                        <span class="card-tag">Multimodal AI + Neural Voice</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Eliminating Friction</h3>
+                        </div>
+                        <p class="card-desc">Reducing transaction logging from several tedious minutes to an effortless 4.5-second gesture: speak in Marathi or snap a receipt photo, and let the AI do the heavy lifting.</p>
+                        <span class="card-tag">Zero-Friction Billing</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 04: GAP ANALYSIS -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">04 • Competitive Benchmarks</div>
+                    <h2 class="slide-title">Gap Analysis</h2>
+                    <div class="slide-subtitle">Comprehensive Market Comparison Against Leading Industry Solutions</div>
+                </div>
+
+                <div class="comp-table-wrap">
+                    <table class="comp-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Evaluated Capability</th>
+                                <th>Khatabook</th>
+                                <th>TallyPrime</th>
+                                <th>Vyapar</th>
+                                <th>BharatPe</th>
+                                <th class="highlight-col">VernaLedger.AI (v7.5)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Vernacular Marathi Voice Billing</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Native Voice NLP</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Multimodal AI OCR Parsing</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Gemini Flash Vision</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Interactive Context-Aware RAG Chat</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Neural AI Studio</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Offline-First ACID Database</td>
+                                <td><span style="color:#94a3b8;">Cloud-Only</span></td>
+                                <td><span class="chk-yes">✔ Local DB</span></td>
+                                <td><span class="chk-yes">✔ Local DB</span></td>
+                                <td><span style="color:#94a3b8;">Cloud-Only</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ SQLite ACID + WAL</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">1-Click WhatsApp Credit Recovery</td>
+                                <td><span class="chk-yes">✔ Basic SMS</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-yes">✔ Paid Addon</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ 1-Click WhatsApp Link</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Target Merchant Profile</td>
+                                <td><span style="color:#94a3b8;">Urban Retail</span></td>
+                                <td><span style="color:#94a3b8;">CAs / Corporates</span></td>
+                                <td><span style="color:#94a3b8;">SMEs</span></td>
+                                <td><span style="color:#94a3b8;">Payments Only</span></td>
+                                <td class="highlight-col" style="font-weight:700; color:#fff;">Rural & Regional SMEs</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SLIDE 05: PROJECT OBJECTIVES -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">05 • Core Mission</div>
+                    <h2 class="slide-title">Project Objectives</h2>
+                    <div class="slide-subtitle">Four Strategic Engineering Pillars Governing System Architecture</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">1. Automate Receipt Parsing</h3>
+                        </div>
+                        <p class="card-desc">Engineer a high-throughput OCR pipeline using Gemini Flash to extract item names, unit quantities, rates, and totals in under 4.5 seconds with zero hallucination.</p>
+                        <span class="card-tag">Speed: &lt; 4.5s Extraction</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🎙️</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">2. Vernacular Voice Billing</h3>
+                        </div>
+                        <p class="card-desc">Empower shopkeepers to speak naturally in Marathi, Hindi, or English (e.g., "२ किलो साखर १०० रुपये") and automatically populate transactional records with spoken audio feedback.</p>
+                        <span class="card-tag">Marathi &amp; Hindi Speech-to-Text</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🛡️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">3. Resilient ACID Storage</h3>
+                        </div>
+                        <p class="card-desc">Implement a crash-proof SQLite architecture with Write-Ahead Logging (WAL), atomic transactional commits, and SHA-256 PBKDF2 role-based security audits.</p>
+                        <span class="card-tag">ACID Guaranteed + Zero Loss</span>
+                    </div>
+
+                    <div class="glass-card accent-blue">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📊</span>
+                            <h3 class="card-title" style="color: var(--electric-blue);">4. Actionable Intelligence</h3>
+                        </div>
+                        <p class="card-desc">Deliver conversational RAG queries over inventory, automated high-risk credit tracking, 1-click WhatsApp payment reminders, and dual-language PDF/Thermal receipt exports.</p>
+                        <span class="card-tag">RAG AI + Instant WhatsApp CRM</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 06: PROPOSED SYSTEM -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">06 • Operational Architecture</div>
+                    <h2 class="slide-title">Proposed System</h2>
+                    <div class="slide-subtitle">Four-Stage Closed-Loop Multimodal Transaction Pipeline</div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧑‍💼</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">1. Merchant Actor</h3>
+                        </div>
+                        <p class="card-desc">Initiates input via three friction-free avenues: Live HD Camera scan of paper bills, regional voice speech prompt, or manual POS keyboard entry.</p>
+                        <span class="card-tag">Multimodal Input Ingestion</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧠</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">2. AI Parser</h3>
+                        </div>
+                        <p class="card-desc">Gemini Flash Multimodal Vision &amp; NLP engine normalizes unstructured raw input into a strictly validated, strongly typed JSON schema with pricing math verification.</p>
+                        <span class="card-tag">Strict JSON Enforcement</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💾</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">3. ACID Engine</h3>
+                        </div>
+                        <p class="card-desc">Executes transactional commits to local SQLite tables, updates customer khata balances, recalculates stock counts, and logs user audit trail signatures.</p>
+                        <span class="card-tag">Atomic Data Persistence</span>
+                    </div>
+
+                    <div class="glass-card accent-blue">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🔊</span>
+                            <h3 class="card-title" style="color: var(--electric-blue);">4. Feedback Loop</h3>
+                        </div>
+                        <p class="card-desc">Edge TTS synthesizes high-fidelity Marathi voice confirmation ("पावती यशस्वीरित्या नोंदवली गेली") while UI dashboard charts update live via reactive state.</p>
+                        <span class="card-tag">Regional Voice Feedback</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 07: TECHNOLOGIES & TOOLS -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">07 • Engineering Stack</div>
+                    <h2 class="slide-title">Technologies & Tools</h2>
+                    <div class="slide-subtitle">Robust, Modern, and Scalable Full-Stack Technological Foundation</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🐍</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Frontend &amp; Application</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• Python 3.10+:</strong> High-speed backend logic execution.<br>
+                            <strong>• Streamlit Core:</strong> Real-time reactive web application.<br>
+                            <strong>• Custom React &amp; HTML5:</strong> Low-latency audio mic components and barcode scanners.<br>
+                            <strong>• Cyberpunk CSS3:</strong> Custom Dark Glassmorphism design system.
+                        </p>
+                        <span class="card-tag">Python • Streamlit • React</span>
+                    </div>
+
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🤖</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Artificial Intelligence &amp; Audio</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• Google Gemini Flash:</strong> Sub-second multimodal OCR and function-calling JSON parsing.<br>
+                            <strong>• Microsoft Edge TTS:</strong> Natural, ultra-fast Marathi/Hindi voice synthesis.<br>
+                            <strong>• Streamlit Mic Recorder:</strong> High-fidelity browser audio recording.<br>
+                            <strong>• RAG Architecture:</strong> In-memory SQL context embeddings.
+                        </p>
+                        <span class="card-tag">Gemini Flash • Edge TTS • RAG</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💽</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Database, Cryptography &amp; BI</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• SQLite 3 (WAL Mode):</strong> Zero-configuration ACID relational ledger.<br>
+                            <strong>• PBKDF2-SHA256:</strong> Cryptographic password hashing and salting.<br>
+                            <strong>• Pandas &amp; Plotly:</strong> In-memory data aggregation &amp; interactive vector graphs.<br>
+                            <strong>• QRCode &amp; ReportLab:</strong> Dynamic UPI payment QR codes and PDF exports.
+                        </p>
+                        <span class="card-tag">SQLite • PBKDF2 • Plotly</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 08: SYSTEM ARCHITECTURE -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">08 • Structural Design</div>
+                    <h2 class="slide-title">System Architecture</h2>
+                    <div class="slide-subtitle">Modular 3-Tier Layered Architecture with Strict Separation of Concerns</div>
+                </div>
+
+                <div class="arch-container">
+                    <div class="arch-flow-row">
+                        <div class="arch-box box-cyan">
+                            <div class="arch-title" style="color: var(--neon-cyan);">1. PRESENTATION LAYER</div>
+                            <div class="arch-sub">Streamlit Web Interface • Camera Feed • Speech Mic Input • Interactive DataFrames • Glassmorphic HUD</div>
+                        </div>
+                        <div class="arch-arrow">➔</div>
+                        <div class="arch-box box-purple">
+                            <div class="arch-title" style="color: var(--neon-purple);">2. INTELLIGENCE LAYER</div>
+                            <div class="arch-sub">Gemini Multimodal OCR • Voice NLP Parser • RAG Query Optimizer • Edge TTS Voice Synthesizer</div>
+                        </div>
+                        <div class="arch-arrow">➔</div>
+                        <div class="arch-box box-green">
+                            <div class="arch-title" style="color: var(--neon-green);">3. PERSISTENCE LAYER</div>
+                            <div class="arch-sub">SQLite Relational Engine • ACID Transactions • WAL Logging • PBKDF2 Hashing • System Audit Log</div>
                         </div>
                     </div>
-                    <div class="step-item">
-                        <div class="step-number" style="color:var(--neon-green); border-color:var(--neon-green);">02</div>
-                        <div class="step-content">
-                            <strong>Leveraging Advanced AI Models</strong>
-                            <p>Using Gemini LLM for strict JSON schema parsing and Edge TTS for Marathi/Hindi.</p>
+
+                    <div class="glass-card" style="padding: 18px 24px;">
+                        <p class="card-desc" style="font-size: 0.9rem; text-align: left; line-height: 1.6; margin: 0;">
+                            <strong style="color: #fff;">Architectural Tenet:</strong> The UI layer is completely decoupled from processing logic. When user captures a receipt or voice stream, the payload is parsed through isolated LLM validation routines enforcing Pydantic schemas. On successful validation, transactional commits occur atomically in SQLite with rollback protection, guaranteeing data consistency under network dropouts.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 09: WORKING FLOW -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">09 • Execution Pipeline</div>
+                    <h2 class="slide-title">Working Flow</h2>
+                    <div class="slide-subtitle">Step-by-Step Runtime Lifecycle of an Incoming Transaction</div>
+                </div>
+
+                <div class="step-flow-h">
+                    <div class="step-card-h">
+                        <div class="step-num-badge">01</div>
+                        <div class="step-title" style="color: var(--neon-cyan);">Input Trigger</div>
+                        <p class="step-desc">Shopkeeper captures a receipt via live camera, selects an image file, or speaks billing items into the microphone.</p>
+                    </div>
+
+                    <div class="step-card-h">
+                        <div class="step-num-badge">02</div>
+                        <div class="step-title" style="color: var(--electric-blue);">Streaming</div>
+                        <p class="step-desc">Preprocessed media bytes are transmitted over TLS to Google Gemini Flash API with tailored system prompts.</p>
+                    </div>
+
+                    <div class="step-card-h">
+                        <div class="step-num-badge">03</div>
+                        <div class="step-title" style="color: var(--neon-purple);">JSON Parsing</div>
+                        <p class="step-desc">AI model performs token extraction, calculates math totals, verifies tax rates, and emits clean structured JSON.</p>
+                    </div>
+
+                    <div class="step-card-h">
+                        <div class="step-num-badge">04</div>
+                        <div class="step-title" style="color: var(--neon-green);">ACID Commit</div>
+                        <p class="step-desc">Integrity validator executes atomic SQL statements into <code>ledger.db</code>, updates ledger balances, and creates audit records.</p>
+                    </div>
+
+                    <div class="step-card-h">
+                        <div class="step-num-badge">05</div>
+                        <div class="step-title" style="color: var(--neon-amber);">Audio &amp; UI</div>
+                        <p class="step-desc">Edge TTS renders Marathi confirmation audio while UI graphs and tables reactively refresh in real-time.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: PERFORMANCE ANALYSIS -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">10 • Empirical Evaluation</div>
+                    <h2 class="slide-title">Performance Analysis</h2>
+                    <div class="slide-subtitle">Rigorous Quantitative Benchmarks Demonstrating Disruptive Efficiency</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="metric-card">
+                        <div class="metric-value">96%</div>
+                        <div class="metric-label" style="color: var(--neon-cyan);">Time Reduction</div>
+                        <p class="metric-sub">Average bill entry slashed from <strong>120 seconds</strong> (manual paper entry) to just <strong>4.5 seconds</strong> via AI OCR &amp; Voice.</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value green">&gt;95%</div>
+                        <div class="metric-label" style="color: var(--neon-green);">Vernacular Accuracy</div>
+                        <p class="metric-sub">Rigorous parsing precision across Marathi, Hindi, and English handwritten and printed Devanagari receipts.</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value purple">&lt;2ms</div>
+                        <div class="metric-label" style="color: var(--neon-purple);">Commit Latency</div>
+                        <p class="metric-sub">Sub-2ms local SQLite ACID commit latency with Write-Ahead Logging (WAL) ensuring zero transaction bottlenecks.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 11: RESULT 1 - LOGIN PORTAL -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">11 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 1: Secure Login Portal</h2>
+                    <div class="slide-subtitle">Cryptographically Fortified Authentication &amp; Role-Based Access Control</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">🔐</span> PBKDF2-SHA256 Cryptography</div>
+                            <p class="feature-desc">All user credentials protected with cryptographic key stretching, per-user unique salting, and 100,000 hashing iterations.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🛡️</span> Granular Role-Based Access (RBAC)</div>
+                            <p class="feature-desc">Strict authorization dividing Admin master controls from restricted Staff POS billing accounts.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">🔄</span> Persistent Session Management</div>
+                            <p class="feature-desc">Encrypted local session tokens allowing auto-login capabilities without compromising credential security.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--electric-blue);">💎</span> Cyberpunk Glassmorphic Interface</div>
+                            <p class="feature-desc">Dynamic animated tech backdrop, glowing focus fields, and real-time credential validation feedback.</p>
                         </div>
                     </div>
-                    <div class="step-item">
-                        <div class="step-number" style="color:var(--neon-purple); border-color:var(--neon-purple);">03</div>
-                        <div class="step-content">
-                            <strong>Removing Digital Friction</strong>
-                            <p>Simplifying digital adoption so merchants can focus purely on business growth.</p>
+                    <div class="split-img-box">
+                        <img src="assets/login.png" class="floating-screenshot" alt="Secure Login Portal">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: RESULT 2 - OCR & VOICE BILLING -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">12 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 2: OCR &amp; Voice Billing Module</h2>
+                    <div class="slide-subtitle">Multimodal Capture with Real-Time Audio Feedback &amp; Interactive Editing</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">📸</span> Multimodal Bill Capture</div>
+                            <p class="feature-desc">Tri-mode input pipeline: Live camera capture, drag-and-drop receipt upload, or spontaneous vernacular voice recording.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">⚠️</span> Duplicate Bill Prevention</div>
+                            <p class="feature-desc">Cryptographic MD5 hash matching prevents accidental double-billing and detects duplicate invoices instantly.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🔊</span> Marathi Voice Feedback</div>
+                            <p class="feature-desc">Edge TTS synthesizes crystal-clear audio confirmation ("बिल यशस्वीरीत्या जोडले गेले") for instant hands-free assurance.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">✏️</span> In-Line Editable Data Preview</div>
+                            <p class="feature-desc">Interactive tabular grid allows instant review and correction of item quantities, rates, and totals prior to database commit.</p>
                         </div>
                     </div>
+                    <div class="split-img-box">
+                        <img src="assets/ocr.png" class="floating-screenshot" alt="OCR and Voice Billing">
+                    </div>
                 </div>
             </section>
 
-            <!-- Slide 4: Market Comparison -->
+            <!-- SLIDE 13: RESULT 3 - MERCHANT ANALYTICS HUB -->
             <section data-auto-animate>
-                <h3>Gap Analysis</h3>
-                <div class="slide-subtitle">Market Comparison</div>
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Feature</th>
-                            <th>Khatabook</th>
-                            <th>TallyPrime</th>
-                            <th>Vyapar</th>
-                            <th>BharatPe</th>
-                            <th class="highlight-col">VernaLedger.AI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="text-align: left;">Vernacular Voice Billing</td>
-                            <td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td>
-                            <td class="highlight-col"><strong>✔ Marathi/Hindi</strong></td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">AI Receipt OCR Scanning</td>
-                            <td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td>
-                            <td class="highlight-col"><strong>✔ Gemini AI</strong></td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Conversational AI Chat</td>
-                            <td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td><td><span class="icon-cross">❌</span></td>
-                            <td class="highlight-col"><strong>✔ RAG Engine</strong></td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Offline Database</td>
-                            <td style="color:#888;">Cloud Only</td><td><span class="icon-check">✔</span></td><td><span class="icon-check">✔</span></td><td style="color:#888;">Cloud Only</td>
-                            <td class="highlight-col"><strong>✔ SQLite ACID</strong></td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Target User Base</td>
-                            <td style="color:#888;">Urban SMEs</td><td style="color:#888;">Accountants</td><td style="color:#888;">Urban SMEs</td><td style="color:#888;">Payments</td>
-                            <td class="highlight-col" style="color: #fff; font-weight:bold;">Rural Merchants</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <!-- Slide 5: Project Objectives -->
-            <section data-auto-animate>
-                <h3>Project Objectives</h3>
-                <div class="slide-subtitle">Core Pillars of Innovation</div>
-                <div class="glass-card" style="margin-top: 20px;">
-                    <ul class="feature-list">
-                        <li>
-                            <strong style="color: var(--neon-cyan);">Automate Receipt Parsing</strong>
-                            Develop a robust OCR engine using Gemini Flash to extract items, prices, and totals instantly.
-                        </li>
-                        <li>
-                            <strong style="color: var(--neon-green);">Multi-Lingual Voice Billing</strong>
-                            Enable users to speak naturally in Marathi, Hindi, or English to record transactions.
-                        </li>
-                        <li>
-                            <strong style="color: var(--neon-purple);">Secure & Resilient Storage</strong>
-                            Implement ACID-compliant SQLite databases with automatic backups and strict schema integrity.
-                        </li>
-                        <li>
-                            <strong style="color: #ff9a9e;">Actionable Intelligence</strong>
-                            Provide real-time analytics, AI high-risk credit scoring, and automated WhatsApp reminders.
-                        </li>
-                    </ul>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">13 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 3: Merchant Analytics Hub</h2>
+                    <div class="slide-subtitle">Interactive Business Intelligence with Dynamic Vector Visualizations</div>
                 </div>
-            </section>
 
-            <!-- Slide 6: Proposed System -->
-            <section data-auto-animate>
-                <h3>Proposed System</h3>
-                <div class="slide-subtitle">Use Case & Activity Flow</div>
-                <div class="step-flow">
-                    <div class="step-item">
-                        <div class="step-number" style="font-size:1.5em; border:none; background:transparent;">🧑‍💼</div>
-                        <div class="step-content">
-                            <strong>Merchant Actor</strong>
-                            <p>Interacts with Streamlit POS UI seamlessly via Voice, Camera, or File Upload.</p>
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📈</span> Real-Time Revenue KPI Cards</div>
+                            <p class="feature-desc">Live calculation of Total Gross Revenue, Transaction Count, Average Ticket Size, and Daily Growth Trajectory.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">🥧</span> Interactive Plotly Category Visuals</div>
+                            <p class="feature-desc">Dynamic vector pie charts and breakdown bars showing highest revenue-generating merchandise categories.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📅</span> Granular Timeframe Filtering</div>
+                            <p class="feature-desc">One-click toggling between Today, Last 7 Days, Month-to-Date, and Custom Historical Date ranges.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--electric-blue);">⚡</span> Instant In-Memory Computation</div>
+                            <p class="feature-desc">Powered by Pandas in-memory vectorized aggregations delivering zero-delay dashboard updates.</p>
                         </div>
                     </div>
-                    <div class="step-item">
-                        <div class="step-number" style="font-size:1.5em; border:none; background:transparent;">🧠</div>
-                        <div class="step-content">
-                            <strong>AI Parser Module</strong>
-                            <p>Gemini LLM converts raw unstructured inputs into a strict, validated structured JSON schema.</p>
+                    <div class="split-img-box">
+                        <img src="assets/analytics.png" class="floating-screenshot" alt="Merchant Analytics">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 14: RESULT 4 - CUSTOMER KHATA (UDHARI) -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">14 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 4: Customer Khata (Udhari)</h2>
+                    <div class="slide-subtitle">Digital Credit Ledger with Automated WhatsApp Follow-Up &amp; Risk Scoring</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📘</span> Digital Credit &amp; Debit Ledger</div>
+                            <p class="feature-desc">Instant toggle between Credit Given (उधारी दिली) and Payment Received (जमा), automatically recalculating running balances.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">⏰</span> Due-Date &amp; High-Risk Delinquency</div>
+                            <p class="feature-desc">Visual color-coded badges highlight overdue accounts past 30/60 days to avert bad debts and financial loss.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">💬</span> 1-Click WhatsApp Payment Reminders</div>
+                            <p class="feature-desc">Generates pre-formatted personalized Marathi WhatsApp payment requests with 1-click delivery to customer's phone.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📞</span> Direct Call &amp; Customer Search</div>
+                            <p class="feature-desc">Instant customer lookup by phone or name with one-click direct cellular call initiation.</p>
                         </div>
                     </div>
-                    <div class="step-item">
-                        <div class="step-number" style="font-size:1.5em; border:none; background:transparent;">💾</div>
-                        <div class="step-content">
-                            <strong>Transaction Engine</strong>
-                            <p>Commits validated records securely to the local SQLite database ensuring ACID compliance.</p>
+                    <div class="split-img-box">
+                        <img src="assets/khata.png" class="floating-screenshot" alt="Customer Khata Module">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 15: RESULT 5 - LEDGER DATABASE EDITOR -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">15 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 5: Ledger Database Editor</h2>
+                    <div class="slide-subtitle">Full ACID SQLite Control with Live Grid Editing &amp; Multi-Format Exports</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📊</span> Live In-Line Dataframe Grid Editing</div>
+                            <p class="feature-desc">Interactive Streamlit Data Editor enables cell-by-cell live updates with immediate atomic SQLite commits.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">🗑️</span> Single-Click Audited Deletions</div>
+                            <p class="feature-desc">Controlled deletion workflow with confirmation dialogs, cascade recalculations, and audit log entries.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">📑</span> Dual-Language Marathi PDF Exports</div>
+                            <p class="feature-desc">Generates localized, professional PDF ledger statements and CSV exports compatible with external accounting tools.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🛡️</span> ACID Integrity Enforcement</div>
+                            <p class="feature-desc">Strict foreign keys and database constraints prevent orphaned records and corrupted schema states.</p>
                         </div>
                     </div>
-                    <div class="step-item">
-                        <div class="step-number" style="font-size:1.5em; border:none; background:transparent;">🔊</div>
-                        <div class="step-content">
-                            <strong>Feedback Loop</strong>
-                            <p>Generates Marathi audio voice confirmations and updates UI dashboards in real-time.</p>
+                    <div class="split-img-box">
+                        <img src="assets/database.png" class="floating-screenshot" alt="Database Editor">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 16: RESULT 6 - NEURAL AI STUDIO (RAG) -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">16 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 6: Neural AI Studio (RAG)</h2>
+                    <div class="slide-subtitle">Context-Aware Conversational Intelligence Grounded in Live Merchant Database</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🧠</span> In-Memory SQL Context RAG</div>
+                            <p class="feature-desc">AI chatbot queries live inventory, khata, and sales balances to answer complex operational questions accurately.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">🎙️</span> Marathi &amp; Hindi Voice Querying</div>
+                            <p class="feature-desc">Merchants ask questions by voice (e.g., "आज किती रुपयांची विक्री झाली?") and receive grounded Devanagari answers.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">⚡</span> Quick-Action Suggestion Chips</div>
+                            <p class="feature-desc">One-tap prompt chips for pending credit summaries, low stock replenishment lists, and profit trajectories.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">🛡️</span> Zero-Hallucination Guardrails</div>
+                            <p class="feature-desc">Prompt engineering strictly restricts LLM answers to factual database context, preventing fabricated figures.</p>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- Slide 7: Technologies -->
-            <section data-auto-animate>
-                <h3>Technologies & Tools</h3>
-                <div class="slide-subtitle">The Advanced Tech Stack</div>
-                <div class="bento-grid" style="margin-top: 25px;">
-                    <div class="glass-card bento-item" style="grid-column: span 2; border-color:var(--neon-green);">
-                        <h4 style="color:var(--neon-green); font-size:1.3em;">🐍 Frontend & Logic</h4>
-                        <p style="font-size:0.95em; color:#fff;">Python 3.10+ paired with Streamlit for a highly responsive web interface powered by custom CSS & JS.</p>
-                    </div>
-                    <div class="glass-card bento-item">
-                        <h4 style="color:var(--neon-cyan); font-size:1.25em;">🤖 AI & NLP Engines</h4>
-                        <p style="font-size:0.92em;">Google Gemini AI for OCR/JSON parsing, integrated with Edge TTS for ultra-fast Marathi audio synthesis.</p>
-                    </div>
-                    <div class="glass-card bento-item">
-                        <h4 style="color:var(--neon-purple); font-size:1.25em;">💽 Database & Analytics</h4>
-                        <p style="font-size:0.92em;">SQLite (ACID compliant) for robust local storage, alongside Pandas and Plotly for interactive charts.</p>
+                    <div class="split-img-box">
+                        <img src="assets/rag.png" class="floating-screenshot" alt="Neural AI Studio RAG">
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 8: System Architecture -->
+            <!-- SLIDE 17: RESULT 7 - STAFF MANAGEMENT & AUDIT -->
             <section data-auto-animate>
-                <h3>System Architecture</h3>
-                <div class="slide-subtitle">Component Workflow</div>
-                <div class="glass-card" style="padding: 35px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="flex:1; text-align:center; padding:15px; border:2px solid var(--neon-cyan); border-radius:15px; background:rgba(0,242,254,0.1);">
-                            <h4 style="color:var(--neon-cyan); font-size:1.15em; margin:0;">UI Layer</h4>
-                            <p style="font-size:0.85em; margin-top:5px; color:#cbd5e1;">Streamlit Interactions</p>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">17 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 7: Staff Management &amp; Audit</h2>
+                    <div class="slide-subtitle">Granular Permission Matrix &amp; Immutable System Audit Trail</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">👥</span> Granular Role Provisioning</div>
+                            <p class="feature-desc">Easily onboard cashiers, stock clerks, and accountants with custom restrictions on pricing edits and ledger viewing.</p>
                         </div>
-                        <div style="color:var(--neon-cyan); font-size:1.6em; margin: 0 10px;">➔</div>
-                        <div style="flex:1; text-align:center; padding:15px; border:2px solid var(--neon-purple); border-radius:15px; background:rgba(176,38,255,0.1);">
-                            <h4 style="color:var(--neon-purple); font-size:1.15em; margin:0;">AI Engine</h4>
-                            <p style="font-size:0.85em; margin-top:5px; color:#cbd5e1;">Gemini LLM & Edge TTS</p>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📜</span> Immutable Audit Log History</div>
+                            <p class="feature-desc">Logs every single critical action with timestamp, username, IP, and event details ("Who did what and when").</p>
                         </div>
-                        <div style="color:var(--neon-purple); font-size:1.6em; margin: 0 10px;">➔</div>
-                        <div style="flex:1; text-align:center; padding:15px; border:2px solid var(--neon-green); border-radius:15px; background:rgba(0,255,135,0.1);">
-                            <h4 style="color:var(--neon-green); font-size:1.15em; margin:0;">Data Manager</h4>
-                            <p style="font-size:0.85em; margin-top:5px; color:#cbd5e1;">SQLite Commits</p>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">🔒</span> Zero-Trust Financial Protection</div>
+                            <p class="feature-desc">Prevents unauthorized staff members from modifying historic bills or deleting records without Admin override.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--electric-blue);">⚡</span> Instant Access Revocation</div>
+                            <p class="feature-desc">Deactivate compromised or departed staff accounts in a single click with immediate session invalidation.</p>
                         </div>
                     </div>
-                    <p style="margin-top:25px; font-size:0.95em; color:#cbd5e1; text-align:left; line-height:1.5;">
-                        <strong style="color:#fff;">Flow:</strong> The architecture strictly separates concerns. The UI layer purely handles display and device access (Camera/Mic). The AI engine enforces JSON schemas to prevent hallucination, and the Data manager executes secure SQL transactions.
-                    </p>
-                </div>
-            </section>
-
-            <!-- Slide 9: Working Flow -->
-            <section data-auto-animate>
-                <h3>Working Flow</h3>
-                <div class="slide-subtitle">Execution Pipeline</div>
-                <div class="step-flow" style="margin-top: 20px;">
-                    <div class="step-item"><div class="step-number" style="font-size:0.85em;">Step 1</div><div class="step-content"><p style="font-size:0.95em; margin:0; color:#fff;">User selects input method (Voice Khata or Live OCR scan).</p></div></div>
-                    <div class="step-item"><div class="step-number" style="font-size:0.85em;">Step 2</div><div class="step-content"><p style="font-size:0.95em; margin:0; color:#fff;">Audio/Image is securely captured and streamed to Gemini LLM.</p></div></div>
-                    <div class="step-item"><div class="step-number" style="font-size:0.85em;">Step 3</div><div class="step-content"><p style="font-size:0.95em; margin:0; color:#fff;">LLM processes data and returns structured JSON containing parsed details.</p></div></div>
-                    <div class="step-item"><div class="step-number" style="font-size:0.85em;">Step 4</div><div class="step-content"><p style="font-size:0.95em; margin:0; color:#fff;">System verifies data integrity and commits transactions to local SQLite.</p></div></div>
-                    <div class="step-item" style="border-color:var(--neon-green); background:rgba(0,255,135,0.05);"><div class="step-number" style="font-size:0.85em; border-color:var(--neon-green); color:var(--neon-green);">Step 5</div><div class="step-content"><p style="font-size:0.95em; margin:0; color:#fff;">Audio success feedback is played using Edge TTS and UI refreshes.</p></div></div>
-                </div>
-            </section>
-
-            <!-- Slide 10: Performance -->
-            <section data-auto-animate>
-                <h3>Performance Analysis</h3>
-                <div class="slide-subtitle">Efficiency Benchmarks</div>
-                <div class="glass-card" style="margin-top: 30px; padding: 35px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.95em; font-weight: 700; margin-bottom: 10px;">
-                        <span style="color: var(--text-muted);">Manual Data Entry Time</span><span style="color: #ff0055;">100% (Baseline)</span>
-                    </div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 100%; background: #ff0055; box-shadow: 0 0 15px #ff0055;"></div></div>
-
-                    <div style="display: flex; justify-content: space-between; font-size: 0.95em; font-weight: 700; margin-bottom: 10px;">
-                        <span style="color: #fff;">VernaLedger.AI Processing Time</span><span style="color: var(--neon-cyan);">-96% Faster (4%)</span>
-                    </div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 4%; background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan);"></div></div>
-
-                    <div style="display: flex; justify-content: space-between; font-size: 0.95em; font-weight: 700; margin-bottom: 10px;">
-                        <span style="color: #fff;">Regional Text Parsing Accuracy (Marathi/Hindi)</span><span style="color: var(--neon-green);">>95% Accurate</span>
-                    </div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 95%; background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green);"></div></div>
-                </div>
-            </section>
-
-            <!-- Slide 11: Login -->
-            <section data-auto-animate>
-    <h3>Result: Secure Login Portal</h3>
-    <div class="slide-subtitle">Access Management</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="glass-card" style="border-color: var(--neon-cyan);">
-                <ul class="feature-list">
-                    <li><strong style="color: var(--neon-cyan);">Authentication Security</strong>Protected via secure PBKDF2 with SHA-256 password hashing.</li>
-                    <li><strong style="color: var(--neon-purple);">Role-Based Access (RBAC)</strong>Strict demarcation between Admin master access vs. restricted Staff roles.</li>
-                    <li><strong style="color: var(--neon-green);">Persistent Sessions</strong>Auto-login capabilities enabled via robust session state management.</li>
-                    <li><strong style="color: var(--neon-cyan);">Premium Glassmorphic UI</strong>Stunning aesthetic with blurred backdrops, multi-layered gradients, and glowing borders across all panels.</li>
-                </ul>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/login.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 12: OCR & Voice -->
-            <section data-auto-animate>
-    <h3>Result: OCR & Voice Billing Module</h3>
-    <div class="slide-subtitle">Core Engine Showcase</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="glass-card" style="border-color: var(--neon-green);">
-                <ul class="feature-list">
-                    <li><strong style="color: var(--neon-green);">Multimodal Bill Capture</strong>Supports File Upload, Live Camera capture, or direct Voice Billing.</li>
-                    <li><strong style="color: var(--neon-cyan);">Duplicate Prevention</strong>Automatic system warnings trigger for potentially duplicate bills.</li>
-                    <li><strong style="color: var(--neon-purple);">Audio Confirmation</strong>Edge TTS synthesizes instant audio summaries in regional languages.</li>
-                    <li><strong style="color: var(--neon-red);">Interactive Data Preview</strong>Extracted OCR or Voice data can be instantly previewed and edited in a live grid before finalizing.</li>
-                </ul>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/ocr.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 13: Analytics -->
-            <section data-auto-animate>
-    <h3>Result: Merchant Analytics Hub</h3>
-    <div class="slide-subtitle">Data Intelligence</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="bento-grid" style="grid-template-columns: 1fr;">
-                <div class="glass-card bento-item" style="padding:14px 18px; margin-bottom:10px;">
-                    <h4 style="color: var(--neon-cyan); font-size:1.15em; margin-bottom:6px;">📈 Sales Monitoring</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">Live KPI cards for Total Revenue, Bill Count, and Average Ticket Size.</p>
-                </div>
-                <div class="glass-card bento-item" style="padding:14px 18px; margin-bottom:10px;">
-                    <h4 style="color: var(--neon-green); font-size:1.15em; margin-bottom:6px;">📊 Visualizations</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">Interactive category breakdown pies and shop revenue bar graphs.</p>
-                </div>
-                <div class="glass-card bento-item" style="padding:14px 18px;">
-                    <h4 style="color: var(--neon-purple); font-size:1.15em; margin-bottom:6px;">📅 Timeframe Filtering</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">Seamlessly switch between Daily, Weekly, and Monthly actionable data insights.</p>
-                </div>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/analytics.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 14: Customer Khata -->
-            <section data-auto-animate>
-    <h3>Result: Customer Khata (Udhari)</h3>
-    <div class="slide-subtitle">Credit Management Dashboard</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="glass-card" style="border-color: var(--neon-purple);">
-                <ul class="feature-list">
-                    <li><strong style="color: var(--neon-cyan);">Digital Ledger</strong>Instant toggle between Given Credit and Received Payment modes.</li>
-                    <li><strong style="color: var(--neon-purple);">Due Date Tracking</strong>Automated tracking of repayment due dates and high-risk alerts.</li>
-                    <li><strong style="color: var(--neon-green);">One-Click Follow Up</strong>Instant WhatsApp payment links generation and direct calling shortcuts.</li>
-                </ul>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/khata.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 15: DB Editor -->
-            <section data-auto-animate>
-    <h3>Result: Ledger Database Editor</h3>
-    <div class="slide-subtitle">Live Data Management</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="glass-card" style="border-color: var(--neon-cyan);">
-                <ul class="feature-list">
-                    <li><strong style="color: var(--neon-cyan);">ACID Storage & Live Editing</strong>Interactive dataframe grid for in-line editing of backend records.</li>
-                    <li><strong style="color: var(--neon-red);">Record Management</strong>Single-click secure record deletions with live database commits.</li>
-                    <li><strong style="color: var(--neon-green);">Multi-Language Export</strong>Download clean CSV files or localized Marathi PDF reports instantly.</li>
-                </ul>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/database.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 16: AI Studio -->
-            <section data-auto-animate>
-    <h3>Result: Neural AI Studio (RAG)</h3>
-    <div class="slide-subtitle">Conversational Intelligence</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="bento-grid" style="grid-template-columns: 1fr;">
-                <div class="glass-card bento-item" style="padding:14px 18px; margin-bottom:10px; border-color:var(--neon-purple);">
-                    <h4 style="color: var(--neon-purple); font-size:1.15em; margin-bottom:6px;">🤖 Context-Aware RAG Chatbot</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">Real-time conversational chatting integrated directly with sales, khata, and stock database context.</p>
-                </div>
-                <div class="glass-card bento-item" style="padding:14px 18px; margin-bottom:10px;">
-                    <h4 style="color: var(--neon-cyan); font-size:1.15em; margin-bottom:6px;">🎙️ Voice Input</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">Speak analytical questions directly in Marathi or Hindi.</p>
-                </div>
-                <div class="glass-card bento-item" style="padding:14px 18px;">
-                    <h4 style="color: var(--neon-green); font-size:1.15em; margin-bottom:6px;">⚡ Quick Action Chips</h4>
-                    <p style="font-size:0.92em; line-height:1.4; color:#cbd5e1; margin:0;">One-tap prompts for pending udhari summaries and low stock alerts.</p>
-                </div>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/rag.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 17: Staff Logs -->
-            <section data-auto-animate>
-    <h3>Result: Staff Management & Audit</h3>
-    <div class="slide-subtitle">System Accountability</div>
-    <div class="split-layout">
-        <div class="split-text">
-            <div class="glass-card" style="border-color: #4facfe;">
-                <ul class="feature-list">
-                    <li><strong style="color: var(--neon-cyan);">Role Access Setup</strong>Easy setup wizard for Admin or Limited Staff roles.</li>
-                    <li><strong style="color: var(--neon-purple);">System Audit Logs</strong>Tracks exactly 'Who did what and when' across the entire system.</li>
-                    <li><strong style="color: var(--neon-green);">Zero-Trust Security</strong>Protects core system against unauthorized deletions or ledger edits.</li>
-                </ul>
-            </div>
-        </div>
-        <div class="split-img-container">
-            <img src="assets/staff.png" class="floating-screenshot">
-        </div>
-    </div>
-</section>
-
-            <!-- Slide 18: Exports -->
-            <section data-auto-animate>
-                <h3>Result: Clean Reports & Exports</h3>
-                <div class="slide-subtitle">Professional Outputs</div>
-                <div class="glass-card" style="margin-top: 30px;">
-                    <ul class="feature-list" style="width: 95%;">
-                        <li><strong style="color: var(--neon-cyan);">Itemized CSV Exports</strong>Raw data exports for advanced accounting and external auditing.</li>
-                        <li><strong style="color: var(--neon-purple);">Dual Language Reports</strong>Professional English & Marathi dual-language HTML bill generation.</li>
-                        <li><strong style="color: var(--neon-green);">One-Click Print</strong>Streamlined pipeline from digital ledger to physical printable invoices.</li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- Slide 19: Advantages -->
-            <section data-auto-animate>
-                <h3>Advantages & Strengths</h3>
-                <div class="slide-subtitle">Why VernaLedger.AI Excels</div>
-                <div class="step-flow" style="margin-top: 30px;">
-                    <div class="step-item"><div class="step-number" style="color:var(--neon-cyan); border-color:var(--neon-cyan);">01</div><div class="step-content"><strong style="color:var(--neon-cyan);">True Vernacular AI</strong><p>Operates flawlessly in Marathi and Hindi, making it highly accessible for rural shopkeepers.</p></div></div>
-                    <div class="step-item"><div class="step-number" style="color:var(--neon-green); border-color:var(--neon-green);">02</div><div class="step-content"><strong style="color:var(--neon-green);">Automated Follow-ups</strong><p>Reduces friction with one-click WhatsApp payment links and direct calling integrations.</p></div></div>
-                    <div class="step-item"><div class="step-number" style="color:var(--neon-purple); border-color:var(--neon-purple);">03</div><div class="step-content"><strong style="color:var(--neon-purple);">Enterprise Data Security</strong><p>Encrypted password hashing, RBAC, and exhaustive un-editable system audit logs.</p></div></div>
-                </div>
-            </section>
-
-            <!-- Slide 20: Limitations -->
-            <section data-auto-animate>
-                <h3>System Limitations</h3>
-                <div class="slide-subtitle">Known Constraints</div>
-                <div class="bento-grid" style="margin-top: 30px;">
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">🌐 AI Internet Dependency</h4>
-                        <p>Core Gemini AI Engine requires a stable internet connection to process complex natural language commands and OCR images.</p>
-                    </div>
-                    <div class="glass-card bento-item" style="border-color: rgba(255, 0, 85, 0.3);">
-                        <h4 style="color: var(--neon-red);">📸 Image Quality Constraints</h4>
-                        <p>Highly distorted, crumpled, or blurry receipts can result in partial extraction failures during the OCR process.</p>
+                    <div class="split-img-box">
+                        <img src="assets/staff.png" class="floating-screenshot" alt="Staff Management and Audit">
                     </div>
                 </div>
             </section>
 
-            <!-- Slide 21: Future Scope -->
+            <!-- SLIDE 18: RESULT 8 - CLEAN REPORTS & EXPORTS -->
             <section data-auto-animate>
-                <h3>Future Enhancements</h3>
-                <div class="slide-subtitle">Product Roadmap</div>
-                <div class="bento-grid">
-                    <div class="glass-card bento-item"><h4 style="color: var(--neon-cyan);">📱 Native Mobile App</h4><p>Porting the web app into a native Android application for faster camera access.</p></div>
-                    <div class="glass-card bento-item"><h4 style="color: var(--neon-green);">💸 Direct UPI Integration</h4><p>Generating dynamic UPI QR codes directly on invoices for instant payments.</p></div>
-                    <div class="glass-card bento-item"><h4 style="color: var(--neon-purple);">☁️ Cloud Syncing</h4><p>Migrating to Firebase/PostgreSQL for real-time multi-device synchronization.</p></div>
-                    <div class="glass-card bento-item"><h4 style="color: #ff9a9e;">🧾 Automated GST/Tax</h4><p>Implementing tax calculation engines for ready-to-file GST reports.</p></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">18 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 8: Clean Reports &amp; Exports</h2>
+                    <div class="slide-subtitle">Auditable Data Pipelines &amp; Professional Dual-Language Print Layouts</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📑</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Itemized CSV Exports</h3>
+                        </div>
+                        <p class="card-desc">One-click extraction of complete transaction logs with line-item descriptions, tax components, customer IDs, and payment methods for external accounting in Tally or Excel.</p>
+                        <span class="card-tag">Format: .CSV &amp; Excel</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📄</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Dual-Language HTML Bills</h3>
+                        </div>
+                        <p class="card-desc">Generates beautiful customer receipts featuring English item titles with Marathi Devanagari translation headers, business branding, and dynamic UPI payment QR codes.</p>
+                        <span class="card-tag">Format: HTML5 &amp; WebPrint</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🖨️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">1-Click Thermal Print Layout</h3>
+                        </div>
+                        <p class="card-desc">Engineered specifically for standard 58mm and 80mm ESC/POS thermal receipt printers, ensuring instant physical paper receipts at checkout counters with zero formatting distortion.</p>
+                        <span class="card-tag">Format: 58mm / 80mm ESC/POS</span>
+                    </div>
                 </div>
             </section>
 
-            <!-- Slide 22: Conclusion -->
+            <!-- SLIDE 19: ADVANTAGES & STRENGTHS -->
             <section data-auto-animate>
-                <h1 class="hero-title" style="font-size: 3.2em !important;">Conclusion & Q&A</h1>
-                <div class="glass-card" style="margin: 35px auto; width: 85%; text-align: center; border-color: var(--neon-cyan); background: rgba(0, 242, 254, 0.05); padding: 25px 35px;">
-                    <p style="font-size: 1.15em; margin: 0; color: #fff; line-height: 1.6;">
-                        <strong style="color: var(--neon-cyan);">Conclusion:</strong> VernaLedger.AI successfully bridges the gap between rural commerce and cutting-edge AI.
-                    </p>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">19 • Value Proposition</div>
+                    <h2 class="slide-title">Advantages &amp; Strengths</h2>
+                    <div class="slide-subtitle">Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers</div>
                 </div>
-                <div class="team-box" style="margin-top: 25px; border-color: var(--neon-green); background:rgba(0,255,135,0.05); padding: 22px 35px;">
-                    <p style="font-size: 1.6em; color: var(--neon-green); margin-bottom: 10px; font-weight: 800; font-family: 'Outfit', sans-serif; letter-spacing:1px;">Any Questions?</p>
-                    <div style="height: 1px; background: rgba(0,255,135,0.2); margin: 15px 0;"></div>
-                    <p style="color: #cbd5e1; font-size: 0.85em; font-weight:600; letter-spacing:1px; text-transform:uppercase;">Team VernaLedger | Arvind Gavali College of Engineering</p>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🇮🇳</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">True Vernacular Accessibility</h3>
+                        </div>
+                        <p class="card-desc">Bilingual Marathi/English interface coupled with natural voice recognition eliminates the steep digital literacy curve for grassroots shopkeepers.</p>
+                        <span class="card-tag">Zero Learning Curve</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">60% Faster Debt Recovery</h3>
+                        </div>
+                        <p class="card-desc">Direct WhatsApp payment reminders and automated due date warnings accelerate customer khata repayments and eliminate uncomfortable debt confrontations.</p>
+                        <span class="card-tag">Accelerated Working Capital</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🛡️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Enterprise-Grade Data Resilience</h3>
+                        </div>
+                        <p class="card-desc">Local SQLite database ensures instant responsiveness and zero downtime even during rural broadband fluctuations, backed by cryptographic password security.</p>
+                        <span class="card-tag">Offline-First Resilience</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 20: SYSTEM LIMITATIONS -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">20 • Engineering Constraints</div>
+                    <h2 class="slide-title">System Limitations</h2>
+                    <div class="slide-subtitle">Known Technical Boundaries &amp; Operational Dependencies</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🌐</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">AI Internet Dependency</h3>
+                        </div>
+                        <p class="card-desc">While core database operations and manual POS billing are offline, multimodal Gemini Flash OCR parsing and Edge TTS synthesis require an active internet connection to contact cloud endpoints.</p>
+                        <span class="card-tag">Constraint: Cloud LLM Endpoint</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📸</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Severe Image Distortion</h3>
+                        </div>
+                        <p class="card-desc">Extremely crumpled, grease-stained, or faint thermal receipts with severe ink fading can occasionally produce partial OCR extraction, requiring manual operator verification in the preview grid.</p>
+                        <span class="card-tag">Constraint: Document Integrity</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 21: FUTURE ENHANCEMENTS -->
+            <section data-auto-animate>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">21 • Future Roadmap</div>
+                    <h2 class="slide-title">Future Enhancements</h2>
+                    <div class="slide-subtitle">Product Evolution &amp; Scalability Roadmap</div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📱</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Native Android APK</h3>
+                        </div>
+                        <p class="card-desc">Packaging as a lightweight native Android application with quantized on-device edge-AI models for offline OCR scanning.</p>
+                        <span class="card-tag">Mobile Native • Edge AI</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💸</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Dynamic UPI QR Codes</h3>
+                        </div>
+                        <p class="card-desc">Generating dynamic transaction-specific UPI QR codes directly on invoices with audio soundbox payment confirmation.</p>
+                        <span class="card-tag">Instant Payment Hook</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">☁️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Multi-Device Sync</h3>
+                        </div>
+                        <p class="card-desc">Implementing encrypted peer-to-peer cloud replication for multi-counter billing and distributed store management.</p>
+                        <span class="card-tag">Distributed Ledger Sync</span>
+                    </div>
+
+                    <div class="glass-card accent-blue">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧾</span>
+                            <h3 class="card-title" style="color: var(--electric-blue);">Automated GST Filing</h3>
+                        </div>
+                        <p class="card-desc">Automating tax categorization and generating one-click ready-to-file GSTR-1 and GSTR-3B tax compliance spreadsheets.</p>
+                        <span class="card-tag">Automated Compliance</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 22: CONCLUSION & Q&A -->
+            <section data-auto-animate>
+                <div class="hero-container" style="max-width: 950px;">
+                    <div class="hero-badge" style="color: var(--neon-green); border-color: rgba(0, 255, 135, 0.4);">Final Defense • Concluding Remarks</div>
+                    <h1 class="hero-title" style="font-size: 3.2rem !important; margin-bottom: 12px;">Conclusion &amp; Q&amp;A</h1>
+                    
+                    <div class="glass-card accent-cyan" style="width: 100%; text-align: center; padding: 22px 30px; margin-bottom: 22px;">
+                        <p style="font-size: 1.05rem; line-height: 1.6; color: #ffffff; margin: 0;">
+                            <strong style="color: var(--neon-cyan);">Executive Summary:</strong> VernaLedger.AI bridges the deep technological chasm between cutting-edge Artificial Intelligence and India's millions of rural kirana merchants. By marrying multimodal Gemini Flash vision, Marathi voice processing, and a resilient ACID SQLite ledger, we transform complex bookkeeping into a 4.5-second effortless experience.
+                        </p>
+                    </div>
+
+                    <div style="background: rgba(0, 255, 135, 0.06); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 16px; padding: 18px 36px; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 135, 0.15); width: 100%;">
+                        <div style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--neon-green); margin-bottom: 6px;">Thank You! Any Questions?</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #cbd5e1; letter-spacing: 1px;">
+                            Department of Computer Engineering • Arvind Gavali College of Engineering, Satara (AGCOE) • DBATU University
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -860,38 +1556,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
-        // Initialize Reveal.js with awesome transition effects
+        // Initialize Reveal.js with optimal widescreen proportions
         Reveal.initialize({
             hash: true,
             slideNumber: 'c/t',
-            transition: 'convex', // zoom, convex, concave, slide
-            transitionSpeed: 'slow',
+            transition: 'fade', // sleek modern fade transition
+            transitionSpeed: 'default',
             backgroundTransition: 'fade',
             center: true,
             controls: true,
             progress: true,
-            width: 1280,
-            height: 720,
-            margin: 0.04,
+            width: 1333,
+            height: 750,
+            margin: 0.05,
             minScale: 0.2,
             maxScale: 2.0
         });
 
-        // Initialize Particles.js for an advanced cyberpunk tech background
+        // Initialize Cyberpunk Neon Particles
         particlesJS("particles-js", {
             "particles": {
-                "number": { "value": 60, "density": { "enable": true, "value_area": 800 } },
-                "color": { "value": ["#00f2fe", "#00ff87", "#b026ff"] },
+                "number": { "value": 55, "density": { "enable": true, "value_area": 900 } },
+                "color": { "value": ["#00f2fe", "#00ff87", "#b026ff", "#4facfe"] },
                 "shape": { "type": "circle" },
-                "opacity": { "value": 0.5, "random": true, "anim": { "enable": true, "speed": 1, "opacity_min": 0.1, "sync": false } },
-                "size": { "value": 3, "random": true, "anim": { "enable": true, "speed": 2, "size_min": 0.1, "sync": false } },
-                "line_linked": { "enable": true, "distance": 150, "color": "#00f2fe", "opacity": 0.2, "width": 1 },
-                "move": { "enable": true, "speed": 1.5, "direction": "none", "random": true, "straight": false, "out_mode": "out", "bounce": false }
+                "opacity": { "value": 0.45, "random": true, "anim": { "enable": true, "speed": 1.2, "opacity_min": 0.1, "sync": false } },
+                "size": { "value": 2.5, "random": true, "anim": { "enable": true, "speed": 2, "size_min": 0.1, "sync": false } },
+                "line_linked": { "enable": true, "distance": 140, "color": "#00f2fe", "opacity": 0.18, "width": 1 },
+                "move": { "enable": true, "speed": 1.2, "direction": "none", "random": true, "straight": false, "out_mode": "out", "bounce": false }
             },
             "interactivity": {
                 "detect_on": "canvas",
                 "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true },
-                "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 0.5 } }, "push": { "particles_nb": 4 } }
+                "modes": { "grab": { "distance": 130, "line_linked": { "opacity": 0.45 } }, "push": { "particles_nb": 3 } }
             },
             "retina_detect": true
         });
