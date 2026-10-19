@@ -316,11 +316,11 @@ def create_deck():
     # =========================================================================
     s4 = prs.slides.add_slide(blank_layout)
     set_slide_background(s4)
-    add_hud_header(s4, "04 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Rigorous Feature Comparison Against Leading Accounting & POS Solutions")
+    add_hud_header(s4, "04 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Head-to-Head Architectural Comparison with Direct Industry Competitors")
     add_hud_footer(s4, 4)
 
-    rows, cols = 7, 6
-    tbl_shape = s4.shapes.add_table(rows, cols, Inches(0.8), Inches(1.9), Inches(11.733), Inches(4.6))
+    rows, cols = 8, 6
+    tbl_shape = s4.shapes.add_table(rows, cols, Inches(0.8), Inches(1.85), Inches(11.733), Inches(4.7))
     tbl = tbl_shape.table
     tbl.columns[0].width = Inches(3.2)
     tbl.columns[1].width = Inches(1.7)
@@ -330,13 +330,14 @@ def create_deck():
     tbl.columns[5].width = Inches(1.733)
 
     table_data = [
-        ["Evaluated Capability", "Khatabook", "TallyPrime", "Vyapar", "BharatPe", "VernaLedger.AI"],
-        ["Vernacular Voice Billing", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Native Voice NLP"],
-        ["AI Receipt OCR Scanning", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Gemini Flash Vision"],
-        ["Context-Aware RAG Chatbot", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Neural AI Studio"],
-        ["Offline ACID Database", "Cloud Only", "✔ Local DB", "✔ Local DB", "Cloud Only", "✔ SQLite ACID WAL"],
-        ["1-Click WhatsApp Reminders", "✔ Basic SMS", "❌ No", "✔ Paid Addon", "❌ No", "✔ 1-Click WhatsApp"],
-        ["Target Demographics", "Urban Retail", "CAs / Corporates", "Urban SMEs", "Payments Only", "Rural Kirana Merchants"]
+        ["Evaluated Capability", "Khatabook", "OkCredit", "Vyapar App", "TallyPrime", "VernaLedger.AI (v7.5)"],
+        ["Marathi Voice Billing", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Native Voice NLP + TTS"],
+        ["Multimodal AI OCR Parsing", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Gemini Flash <4.5s"],
+        ["Context-Aware RAG Chatbot", "❌ No", "❌ No", "❌ No", "❌ No", "✔ Neural AI Studio (SQL RAG)"],
+        ["Offline ACID Database", "❌ Cloud Lock-in", "❌ Cloud Lock-in", "⚠️ Local File", "✔ Proprietary DB", "✔ SQLite 3 (WAL Mode ACID)"],
+        ["1-Click WhatsApp Reminders", "⚠️ Paid SMS", "⚠️ Standard SMS", "⚠️ Paid Addon", "❌ No Direct Hook", "✔ 1-Click WhatsApp Direct"],
+        ["Security & Audit Logs", "❌ Mobile OTP", "❌ Mobile OTP", "⚠️ Basic PIN", "✔ User Rights", "✔ PBKDF2 & Audit Logs"],
+        ["Cost to Small Merchant", "₹2,000 - ₹5,000 / yr", "₹1,500 - ₹3,000 / yr", "₹2,500 - ₹6,000 / yr", "₹22,500+ (Desktop)", "100% Free & Open Architecture"]
     ]
 
     for r_idx, row in enumerate(table_data):
@@ -771,10 +772,10 @@ def create_deck():
         "Result 6: Neural AI Studio (RAG)",
         "Context-Aware Conversational Intelligence Grounded in Live Merchant Database",
         [
-            ("🧠 In-Memory SQL Context RAG", "Chatbot directly queries live sales, credit khata, and stock balances for truthful answers.", COLOR_PURPLE),
-            ("🎙️ Marathi & Hindi Voice Querying", "Merchants ask questions via voice ('आजची उधारी दाखवा') and receive Devanagari answers.", COLOR_CYAN),
-            ("⚡ Quick-Action Suggestion Chips", "One-tap prompt chips for instant summaries: pending udhari, low stock, and top margins.", COLOR_GREEN),
-            ("🛡️ Zero-Hallucination Guardrails", "Strict system prompt instructions restrict LLM responses strictly to factual database facts.", COLOR_RED)
+            ("🧠 In-Memory SQL Context RAG", "Chatbot directly queries live sales, credit khata, and stock databases for 100% accurate, hallucination-free answers.", COLOR_PURPLE),
+            ("🎙️ Multi-Action Voice & Marathi NLP", "Merchants execute multi-bill recording and ask complex business questions in natural Marathi.", COLOR_CYAN),
+            ("⚡ Quick-Action Suggestion Chips", "One-tap prompt chips for pending credit summaries, low stock replenishment lists, and profit trajectories.", COLOR_GREEN),
+            ("🧹 Real-Time Memory & Clear Chat", "Maintains conversational memory across transactions with single-click session clearing for staff changeovers.", COLOR_RED)
         ],
         "rag.png"
     )
@@ -798,43 +799,18 @@ def create_deck():
     # SLIDE 18: RESULT 8 - CLEAN REPORTS & EXPORTS
     # =========================================================================
     s18 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s18)
-    add_hud_header(s18, "18 • Live System Showcase", "Result 8: Clean Reports & Exports", "Auditable Accounting Pipelines & Professional Dual-Language Print Layouts")
-    add_hud_footer(s18, 18)
-
-    exports = [
-        ("📑 Itemized CSV Exports", "One-click export of complete transaction logs with line-item descriptions, tax components, customer IDs, and payment methods for external auditing in Tally or Excel.", "Format: .CSV & Excel Compatible", COLOR_CYAN),
-        ("📄 Dual-Language HTML Bills", "Generates beautiful customer receipts featuring English item titles with Marathi Devanagari translation headers, business branding, and dynamic UPI QR payment codes.", "Format: HTML5 & WebPrint Ready", COLOR_GREEN),
-        ("🖨️ 1-Click Thermal Print Layout", "Engineered specifically for standard 58mm and 80mm ESC/POS thermal receipt printers, ensuring instant physical paper receipts at checkout counters with zero distortion.", "Format: 58mm / 80mm ESC/POS", COLOR_PURPLE)
-    ]
-    card_w = Inches(3.64)
-    card_h = Inches(4.5)
-    for i, (title, desc, tag, col) in enumerate(exports):
-        x = Inches(0.8) + i * Inches(4.0)
-        y = Inches(1.9)
-        create_card(s18, x, y, card_w, card_h, col)
-        tb = s18.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
-        tf = tb.text_frame
-        tf.word_wrap = True
-        p = tf.paragraphs[0]
-        p.text = title
-        p.font.name = FONT_TITLE
-        p.font.size = Pt(14)
-        p.font.bold = True
-        p.font.color.rgb = col
-
-        p_d = tf.add_paragraph()
-        p_d.text = desc
-        p_d.font.name = FONT_BODY
-        p_d.font.size = Pt(10.5)
-        p_d.font.color.rgb = COLOR_SLATE
-
-        p_t = tf.add_paragraph()
-        p_t.text = f"\nDeployment: {tag}"
-        p_t.font.name = FONT_MONO
-        p_t.font.size = Pt(9.5)
-        p_t.font.bold = True
-        p_t.font.color.rgb = col
+    build_result_slide(
+        s18, 18,
+        "Result 8: Clean Reports & Exports",
+        "Auditable Accounting Pipelines & Professional Dual-Language Print Layouts",
+        [
+            ("📑 Itemized CSV Data Exports", "One-click extraction of complete transaction logs with line-items, tax components, customer IDs, and payment methods for Excel or Tally.", COLOR_CYAN),
+            ("📄 Dual-Language Marathi/English Bills", "Generates customer receipts with English titles and Marathi Devanagari translation headers, shop branding, and tax breakdown.", COLOR_GREEN),
+            ("🖨️ 1-Click Thermal Print Layout", "Engineered specifically for standard 58mm & 80mm ESC/POS thermal printers with dynamic UPI QR payment codes.", COLOR_PURPLE),
+            ("⚖️ Legal & Audit Compliance", "Produces ready-to-audit itemized registers to facilitate effortless quarterly reconciliation and accountant reporting.", COLOR_RED)
+        ],
+        "reports.png"
+    )
 
     # =========================================================================
     # SLIDE 19: ADVANTAGES & STRENGTHS
@@ -1044,3 +1020,4 @@ def create_deck():
 
 if __name__ == "__main__":
     create_deck()
+
