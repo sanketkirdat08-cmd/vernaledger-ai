@@ -35,23 +35,251 @@ FONT_BODY = "Segoe UI"
 FONT_MONO = "Consolas"
 TOTAL_SLIDES = 23
 
+
+# =========================================================================
+# 23 DISTINCT THEME PALETTES (ONE UNIQUE THEME PER SLIDE)
+# =========================================================================
+SLIDE_THEMES = {
+    "cover": {
+        "bg": RGBColor(6, 16, 36),        # Deep Cyber Navy Blue
+        "card_bg": RGBColor(10, 24, 52),
+        "border": RGBColor(0, 242, 254),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_GREEN,
+        "tag": "// 01 • SYSTEM DEFENSE //"
+    },
+    "intro": {
+        "bg": RGBColor(4, 28, 30),        # Deep Enterprise Teal
+        "card_bg": RGBColor(8, 40, 44),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_CYAN,
+        "tag": "// 02 • PROJECT OVERVIEW //"
+    },
+    "problems": {
+        "bg": RGBColor(45, 8, 18),        # Deep Burgundy Crimson (VIVIDLY RED!)
+        "card_bg": RGBColor(60, 14, 28),
+        "border": RGBColor(255, 40, 90),
+        "primary": COLOR_RED,
+        "secondary": COLOR_AMBER,
+        "tag": "// 03 • MARKET REALITIES //"
+    },
+    "motivation": {
+        "bg": RGBColor(4, 34, 20),        # Deep Jade Pine Green
+        "card_bg": RGBColor(8, 48, 28),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_CYAN,
+        "tag": "// 04 • RURAL EMPOWERMENT //"
+    },
+    "gap": {
+        "bg": RGBColor(12, 18, 54),       # Deep Steel Matrix Indigo
+        "card_bg": RGBColor(18, 28, 76),
+        "border": RGBColor(79, 172, 254),
+        "primary": COLOR_BLUE,
+        "secondary": COLOR_CYAN,
+        "tag": "// 05 • GAP ANALYSIS //"
+    },
+    "objectives": {
+        "bg": RGBColor(28, 10, 52),       # Deep Royal Violet
+        "card_bg": RGBColor(40, 16, 74),
+        "border": RGBColor(176, 38, 255),
+        "primary": COLOR_PURPLE,
+        "secondary": COLOR_CYAN,
+        "tag": "// 06 • CORE MISSION //"
+    },
+    "pipeline": {
+        "bg": RGBColor(4, 28, 48),        # Electric Oceanic Cyan
+        "card_bg": RGBColor(8, 42, 68),
+        "border": RGBColor(0, 242, 254),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_BLUE,
+        "tag": "// 07 • PROPOSED PIPELINE //"
+    },
+    "tech": {
+        "bg": RGBColor(3, 34, 25),        # Deep Silicon PCB Green
+        "card_bg": RGBColor(6, 48, 36),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_CYAN,
+        "tag": "// 08 • TECH ARCHITECTURE //"
+    },
+    "arch": {
+        "bg": RGBColor(32, 12, 58),       # Deep Cosmic Amethyst
+        "card_bg": RGBColor(46, 18, 82),
+        "border": RGBColor(176, 38, 255),
+        "primary": COLOR_PURPLE,
+        "secondary": COLOR_BLUE,
+        "tag": "// 09 • 3-TIER TOPOLOGY //"
+    },
+    "flow": {
+        "bg": RGBColor(6, 24, 54),        # Deep Electric Cobalt
+        "card_bg": RGBColor(10, 36, 78),
+        "border": RGBColor(79, 172, 254),
+        "primary": COLOR_BLUE,
+        "secondary": COLOR_CYAN,
+        "tag": "// 10 • EXECUTION STREAM //"
+    },
+    "perf": {
+        "bg": RGBColor(46, 30, 6),        # Deep Rich Amber Bronze (VIVIDLY GOLD!)
+        "card_bg": RGBColor(64, 44, 12),
+        "border": RGBColor(255, 170, 0),
+        "primary": COLOR_AMBER,
+        "secondary": COLOR_GREEN,
+        "tag": "// 11 • SPEED BENCHMARKS //"
+    },
+    "login": {
+        "bg": RGBColor(8, 24, 52),        # Security Vault Navy
+        "card_bg": RGBColor(12, 36, 74),
+        "border": RGBColor(0, 242, 254),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_PURPLE,
+        "tag": "// 12 • RESULT 01: AUTH PORTAL //"
+    },
+    "ocr": {
+        "bg": RGBColor(3, 36, 22),        # Laser Scanner Mint Green
+        "card_bg": RGBColor(6, 50, 32),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_CYAN,
+        "tag": "// 13 • RESULT 02: MULTIMODAL OCR //"
+    },
+    "analytics": {
+        "bg": RGBColor(4, 30, 48),        # Bullish Cyan Navy
+        "card_bg": RGBColor(8, 44, 70),
+        "border": RGBColor(0, 242, 254),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_GREEN,
+        "tag": "// 14 • RESULT 03: BI ANALYTICS //"
+    },
+    "khata": {
+        "bg": RGBColor(5, 36, 18),        # WhatsApp Khata Emerald
+        "card_bg": RGBColor(8, 50, 28),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_AMBER,
+        "tag": "// 15 • RESULT 04: KHATA LEDGER //"
+    },
+    "database": {
+        "bg": RGBColor(14, 20, 58),       # SQL Database Deep Sapphire
+        "card_bg": RGBColor(20, 30, 82),
+        "border": RGBColor(79, 172, 254),
+        "primary": COLOR_BLUE,
+        "secondary": COLOR_CYAN,
+        "tag": "// 16 • RESULT 05: SQLITE ACID //"
+    },
+    "rag": {
+        "bg": RGBColor(38, 8, 48),        # Synaptic Neural Magenta
+        "card_bg": RGBColor(54, 14, 68),
+        "border": RGBColor(176, 38, 255),
+        "primary": COLOR_PURPLE,
+        "secondary": COLOR_RED,
+        "tag": "// 17 • RESULT 06: RAG AI STUDIO //"
+    },
+    "staff": {
+        "bg": RGBColor(10, 28, 48),       # Governance Slate Blue
+        "card_bg": RGBColor(16, 40, 68),
+        "border": RGBColor(0, 242, 254),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_BLUE,
+        "tag": "// 18 • RESULT 07: RBAC AUDIT //"
+    },
+    "reports": {
+        "bg": RGBColor(24, 32, 44),       # Thermal Invoice Charcoal Slate
+        "card_bg": RGBColor(36, 46, 64),
+        "border": RGBColor(148, 163, 184),
+        "primary": COLOR_CYAN,
+        "secondary": COLOR_WHITE,
+        "tag": "// 19 • RESULT 08: THERMAL EXPORTS //"
+    },
+    "advantages": {
+        "bg": RGBColor(3, 38, 26),        # Brilliant Emerald Jewel
+        "card_bg": RGBColor(6, 54, 38),
+        "border": RGBColor(0, 255, 135),
+        "primary": COLOR_GREEN,
+        "secondary": COLOR_CYAN,
+        "tag": "// 20 • KEY ADVANTAGES //"
+    },
+    "limitations": {
+        "bg": RGBColor(48, 14, 10),       # Caution Barricade Red-Orange (VIVID RED-ORANGE!)
+        "card_bg": RGBColor(66, 22, 16),
+        "border": RGBColor(255, 60, 40),
+        "primary": COLOR_RED,
+        "secondary": COLOR_AMBER,
+        "tag": "// 21 • SYSTEM LIMITATIONS //"
+    },
+    "future": {
+        "bg": RGBColor(28, 10, 54),       # Hyperspace Warp Purple
+        "card_bg": RGBColor(42, 16, 78),
+        "border": RGBColor(176, 38, 255),
+        "primary": COLOR_PURPLE,
+        "secondary": COLOR_CYAN,
+        "tag": "// 22 • FUTURE HORIZONS //"
+    },
+    "conclusion": {
+        "bg": RGBColor(10, 28, 52),       # Grand Royal Azure & Gold
+        "card_bg": RGBColor(16, 40, 74),
+        "border": RGBColor(255, 170, 0),
+        "primary": COLOR_AMBER,
+        "secondary": COLOR_GREEN,
+        "tag": "// 23 • DEFENSE CONCLUSION //"
+    }
+}
+
+ACTIVE_THEME = ["cover"]
+
 def create_deck():
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     blank_layout = prs.slide_layouts[6]
 
-    def set_slide_background(slide):
+    def set_slide_background(slide, theme_key="cover"):
+        ACTIVE_THEME[0] = theme_key
+        cfg = SLIDE_THEMES.get(theme_key, SLIDE_THEMES["cover"])
+
+        # Base canvas fill with distinct theme background color
         bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
         bg.fill.solid()
-        bg.fill.fore_color.rgb = COLOR_BG
+        bg.fill.fore_color.rgb = cfg["bg"]
         bg.line.fill.background()
+
+        # Top luminous accent bar
+        t_bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(0.16))
+        t_bar.fill.solid()
+        t_bar.fill.fore_color.rgb = cfg["primary"]
+        t_bar.line.fill.background()
+
+        # Bottom luminous accent bar
+        b_bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, prs.slide_height - Inches(0.08), prs.slide_width, Inches(0.08))
+        b_bar.fill.solid()
+        b_bar.fill.fore_color.rgb = cfg["primary"]
+        b_bar.line.fill.background()
+
+        # Top-right Theme Watermark Tag
+        w_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.3), Inches(0.4), Inches(4.2), Inches(0.35))
+        w_box.fill.solid()
+        w_box.fill.fore_color.rgb = cfg["card_bg"]
+        w_box.line.color.rgb = cfg["primary"]
+        w_box.line.width = Pt(1)
+        tf_w = w_box.text_frame
+        p_w = tf_w.paragraphs[0]
+        p_w.text = cfg["tag"]
+        p_w.font.name = FONT_MONO
+        p_w.font.size = Pt(9)
+        p_w.font.bold = True
+        p_w.font.color.rgb = cfg["primary"]
+        p_w.alignment = PP_ALIGN.CENTER
         return bg
 
     def add_slide_theme_background(slide, theme_key):
-        """Draws bespoke, theme-appropriate subtle vector graphics in the background behind cards."""
+        """Draws bespoke, high-visibility, theme-appropriate vector motifs across each slide."""
+        cfg = SLIDE_THEMES.get(theme_key, SLIDE_THEMES["cover"])
+        p_col = cfg["primary"]
+        s_col = cfg["secondary"]
+
         if theme_key == "cover":
-            # 4 Cyberpunk Corner Brackets
+            # 4 Bold Cyberpunk Corner Brackets
             corners = [
                 (Inches(0.4), Inches(0.4)),
                 (Inches(12.133), Inches(0.4)),
@@ -61,222 +289,240 @@ def create_deck():
             for cx, cy in corners:
                 c_sh = slide.shapes.add_shape(MSO_SHAPE.CORNER, cx, cy, Inches(0.8), Inches(0.8))
                 c_sh.fill.background()
-                c_sh.line.color.rgb = RGBColor(0, 180, 220)
-                c_sh.line.width = Pt(1.5)
-            # Radiant center donut
-            d = slide.shapes.add_shape(MSO_SHAPE.DONUT, Inches(4.666), Inches(1.75), Inches(4.0), Inches(4.0))
+                c_sh.line.color.rgb = p_col
+                c_sh.line.width = Pt(3.0)
+            # Radiant dual center rings
+            d = slide.shapes.add_shape(MSO_SHAPE.DONUT, Inches(4.166), Inches(1.25), Inches(5.0), Inches(5.0))
             d.fill.background()
-            d.line.color.rgb = RGBColor(12, 35, 65)
-            d.line.width = Pt(1)
+            d.line.color.rgb = p_col
+            d.line.width = Pt(2.0)
+            d2 = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(4.666), Inches(1.75), Inches(4.0), Inches(4.0))
+            d2.fill.background()
+            d2.line.color.rgb = s_col
+            d2.line.width = Pt(1.5)
 
         elif theme_key == "intro":
-            # Connected Commerce Mesh Network
-            nodes = [
-                (Inches(1.2), Inches(2.2)), (Inches(12.1), Inches(2.2)),
-                (Inches(1.2), Inches(5.8)), (Inches(12.1), Inches(5.8))
-            ]
-            # Connecting horizontal and diagonal rails
-            r1 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1.2), Inches(2.2), Inches(10.9), Inches(0.02))
+            # Connected Grassroots Commerce Network Rails & Glowing Nodes
+            r1 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.55), Inches(11.733), Inches(0.04))
             r1.fill.solid()
-            r1.fill.fore_color.rgb = RGBColor(10, 35, 60)
+            r1.fill.fore_color.rgb = p_col
             r1.line.fill.background()
-
-            r2 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1.2), Inches(5.8), Inches(10.9), Inches(0.02))
-            r2.fill.solid()
-            r2.fill.fore_color.rgb = RGBColor(10, 35, 60)
-            r2.line.fill.background()
-
-            for nx, ny in nodes:
-                ov = slide.shapes.add_shape(MSO_SHAPE.OVAL, nx - Inches(0.1), ny - Inches(0.1), Inches(0.2), Inches(0.2))
+            for nx in [Inches(1.2), Inches(3.6), Inches(6.6), Inches(9.6), Inches(12.0)]:
+                ov = slide.shapes.add_shape(MSO_SHAPE.OVAL, nx - Inches(0.15), Inches(1.55) - Inches(0.13), Inches(0.3), Inches(0.3))
                 ov.fill.solid()
-                ov.fill.fore_color.rgb = RGBColor(0, 160, 200)
-                ov.line.fill.background()
+                ov.fill.fore_color.rgb = s_col
+                ov.line.color.rgb = p_col
+                ov.line.width = Pt(1.5)
 
         elif theme_key == "problems":
-            # Crimson Warning Hazard Accents
-            for y_off in [Inches(1.6), Inches(4.1)]:
-                d1 = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(0.35), y_off, Inches(0.35), Inches(0.35))
+            # Crimson Warning Hazard Accents (High-Contrast Red Diagonal Bands & Diamonds)
+            for y_off in [Inches(1.8), Inches(4.3)]:
+                d1 = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(0.25), y_off, Inches(0.45), Inches(0.45))
                 d1.fill.solid()
-                d1.fill.fore_color.rgb = RGBColor(35, 10, 20)
-                d1.line.color.rgb = RGBColor(140, 20, 45)
-                d1.line.width = Pt(1)
+                d1.fill.fore_color.rgb = RGBColor(120, 15, 35)
+                d1.line.color.rgb = p_col
+                d1.line.width = Pt(2.5)
 
-                d2 = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(12.633), y_off, Inches(0.35), Inches(0.35))
+                d2 = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(12.633), y_off, Inches(0.45), Inches(0.45))
                 d2.fill.solid()
-                d2.fill.fore_color.rgb = RGBColor(35, 10, 20)
-                d2.line.color.rgb = RGBColor(140, 20, 45)
-                d2.line.width = Pt(1)
+                d2.fill.fore_color.rgb = RGBColor(120, 15, 35)
+                d2.line.color.rgb = p_col
+                d2.line.width = Pt(2.5)
+            # Hazard border warning tick
+            hz = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.55), Inches(11.733), Inches(0.05))
+            hz.fill.solid()
+            hz.fill.fore_color.rgb = p_col
+            hz.line.fill.background()
 
         elif theme_key == "motivation":
-            # Ascending Neon Velocity Rails
-            for idx, x_pos in enumerate([Inches(2.5), Inches(6.5), Inches(10.5)]):
-                ray = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, x_pos, Inches(1.5), Inches(0.03), Inches(5.0))
+            # Ascending Neon Velocity Rails in vibrant Green & Cyan
+            for idx, x_pos in enumerate([Inches(0.4), Inches(4.6), Inches(8.8), Inches(12.8)]):
+                ray = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, x_pos, Inches(1.5), Inches(0.05), Inches(5.0))
                 ray.fill.solid()
-                ray.fill.fore_color.rgb = RGBColor(0, 60, 45) if idx % 2 == 0 else RGBColor(0, 50, 80)
+                ray.fill.fore_color.rgb = p_col if idx % 2 == 0 else s_col
                 ray.line.fill.background()
+                # Top arrow tip
+                arr = slide.shapes.add_shape(MSO_SHAPE.UP_ARROW, x_pos - Inches(0.1), Inches(1.3), Inches(0.25), Inches(0.25))
+                arr.fill.solid()
+                arr.fill.fore_color.rgb = p_col
+                arr.line.fill.background()
 
         elif theme_key == "gap":
-            # Coordinate Precision Grid Crosshairs
-            for cx, cy in [(Inches(0.5), Inches(1.6)), (Inches(12.8), Inches(1.6)), (Inches(0.5), Inches(6.6)), (Inches(12.8), Inches(6.6))]:
-                cr = slide.shapes.add_shape(MSO_SHAPE.CROSS, cx, cy, Inches(0.25), Inches(0.25))
+            # Coordinate Precision Grid Crosshairs in Electric Blue & Cyan
+            for cx, cy in [(Inches(0.4), Inches(1.6)), (Inches(12.8), Inches(1.6)), (Inches(0.4), Inches(6.6)), (Inches(12.8), Inches(6.6))]:
+                cr = slide.shapes.add_shape(MSO_SHAPE.CROSS, cx, cy, Inches(0.35), Inches(0.35))
                 cr.fill.solid()
-                cr.fill.fore_color.rgb = RGBColor(0, 120, 140)
+                cr.fill.fore_color.rgb = p_col
                 cr.line.fill.background()
 
         elif theme_key == "objectives":
-            # 4-Pillar Foundation Brackets
+            # 4-Pillar Foundation Brackets in Neon Purple
             for x, y in [(Inches(0.6), Inches(1.6)), (Inches(6.6), Inches(1.6)), (Inches(0.6), Inches(4.1)), (Inches(6.6), Inches(4.1))]:
-                crn = slide.shapes.add_shape(MSO_SHAPE.CORNER, x, y, Inches(0.4), Inches(0.4))
+                crn = slide.shapes.add_shape(MSO_SHAPE.CORNER, x, y, Inches(0.5), Inches(0.5))
                 crn.fill.background()
-                crn.line.color.rgb = RGBColor(0, 100, 130)
-                crn.line.width = Pt(1)
+                crn.line.color.rgb = p_col
+                crn.line.width = Pt(2.5)
 
         elif theme_key == "pipeline":
-            # Continuous Flowing Data Conduit with Chevrons
-            c_line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(4.0), Inches(11.733), Inches(0.04))
+            # Continuous Flowing Data Conduit with Cyan Chevrons
+            c_line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(4.0), Inches(11.733), Inches(0.06))
             c_line.fill.solid()
-            c_line.fill.fore_color.rgb = RGBColor(15, 45, 80)
+            c_line.fill.fore_color.rgb = p_col
             c_line.line.fill.background()
-
-            for cx in [Inches(3.6), Inches(6.6), Inches(9.6)]:
-                chv = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, cx, Inches(3.85), Inches(0.35), Inches(0.35))
+            for ch_x in [Inches(3.4), Inches(6.4), Inches(9.4)]:
+                chv = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, ch_x, Inches(3.9), Inches(0.35), Inches(0.26))
                 chv.fill.solid()
-                chv.fill.fore_color.rgb = RGBColor(0, 140, 180)
+                chv.fill.fore_color.rgb = s_col
                 chv.line.fill.background()
 
         elif theme_key == "tech":
-            # Circuit Board Traces & Solder Nodes
-            for tx, ty in [(Inches(0.4), Inches(2.2)), (Inches(12.5), Inches(3.5)), (Inches(0.4), Inches(5.2)), (Inches(12.5), Inches(6.0))]:
-                cir = slide.shapes.add_shape(MSO_SHAPE.OVAL, tx, ty, Inches(0.18), Inches(0.18))
-                cir.fill.solid()
-                cir.fill.fore_color.rgb = RGBColor(0, 200, 120)
-                cir.line.fill.background()
-
-                tr = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, tx + Inches(0.08), ty + Inches(0.08), Inches(0.6), Inches(0.02))
-                tr.fill.solid()
-                tr.fill.fore_color.rgb = RGBColor(0, 100, 80)
-                tr.line.fill.background()
+            # Silicon PCB Circuit Board Traces and Terminals
+            for px, py in [(Inches(0.35), Inches(2.5)), (Inches(0.35), Inches(5.0)), (Inches(12.8), Inches(2.5)), (Inches(12.8), Inches(5.0))]:
+                circ = slide.shapes.add_shape(MSO_SHAPE.OVAL, px, py, Inches(0.25), Inches(0.25))
+                circ.fill.solid()
+                circ.fill.fore_color.rgb = p_col
+                circ.line.color.rgb = s_col
+                circ.line.width = Pt(1.5)
 
         elif theme_key == "arch":
-            # 3-Tier Layer Connector Backbone
-            backbone = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(2.0), Inches(3.2), Inches(9.333), Inches(0.03))
-            backbone.fill.solid()
-            backbone.fill.fore_color.rgb = RGBColor(40, 20, 70)
-            backbone.line.fill.background()
+            # 3-Tier Layered Structural Boundary Rails
+            b1 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(3.4), Inches(11.733), Inches(0.04))
+            b1.fill.solid()
+            b1.fill.fore_color.rgb = p_col
+            b1.line.fill.background()
+            b2 = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(5.1), Inches(11.733), Inches(0.04))
+            b2.fill.solid()
+            b2.fill.fore_color.rgb = s_col
+            b2.line.fill.background()
 
         elif theme_key == "flow":
-            # 5-Stage Step Connection Rail
-            rail = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1.5), Inches(4.15), Inches(10.333), Inches(0.02))
-            rail.fill.solid()
-            rail.fill.fore_color.rgb = RGBColor(0, 80, 110)
-            rail.line.fill.background()
+            # 5-Step Execution Telemetry Arrows
+            f_rail = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.6), Inches(11.733), Inches(0.04))
+            f_rail.fill.solid()
+            f_rail.fill.fore_color.rgb = p_col
+            f_rail.line.fill.background()
 
         elif theme_key == "perf":
-            # Speedometer Gauge Arcs
-            for gx in [Inches(2.2), Inches(6.2), Inches(10.2)]:
-                arc = slide.shapes.add_shape(MSO_SHAPE.BLOCK_ARC, gx, Inches(2.5), Inches(1.8), Inches(1.8))
-                arc.fill.solid()
-                arc.fill.fore_color.rgb = RGBColor(10, 25, 45)
-                arc.line.color.rgb = RGBColor(0, 100, 130)
-                arc.line.width = Pt(1)
+            # Turbo Tachometer Halo & Metric Hallmarks in Gold Amber
+            halo = slide.shapes.add_shape(MSO_SHAPE.DONUT, Inches(5.166), Inches(1.3), Inches(3.0), Inches(3.0))
+            halo.fill.background()
+            halo.line.color.rgb = p_col
+            halo.line.width = Pt(3.0)
+            for gx in [Inches(0.4), Inches(12.7)]:
+                bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, gx, Inches(2.5), Inches(0.2), Inches(3.5))
+                bar.fill.solid()
+                bar.fill.fore_color.rgb = p_col
+                bar.line.fill.background()
 
         elif theme_key == "login":
-            # Cyber Security Hexagon Shield
-            hex_sh = slide.shapes.add_shape(MSO_SHAPE.HEXAGON, Inches(8.5), Inches(2.4), Inches(2.4), Inches(2.4))
-            hex_sh.fill.background()
-            hex_sh.line.color.rgb = RGBColor(0, 120, 150)
-            hex_sh.line.width = Pt(1.5)
+            # Security Vault Hexagon Shield
+            shd = slide.shapes.add_shape(MSO_SHAPE.HEXAGON, Inches(0.3), Inches(2.8), Inches(0.5), Inches(0.6))
+            shd.fill.solid()
+            shd.fill.fore_color.rgb = cfg["card_bg"]
+            shd.line.color.rgb = p_col
+            shd.line.width = Pt(2.5)
 
         elif theme_key == "ocr":
-            # Audio Waveform Equalizer Silhouette & Laser Scanline
-            for wx, wh in [(Inches(0.4), Inches(0.8)), (Inches(0.55), Inches(1.4)), (Inches(0.7), Inches(2.2)), (Inches(0.85), Inches(1.1))]:
+            # Laser Scanline Beam across top of cards
+            scan = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.65), Inches(11.733), Inches(0.05))
+            scan.fill.solid()
+            scan.fill.fore_color.rgb = p_col
+            scan.line.fill.background()
+            for wx, wh in [(Inches(0.3), Inches(0.6)), (Inches(0.42), Inches(1.1)), (Inches(0.54), Inches(1.6)), (Inches(0.66), Inches(0.9))]:
                 w_bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, wx, Inches(4.5) - wh/2, Inches(0.08), wh)
                 w_bar.fill.solid()
-                w_bar.fill.fore_color.rgb = RGBColor(0, 100, 140)
+                w_bar.fill.fore_color.rgb = p_col
                 w_bar.line.fill.background()
 
         elif theme_key == "analytics":
-            # Financial Candlestick / Bar Chart Backdrop
-            for bx, bh in [(Inches(7.2), Inches(1.0)), (Inches(8.4), Inches(1.6)), (Inches(9.6), Inches(2.3)), (Inches(10.8), Inches(3.1)), (Inches(12.0), Inches(3.8))]:
-                f_bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, bx, Inches(6.0) - bh, Inches(0.35), bh)
-                f_bar.fill.solid()
-                f_bar.fill.fore_color.rgb = RGBColor(12, 32, 50)
-                f_bar.line.fill.background()
+            # Ascending Trendline Indicator in Cyan & Green
+            trend = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.65), Inches(11.733), Inches(0.04))
+            trend.fill.solid()
+            trend.fill.fore_color.rgb = p_col
+            trend.line.fill.background()
 
         elif theme_key == "khata":
-            # WhatsApp Dialogue Pulse Rings
-            ring = slide.shapes.add_shape(MSO_SHAPE.DONUT, Inches(8.5), Inches(2.8), Inches(2.2), Inches(2.2))
-            ring.fill.background()
-            ring.line.color.rgb = RGBColor(0, 100, 60)
-            ring.line.width = Pt(1.5)
+            # WhatsApp Pulse Ring Halos in Emerald Green
+            for rx, ry in [(Inches(0.3), Inches(2.8)), (Inches(12.7), Inches(2.8))]:
+                ring = slide.shapes.add_shape(MSO_SHAPE.DONUT, rx, ry, Inches(0.4), Inches(0.4))
+                ring.fill.background()
+                ring.line.color.rgb = p_col
+                ring.line.width = Pt(2.0)
 
         elif theme_key == "database":
-            # ACID Database Cylinders
-            can = slide.shapes.add_shape(MSO_SHAPE.CAN, Inches(8.8), Inches(2.5), Inches(1.8), Inches(2.4))
-            can.fill.background()
-            can.line.color.rgb = RGBColor(0, 120, 140)
-            can.line.width = Pt(1.5)
+            # ACID Database Dual Cylinders in Sapphire Blue
+            for cx, cy in [(Inches(0.3), Inches(3.2)), (Inches(12.65), Inches(3.2))]:
+                can = slide.shapes.add_shape(MSO_SHAPE.CAN, cx, cy, Inches(0.45), Inches(0.65))
+                can.fill.background()
+                can.line.color.rgb = p_col
+                can.line.width = Pt(2.0)
 
         elif theme_key == "rag":
-            # Neural Synaptic AI Network
-            center = (Inches(9.5), Inches(3.8))
-            for dx, dy in [(Inches(-1.2), Inches(-1.0)), (Inches(1.2), Inches(-1.0)), (Inches(-1.4), Inches(0.8)), (Inches(1.4), Inches(0.8))]:
-                n_dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, center[0] + dx, center[1] + dy, Inches(0.2), Inches(0.2))
-                n_dot.fill.solid()
-                n_dot.fill.fore_color.rgb = RGBColor(176, 38, 255)
-                n_dot.line.fill.background()
+            # Synaptic AI Neural Constellation in Magenta-Purple
+            for nx, ny in [(Inches(0.35), Inches(2.5)), (Inches(0.5), Inches(3.8)), (Inches(0.35), Inches(5.1)),
+                           (Inches(12.7), Inches(2.5)), (Inches(12.85), Inches(3.8)), (Inches(12.7), Inches(5.1))]:
+                nd = slide.shapes.add_shape(MSO_SHAPE.OVAL, nx, ny, Inches(0.22), Inches(0.22))
+                nd.fill.solid()
+                nd.fill.fore_color.rgb = p_col
+                nd.line.color.rgb = s_col
+                nd.line.width = Pt(1.5)
 
         elif theme_key == "staff":
-            # Multi-User RBAC Hexagon Shield
-            shld = slide.shapes.add_shape(MSO_SHAPE.HEXAGON, Inches(8.8), Inches(2.6), Inches(2.0), Inches(2.4))
-            shld.fill.background()
-            shld.line.color.rgb = RGBColor(40, 80, 140)
-            shld.line.width = Pt(1.5)
+            # RBAC Governance Frame in Slate Blue
+            for sx in [Inches(0.3), Inches(12.65)]:
+                hxg = slide.shapes.add_shape(MSO_SHAPE.HEXAGON, sx, Inches(3.3), Inches(0.45), Inches(0.55))
+                hxg.fill.background()
+                hxg.line.color.rgb = p_col
+                hxg.line.width = Pt(2.0)
 
         elif theme_key == "reports":
-            # Thermal Receipt & Barcode Line Stripes
-            for bx, bw in [(Inches(7.2), Inches(0.04)), (Inches(7.35), Inches(0.08)), (Inches(7.55), Inches(0.04)), (Inches(7.7), Inches(0.12)), (Inches(7.95), Inches(0.04))]:
-                b_line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, bx, Inches(2.2), bw, Inches(3.8))
-                b_line.fill.solid()
-                b_line.fill.fore_color.rgb = RGBColor(20, 35, 60)
-                b_line.line.fill.background()
+            # Thermal Invoice Perforated Receipt Lines
+            for rx in [Inches(0.35), Inches(0.48), Inches(12.7), Inches(12.83)]:
+                r_stripe = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, rx, Inches(2.0), Inches(0.04), Inches(4.2))
+                r_stripe.fill.solid()
+                r_stripe.fill.fore_color.rgb = p_col
+                r_stripe.line.fill.background()
 
         elif theme_key == "advantages":
-            # Glowing Diamond Polygon Facets
-            for dx in [Inches(2.0), Inches(6.2), Inches(10.4)]:
-                dia = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, dx, Inches(2.0), Inches(1.2), Inches(1.2))
-                dia.fill.background()
-                dia.line.color.rgb = RGBColor(0, 120, 70)
-                dia.line.width = Pt(1.2)
+            # Brilliant Diamond Facets in Emerald Jewel
+            for dx in [Inches(0.3), Inches(12.65)]:
+                dia = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, dx, Inches(3.4), Inches(0.45), Inches(0.45))
+                dia.fill.solid()
+                dia.fill.fore_color.rgb = cfg["card_bg"]
+                dia.line.color.rgb = p_col
+                dia.line.width = Pt(2.0)
 
         elif theme_key == "limitations":
-            # Cautionary Cloud Silhouette
-            cld = slide.shapes.add_shape(MSO_SHAPE.CLOUD, Inches(9.2), Inches(2.6), Inches(2.8), Inches(1.8))
-            cld.fill.background()
-            cld.line.color.rgb = RGBColor(120, 20, 45)
-            cld.line.width = Pt(1.5)
+            # Diagonal Caution Warning Barricade Bands in Neon Red
+            for cx in [Inches(0.3), Inches(12.65)]:
+                cld = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, cx, Inches(3.4), Inches(0.45), Inches(0.45))
+                cld.fill.solid()
+                cld.fill.fore_color.rgb = RGBColor(120, 20, 15)
+                cld.line.color.rgb = p_col
+                cld.line.width = Pt(2.0)
 
         elif theme_key == "future":
-            # Hyperspace Velocity Warp Rails
-            for fx, fy in [(Inches(0.6), Inches(1.5)), (Inches(12.7), Inches(1.5)), (Inches(0.6), Inches(6.5)), (Inches(12.7), Inches(6.5))]:
-                arr = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, fx, fy, Inches(0.5), Inches(0.2))
+            # Hyperspace Velocity Warp Beams
+            for fx, fy in [(Inches(0.3), Inches(1.8)), (Inches(12.65), Inches(1.8)), (Inches(0.3), Inches(6.2)), (Inches(12.65), Inches(6.2))]:
+                arr = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, fx, fy, Inches(0.45), Inches(0.22))
                 arr.fill.solid()
-                arr.fill.fore_color.rgb = RGBColor(0, 80, 120)
+                arr.fill.fore_color.rgb = p_col
                 arr.line.fill.background()
 
         elif theme_key == "conclusion":
-            # Grand Radiant Arch
-            g_arch = slide.shapes.add_shape(MSO_SHAPE.BLOCK_ARC, Inches(4.666), Inches(1.5), Inches(4.0), Inches(4.0))
+            # Grand Radiant Victory Arch
+            g_arch = slide.shapes.add_shape(MSO_SHAPE.BLOCK_ARC, Inches(4.166), Inches(1.0), Inches(5.0), Inches(5.0))
             g_arch.fill.background()
-            g_arch.line.color.rgb = RGBColor(0, 180, 100)
-            g_arch.line.width = Pt(2)
+            g_arch.line.color.rgb = p_col
+            g_arch.line.width = Pt(3.0)
 
     def add_hud_header(slide, badge_text, title_text, subtitle_text):
-        badge_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.4), Inches(0.35))
+        cfg = SLIDE_THEMES.get(ACTIVE_THEME[0], SLIDE_THEMES["cover"])
+        badge_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.6), Inches(0.35))
         badge_box.fill.solid()
-        badge_box.fill.fore_color.rgb = RGBColor(12, 25, 55)
-        badge_box.line.color.rgb = COLOR_GREEN
-        badge_box.line.width = Pt(1)
+        badge_box.fill.fore_color.rgb = cfg["card_bg"]
+        badge_box.line.color.rgb = cfg["primary"]
+        badge_box.line.width = Pt(1.2)
         tf_b = badge_box.text_frame
         tf_b.word_wrap = False
         p_b = tf_b.paragraphs[0]
@@ -284,7 +530,7 @@ def create_deck():
         p_b.font.name = FONT_MONO
         p_b.font.size = Pt(9.5)
         p_b.font.bold = True
-        p_b.font.color.rgb = COLOR_GREEN
+        p_b.font.color.rgb = cfg["primary"]
         p_b.alignment = PP_ALIGN.CENTER
 
         tb_t = slide.shapes.add_textbox(Inches(0.8), Inches(0.85), Inches(11.7), Inches(0.6))
@@ -302,12 +548,13 @@ def create_deck():
             p_sub.text = subtitle_text
             p_sub.font.name = FONT_BODY
             p_sub.font.size = Pt(11)
-            p_sub.font.color.rgb = COLOR_CYAN
+            p_sub.font.color.rgb = cfg["secondary"]
 
     def add_hud_footer(slide, slide_num):
+        cfg = SLIDE_THEMES.get(ACTIVE_THEME[0], SLIDE_THEMES["cover"])
         line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(6.9), Inches(11.733), Inches(0.02))
         line.fill.solid()
-        line.fill.fore_color.rgb = RGBColor(25, 40, 70)
+        line.fill.fore_color.rgb = cfg["border"]
         line.line.fill.background()
 
         tb_f = slide.shapes.add_textbox(Inches(0.8), Inches(6.95), Inches(9.0), Inches(0.4))
@@ -326,26 +573,27 @@ def create_deck():
         p_c.font.name = FONT_MONO
         p_c.font.size = Pt(9)
         p_c.font.bold = True
-        p_c.font.color.rgb = COLOR_CYAN
+        p_c.font.color.rgb = cfg["primary"]
 
-    def create_card(slide, left, top, width, height, accent_color=COLOR_CYAN):
+    def create_card(slide, left, top, width, height, accent_color=None):
+        cfg = SLIDE_THEMES.get(ACTIVE_THEME[0], SLIDE_THEMES["cover"])
+        acc = accent_color if accent_color is not None else cfg["primary"]
         card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
         card.fill.solid()
-        card.fill.fore_color.rgb = COLOR_CARD
-        card.line.color.rgb = RGBColor(25, 45, 80)
-        card.line.width = Pt(1)
+        card.fill.fore_color.rgb = cfg["card_bg"]
+        card.line.color.rgb = cfg["border"]
+        card.line.width = Pt(1.2)
 
         accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left + Inches(0.1), top, width - Inches(0.2), Inches(0.04))
         accent.fill.solid()
-        accent.fill.fore_color.rgb = accent_color
+        accent.fill.fore_color.rgb = acc
         accent.line.fill.background()
         return card
-
     # =========================================================================
     # SLIDE 1: TITLE / COVER SLIDE
     # =========================================================================
     s1 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s1)
+    set_slide_background(s1, "cover")
     add_slide_theme_background(s1, "cover")
 
     pill1 = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3.666), Inches(0.8), Inches(6.0), Inches(0.4))
@@ -441,7 +689,7 @@ def create_deck():
     # SLIDE 2: INTRODUCTION
     # =========================================================================
     s2 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s2)
+    set_slide_background(s2, "intro")
     add_slide_theme_background(s2, "intro")
     add_hud_header(s2, "02 • Project Overview", "Introduction: VernaLedger.AI Suite", "Next-Gen Vernacular Financial & Point of Sale Intelligence for Grassroots Indian Retail")
     add_hud_footer(s2, 2)
@@ -486,7 +734,7 @@ def create_deck():
     # SLIDE 3: PROBLEM STATEMENT
     # =========================================================================
     s3 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s3)
+    set_slide_background(s3, "problems")
     add_slide_theme_background(s3, "problems")
     add_hud_header(s3, "03 • Market Realities", "Problem Statement", "The Operational Burden on Local & Rural Retail Merchants")
     add_hud_footer(s3, 3)
@@ -528,7 +776,7 @@ def create_deck():
     # SLIDE 4: MOTIVATION
     # =========================================================================
     s4 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s4)
+    set_slide_background(s4, "motivation")
     add_slide_theme_background(s4, "motivation")
     add_hud_header(s4, "04 • The Vision", "Motivation", "Empowering Rural Grassroots Commerce with Enterprise-Grade Artificial Intelligence")
     add_hud_footer(s4, 4)
@@ -571,7 +819,7 @@ def create_deck():
     # SLIDE 5: GAP ANALYSIS (MARKET COMPARISON TABLE - NO BHARATPE)
     # =========================================================================
     s5 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s5)
+    set_slide_background(s5, "gap")
     add_slide_theme_background(s5, "gap")
     add_hud_header(s5, "05 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Head-to-Head Architectural Comparison with Direct Industry Competitors")
     add_hud_footer(s5, 5)
@@ -629,7 +877,7 @@ def create_deck():
     # SLIDE 6: PROJECT OBJECTIVES
     # =========================================================================
     s6 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s6)
+    set_slide_background(s6, "objectives")
     add_slide_theme_background(s6, "objectives")
     add_hud_header(s6, "06 • Core Mission", "Project Objectives", "Four Strategic Engineering Pillars Governing System Architecture")
     add_hud_footer(s6, 6)
@@ -670,7 +918,7 @@ def create_deck():
     # SLIDE 7: PROPOSED SYSTEM
     # =========================================================================
     s7 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s7)
+    set_slide_background(s7, "pipeline")
     add_slide_theme_background(s7, "pipeline")
     add_hud_header(s7, "07 • Operational Architecture", "Proposed System", "Four-Stage Closed-Loop Multimodal Transaction Processing Pipeline")
     add_hud_footer(s7, 7)
@@ -714,7 +962,7 @@ def create_deck():
     # SLIDE 8: TECHNOLOGIES & TOOLS
     # =========================================================================
     s8 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s8)
+    set_slide_background(s8, "tech")
     add_slide_theme_background(s8, "tech")
     add_hud_header(s8, "08 • Engineering Stack", "Technologies & Tools", "Modern, Robust, and Scalable Full-Stack Technological Foundation")
     add_hud_footer(s8, 8)
@@ -755,7 +1003,7 @@ def create_deck():
     # SLIDE 9: SYSTEM ARCHITECTURE
     # =========================================================================
     s9 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s9)
+    set_slide_background(s9, "arch")
     add_slide_theme_background(s9, "arch")
     add_hud_header(s9, "09 • Structural Design", "System Architecture", "Modular 3-Tier Layered Architecture with Strict Separation of Concerns")
     add_hud_footer(s9, 9)
@@ -818,7 +1066,7 @@ def create_deck():
     # SLIDE 10: WORKING FLOW
     # =========================================================================
     s10 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s10)
+    set_slide_background(s10, "flow")
     add_slide_theme_background(s10, "flow")
     add_hud_header(s10, "10 • Execution Pipeline", "Working Flow (Runtime Execution)", "Step-by-Step Lifecycle of a Transaction Through the VernaLedger System")
     add_hud_footer(s10, 10)
@@ -863,7 +1111,7 @@ def create_deck():
     # SLIDE 11: PERFORMANCE ANALYSIS
     # =========================================================================
     s11 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s11)
+    set_slide_background(s11, "perf")
     add_slide_theme_background(s11, "perf")
     add_hud_header(s11, "11 • Empirical Evaluation", "Performance Analysis", "Rigorous Quantitative Benchmarks Demonstrating Disruptive Efficiency")
     add_hud_footer(s11, 11)
@@ -907,7 +1155,7 @@ def create_deck():
     # HELPER FOR RESULT SLIDES (SLIDES 12 - 19)
     # =========================================================================
     def build_result_slide(slide, slide_num, title, subtitle, features, image_name, theme_key):
-        set_slide_background(slide)
+        set_slide_background(slide, theme_key)
         add_slide_theme_background(slide, theme_key)
         add_hud_header(slide, f"{slide_num:02d} • Live System Showcase", title, subtitle)
         add_hud_footer(slide, slide_num)
@@ -1077,7 +1325,7 @@ def create_deck():
     # SLIDE 20: ADVANTAGES & STRENGTHS
     # =========================================================================
     s20 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s20)
+    set_slide_background(s20, "advantages")
     add_slide_theme_background(s20, "advantages")
     add_hud_header(s20, "20 • Value Proposition", "Advantages & Strengths", "Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers")
     add_hud_footer(s20, 20)
@@ -1118,7 +1366,7 @@ def create_deck():
     # SLIDE 21: SYSTEM LIMITATIONS
     # =========================================================================
     s21 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s21)
+    set_slide_background(s21, "limitations")
     add_slide_theme_background(s21, "limitations")
     add_hud_header(s21, "21 • Engineering Constraints", "System Limitations", "Known Technical Boundaries & Operational Dependencies")
     add_hud_footer(s21, 21)
@@ -1160,7 +1408,7 @@ def create_deck():
     # SLIDE 22: FUTURE ENHANCEMENTS
     # =========================================================================
     s22 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s22)
+    set_slide_background(s22, "future")
     add_slide_theme_background(s22, "future")
     add_hud_header(s22, "22 • Future Roadmap", "Future Enhancements", "Product Evolution, Native Mobile Packaging & Scalability Roadmap")
     add_hud_footer(s22, 22)
@@ -1202,7 +1450,7 @@ def create_deck():
     # SLIDE 23: CONCLUSION & Q&A
     # =========================================================================
     s23 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s23)
+    set_slide_background(s23, "conclusion")
     add_slide_theme_background(s23, "conclusion")
 
     pill23 = s23.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.166), Inches(0.8), Inches(5.0), Inches(0.4))
