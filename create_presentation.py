@@ -1,6 +1,6 @@
 """
 VernaLedger.AI: Merchant Pro v7.5 - Technical Presentation Generator
-Creates a 16:9 Widescreen, 22-slide Cyberpunk Neon Dark Glassmorphism PowerPoint presentation
+Creates a 16:9 Widescreen, 23-slide Cyberpunk Neon Dark Glassmorphism PowerPoint presentation
 for B.Tech Computer Engineering Major Project Final Defense.
 """
 
@@ -33,6 +33,7 @@ COLOR_DIM = RGBColor(100, 116, 139)      # Dim Slate text
 FONT_TITLE = "Segoe UI"
 FONT_BODY = "Segoe UI"
 FONT_MONO = "Consolas"
+TOTAL_SLIDES = 23
 
 def create_deck():
     prs = Presentation()
@@ -49,7 +50,7 @@ def create_deck():
 
     def add_hud_header(slide, badge_text, title_text, subtitle_text):
         # Top HUD Pill
-        badge_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.2), Inches(0.35))
+        badge_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.4), Inches(0.35))
         badge_box.fill.solid()
         badge_box.fill.fore_color.rgb = RGBColor(12, 25, 55)
         badge_box.line.color.rgb = COLOR_GREEN
@@ -103,7 +104,7 @@ def create_deck():
         tb_c = slide.shapes.add_textbox(Inches(10.5), Inches(6.95), Inches(2.0), Inches(0.4))
         tf_c = tb_c.text_frame
         p_c = tf_c.paragraphs[0]
-        p_c.text = f"{slide_num:02d} / 22"
+        p_c.text = f"{slide_num:02d} / {TOTAL_SLIDES:02d}"
         p_c.alignment = PP_ALIGN.RIGHT
         p_c.font.name = FONT_MONO
         p_c.font.size = Pt(9)
@@ -179,7 +180,6 @@ def create_deck():
     p.font.color.rgb = COLOR_GREEN
     p.alignment = PP_ALIGN.CENTER
 
-    # 4 Team Members in Columns
     names = [
         "1. Sanket Kirdat",
         "2. Sakshi Bhagat",
@@ -226,12 +226,56 @@ def create_deck():
     p_uni.alignment = PP_ALIGN.CENTER
 
     # =========================================================================
-    # SLIDE 2: PROBLEM STATEMENT
+    # SLIDE 2: INTRODUCTION (NEW SLIDE!)
     # =========================================================================
     s2 = prs.slides.add_slide(blank_layout)
     set_slide_background(s2)
-    add_hud_header(s2, "02 • Market Realities", "Problem Statement", "The Operational Burden on Local & Rural Retail Merchants")
+    add_hud_header(s2, "02 • Project Overview", "Introduction: VernaLedger.AI Suite", "Next-Gen Vernacular Financial & Point of Sale Intelligence for Grassroots Indian Retail")
     add_hud_footer(s2, 2)
+
+    intro_cards = [
+        ("🏪 What is VernaLedger.AI?", "An offline-first, vernacular-native Point of Sale (POS) and smart digital bookkeeping suite engineered specifically for India's 63+ million micro, small, and medium enterprises (MSMEs) and local kirana merchants.", "Empowering 63M+ Indian MSMEs", COLOR_CYAN),
+        ("🗣️ The Vernacular Revolution", "Eliminates English-centric digital barriers by empowering merchants to record transactions via natural Marathi and Hindi voice billing, backed by crystal-clear Edge TTS regional audio feedback.", "Native Marathi & Hindi Voice NLP", COLOR_GREEN),
+        ("⚡ Multimodal AI Vision & OCR", "Eliminates manual pen-and-paper billing by harnessing Google Gemini Flash multimodal vision to accurately extract items, rates, quantities, and taxes in under 4.5 seconds.", "Sub-4.5s Instant Digitization", COLOR_PURPLE),
+        ("🛡️ Resilient ACID SQLite Architecture", "Guarantees 100% operational uptime and zero data loss with a local SQLite database (WAL mode), eliminating expensive cloud subscription fees, vendor lock-in, and broadband dependency.", "Crash-Proof ACID & Zero Platform Tax", COLOR_BLUE)
+    ]
+    card_w, card_h = Inches(5.6), Inches(2.2)
+    positions = [(Inches(0.8), Inches(1.8)), (Inches(6.8), Inches(1.8)),
+                 (Inches(0.8), Inches(4.3)), (Inches(6.8), Inches(4.3))]
+
+    for i, (title, desc, tag, col) in enumerate(intro_cards):
+        x, y = positions[i]
+        create_card(s2, x, y, card_w, card_h, col)
+        tb = s2.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        tf = tb.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title
+        p.font.name = FONT_TITLE
+        p.font.size = Pt(13)
+        p.font.bold = True
+        p.font.color.rgb = col
+
+        p_d = tf.add_paragraph()
+        p_d.text = desc
+        p_d.font.name = FONT_BODY
+        p_d.font.size = Pt(10.5)
+        p_d.font.color.rgb = COLOR_SLATE
+
+        p_t = tf.add_paragraph()
+        p_t.text = f"[{tag}]"
+        p_t.font.name = FONT_MONO
+        p_t.font.size = Pt(8.5)
+        p_t.font.bold = True
+        p_t.font.color.rgb = col
+
+    # =========================================================================
+    # SLIDE 3: PROBLEM STATEMENT
+    # =========================================================================
+    s3 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s3)
+    add_hud_header(s3, "03 • Market Realities", "Problem Statement", "The Operational Burden on Local & Rural Retail Merchants")
+    add_hud_footer(s3, 3)
 
     problems = [
         ("✍️ Manual Data Entry", "Writing receipts and ledgers manually consumes ~120s per bill, resulting in math miscalculations, queue backlogs, and lost paper slips.", "Bottleneck: 120s / Bill"),
@@ -239,14 +283,11 @@ def create_deck():
         ("📘 Disorganized Udhari", "Tracking informal customer credit on paper books leads to untraceable balances, forgotten dues, and ~15% quarterly revenue leakage.", "Loss: ~15% Uncollected Dues"),
         ("📉 Lack of Analytics", "Kirana store owners have zero visibility into real-time profit/loss, fast-depleting stock thresholds, or sales trends to make restocking decisions.", "Blindspot: Zero Sales Insights")
     ]
-    card_w, card_h = Inches(5.6), Inches(2.2)
-    positions = [(Inches(0.8), Inches(1.8)), (Inches(6.8), Inches(1.8)),
-                 (Inches(0.8), Inches(4.3)), (Inches(6.8), Inches(4.3))]
 
     for i, (title, desc, tag) in enumerate(problems):
         x, y = positions[i]
-        create_card(s2, x, y, card_w, card_h, COLOR_RED)
-        tb = s2.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        create_card(s3, x, y, card_w, card_h, COLOR_RED)
+        tb = s3.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -270,25 +311,25 @@ def create_deck():
         p_t.font.color.rgb = COLOR_RED
 
     # =========================================================================
-    # SLIDE 3: MOTIVATION
+    # SLIDE 4: MOTIVATION
     # =========================================================================
-    s3 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s3)
-    add_hud_header(s3, "03 • The Vision", "Motivation", "Empowering Rural Grassroots Commerce with Enterprise-Grade Artificial Intelligence")
-    add_hud_footer(s3, 3)
+    s4 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s4)
+    add_hud_header(s4, "04 • The Vision", "Motivation", "Empowering Rural Grassroots Commerce with Enterprise-Grade Artificial Intelligence")
+    add_hud_footer(s4, 4)
 
     motivations = [
         ("🌉 Bridging the Tech Divide", "Democratizing sophisticated business tooling for tier-2/3 micro-merchants and kirana stores without requiring expensive POS hardware, barcode scanners, or IT literacy.", "Democratizing Enterprise Tech", COLOR_CYAN),
         ("🧠 Harnessing Multimodal AI", "Fusing Google Gemini Flash's sub-second multimodal vision with Microsoft Edge TTS to transform ubiquitous smartphone cameras and regional speech into a complete autonomous POS.", "Multimodal AI + Neural Audio", COLOR_GREEN),
         ("⚡ Removing Digital Friction", "Compressing cumbersome bookkeeping from several stressful minutes into an effortless 4.5-second gesture: snap a photo or speak in Marathi, and let AI structure the ledger.", "Zero-Friction Billing", COLOR_PURPLE)
     ]
-    card_w = Inches(3.64)
-    card_h = Inches(4.5)
+    card_w3 = Inches(3.64)
+    card_h3 = Inches(4.5)
     for i, (title, desc, tag, col) in enumerate(motivations):
         x = Inches(0.8) + i * Inches(4.0)
         y = Inches(1.9)
-        create_card(s3, x, y, card_w, card_h, col)
-        tb = s3.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        create_card(s4, x, y, card_w3, card_h3, col)
+        tb = s4.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w3 - Inches(0.5), card_h3 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -312,15 +353,15 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 4: GAP ANALYSIS (MARKET COMPARISON TABLE)
+    # SLIDE 5: GAP ANALYSIS (MARKET COMPARISON TABLE - NO BHARATPE)
     # =========================================================================
-    s4 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s4)
-    add_hud_header(s4, "04 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Head-to-Head Architectural Comparison with Direct Industry Competitors")
-    add_hud_footer(s4, 4)
+    s5 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s5)
+    add_hud_header(s5, "05 • Competitive Benchmarks", "Gap Analysis (Market Comparison)", "Head-to-Head Architectural Comparison with Direct Industry Competitors")
+    add_hud_footer(s5, 5)
 
     rows, cols = 8, 6
-    tbl_shape = s4.shapes.add_table(rows, cols, Inches(0.8), Inches(1.85), Inches(11.733), Inches(4.7))
+    tbl_shape = s5.shapes.add_table(rows, cols, Inches(0.8), Inches(1.85), Inches(11.733), Inches(4.7))
     tbl = tbl_shape.table
     tbl.columns[0].width = Inches(3.2)
     tbl.columns[1].width = Inches(1.7)
@@ -350,7 +391,6 @@ def create_deck():
             p.font.name = FONT_BODY
             p.font.size = Pt(10)
             
-            # Formatting
             if r_idx == 0:
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = RGBColor(15, 30, 60)
@@ -370,12 +410,12 @@ def create_deck():
                     p.font.color.rgb = COLOR_SLATE
 
     # =========================================================================
-    # SLIDE 5: PROJECT OBJECTIVES
+    # SLIDE 6: PROJECT OBJECTIVES
     # =========================================================================
-    s5 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s5)
-    add_hud_header(s5, "05 • Core Mission", "Project Objectives", "Four Strategic Engineering Pillars Governing System Architecture")
-    add_hud_footer(s5, 5)
+    s6 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s6)
+    add_hud_header(s6, "06 • Core Mission", "Project Objectives", "Four Strategic Engineering Pillars Governing System Architecture")
+    add_hud_footer(s6, 6)
 
     objectives = [
         ("1. Automate Receipt Parsing", "Engineer a sub-4.5s multimodal vision pipeline using Gemini Flash to extract line items, prices, tax, and totals with zero numerical hallucination.", "Performance: <4.5s Processing", COLOR_CYAN),
@@ -385,8 +425,8 @@ def create_deck():
     ]
     for i, (title, desc, tag, col) in enumerate(objectives):
         x, y = positions[i]
-        create_card(s5, x, y, card_w, card_h, col)
-        tb = s5.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
+        create_card(s6, x, y, card_w, card_h, col)
+        tb = s6.shapes.add_textbox(x + Inches(0.25), y + Inches(0.2), card_w - Inches(0.5), card_h - Inches(0.4))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -410,12 +450,12 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 6: PROPOSED SYSTEM
+    # SLIDE 7: PROPOSED SYSTEM
     # =========================================================================
-    s6 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s6)
-    add_hud_header(s6, "06 • Operational Architecture", "Proposed System", "Four-Stage Closed-Loop Multimodal Transaction Processing Pipeline")
-    add_hud_footer(s6, 6)
+    s7 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s7)
+    add_hud_header(s7, "07 • Operational Architecture", "Proposed System", "Four-Stage Closed-Loop Multimodal Transaction Processing Pipeline")
+    add_hud_footer(s7, 7)
 
     stages = [
         ("🧑‍💼 1. Merchant Actor", "Interacts via Voice Mic, Live Camera capture, or Direct POS Touch UI.", "Multimodal Input Ingestion", COLOR_CYAN),
@@ -428,8 +468,8 @@ def create_deck():
     for i, (title, desc, tag, col) in enumerate(stages):
         x = Inches(0.8) + i * Inches(3.0)
         y = Inches(1.9)
-        create_card(s6, x, y, card_w4, card_h4, col)
-        tb = s6.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
+        create_card(s7, x, y, card_w4, card_h4, col)
+        tb = s7.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -453,25 +493,23 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 7: TECHNOLOGIES & TOOLS
+    # SLIDE 8: TECHNOLOGIES & TOOLS
     # =========================================================================
-    s7 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s7)
-    add_hud_header(s7, "07 • Engineering Stack", "Technologies & Tools", "Modern, Robust, and Scalable Full-Stack Technological Foundation")
-    add_hud_footer(s7, 7)
+    s8 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s8)
+    add_hud_header(s8, "08 • Engineering Stack", "Technologies & Tools", "Modern, Robust, and Scalable Full-Stack Technological Foundation")
+    add_hud_footer(s8, 8)
 
     techs = [
         ("🐍 Frontend & Logic", "• Python 3.10+: Core processing runtime\n• Streamlit Framework: Dynamic reactive UI\n• Custom React Components: Mic audio recording\n• CSS3 Cyberpunk Theme: Dark glassmorphic design system", "Python • Streamlit • React", COLOR_GREEN),
         ("🤖 AI & Audio Engines", "• Google Gemini Flash: Multimodal OCR & NLP\n• Microsoft Edge TTS: Neural Marathi voice synthesis\n• Streamlit Mic Recorder: Real-time audio stream\n• RAG Engine: Dynamic database context injection", "Gemini Flash • Edge TTS • RAG", COLOR_CYAN),
         ("💽 Database & Analytics", "• SQLite3 (WAL Mode): ACID transaction storage\n• PBKDF2-SHA256: Cryptographic password hashing\n• Pandas & Plotly: Real-time business intelligence\n• ReportLab: Localized Marathi PDF & invoice generation", "SQLite • PBKDF2 • Plotly", COLOR_PURPLE)
     ]
-    card_w = Inches(3.64)
-    card_h = Inches(4.5)
     for i, (title, desc, tag, col) in enumerate(techs):
         x = Inches(0.8) + i * Inches(4.0)
         y = Inches(1.9)
-        create_card(s7, x, y, card_w, card_h, col)
-        tb = s7.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        create_card(s8, x, y, card_w3, card_h3, col)
+        tb = s8.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w3 - Inches(0.5), card_h3 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -495,12 +533,12 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 8: SYSTEM ARCHITECTURE
+    # SLIDE 9: SYSTEM ARCHITECTURE
     # =========================================================================
-    s8 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s8)
-    add_hud_header(s8, "08 • Structural Design", "System Architecture", "Modular 3-Tier Layered Architecture with Strict Separation of Concerns")
-    add_hud_footer(s8, 8)
+    s9 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s9)
+    add_hud_header(s9, "09 • Structural Design", "System Architecture", "Modular 3-Tier Layered Architecture with Strict Separation of Concerns")
+    add_hud_footer(s9, 9)
 
     layers = [
         ("1. PRESENTATION LAYER", "Streamlit UI • Camera Ingestion\nMic Recording • Glassmorphic HUD\nInteractive DataFrames", COLOR_CYAN),
@@ -512,8 +550,8 @@ def create_deck():
     for i, (title, desc, col) in enumerate(layers):
         x = Inches(0.8) + i * Inches(4.2)
         y = Inches(2.1)
-        create_card(s8, x, y, box_w, box_h, col)
-        tb = s8.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), box_w - Inches(0.3), box_h - Inches(0.5))
+        create_card(s9, x, y, box_w, box_h, col)
+        tb = s9.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), box_w - Inches(0.3), box_h - Inches(0.5))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -529,9 +567,8 @@ def create_deck():
         p_d.font.size = Pt(10.5)
         p_d.font.color.rgb = COLOR_WHITE
 
-        # Arrow between cards
         if i < 2:
-            arrow_tb = s8.shapes.add_textbox(x + box_w + Inches(0.1), y + Inches(0.8), Inches(0.7), Inches(0.6))
+            arrow_tb = s9.shapes.add_textbox(x + box_w + Inches(0.1), y + Inches(0.8), Inches(0.7), Inches(0.6))
             p_a = arrow_tb.text_frame.paragraphs[0]
             p_a.text = "➔"
             p_a.font.name = FONT_TITLE
@@ -540,9 +577,8 @@ def create_deck():
             p_a.font.color.rgb = COLOR_CYAN
             p_a.alignment = PP_ALIGN.CENTER
 
-    # Architectural Tenet Card
-    create_card(s8, Inches(0.8), Inches(4.8), Inches(11.733), Inches(1.6), COLOR_CYAN)
-    tb_arch = s8.shapes.add_textbox(Inches(1.0), Inches(4.9), Inches(11.333), Inches(1.4))
+    create_card(s9, Inches(0.8), Inches(4.8), Inches(11.733), Inches(1.6), COLOR_CYAN)
+    tb_arch = s9.shapes.add_textbox(Inches(1.0), Inches(4.9), Inches(11.333), Inches(1.4))
     tf_a = tb_arch.text_frame
     tf_a.word_wrap = True
     p = tf_a.paragraphs[0]
@@ -559,15 +595,15 @@ def create_deck():
     p_body.font.color.rgb = COLOR_SLATE
 
     # =========================================================================
-    # SLIDE 9: WORKING FLOW
+    # SLIDE 10: WORKING FLOW
     # =========================================================================
-    s9 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s9)
-    add_hud_header(s9, "09 • Execution Pipeline", "Working Flow (Runtime Execution)", "Step-by-Step Lifecycle of a Transaction Through the VernaLedger System")
-    add_hud_footer(s9, 9)
+    s10 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s10)
+    add_hud_header(s10, "10 • Execution Pipeline", "Working Flow (Runtime Execution)", "Step-by-Step Lifecycle of a Transaction Through the VernaLedger System")
+    add_hud_footer(s10, 10)
 
     flow_steps = [
-        ("Step 01", "Input Capture", "Shopkeeper captures receipt photo via camera or speaks bill in Marathi into the mic.", COLOR_CYAN),
+        ("Step 01", "Input Trigger", "Shopkeeper captures receipt photo via camera or speaks bill in Marathi into the mic.", COLOR_CYAN),
         ("Step 02", "Secure Streaming", "Preprocessed audio/image payload is streamed securely via TLS to Gemini Flash API.", COLOR_BLUE),
         ("Step 03", "Schema Parsing", "Gemini LLM normalizes raw content into validated JSON line-items with tax computation.", COLOR_PURPLE),
         ("Step 04", "ACID Commit", "Transaction is committed atomically into SQLite ledger.db with running balance update.", COLOR_GREEN),
@@ -578,8 +614,8 @@ def create_deck():
     for i, (step, title, desc, col) in enumerate(flow_steps):
         x = Inches(0.8) + i * Inches(2.4)
         y = Inches(1.9)
-        create_card(s9, x, y, card_w5, card_h5, col)
-        tb = s9.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), card_w5 - Inches(0.3), card_h5 - Inches(0.5))
+        create_card(s10, x, y, card_w5, card_h5, col)
+        tb = s10.shapes.add_textbox(x + Inches(0.15), y + Inches(0.25), card_w5 - Inches(0.3), card_h5 - Inches(0.5))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -603,25 +639,23 @@ def create_deck():
         p_d.font.color.rgb = COLOR_SLATE
 
     # =========================================================================
-    # SLIDE 10: PERFORMANCE ANALYSIS
+    # SLIDE 11: PERFORMANCE ANALYSIS
     # =========================================================================
-    s10 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s10)
-    add_hud_header(s10, "10 • Empirical Evaluation", "Performance Analysis", "Rigorous Quantitative Benchmarks Demonstrating Disruptive Efficiency")
-    add_hud_footer(s10, 10)
+    s11 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s11)
+    add_hud_header(s11, "11 • Empirical Evaluation", "Performance Analysis", "Rigorous Quantitative Benchmarks Demonstrating Disruptive Efficiency")
+    add_hud_footer(s11, 11)
 
     metrics = [
         ("96%", "Data Entry Time Reduction", "Average transaction recording time slashed from 120s (manual pen-and-paper writing) down to 4.5s via Gemini AI OCR and Voice Billing.", COLOR_CYAN),
         (">95%", "Regional Parsing Accuracy", "Parsing precision evaluated across handwritten, crumpled, and printed Devanagari bills with Marathi and Hindi item names.", COLOR_GREEN),
         ("<2ms", "SQLite ACID Commit Latency", "Sub-2ms local transactional commit latency enabled by Write-Ahead Logging (WAL) and optimized indexing, guaranteeing zero UI freeze.", COLOR_PURPLE)
     ]
-    card_w = Inches(3.64)
-    card_h = Inches(4.5)
     for i, (val, title, desc, col) in enumerate(metrics):
         x = Inches(0.8) + i * Inches(4.0)
         y = Inches(1.9)
-        create_card(s10, x, y, card_w, card_h, col)
-        tb = s10.shapes.add_textbox(x + Inches(0.2), y + Inches(0.4), card_w - Inches(0.4), card_h - Inches(0.8))
+        create_card(s11, x, y, card_w3, card_h3, col)
+        tb = s11.shapes.add_textbox(x + Inches(0.2), y + Inches(0.4), card_w3 - Inches(0.4), card_h3 - Inches(0.8))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -648,14 +682,13 @@ def create_deck():
         p_d.alignment = PP_ALIGN.CENTER
 
     # =========================================================================
-    # HELPER FOR RESULT SLIDES (SLIDES 11 - 17)
+    # HELPER FOR RESULT SLIDES (SLIDES 12 - 19)
     # =========================================================================
     def build_result_slide(slide, slide_num, title, subtitle, features, image_name):
         set_slide_background(slide)
         add_hud_header(slide, f"{slide_num:02d} • Live System Showcase", title, subtitle)
         add_hud_footer(slide, slide_num)
 
-        # Left Container (Features)
         left_w, left_h = Inches(5.6), Inches(4.5)
         create_card(slide, Inches(0.8), Inches(1.9), left_w, left_h, COLOR_CYAN)
         tb = slide.shapes.add_textbox(Inches(1.0), Inches(2.0), left_w - Inches(0.4), left_h - Inches(0.2))
@@ -676,7 +709,6 @@ def create_deck():
             p_d.font.size = Pt(9.5)
             p_d.font.color.rgb = COLOR_SLATE
 
-        # Right Container (Screenshot Card)
         right_x, right_y, right_w, right_h = Inches(6.8), Inches(1.9), Inches(5.733), Inches(4.5)
         create_card(slide, right_x, right_y, right_w, right_h, COLOR_PURPLE)
 
@@ -690,10 +722,10 @@ def create_deck():
             p_ph.alignment = PP_ALIGN.CENTER
             p_ph.font.color.rgb = COLOR_SLATE
 
-    # SLIDE 11: RESULT 1 - LOGIN PORTAL
-    s11 = prs.slides.add_slide(blank_layout)
+    # SLIDE 12: RESULT 1 - LOGIN PORTAL
+    s12 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s11, 11,
+        s12, 12,
         "Result 1: Secure Login Portal",
         "Cryptographically Fortified Authentication & Role-Based Access Control",
         [
@@ -705,10 +737,10 @@ def create_deck():
         "login.png"
     )
 
-    # SLIDE 12: RESULT 2 - OCR & VOICE BILLING
-    s12 = prs.slides.add_slide(blank_layout)
+    # SLIDE 13: RESULT 2 - OCR & VOICE BILLING
+    s13 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s12, 12,
+        s13, 13,
         "Result 2: OCR & Voice Billing Module",
         "Multimodal Bill Capture with Real-Time Audio Feedback & In-Line Editing",
         [
@@ -720,10 +752,10 @@ def create_deck():
         "ocr.png"
     )
 
-    # SLIDE 13: RESULT 3 - MERCHANT ANALYTICS HUB
-    s13 = prs.slides.add_slide(blank_layout)
+    # SLIDE 14: RESULT 3 - MERCHANT ANALYTICS HUB
+    s14 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s13, 13,
+        s14, 14,
         "Result 3: Merchant Analytics Hub",
         "Interactive Business Intelligence with Dynamic Vector Visualizations",
         [
@@ -735,10 +767,10 @@ def create_deck():
         "analytics.png"
     )
 
-    # SLIDE 14: RESULT 4 - CUSTOMER KHATA (UDHARI)
-    s14 = prs.slides.add_slide(blank_layout)
+    # SLIDE 15: RESULT 4 - CUSTOMER KHATA (UDHARI)
+    s15 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s14, 14,
+        s15, 15,
         "Result 4: Customer Khata (Udhari)",
         "Digital Credit Ledger with Automated WhatsApp Follow-Up & Risk Scoring",
         [
@@ -750,10 +782,10 @@ def create_deck():
         "khata.png"
     )
 
-    # SLIDE 15: RESULT 5 - LEDGER DATABASE EDITOR
-    s15 = prs.slides.add_slide(blank_layout)
+    # SLIDE 16: RESULT 5 - LEDGER DATABASE EDITOR
+    s16 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s15, 15,
+        s16, 16,
         "Result 5: Ledger Database Editor",
         "Full ACID SQLite Control with Live Grid Editing & Multi-Format Exports",
         [
@@ -765,10 +797,10 @@ def create_deck():
         "database.png"
     )
 
-    # SLIDE 16: RESULT 6 - NEURAL AI STUDIO (RAG)
-    s16 = prs.slides.add_slide(blank_layout)
+    # SLIDE 17: RESULT 6 - NEURAL AI STUDIO (RAG)
+    s17 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s16, 16,
+        s17, 17,
         "Result 6: Neural AI Studio (RAG)",
         "Context-Aware Conversational Intelligence Grounded in Live Merchant Database",
         [
@@ -780,10 +812,10 @@ def create_deck():
         "rag.png"
     )
 
-    # SLIDE 17: RESULT 7 - STAFF MANAGEMENT & AUDIT
-    s17 = prs.slides.add_slide(blank_layout)
+    # SLIDE 18: RESULT 7 - STAFF MANAGEMENT & AUDIT
+    s18 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s17, 17,
+        s18, 18,
         "Result 7: Staff Management & Audit",
         "Granular Permission Matrix & Immutable System Audit Trail",
         [
@@ -795,12 +827,10 @@ def create_deck():
         "staff.png"
     )
 
-    # =========================================================================
-    # SLIDE 18: RESULT 8 - CLEAN REPORTS & EXPORTS
-    # =========================================================================
-    s18 = prs.slides.add_slide(blank_layout)
+    # SLIDE 19: RESULT 8 - CLEAN REPORTS & EXPORTS
+    s19 = prs.slides.add_slide(blank_layout)
     build_result_slide(
-        s18, 18,
+        s19, 19,
         "Result 8: Clean Reports & Exports",
         "Auditable Accounting Pipelines & Professional Dual-Language Print Layouts",
         [
@@ -813,12 +843,12 @@ def create_deck():
     )
 
     # =========================================================================
-    # SLIDE 19: ADVANTAGES & STRENGTHS
+    # SLIDE 20: ADVANTAGES & STRENGTHS
     # =========================================================================
-    s19 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s19)
-    add_hud_header(s19, "19 • Value Proposition", "Advantages & Strengths", "Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers")
-    add_hud_footer(s19, 19)
+    s20 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s20)
+    add_hud_header(s20, "20 • Value Proposition", "Advantages & Strengths", "Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers")
+    add_hud_footer(s20, 20)
 
     advantages = [
         ("🇮🇳 True Vernacular AI", "Bilingual Marathi/English interface coupled with natural voice recognition eliminates the steep digital literacy curve for grassroots shopkeepers.", "Zero Learning Curve", COLOR_CYAN),
@@ -828,8 +858,8 @@ def create_deck():
     for i, (title, desc, tag, col) in enumerate(advantages):
         x = Inches(0.8) + i * Inches(4.0)
         y = Inches(1.9)
-        create_card(s19, x, y, card_w, card_h, col)
-        tb = s19.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w - Inches(0.5), card_h - Inches(0.6))
+        create_card(s20, x, y, card_w3, card_h3, col)
+        tb = s20.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w3 - Inches(0.5), card_h3 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -853,24 +883,24 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 20: SYSTEM LIMITATIONS
+    # SLIDE 21: SYSTEM LIMITATIONS
     # =========================================================================
-    s20 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s20)
-    add_hud_header(s20, "20 • Engineering Constraints", "System Limitations", "Known Technical Boundaries & Operational Dependencies")
-    add_hud_footer(s20, 20)
+    s21 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s21)
+    add_hud_header(s21, "21 • Engineering Constraints", "System Limitations", "Known Technical Boundaries & Operational Dependencies")
+    add_hud_footer(s21, 21)
 
     limitations = [
         ("🌐 AI Internet Dependency", "While core database transactions and manual POS billing run 100% offline, multimodal Gemini Flash OCR parsing and Edge TTS synthesis require an active internet connection to contact cloud endpoints.", "Constraint: Cloud LLM Endpoint"),
         ("📸 Severe Image Distortion", "Extremely crumpled, grease-stained, or faint thermal receipts with severe ink fading can occasionally produce partial OCR extraction, requiring manual operator verification in the preview grid.", "Constraint: Physical Document Quality")
     ]
-    card_w20 = Inches(5.6)
-    card_h20 = Inches(4.5)
+    card_w21 = Inches(5.6)
+    card_h21 = Inches(4.5)
     for i, (title, desc, tag) in enumerate(limitations):
         x = Inches(0.8) if i == 0 else Inches(6.8)
         y = Inches(1.9)
-        create_card(s20, x, y, card_w20, card_h20, COLOR_RED)
-        tb = s20.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w20 - Inches(0.5), card_h20 - Inches(0.6))
+        create_card(s21, x, y, card_w21, card_h21, COLOR_RED)
+        tb = s21.shapes.add_textbox(x + Inches(0.25), y + Inches(0.3), card_w21 - Inches(0.5), card_h21 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -894,12 +924,12 @@ def create_deck():
         p_t.font.color.rgb = COLOR_RED
 
     # =========================================================================
-    # SLIDE 21: FUTURE ENHANCEMENTS
+    # SLIDE 22: FUTURE ENHANCEMENTS
     # =========================================================================
-    s21 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s21)
-    add_hud_header(s21, "21 • Future Roadmap", "Future Enhancements", "Product Evolution, Native Mobile Packaging & Scalability Roadmap")
-    add_hud_footer(s21, 21)
+    s22 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s22)
+    add_hud_header(s22, "22 • Future Roadmap", "Future Enhancements", "Product Evolution, Native Mobile Packaging & Scalability Roadmap")
+    add_hud_footer(s22, 22)
 
     futures = [
         ("📱 Native Android APK", "Packaging the suite as a native Android APK with quantized on-device edge AI models for offline OCR.", "Mobile Native • Edge AI", COLOR_CYAN),
@@ -910,8 +940,8 @@ def create_deck():
     for i, (title, desc, tag, col) in enumerate(futures):
         x = Inches(0.8) + i * Inches(3.0)
         y = Inches(1.9)
-        create_card(s21, x, y, card_w4, card_h4, col)
-        tb = s21.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
+        create_card(s22, x, y, card_w4, card_h4, col)
+        tb = s22.shapes.add_textbox(x + Inches(0.2), y + Inches(0.3), card_w4 - Inches(0.4), card_h4 - Inches(0.6))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
@@ -935,18 +965,18 @@ def create_deck():
         p_t.font.color.rgb = col
 
     # =========================================================================
-    # SLIDE 22: CONCLUSION & Q&A
+    # SLIDE 23: CONCLUSION & Q&A
     # =========================================================================
-    s22 = prs.slides.add_slide(blank_layout)
-    set_slide_background(s22)
+    s23 = prs.slides.add_slide(blank_layout)
+    set_slide_background(s23)
 
     # Pill
-    pill22 = s22.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.166), Inches(0.8), Inches(5.0), Inches(0.4))
-    pill22.fill.solid()
-    pill22.fill.fore_color.rgb = RGBColor(10, 25, 55)
-    pill22.line.color.rgb = COLOR_GREEN
-    pill22.line.width = Pt(1.2)
-    p = pill22.text_frame.paragraphs[0]
+    pill23 = s23.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(4.166), Inches(0.8), Inches(5.0), Inches(0.4))
+    pill23.fill.solid()
+    pill23.fill.fore_color.rgb = RGBColor(10, 25, 55)
+    pill23.line.color.rgb = COLOR_GREEN
+    pill23.line.width = Pt(1.2)
+    p = pill23.text_frame.paragraphs[0]
     p.text = "● FINAL DEFENSE • CONCLUDING REMARKS"
     p.font.name = FONT_MONO
     p.font.size = Pt(10)
@@ -955,8 +985,8 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     # Title
-    t22 = s22.shapes.add_textbox(Inches(1.0), Inches(1.4), Inches(11.333), Inches(0.8))
-    p = t22.text_frame.paragraphs[0]
+    t23 = s23.shapes.add_textbox(Inches(1.0), Inches(1.4), Inches(11.333), Inches(0.8))
+    p = t23.text_frame.paragraphs[0]
     p.text = "Conclusion & Q&A"
     p.font.name = FONT_TITLE
     p.font.size = Pt(36)
@@ -965,8 +995,8 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     # Conclusion Card
-    create_card(s22, Inches(1.8), Inches(2.4), Inches(9.733), Inches(1.8), COLOR_CYAN)
-    tb_c = s22.shapes.add_textbox(Inches(2.0), Inches(2.55), Inches(9.333), Inches(1.5))
+    create_card(s23, Inches(1.8), Inches(2.4), Inches(9.733), Inches(1.8), COLOR_CYAN)
+    tb_c = s23.shapes.add_textbox(Inches(2.0), Inches(2.55), Inches(9.333), Inches(1.5))
     tf_c = tb_c.text_frame
     tf_c.word_wrap = True
     p = tf_c.paragraphs[0]
@@ -983,7 +1013,7 @@ def create_deck():
     p_d.font.color.rgb = COLOR_WHITE
 
     # Thank you / Q&A Box
-    qa_box = s22.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.5), Inches(4.5), Inches(8.333), Inches(1.8))
+    qa_box = s23.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.5), Inches(4.5), Inches(8.333), Inches(1.8))
     qa_box.fill.solid()
     qa_box.fill.fore_color.rgb = RGBColor(10, 25, 45)
     qa_box.line.color.rgb = COLOR_GREEN
@@ -1020,4 +1050,3 @@ def create_deck():
 
 if __name__ == "__main__":
     create_deck()
-
