@@ -90,6 +90,25 @@ document.addEventListener("DOMContentLoaded", () => {
 // -----------------------------------------------------------------------------
 // AUTHENTICATION
 // -----------------------------------------------------------------------------
+// Universal API Fetcher with automatic prefix fallback (/api/* <-> /*)
+async function apiCall(endpoint, options = {}) {
+    try {
+        const res = await fetch(endpoint, options);
+        if (res.status === 404 && endpoint.startsWith('/api/')) {
+            const fallbackPath = endpoint.replace('/api', '');
+            return await fetch(fallbackPath, options);
+        }
+        return res;
+    } catch (e) {
+        if (endpoint.startsWith('/api/')) {
+            const fallbackPath = endpoint.replace('/api', '');
+            return await fetch(fallbackPath, options);
+        }
+        throw e;
+    }
+}
+
+
 function fillDemoCreds(u, p) {
     document.getElementById("login-username").value = u;
     document.getElementById("login-password").value = p;
@@ -107,7 +126,7 @@ async function handleLogin(e) {
     submitBtn.disabled = true;
 
     try {
-        const res = await fetch("/api/login", {
+        const res = await apiCall("/api/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username: uInput, password: pInput })
@@ -236,7 +255,7 @@ function switchView(viewName) {
 // -----------------------------------------------------------------------------
 async function loadDashboardMetrics() {
     try {
-        const res = await fetch("/api/dashboard");
+        const res = await apiCall("/api/dashboard");
         if (!res.ok) return;
         const data = await res.json();
         state.dashboard = data;
@@ -369,7 +388,7 @@ async function submitReceiptOCR() {
     formData.append("file", state.selectedFile);
 
     try {
-        const res = await fetch("/api/ocr", {
+        const res = await apiCall("/api/ocr", {
             method: "POST",
             body: formData
         });
@@ -463,7 +482,7 @@ async function submitVoiceBilling() {
     document.getElementById("scanner-loader-text").innerText = "व्हॉइस पावती तयार होत आहे...";
 
     try {
-        const res = await fetch("/api/voice-billing", {
+        const res = await apiCall("/api/voice-billing", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ transcript: text, username: state.user ? state.user.username : "admin" })
@@ -594,7 +613,7 @@ async function saveCurrentBillToLedger() {
 
     try {
         // Send as a manual voice-like bill or ledger insert
-        const res = await fetch("/api/voice-billing", {
+        const res = await apiCall("/api/voice-billing", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -622,7 +641,7 @@ async function playCurrentBillTTS() {
     const marathiSpeech = `नमस्कार, ${vendor} मधून एकूण ${bill.items.length} वस्तूंची खरेदी झाली आहे. एकूण देय रक्कम रुपये ${Math.round(grandTotal)} आहे. धन्यवाद!`;
 
     try {
-        const res = await fetch("/api/tts", {
+        const res = await apiCall("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: marathiSpeech, voice: "mr-IN-AarohiNeural" })
@@ -685,7 +704,7 @@ function triggerBrowserPrint() {
 // -----------------------------------------------------------------------------
 async function loadKhataData() {
     try {
-        const res = await fetch("/api/khata");
+        const res = await apiCall("/api/khata");
         if (!res.ok) return;
         const data = await res.json();
         state.allKhata = data;
@@ -822,7 +841,7 @@ async function submitAddKhata(e) {
     };
 
     try {
-        const res = await fetch("/api/khata", {
+        const res = await apiCall("/api/khata", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -842,7 +861,7 @@ async function submitAddKhata(e) {
 async function deleteKhataEntry(id) {
     if (!confirm("हा व्यवहार कायमचा डिलीट करायचा आहे का?")) return;
     try {
-        await fetch(`/api/khata/${id}`, { method: "DELETE" });
+        await apiCall(`/api/khata/${id}`, { method: "DELETE" });
         loadKhataData();
         loadDashboardMetrics();
     } catch (e) {
@@ -855,7 +874,7 @@ async function deleteKhataEntry(id) {
 // -----------------------------------------------------------------------------
 async function loadInventoryData() {
     try {
-        const res = await fetch("/api/inventory");
+        const res = await apiCall("/api/inventory");
         if (!res.ok) return;
         const data = await res.json();
         state.allInventory = data;
@@ -916,7 +935,7 @@ async function submitAddInventory(e) {
     };
 
     try {
-        const res = await fetch("/api/inventory", {
+        const res = await apiCall("/api/inventory", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -935,7 +954,7 @@ async function submitAddInventory(e) {
 async function deleteInventoryItem(id) {
     if (!confirm("हा माल स्टॉक मधून डिलीट करायचा का?")) return;
     try {
-        await fetch(`/api/inventory/${id}`, { method: "DELETE" });
+        await apiCall(`/api/inventory/${id}`, { method: "DELETE" });
         loadInventoryData();
     } catch (e) {
         alert("एरर: " + e.message);
@@ -945,7 +964,7 @@ async function deleteInventoryItem(id) {
 // Expenses
 async function loadExpensesData() {
     try {
-        const res = await fetch("/api/expenses");
+        const res = await apiCall("/api/expenses");
         if (!res.ok) return;
         const data = await res.json();
         state.allExpenses = data;
@@ -978,7 +997,7 @@ async function handleAddExpense(e) {
     };
 
     try {
-        const res = await fetch("/api/expenses", {
+        const res = await apiCall("/api/expenses", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1008,7 +1027,7 @@ function shareDailyDigestWhatsApp() {
 // -----------------------------------------------------------------------------
 async function loadReceiptsLedger() {
     try {
-        const res = await fetch("/api/receipts");
+        const res = await apiCall("/api/receipts");
         if (!res.ok) return;
         const data = await res.json();
         state.allReceipts = data;
@@ -1079,7 +1098,7 @@ function viewSavedReceiptThermal(id) {
 async function deleteReceipt(id) {
     if (!confirm(`पावती #${id} लेजरमधून कायमची डिलीट करायची का?`)) return;
     try {
-        await fetch(`/api/receipts/${id}`, { method: "DELETE" });
+        await apiCall(`/api/receipts/${id}`, { method: "DELETE" });
         loadReceiptsLedger();
         loadDashboardMetrics();
     } catch (e) {
@@ -1139,7 +1158,7 @@ async function submitAiChat() {
     historyContainer.scrollTop = historyContainer.scrollHeight;
 
     try {
-        const res = await fetch("/api/rag-chat", {
+        const res = await apiCall("/api/rag-chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: msg, lang: state.lang })
@@ -1168,7 +1187,7 @@ async function submitAiChat() {
 async function speakText(encoded) {
     const raw = decodeURIComponent(encoded);
     try {
-        const res = await fetch("/api/tts", {
+        const res = await apiCall("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: raw, voice: "mr-IN-AarohiNeural" })
@@ -1189,7 +1208,7 @@ async function speakText(encoded) {
 // -----------------------------------------------------------------------------
 async function loadStaffData() {
     try {
-        const res = await fetch("/api/users");
+        const res = await apiCall("/api/users");
         if (!res.ok) return;
         const users = await res.json();
 
@@ -1236,7 +1255,7 @@ async function submitAddStaff(e) {
     };
 
     try {
-        const res = await fetch("/api/users", {
+        const res = await apiCall("/api/users", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -1256,7 +1275,7 @@ async function submitAddStaff(e) {
 async function deleteStaffUser(username) {
     if (!confirm(`वापरकर्ता '${username}' डिलीट करायचा का?`)) return;
     try {
-        const res = await fetch(`/api/users/${username}`, { method: "DELETE" });
+        const res = await apiCall(`/api/users/${username}`, { method: "DELETE" });
         if (!res.ok) {
             const j = await res.json();
             throw new Error(j.detail || "डिलीट करता आले नाही");
