@@ -34,10 +34,10 @@ const i18n = {
         nav_ledger: "लेजर व पावत्या",
         nav_ai: "AI बिझनेस स्टुडिओ",
         nav_staff: "कर्मचारी व ऑडिट",
-        kpi_sales: "आजची एकूण विक्री",
+        kpi_sales: "एकूण विक्री",
         kpi_bills: "एकूण पावत्या",
-        kpi_avg: "सरासरी पावती मूल्य",
-        kpi_udhar: "बाकी एकूण उधारी",
+        kpi_avg: "सरासरी बिल",
+        kpi_udhar: "बाकी उधारी",
         ocr_scanning: "Gemini 2.5 Flash द्वारे विश्लेषण सुरू आहे...",
         voice_listening: "मी ऐकत आहे... सामान बोला...",
         voice_ready: "बोलण्यासाठी माईक वर क्लिक करा"
@@ -49,9 +49,9 @@ const i18n = {
         nav_ledger: "Ledger Database",
         nav_ai: "AI Business Studio",
         nav_staff: "Staff & Audit",
-        kpi_sales: "Today's Gross Sales",
-        kpi_bills: "Total Receipts",
-        kpi_avg: "Average Ticket",
+        kpi_sales: "Total Sales",
+        kpi_bills: "Total Bills",
+        kpi_avg: "Avg Ticket",
         kpi_udhar: "Pending Udhar",
         ocr_scanning: "Analyzing receipt with Gemini 2.5 Flash...",
         voice_listening: "Listening... Speak items...",
@@ -175,12 +175,21 @@ function showApp() {
     document.getElementById("sidebar-user-role").innerText = `Role: ${state.user.role}`;
     const badge = document.getElementById("sidebar-role-badge");
     badge.innerText = state.user.role.toUpperCase();
+
+    const staffNav = document.getElementById("nav-item-staff");
+    const mobileStaffTab = document.getElementById("mobile-tab-staff");
+    const mobileStaffBtn = document.getElementById("mobile-top-staff-btn");
+
     if (state.user.role === "Admin") {
         badge.className = "user-role-badge badge-admin";
-        document.getElementById("nav-item-staff").style.display = "flex";
+        if (staffNav) staffNav.style.display = "flex";
+        if (mobileStaffTab) mobileStaffTab.style.display = "flex";
+        if (mobileStaffBtn) mobileStaffBtn.style.display = "inline-flex";
     } else {
         badge.className = "user-role-badge badge-staff";
-        document.getElementById("nav-item-staff").style.display = "none";
+        if (staffNav) staffNav.style.display = "none";
+        if (mobileStaffTab) mobileStaffTab.style.display = "none";
+        if (mobileStaffBtn) mobileStaffBtn.style.display = "none";
     }
 
     // Load initial data
@@ -194,6 +203,19 @@ function showApp() {
     }
 
     recalcBillTotal();
+
+    // Restore saved view on refresh or URL hash
+    const hash = window.location.hash.replace("#", "").trim();
+    const saved = localStorage.getItem("verna_active_view") || "scanner";
+    let targetView = hash || saved;
+    const validViews = ["scanner", "khata", "business", "ledger", "ai", "staff"];
+    if (!validViews.includes(targetView)) {
+        targetView = "scanner";
+    }
+    if (targetView === "staff" && state.user.role !== "Admin") {
+        targetView = "scanner";
+    }
+    switchView(targetView);
 }
 
 // -----------------------------------------------------------------------------
@@ -206,6 +228,12 @@ function switchView(viewName) {
     }
 
     state.currentView = viewName;
+    localStorage.setItem("verna_active_view", viewName);
+    try {
+        if (window.location.hash !== `#${viewName}`) {
+            history.replaceState(null, "", `#${viewName}`);
+        }
+    } catch (e) {}
 
     // Toggle Desktop Sidebar Links
     document.querySelectorAll(".desktop-sidebar .nav-link").forEach(link => {
@@ -216,6 +244,18 @@ function switchView(viewName) {
     document.querySelectorAll(".mobile-bottom-nav .tab-item").forEach(tab => {
         tab.classList.toggle("active", tab.dataset.view === viewName);
     });
+
+    // Toggle Mobile Top Staff button state
+    const mobileStaffBtn = document.getElementById("mobile-top-staff-btn");
+    if (mobileStaffBtn) {
+        if (viewName === "staff") {
+            mobileStaffBtn.style.background = "var(--neon-cyan)";
+            mobileStaffBtn.style.color = "#050B14";
+        } else {
+            mobileStaffBtn.style.background = "rgba(0, 242, 254, 0.15)";
+            mobileStaffBtn.style.color = "var(--neon-cyan)";
+        }
+    }
 
     // Toggle View Sections
     document.querySelectorAll(".view-section").forEach(sec => {
@@ -1276,6 +1316,11 @@ async function submitAiChat() {
 
     isAiProcessing = true;
     input.value = "";
+    const sendBtn = document.getElementById("btn-ai-send");
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<span>...</span> ⏳`;
+    }
     const historyContainer = document.getElementById("ai-chat-history");
 
     // Add User Bubble
@@ -1353,6 +1398,11 @@ async function submitAiChat() {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
     } finally {
         isAiProcessing = false;
+        const sendBtn = document.getElementById("btn-ai-send");
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
+        }
         historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
     }
 }
@@ -1388,35 +1438,58 @@ async function speakText(encoded) {
 async function loadStaffData() {
     try {
         const res = await apiCall("/api/users");
-        if (!res.ok) return;
-        const users = await res.json();
-
-        const tbody = document.getElementById("staff-table-tbody");
-        tbody.innerHTML = "";
-
-        users.forEach(u => {
-            const isAdmin = u.role === "Admin";
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td style="font-weight: 700; color: #fff;">${escapeHtml(u.username)}</td>
-                <td>
-                    <span class="user-role-badge ${isAdmin ? 'badge-admin' : 'badge-staff'}">
-                        ${u.role}
-                    </span>
-                </td>
-                <td style="color: var(--text-slate);">${escapeHtml(u.phone || '-')}</td>
-                <td>
-                    ${!isAdmin ? `
-                        <button onclick="deleteStaffUser('${escapeHtml(u.username)}')" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">
-                            ✕ डिलीट
-                        </button>
-                    ` : '<span style="font-size: 0.72rem; color: var(--text-dim);">संरक्षित</span>'}
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+        if (res.ok) {
+            const users = await res.json();
+            const tbody = document.getElementById("staff-table-tbody");
+            if (tbody) {
+                tbody.innerHTML = "";
+                users.forEach(u => {
+                    const isAdmin = u.role === "Admin";
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="font-weight: 700; color: #fff;">${escapeHtml(u.username)}</td>
+                        <td>
+                            <span class="user-role-badge ${isAdmin ? 'badge-admin' : 'badge-staff'}">
+                                ${u.role}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-slate);">${escapeHtml(u.phone || '-')}</td>
+                        <td>
+                            ${!isAdmin ? `
+                                <button onclick="deleteStaffUser('${escapeHtml(u.username)}')" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">
+                                    ✕ हटवा
+                                </button>
+                            ` : '<span style="font-size: 0.72rem; color: var(--text-dim);">संरक्षित</span>'}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
     } catch (e) {
         console.error("Staff load error:", e);
+    }
+
+    try {
+        const auditRes = await apiCall("/api/audit-logs");
+        if (auditRes.ok) {
+            const logs = await auditRes.json();
+            const auditTbody = document.getElementById("audit-table-tbody");
+            if (auditTbody && logs.length > 0) {
+                auditTbody.innerHTML = "";
+                logs.forEach(l => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="font-size: 0.75rem; color: var(--text-slate);">${escapeHtml(l.timestamp || '-')}</td>
+                        <td style="color: var(--neon-cyan); font-weight: 600;">${escapeHtml(l.username || 'system')}</td>
+                        <td style="color: #e2e8f0;">${escapeHtml(l.action || '-')}</td>
+                    `;
+                    auditTbody.appendChild(tr);
+                });
+            }
+        }
+    } catch (err) {
+        console.warn("Audit logs load error:", err);
     }
 }
 
@@ -1509,3 +1582,12 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+
+// Handle browser back/forward and hash changes
+window.addEventListener("hashchange", () => {
+    const hash = window.location.hash.replace("#", "").trim();
+    if (hash && state.user) {
+        switchView(hash);
+    }
+});

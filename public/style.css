@@ -570,14 +570,15 @@ body::after {
         box-sizing: border-box !important;
     }
     .mobile-bottom-nav .tab-item {
-        flex: 1 !important;
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
         text-decoration: none !important;
         color: var(--text-dim) !important;
-        padding: 4px 0 !important;
+        padding: 3px 0 !important;
         position: relative !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
@@ -706,21 +707,83 @@ body::after {
         padding: 4px 10px !important;
         white-space: nowrap !important;
     }
+    /* AI Chat Mobile Layout & Viewport Fitting */
+    #view-ai.active {
+        display: flex !important;
+        flex-direction: column !important;
+        height: calc(100dvh - 124px) !important;
+        max-height: calc(100dvh - 124px) !important;
+        padding-bottom: 2px !important;
+        overflow: hidden !important;
+    }
+    #view-ai .glass-card {
+        padding: 8px 10px !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+    #view-ai .chat-container {
+        flex: 1 !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+    #view-ai .chat-history {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        padding: 4px 2px 8px 2px !important;
+    }
     .rag-chat-bar {
-        margin-top: 6px !important;
-        padding: 6px 8px !important;
+        position: relative !important;
+        z-index: 50 !important;
+        margin-top: 4px !important;
+        margin-bottom: 2px !important;
+        padding: 4px 6px !important;
         border-radius: 30px !important;
         background: rgba(12, 20, 38, 0.98) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7) !important;
     }
     .rag-mic-btn {
         width: 38px !important;
         height: 38px !important;
+        flex: 0 0 38px !important;
         font-size: 1.1rem !important;
     }
+    .rag-input {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        font-size: 0.84rem !important;
+        padding: 6px 10px !important;
+    }
     .rag-send-btn {
-        width: 38px !important;
+        width: auto !important;
+        min-width: 72px !important;
         height: 38px !important;
-        font-size: 1rem !important;
+        flex: 0 0 auto !important;
+        padding: 0 12px !important;
+        border-radius: 20px !important;
+        font-size: 0.8rem !important;
+        font-weight: 800 !important;
+        color: #050B14 !important;
+        background: linear-gradient(135deg, var(--neon-cyan), #2563eb) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        box-shadow: 0 0 10px rgba(0, 242, 254, 0.4) !important;
+        white-space: nowrap !important;
+    }
+    .rag-send-btn span {
+        display: inline !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
     }
 }
 
@@ -984,23 +1047,27 @@ body::after {
     color: var(--text-dim);
 }
 .rag-send-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    min-width: 82px;
+    height: 42px;
+    border-radius: 22px;
     background: linear-gradient(135deg, var(--neon-cyan), #2563eb);
     border: none;
     color: #050B14;
-    font-size: 1.15rem;
+    font-size: 0.85rem;
+    font-weight: 800;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
     transition: all 0.2s ease;
     flex-shrink: 0;
     box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    white-space: nowrap;
 }
 .rag-send-btn:hover {
-    transform: scale(1.06);
+    transform: scale(1.04);
     box-shadow: 0 0 22px rgba(0, 242, 254, 0.7);
 }
 
@@ -1257,8 +1324,8 @@ body::after {
         line-height: 1.4 !important;
     }
     .rag-chat-bar {
-        margin-top: 6px !important;
-        padding: 6px 8px !important;
+        margin-top: 4px !important;
+        padding: 4px 6px !important;
         border-radius: 30px !important;
         background: rgba(12, 20, 38, 0.98) !important;
     }
@@ -1268,12 +1335,19 @@ body::after {
         font-size: 1.1rem !important;
     }
     .rag-send-btn {
-        width: 38px !important;
+        width: auto !important;
+        min-width: 72px !important;
         height: 38px !important;
-        font-size: 1rem !important;
+        font-size: 0.8rem !important;
+        font-weight: 800 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        padding: 0 12px !important;
     }
     .rag-input {
-        font-size: 0.88rem !important;
+        font-size: 0.84rem !important;
     }
 
     /* Fixed Bottom Dock on Mobile */

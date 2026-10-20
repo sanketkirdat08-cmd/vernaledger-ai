@@ -358,6 +358,13 @@ def delete_user(username: str):
     conn.close()
     return {"success": True}
 
+@app.get("/api/audit-logs")
+def get_audit_logs():
+    conn = get_db()
+    rows = conn.execute("SELECT username, action, timestamp FROM audit_logs ORDER BY id DESC LIMIT 50").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 # -----------------------------------------------------------------------------
 # DASHBOARD METRICS ENDPOINT
 # -----------------------------------------------------------------------------

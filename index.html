@@ -75,6 +75,9 @@
                 <span>⚡ VernaLedger</span>
             </div>
             <div class="actions">
+                <button class="btn-pill" id="mobile-top-staff-btn" onclick="switchView('staff')" style="display: none; background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.4); font-size: 0.72rem; padding: 4px 8px;">
+                    👥 स्टाफ
+                </button>
                 <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
                 </button>
@@ -165,38 +168,6 @@
                  VIEW 1: SMART MULTIMODAL SCANNER & VOICE BILLING
                  ================================================================= -->
             <section id="view-scanner" class="view-section active">
-                <!-- 4 KPI Cards -->
-                <div class="grid-kpi">
-                    <div class="glass-card">
-                        <div class="kpi-title">
-                            <span data-i18n="kpi_sales">आजची एकूण विक्री</span>
-                            <span>💰</span>
-                        </div>
-                        <div class="kpi-val" style="color: var(--neon-cyan);" id="kpi-total-sales">₹0.00</div>
-                    </div>
-                    <div class="glass-card accent-green">
-                        <div class="kpi-title">
-                            <span data-i18n="kpi_bills">एकूण पावत्या</span>
-                            <span>🧾</span>
-                        </div>
-                        <div class="kpi-val" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
-                    </div>
-                    <div class="glass-card accent-purple">
-                        <div class="kpi-title">
-                            <span data-i18n="kpi_avg">सरासरी पावती मूल्य</span>
-                            <span>📈</span>
-                        </div>
-                        <div class="kpi-val" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
-                    </div>
-                    <div class="glass-card accent-red">
-                        <div class="kpi-title">
-                            <span data-i18n="kpi_udhar">बाकी एकूण उधारी</span>
-                            <span>⏳</span>
-                        </div>
-                        <div class="kpi-val" style="color: var(--neon-red);" id="kpi-pending-udhar">₹0.00</div>
-                    </div>
-                </div>
-
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
                     <!-- Left: Input Methods (AI Vision & Vernacular Voice) -->
                     <div class="glass-card">
@@ -428,6 +399,38 @@
                  VIEW 3: STORE OPERATIONS & INVENTORY
                  ================================================================= -->
             <section id="view-business" class="view-section">
+                <!-- 4 KPI Cards (Store Business Summary) -->
+                <div class="grid-kpi" style="margin-bottom: 20px;">
+                    <div class="glass-card">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_sales">एकूण विक्री</span>
+                            <span>💰</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-cyan);" id="kpi-total-sales">₹0.00</div>
+                    </div>
+                    <div class="glass-card accent-green">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_bills">एकूण पावत्या</span>
+                            <span>🧾</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
+                    </div>
+                    <div class="glass-card accent-purple">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_avg">सरासरी बिल</span>
+                            <span>📈</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
+                    </div>
+                    <div class="glass-card accent-red">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_udhar">बाकी उधारी</span>
+                            <span>⏳</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-red);" id="kpi-pending-udhar">₹0.00</div>
+                    </div>
+                </div>
+
                 <!-- Low Stock Alert Banner -->
                 <div id="low-stock-banner" style="display: none; background: rgba(255, 0, 85, 0.15); border: 1px solid var(--neon-red); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -635,7 +638,7 @@
                             </button>
                             <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" onkeypress="if(event.key==='Enter') submitAiChat()">
                             <button class="rag-send-btn" onclick="submitAiChat()" id="btn-ai-send" title="पाठवा">
-                                🚀
+                                <span>पाठवा</span> 🚀
                             </button>
                         </div>
                     </div>
@@ -724,6 +727,10 @@
             <a class="tab-item" data-view="ai" onclick="switchView('ai')">
                 <span class="icon">🤖</span>
                 <span class="label">AI स्टुडिओ</span>
+            </a>
+            <a class="tab-item" id="mobile-tab-staff" data-view="staff" onclick="switchView('staff')" style="display: none;">
+                <span class="icon">👥</span>
+                <span class="label">स्टाफ</span>
             </a>
         </nav>
     </div>
