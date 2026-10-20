@@ -1131,6 +1131,28 @@ function exportLedgerCSV() {
 // -----------------------------------------------------------------------------
 // NEURAL AI STUDIO (RAG ENGINE & VOICE COMMAND EXECUTION)
 // -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// AUDIO PLAYBACK MANAGER (PREVENTS DOUBLE / OVERLAPPING VOICE)
+// -----------------------------------------------------------------------------
+let currentPlayingAudio = null;
+let isAiProcessing = false;
+
+function stopCurrentAudio() {
+    if (currentPlayingAudio) {
+        try {
+            currentPlayingAudio.pause();
+            currentPlayingAudio.currentTime = 0;
+        } catch (e) {}
+        currentPlayingAudio = null;
+    }
+    if (window.speechSynthesis) {
+        try {
+            window.speechSynthesis.cancel();
+        } catch (e) {}
+    }
+}
+
 let ragSpeechRecognition = null;
 let isRagListening = false;
 
@@ -1212,26 +1234,32 @@ function askAiPrompt(text) {
 }
 
 async function submitAiChat() {
+    if (isAiProcessing) return; // Prevent double submit
+
     const input = document.getElementById("ai-user-input");
     const msg = input.value.trim();
     if (!msg) return;
 
+    // Stop any previously playing audio immediately
+    stopCurrentAudio();
+
+    isAiProcessing = true;
     input.value = "";
     const historyContainer = document.getElementById("ai-chat-history");
 
     // Add User Bubble
     const userBubble = document.createElement("div");
     userBubble.className = "chat-bubble chat-user";
-    userBubble.innerText = msg;
+    userBubble.innerHTML = `<div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (You)</div>` + escapeHtml(msg);
     historyContainer.appendChild(userBubble);
-    historyContainer.scrollTop = historyContainer.scrollHeight;
+    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
     // Add AI Typing Bubble
     const aiBubble = document.createElement("div");
     aiBubble.className = "chat-bubble chat-ai";
     aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">विचार करत आहे... 🤖</span>`;
     historyContainer.appendChild(aiBubble);
-    historyContainer.scrollTop = historyContainer.scrollHeight;
+    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
     const voiceOutputToggle = document.getElementById("ai-voice-output-toggle");
     const voiceOutput = voiceOutputToggle ? voiceOutputToggle.checked : true;
@@ -1283,11 +1311,13 @@ async function submitAiChat() {
     } catch (e) {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
     } finally {
-        historyContainer.scrollTop = historyContainer.scrollHeight;
+        isAiProcessing = false;
+        historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
     }
 }
 
 async function speakText(encoded) {
+    stopCurrentAudio();
     const raw = decodeURIComponent(encoded);
     try {
         const res = await apiCall("/api/tts", {

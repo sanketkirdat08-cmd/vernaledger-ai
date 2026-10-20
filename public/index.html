@@ -120,6 +120,18 @@
             </div>
 
             <div class="sidebar-footer">
+                <!-- Developer Credits Box (From Original Streamlit Design) -->
+                <div class="dev-credit-box" style="margin-bottom: 12px; padding: 10px 12px; background: rgba(0, 242, 254, 0.06); border: 1px solid rgba(0, 242, 254, 0.28); border-radius: 12px; border-left: 3px solid var(--neon-cyan);">
+                    <div style="font-size: 0.68rem; text-transform: uppercase; color: var(--neon-cyan); font-weight: 800; letter-spacing: 0.8px; margin-bottom: 4px;">👨‍💻 प्रकल्प विकासक (Project Developers)</div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #ffffff; line-height: 1.4;">
+                        Sanket Kirdat (Lead) &nbsp;|&nbsp; Sakshi Bhagat<br>
+                        Vaishnavi Dhavale &nbsp;|&nbsp; Rushikesh Mulik
+                    </div>
+                    <div style="font-size: 0.68rem; color: var(--text-slate); margin-top: 4px;">
+                        🏛️ अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा
+                    </div>
+                </div>
+
                 <div class="user-pill">
                     <div>
                         <div style="font-size: 0.82rem; font-weight: 700; color: #fff;" id="sidebar-user-name">admin</div>
@@ -577,61 +589,52 @@
                  ================================================================= -->
             <section id="view-ai" class="view-section">
                 <div class="glass-card">
-                    <!-- Header with Voice Toggle & Clear Chat -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                    <!-- Clean Chat Header -->
+                    <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
                         <div>
                             <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span>✨</span> Verna AI Chatbot
+                                <span style="color: var(--neon-cyan);">✨</span> Verna AI Chatbot
                             </h3>
-                            <p style="font-size: 0.8rem; color: var(--text-slate);">
-                                Your Smart Ledger & Business Assistant (व्हॉइस कमांड व थेट डेटाबेस विश्लेषण)
-                            </p>
+                            <div style="font-size: 0.76rem; color: var(--neon-cyan); font-weight: 600; margin-top: 2px;">
+                                👨‍💻 संकेत किर्दत (Lead Dev) | साक्षी भगत | वैष्णवी ढवळे | ऋषिकेश मुळीक (AGCOE सातारा)
+                            </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <!-- Voice Output Toggle -->
-                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #fff; cursor: pointer; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
-                                <input type="checkbox" id="ai-voice-output-toggle" checked style="accent-color: var(--neon-cyan);">
-                                <span>🔊 Voice Output (ऑडिओ उत्तर)</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #fff; cursor: pointer; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
+                                <input type="checkbox" id="ai-voice-output-toggle" checked style="accent-color: var(--neon-cyan); cursor: pointer;">
+                                <span>🔊 Voice Output</span>
                             </label>
-                            <!-- Clear Chat Button -->
-                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="नवीन संभाषण सुरू करा">
-                                🗑️ Clear Chat
+                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="नवीन संभाषण सुरू करा" style="padding: 5px 12px;">
+                                🗑️ Clear
                             </button>
                         </div>
                     </div>
 
-                    <!-- Welcome Greeting Box -->
-                    <div class="verna-ai-greeting-box">
-                        <div style="font-size: 1rem; font-weight: 700; color: var(--neon-cyan); margin-bottom: 2px;">
-                            🙏 नमस्कार! दुकानाचे हिशोब, साठा किंवा उधारीबद्दल मला काहीही विचारा किंवा बोला.
-                        </div>
-                        <div style="font-size: 0.78rem; color: var(--text-dim);">
-                            (टीप: तुम्ही "सागर ला ५०० उधारी लिही" किंवा "रमेश कडून ३०० जमा कर" असे बोलून थेट खाते नोंदवू शकता)
-                        </div>
+                    <!-- Clean Horizontal Chips Bar (Swipable) -->
+                    <div class="prompt-chips" style="margin-bottom: 10px; padding: 2px 0;">
+                        <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजची विक्री?</span>
+                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')">👥 बाकी उधारी?</span>
+                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')">🚨 कमी साठा?</span>
+                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')">🎓 प्रोजेक्ट डेव्हलपर्स?</span>
                     </div>
 
-                    <!-- Prompt Suggestion Chips -->
-                    <div class="prompt-chips" style="margin-bottom: 12px;">
-                        <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजचा एकूण हिशोब व विक्री?</span>
-                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')">👥 कोणाकडे किती उधारी बाकी आहे?</span>
-                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')">🚨 कोणता साठा (Stock) संपत आला आहे?</span>
-                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')">🎓 प्रकल्प मार्गदर्शक व डेव्हलपर्स कोण?</span>
-                    </div>
-
-                    <!-- Chat Container -->
+                    <!-- Scrollable Messages Container (ONLY this container scrolls) -->
                     <div class="chat-container">
                         <div class="chat-history" id="ai-chat-history">
                             <div class="chat-bubble chat-ai">
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 800; color: var(--neon-cyan); font-size: 0.78rem;">
+                                    <span>🤖</span> VernaLedger AI
+                                </div>
                                 नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
                             </div>
                         </div>
 
                         <!-- Real-time Voice Listening Indicator -->
-                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-top: 6px;">
+                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-bottom: 6px;">
                             🎙️ मी ऐकत आहे... प्रश्न विचारा किंवा उधारी बोला...
                         </div>
 
-                        <!-- Integrated Voice Command & Text Chat Bar -->
+                        <!-- Pinned Docked Voice & Text Chat Bar -->
                         <div class="rag-chat-bar">
                             <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" title="माईक द्वारे मराठीत बोला">
                                 🎙️

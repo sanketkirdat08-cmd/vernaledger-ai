@@ -865,3 +865,69 @@ body::after {
     text-align: center;
     margin-bottom: 14px;
 }
+
+/* --------------------------------------------------------------------------
+   FIXED VIEWPORT CHAT (ONLY CHAT MESSAGES SCROLL)
+   -------------------------------------------------------------------------- */
+#view-ai.active {
+    display: flex !important;
+    flex-direction: column !important;
+    height: calc(100vh - 120px) !important;
+    overflow: hidden !important;
+}
+
+#view-ai .glass-card {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 16px 20px 14px 20px !important;
+    overflow: hidden !important;
+    margin-bottom: 0 !important;
+}
+
+#view-ai .chat-container {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    height: auto !important;
+}
+
+#view-ai .chat-history {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 8px 4px 14px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    scroll-behavior: smooth !important;
+}
+
+#view-ai .chat-history::-webkit-scrollbar {
+    width: 6px;
+}
+#view-ai .chat-history::-webkit-scrollbar-track {
+    background: rgba(10, 18, 38, 0.4);
+    border-radius: 8px;
+}
+#view-ai .chat-history::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 254, 0.3);
+    border-radius: 8px;
+}
+#view-ai .chat-history::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-cyan);
+}
+
+@media (max-width: 768px) {
+    #view-ai.active {
+        height: calc(100vh - 134px) !important;
+    }
+    #view-ai .glass-card {
+        padding: 12px 10px !important;
+    }
+}
