@@ -1,5 +1,15 @@
-const CACHE_NAME = "vernaledger-shell-v1";
-const APP_SHELL = ["/", "/index.html", "/style.css", "/app.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
+const CACHE_NAME = "vernaledger-shell-v3";
+const APP_SHELL = [
+    "/",
+    "/index.html",
+    "/style.css",
+    "/app.js",
+    "/manifest.webmanifest",
+    "/icons/icon.svg",
+    "/icons/icon-192.png",
+    "/icons/icon-512.png",
+    "/icons/apple-touch-icon.png"
+];
 
 self.addEventListener("install", (event) => {
     event.waitUntil(

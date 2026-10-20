@@ -1408,14 +1408,18 @@ body::after {
     flex-shrink: 0;
 }
 .brand-logo-badge.mini {
-    padding: 4px;
+    padding: 3px;
     border-radius: 8px;
 }
 .brand-logo-badge.large {
-    padding: 14px;
-    border-radius: 22px;
+    padding: 6px;
+    border-radius: 20px;
     box-shadow: 0 8px 30px rgba(0, 242, 254, 0.45);
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+}
+.brand-logo-img {
+    display: block;
+    object-fit: contain;
 }
 
 /* Compact 2x2 KPI Grid for Operations */
