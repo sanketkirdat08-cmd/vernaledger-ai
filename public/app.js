@@ -84,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize Web Speech API if supported
     initSpeechRecognition();
+    initRagSpeech();
     applyLanguage();
 });
 
@@ -1128,8 +1129,83 @@ function exportLedgerCSV() {
 }
 
 // -----------------------------------------------------------------------------
-// NEURAL AI STUDIO (RAG ENGINE QUERY)
+// NEURAL AI STUDIO (RAG ENGINE & VOICE COMMAND EXECUTION)
 // -----------------------------------------------------------------------------
+let ragSpeechRecognition = null;
+let isRagListening = false;
+
+function initRagSpeech() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    ragSpeechRecognition = new SpeechRecognition();
+    ragSpeechRecognition.continuous = false;
+    ragSpeechRecognition.interimResults = false;
+    ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+
+    ragSpeechRecognition.onstart = () => {
+        isRagListening = true;
+        const btn = document.getElementById("btn-rag-mic");
+        if (btn) btn.classList.add("listening");
+        const status = document.getElementById("rag-voice-status");
+        if (status) status.style.display = "block";
+    };
+
+    ragSpeechRecognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim();
+        if (transcript) {
+            document.getElementById("ai-user-input").value = transcript;
+            submitAiChat();
+        }
+    };
+
+    ragSpeechRecognition.onerror = (event) => {
+        console.warn("RAG speech error:", event.error);
+        stopRagVoice();
+    };
+
+    ragSpeechRecognition.onend = () => {
+        stopRagVoice();
+    };
+}
+
+function toggleRagVoice() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("आपल्या ब्राऊझरमध्ये व्हॉइस इनपुट समर्थित नाही. कृपया खाली स्वतः टाईप करा.");
+        return;
+    }
+
+    if (!ragSpeechRecognition) {
+        initRagSpeech();
+    }
+
+    if (isRagListening) {
+        ragSpeechRecognition.stop();
+        stopRagVoice();
+    } else {
+        ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+        ragSpeechRecognition.start();
+    }
+}
+
+function stopRagVoice() {
+    isRagListening = false;
+    const btn = document.getElementById("btn-rag-mic");
+    if (btn) btn.classList.remove("listening");
+    const status = document.getElementById("rag-voice-status");
+    if (status) status.style.display = "none";
+}
+
+function clearAiChat() {
+    const historyContainer = document.getElementById("ai-chat-history");
+    historyContainer.innerHTML = `
+        <div class="chat-bubble chat-ai">
+            संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत काहीही विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
+        </div>
+    `;
+}
+
 function askAiPrompt(text) {
     document.getElementById("ai-user-input").value = text;
     submitAiChat();
@@ -1157,13 +1233,29 @@ async function submitAiChat() {
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTop = historyContainer.scrollHeight;
 
+    const voiceOutputToggle = document.getElementById("ai-voice-output-toggle");
+    const voiceOutput = voiceOutputToggle ? voiceOutputToggle.checked : true;
+
     try {
         const res = await apiCall("/api/rag-chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: msg, lang: state.lang })
+            body: JSON.stringify({
+                message: msg,
+                lang: state.lang,
+                voice_output: voiceOutput,
+                username: state.user ? state.user.username : "admin"
+            })
         });
         const data = await res.json();
+
+        // If an action was performed (Khata or Expense added), auto refresh UI
+        if (data.action_status) {
+            loadKhataData();
+            loadDashboardMetrics();
+            loadExpensesData();
+            loadInventoryData();
+        }
 
         const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1171,12 +1263,23 @@ async function submitAiChat() {
 
         aiBubble.innerHTML = `
             <div>${formatted}</div>
-            <div style="margin-top: 8px;">
-                <button class="btn-pill" style="font-size: 0.7rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
-                    🔊 ऐका
+            <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
+                    🔊 पुन्हा ऐका
                 </button>
+                ${data.action_status ? '<span style="font-size: 0.72rem; color: var(--neon-green); font-weight: 700;">● ऑटो-ॲक्शन पूर्ण</span>' : ''}
             </div>
         `;
+
+        // Auto-play voice if enabled and audio returned
+        if (voiceOutput && data.audio_data) {
+            try {
+                const audio = new Audio(data.audio_data);
+                audio.play();
+            } catch (err) {
+                console.warn("Auto-play error:", err);
+            }
+        }
     } catch (e) {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
     } finally {
@@ -1195,6 +1298,10 @@ async function speakText(encoded) {
         const data = await res.json();
         if (data.audio_data) {
             new Audio(data.audio_data).play();
+        } else {
+            const ut = new SpeechSynthesisUtterance(raw);
+            ut.lang = "mr-IN";
+            window.speechSynthesis.speak(ut);
         }
     } catch (e) {
         const ut = new SpeechSynthesisUtterance(raw);

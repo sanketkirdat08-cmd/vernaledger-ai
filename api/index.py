@@ -262,6 +262,8 @@ class RAGChatRequest(BaseModel):
     message: str
     chat_history: Optional[List[Dict[str, Any]]] = []
     lang: Optional[str] = "mr"
+    voice_output: Optional[bool] = False
+    username: Optional[str] = "admin"
 
 class NewUserRequest(BaseModel):
     username: str
@@ -713,69 +715,171 @@ def add_expense(req: ExpenseRequest):
     return {"success": True}
 
 # -----------------------------------------------------------------------------
-# NEURAL AI STUDIO (RAG ENGINE QUERY)
+# NEURAL AI STUDIO (RAG ENGINE QUERY & VOICE ACTION EXECUTOR)
 # -----------------------------------------------------------------------------
 @app.post("/api/rag-chat")
-def rag_chat(req: RAGChatRequest):
-    api_key = get_api_key()
-    if not api_key or not genai:
-        raise HTTPException(status_code=500, detail="Gemini API Key is not configured on Vercel.")
+async def rag_chat(req: RAGChatRequest):
+    # 1. Voice Action Command Detection & Auto-Execution
+    action_status = ""
+    user_msg = req.message.strip()
 
+    # (A) उधारी नोंदवणे (Add Khata Credit)
+    if any(kw in user_msg for kw in ["उधारी नोंदव", "उधारी लिही", "उधारी कर", "उधारी झाली", "उधारी दिली", "उधारी नोंद", "उधारी सेव्ह", "credit दे"]):
+        try:
+            phone_m = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", user_msg)
+            phone = phone_m.group(0) if phone_m else ""
+            txt = user_msg.replace(phone, "") if phone else user_msg
+            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
+            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+            ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹"}
+            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+            cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
+            if amount > 0:
+                conn = get_db()
+                conn.execute(
+                    "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (cust_name, phone, amount, "Credit Given", date.today().strftime("%Y-%m-%d"), "", user_msg)
+                )
+                conn.commit()
+                conn.close()
+                action_status = f"✅ Customer Khata मध्ये {cust_name} साठी ₹{amount:,.2f} उधारी नोंदवली गेली."
+        except Exception as e:
+            action_status = f"उधारी नोंद त्रुटी: {e}"
+
+    # (B) जमा / वसुली नोंदवणे (Record Customer Payment)
+    elif any(kw in user_msg for kw in ["जमा कर", "जमा लिही", "जमा नोंदव", "जमा झाले", "पैसे दिले", "पावती कर", "पेमेंट जमा", "हप्ता दिला"]):
+        try:
+            phone_m = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", user_msg)
+            phone = phone_m.group(0) if phone_m else ""
+            txt = user_msg.replace(phone, "") if phone else user_msg
+            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
+            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+            ignored = {"जमा", "कर", "करा", "लिही", "लिहा", "नोंदव", "नोंदवा", "झाले", "झाली", "पैसे", "दिले", "पावती", "पेमेंट", "हप्ता", "दिला", "सेव्ह", "रुपये", "रु", "₹"}
+            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+            cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
+            if amount > 0:
+                conn = get_db()
+                conn.execute(
+                    "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (cust_name, phone, amount, "Payment Received", date.today().strftime("%Y-%m-%d"), "", user_msg)
+                )
+                conn.commit()
+                conn.close()
+                action_status = f"✅ Customer Khata मध्ये {cust_name} यांच्याकडून ₹{amount:,.2f} जमा नोंदवले गेले."
+        except Exception as e:
+            action_status = f"जमा नोंद त्रुटी: {e}"
+
+    # (C) व्यवसाय खर्च नोंदवणे (Record Expense)
+    elif any(kw in user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "खर्च सेव्ह", "expense add"]):
+        try:
+            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
+            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+            ignored = {"खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला", "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"}
+            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+            exp_title = " ".join(p for p in parts if p).strip() or "दुकान खर्च"
+            if amount > 0:
+                conn = get_db()
+                conn.execute(
+                    "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
+                    (exp_title, amount, "दुकान खर्च", date.today().strftime("%Y-%m-%d"), user_msg)
+                )
+                conn.commit()
+                conn.close()
+                action_status = f"✅ दुकान खर्च नोंद: '{exp_title}' साठी ₹{amount:,.2f} सेव्ह झाले."
+        except Exception as e:
+            action_status = f"खर्च नोंद त्रुटी: {e}"
+
+    # 2. Build Live SQLite Context
     conn = get_db()
-    # Build database context
     total_sales = conn.execute("SELECT SUM(grand_total) FROM receipts").fetchone()[0] or 0.0
     bill_count = conn.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] or 0
+    today_str = date.today().strftime("%Y-%m-%d")
+    today_sales = conn.execute("SELECT SUM(grand_total) FROM receipts WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
     recent_receipts = [dict(r) for r in conn.execute("SELECT vendor_name, date, grand_total FROM receipts ORDER BY id DESC LIMIT 5").fetchall()]
     
     # Khata context
     khata_rows = [dict(r) for r in conn.execute("SELECT customer_name, amount, transaction_type, due_date FROM customer_khata ORDER BY id DESC LIMIT 6").fetchall()]
-    
-    # Inventory
+    credit_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Credit Given'").fetchone()[0] or 0.0
+    paid_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Payment Received'").fetchone()[0] or 0.0
+    pending_udhar = max(0.0, credit_sum - paid_sum)
+
+    # Inventory context
     low_stock = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit FROM shop_inventory WHERE stock_qty <= alert_limit").fetchall()]
+    all_inv = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory LIMIT 10").fetchall()]
     conn.close()
 
     db_context = f"""
     LIVE STORE DATABASE CONTEXT:
     - Total Gross Revenue: Rs. {total_sales:,.2f} across {bill_count} bills.
+    - Today's Sales: Rs. {today_sales:,.2f}
+    - Total Pending Customer Credit (उधारी): Rs. {pending_udhar:,.2f}
     - Recent Bills: {recent_receipts}
-    - Recent Customer Khata Credit Records: {khata_rows}
-    - Low Stock Inventory Items: {low_stock}
-    - Project Development Team: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
+    - Recent Khata Entries: {khata_rows}
+    - Low Stock Items (साठा संपत आलेला): {low_stock}
+    - Sample Shop Inventory: {all_inv}
+    - Project Details: VernaLedger.AI developed by Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
     - College: Arvind Gavali College of Engineering, Satara (AGCOE), affiliated with DBATU University.
     """
 
-    lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear English."
-
-    prompt = f"""
-    You are VernaLedger AI, a high-intelligence vernacular retail business advisor and financial assistant.
-    {db_context}
-    
-    User Query: "{req.message}"
-    
-    INSTRUCTIONS:
-    1. Answer accurately using only the verified facts from the live store database context above.
-    2. Zero hallucination: If data is not present in the database, clearly say so.
-    3. {lang_instruction}
-    4. Keep answers crisp, respectful, and actionable for a kirana store owner or B.Tech project evaluator.
-    """
-
-    genai.configure(api_key=api_key)
-    models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash']
+    api_key = get_api_key()
     answer = None
-    for m in models_to_try:
+    if api_key and genai:
         try:
-            model = genai.GenerativeModel(m)
-            res = model.generate_content(prompt)
-            if res and res.text:
-                answer = res.text
-                break
-        except Exception:
-            continue
+            genai.configure(api_key=api_key)
+            lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear English."
+            prompt = f"""
+            You are VernaLedger AI, a high-intelligence vernacular retail business advisor and financial assistant.
+            {db_context}
+            
+            User Message / Query: "{req.message}"
+            {f"Action Performed: {action_status}" if action_status else ""}
+
+            INSTRUCTIONS:
+            1. Answer accurately using only verified facts from the live store database context.
+            2. If an action was performed, acknowledge it clearly.
+            3. {lang_instruction}
+            4. Keep answers crisp, warm, respectful, and actionable for an Indian kirana store merchant.
+            """
+            models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash']
+            for m in models_to_try:
+                try:
+                    model = genai.GenerativeModel(m)
+                    res = model.generate_content(prompt)
+                    if res and res.text:
+                        answer = res.text
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.error(f"Gemini error: {e}")
 
     if not answer:
-        answer = "माफ करा, AI सर्व्हरशी संपर्क होऊ शकला नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा." if req.lang == "mr" else "Sorry, could not connect to AI engine. Please verify GEMINI_API_KEY."
+        if action_status:
+            answer = action_status
+        else:
+            answer = f"नमस्कार! आजची एकूण विक्री ₹{today_sales:,.2f} झाली असून बाकी उधारी ₹{pending_udhar:,.2f} आहे. दुकानाबद्दल आपण काहीही विचारू शकता."
 
-    return {"success": True, "answer": answer}
+    # 3. Edge TTS Voice Output (Auto voice speech if enabled)
+    audio_data = None
+    if req.voice_output and edge_tts:
+        try:
+            clean_speech = re.sub(r"[*#_`]", "", answer)
+            communicate = edge_tts.Communicate(clean_speech[:250], "mr-IN-AarohiNeural", rate="+10%")
+            audio_bytes = bytearray()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_bytes.extend(chunk["data"])
+            b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+            audio_data = f"data:audio/mp3;base64,{b64_audio}"
+        except Exception as e:
+            logger.warning(f"Voice output generation error: {e}")
+
+    return {
+        "success": True,
+        "answer": answer,
+        "action_status": action_status,
+        "audio_data": audio_data
+    }
 
 @app.get("/api/health")
 def health_check():

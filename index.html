@@ -572,42 +572,73 @@
             <!-- =================================================================
                  VIEW 5: NEURAL AI STUDIO (RAG ENGINE QUERY)
                  ================================================================= -->
+                        <!-- =================================================================
+                 VIEW 5: NEURAL AI STUDIO (RAG ENGINE & VOICE COMMAND CHAT)
+                 ================================================================= -->
             <section id="view-ai" class="view-section">
                 <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <!-- Header with Voice Toggle & Clear Chat -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
                         <div>
-                            <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span>🤖</span> VernaLedger AI बिझनेस ॲडव्हायझर
+                            <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <span>✨</span> Verna AI Chatbot
                             </h3>
-                            <p style="font-size: 0.78rem; color: var(--text-slate);">
-                                लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी
+                            <p style="font-size: 0.8rem; color: var(--text-slate);">
+                                Your Smart Ledger & Business Assistant (व्हॉइस कमांड व थेट डेटाबेस विश्लेषण)
                             </p>
                         </div>
-                        <span style="font-size: 0.72rem; color: var(--neon-cyan); background: rgba(0,242,254,0.1); border: 1px solid var(--neon-cyan); padding: 4px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
-                            RAG ENGINE ACTIVE
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <!-- Voice Output Toggle -->
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #fff; cursor: pointer; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
+                                <input type="checkbox" id="ai-voice-output-toggle" checked style="accent-color: var(--neon-cyan);">
+                                <span>🔊 Voice Output (ऑडिओ उत्तर)</span>
+                            </label>
+                            <!-- Clear Chat Button -->
+                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="नवीन संभाषण सुरू करा">
+                                🗑️ Clear Chat
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Welcome Greeting Box -->
+                    <div class="verna-ai-greeting-box">
+                        <div style="font-size: 1rem; font-weight: 700; color: var(--neon-cyan); margin-bottom: 2px;">
+                            🙏 नमस्कार! दुकानाचे हिशोब, साठा किंवा उधारीबद्दल मला काहीही विचारा किंवा बोला.
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-dim);">
+                            (टीप: तुम्ही "सागर ला ५०० उधारी लिही" किंवा "रमेश कडून ३०० जमा कर" असे बोलून थेट खाते नोंदवू शकता)
+                        </div>
                     </div>
 
                     <!-- Prompt Suggestion Chips -->
-                    <div class="prompt-chips">
-                        <span class="chip" onclick="askAiPrompt('आजची एकूण विक्री किती झाली आहे?')">📊 आजची एकूण विक्री किती?</span>
-                        <span class="chip" onclick="askAiPrompt('उधारी कोणाकडे बाकी आहे आणि किती?')">💳 उधारी कोणाकडे बाकी?</span>
-                        <span class="chip" onclick="askAiPrompt('कोणत्या मालाचा साठा संपत आला आहे?')">⚠️ कमी स्टॉक कोणता?</span>
-                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणाच्या मार्गदर्शनाखाली कोणी तयार केला?')">🎓 प्रोजेक्ट डेव्हलपर्स कोण?</span>
+                    <div class="prompt-chips" style="margin-bottom: 12px;">
+                        <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजचा एकूण हिशोब व विक्री?</span>
+                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')">👥 कोणाकडे किती उधारी बाकी आहे?</span>
+                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')">🚨 कोणता साठा (Stock) संपत आला आहे?</span>
+                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')">🎓 प्रकल्प मार्गदर्शक व डेव्हलपर्स कोण?</span>
                     </div>
 
                     <!-- Chat Container -->
                     <div class="chat-container">
                         <div class="chat-history" id="ai-chat-history">
                             <div class="chat-bubble chat-ai">
-                                नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा स्टोअरच्या विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत काहीही विचारू शकता.
+                                नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
                             </div>
                         </div>
 
-                        <div style="display: flex; gap: 8px; margin-top: 12px;">
-                            <input type="text" id="ai-user-input" class="input-cyber" placeholder="येथे आपला प्रश्न विचारा... (उदा. आजचा नफा किती?)" onkeypress="if(event.key==='Enter') submitAiChat()">
-                            <button class="btn-cyber" onclick="submitAiChat()" id="btn-ai-send">
-                                🚀 पाठवा
+                        <!-- Real-time Voice Listening Indicator -->
+                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-top: 6px;">
+                            🎙️ मी ऐकत आहे... प्रश्न विचारा किंवा उधारी बोला...
+                        </div>
+
+                        <!-- Integrated Voice Command & Text Chat Bar -->
+                        <div class="rag-chat-bar">
+                            <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" title="माईक द्वारे मराठीत बोला">
+                                🎙️
+                            </button>
+                            <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" onkeypress="if(event.key==='Enter') submitAiChat()">
+                            <button class="rag-send-btn" onclick="submitAiChat()" id="btn-ai-send" title="पाठवा">
+                                🚀
                             </button>
                         </div>
                     </div>
