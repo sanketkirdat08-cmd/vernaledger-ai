@@ -2453,6 +2453,327 @@ div[data-testid="stFileUploader"] section {
     border-radius: 50%;
     animation: liveDotPulse 1.8s infinite ease-in-out;
 }
+
+    /* =========================================================================
+       NATIVE MOBILE & DESKTOP APP SHELL STYLING (TRUE APP LOOK)
+       ========================================================================= */
+    /* Hide Streamlit Default Chrome */
+    #MainMenu, footer, header[data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+    }
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+
+    /* PWA Mobile Optimization & Smooth Touch */
+    html, body {
+        overscroll-behavior-y: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+
+    /* Custom 4px Neon Scrollbar */
+    ::-webkit-scrollbar {
+        width: 5px !important;
+        height: 5px !important;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(5, 11, 20, 0.5) !important;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 242, 254, 0.35) !important;
+        border-radius: 10px !important;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #00f2fe !important;
+    }
+
+    /* Modern Segmented Tab Controls */
+    [data-testid="stTabs"] [role="tablist"] {
+        background: rgba(8, 15, 30, 0.8) !important;
+        border: 1px solid rgba(0, 242, 254, 0.2) !important;
+        border-radius: 16px !important;
+        padding: 5px !important;
+        gap: 6px !important;
+        margin-bottom: 16px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        border-radius: 11px !important;
+        padding: 8px 18px !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        color: #94a3b8 !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    [data-testid="stTabs"] [role="tab"]:hover {
+        color: #e2f8ff !important;
+        background: rgba(0, 242, 254, 0.08) !important;
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(0, 242, 254, 0.24) 0%, rgba(59, 130, 246, 0.18) 100%) !important;
+        border: 1px solid rgba(0, 242, 254, 0.45) !important;
+        color: #00f2fe !important;
+        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        text-shadow: 0 0 10px rgba(0, 242, 254, 0.4) !important;
+    }
+
+    /* Modern Rounded Inputs & Dropdowns */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea, div[data-baseweb="select"] {
+        background: rgba(10, 18, 34, 0.85) !important;
+        border: 1px solid rgba(0, 242, 254, 0.25) !important;
+        border-radius: 12px !important;
+        color: #f8fafc !important;
+        font-size: 13.5px !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus, div[data-baseweb="select"]:focus-within {
+        border-color: #00f2fe !important;
+        box-shadow: 0 0 16px rgba(0, 242, 254, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Modern Pill Button Styling & Press Feedback */
+    .stButton>button, .stDownloadButton>button, div[data-testid="stFormSubmitButton"]>button {
+        background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #7c3aed 100%) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 13px !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(0, 242, 254, 0.6) !important;
+        box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton>button:active, .stDownloadButton>button:active, div[data-testid="stFormSubmitButton"]>button:active {
+        transform: scale(0.96) !important;
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4) !important;
+    }
+    .stButton>button:hover, .stDownloadButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover {
+        border-color: #00f2fe !important;
+        box-shadow: 0 6px 24px rgba(0, 242, 254, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Mobile Top Bar & Bottom Dock Navigation Rules */
+    .mobile-top-bar {
+        display: none;
+    }
+    .mobile-bottom-nav {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        /* Hide Desktop Sidebar Completely on Mobile */
+        section[data-testid="stSidebar"],
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="collapsedControl"] {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            max-width: 0 !important;
+            min-width: 0 !important;
+            flex: 0 0 0 !important;
+        }
+
+        /* Adjust main block padding for mobile */
+        main.block-container {
+            padding-top: 0 !important;
+            padding-bottom: 95px !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+            max-width: 100vw !important;
+        }
+
+        /* Sleek Mobile Top App Bar */
+        .mobile-top-bar {
+            display: flex !important;
+            position: sticky !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+            height: 52px !important;
+            padding: 0 14px !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            background: rgba(7, 13, 26, 0.94) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid rgba(0, 242, 254, 0.22) !important;
+            margin: -1.2rem -10px 14px -10px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+        }
+        .mobile-top-bar .brand-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mobile-top-bar .brand-logo {
+            font-size: 20px;
+        }
+        .mobile-top-bar .brand-name {
+            font-weight: 800;
+            font-size: 15px;
+            background: linear-gradient(135deg, #00f2fe 0%, #00ff87 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.2px;
+        }
+        .mobile-top-bar .brand-status {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00ff87;
+            box-shadow: 0 0 8px #00ff87;
+            animation: liveDotPulse 2s infinite ease-in-out;
+        }
+        .mobile-top-bar .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mobile-top-bar .lang-btn, .mobile-top-bar .logout-btn {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.35);
+            color: #00f2fe;
+            text-decoration: none !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        .mobile-top-bar .logout-btn {
+            background: rgba(255, 75, 75, 0.12);
+            border-color: rgba(255, 75, 75, 0.35);
+            color: #ff4b4b;
+            padding: 4px 8px;
+            font-size: 13px;
+        }
+        .mobile-top-bar .role-badge {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Native Mobile Bottom Navigation Dock */
+        .mobile-bottom-nav {
+            display: flex !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            height: 64px !important;
+            z-index: 99999 !important;
+            background: rgba(7, 13, 26, 0.96) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border-top: 1px solid rgba(0, 242, 254, 0.25) !important;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8) !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+            padding: 0 4px !important;
+            margin: 0 !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-decoration: none !important;
+            color: #8294ad !important;
+            padding: 6px 0 !important;
+            position: relative !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item .tab-icon {
+            font-size: 20px !important;
+            line-height: 1 !important;
+            margin-bottom: 3px !important;
+            transition: transform 0.2s ease, filter 0.2s ease !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item .tab-label {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.2px !important;
+            white-space: nowrap !important;
+            transition: color 0.2s ease !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item.active {
+            color: #00f2fe !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item.active .tab-icon {
+            transform: translateY(-2px) scale(1.15) !important;
+            filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.8)) !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item.active .tab-label {
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.6) !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item.active::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 20% !important;
+            right: 20% !important;
+            height: 3px !important;
+            background: linear-gradient(90deg, #00f2fe, #00ff87) !important;
+            border-radius: 0 0 4px 4px !important;
+            box-shadow: 0 0 10px #00f2fe !important;
+        }
+        .mobile-bottom-nav a.nav-tab-item:active {
+            transform: scale(0.92) !important;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .mobile-top-bar, .mobile-bottom-nav {
+            display: none !important;
+        }
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(4, 8, 18, 0.98) 100%) !important;
+            backdrop-filter: blur(24px) !important;
+            border-right: 1.5px solid rgba(0, 242, 254, 0.22) !important;
+            box-shadow: 10px 0 35px rgba(0, 0, 0, 0.75) !important;
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+        }
+        section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+            border-radius: 14px !important;
+            min-height: 44px !important;
+            padding: 10px 14px !important;
+            background: rgba(14, 23, 42, 0.6) !important;
+            border: 1px solid rgba(0, 242, 254, 0.15) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+            background: linear-gradient(115deg, rgba(0, 242, 254, 0.15), rgba(79, 70, 229, 0.15)) !important;
+            border-color: rgba(0, 242, 254, 0.6) !important;
+            transform: translateX(4px) !important;
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.2) !important;
+        }
+        section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+            background: linear-gradient(115deg, rgba(0, 242, 254, 0.25) 0%, rgba(79, 70, 229, 0.25) 100%) !important;
+            border-color: #00f2fe !important;
+            border-left: 4px solid #00f2fe !important;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.3) !important;
+        }
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -2946,6 +3267,79 @@ def generate_daily_whatsapp_digest(is_english: bool = False) -> str:
 
 df = load_receipts_data()
 
+
+def render_native_mobile_shell(current_page, user_role, is_english, nav_options):
+    """Renders a sleek, native-feel Mobile Top Bar and Mobile Bottom Tab Navigation Dock."""
+    # Handle quick query param actions if any
+    if st.query_params.get("action") == "logout":
+        log_activity(st.session_state.get('current_username', 'admin'), "User Logged Out via Mobile Shell")
+        st.session_state.clear()
+        st.query_params.clear()
+        st.rerun()
+
+    if "switch_lang" in st.query_params:
+        new_lang = st.query_params.get("switch_lang")
+        st.session_state["ui_language"] = new_lang
+        st.session_state["ui_language_english"] = (new_lang == "en")
+        del st.query_params["switch_lang"]
+        st.rerun()
+
+    target_lang = "mr" if is_english else "en"
+    lang_btn_text = "मराठी" if is_english else "EN"
+    role_color = "#00ff87" if user_role == "Admin" else "#f59e0b"
+
+    tabs_data = [
+        {"key": "OCR Scanner", "icon": "⚡", "label_en": "Scanner", "label_mr": "स्कॅनर"},
+        {"key": "Customer Khata", "icon": "💳", "label_en": "Khata", "label_mr": "खाते"},
+        {"key": "Business Operations", "icon": "🏬", "label_en": "Business", "label_mr": "व्यवसाय"},
+        {"key": "Ledger Database", "icon": "📊", "label_en": "Ledger", "label_mr": "लेजर"},
+        {"key": "RAG AI Chat", "icon": "🤖", "label_en": "AI Chat", "label_mr": "AI चॅट"},
+    ]
+    if user_role == "Staff":
+        tabs_data = [t for t in tabs_data if t["key"] != "Ledger Database"]
+
+    tab_items_html = ""
+    for tab in tabs_data:
+        is_active = (current_page == tab["key"])
+        active_class = "active" if is_active else ""
+        label = tab["label_en"] if is_english else tab["label_mr"]
+        encoded_page = urllib.parse.quote_plus(tab["key"])
+        tab_items_html += f"""
+        <a href="?page={encoded_page}" class="nav-tab-item {active_class}">
+            <span class="tab-icon">{tab['icon']}</span>
+            <span class="tab-label">{label}</span>
+        </a>
+        """
+
+    st.markdown(f"""
+    <!-- Native Mobile Top App Header Bar -->
+    <header class="mobile-top-bar">
+        <div class="brand-info">
+            <span class="brand-logo">🏪</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span class="brand-name">VernaLedger</span>
+                <span class="brand-status"></span>
+            </div>
+        </div>
+        <div class="actions">
+            <a href="?switch_lang={target_lang}&page={urllib.parse.quote_plus(current_page)}" class="lang-btn" title="Toggle Language">
+                🌐 {lang_btn_text}
+            </a>
+            <span class="role-badge" style="background: {role_color}22; color: {role_color}; border: 1px solid {role_color}55;">
+                {user_role.upper()}
+            </span>
+            <a href="?action=logout" class="logout-btn" title="Logout">
+                🚪
+            </a>
+        </div>
+    </header>
+
+    <!-- Native Mobile Bottom Navigation Dock -->
+    <nav class="mobile-bottom-nav">
+        {tab_items_html}
+    </nav>
+    """, unsafe_allow_html=True)
+
 # SIDEBAR NAVIGATION ---
 with st.sidebar:
     st.markdown('''
@@ -3101,6 +3495,9 @@ with st.sidebar:
         st.query_params.clear()
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
+# Render Native Mobile Navigation & App Shell
+render_native_mobile_shell(selected_page, current_role, is_english, nav_options)
 
 if selected_page == "OCR Scanner":
     is_english = st.session_state.get("ui_language", "en") == "en"
