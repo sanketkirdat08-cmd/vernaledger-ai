@@ -165,7 +165,26 @@ Open your browser at **`http://localhost:8501`**.
 
 ---
 
-## ☁️ Deployment on Streamlit Community Cloud
+## ⚡ Deployment on Vercel (Production Serverless SPA)
+
+VernaLedger.AI features a production-grade **FastAPI Serverless Backend** (`api/index.py`) and a responsive **Cyberpunk Dark Glassmorphic SPA** (`public/index.html`, `public/style.css`, `public/app.js`), fully pre-configured for 1-click deployment on [Vercel](https://vercel.com):
+
+1. **Push to GitHub**:
+   Ensure all changes are pushed to your GitHub repository `vernaledger-ai`.
+2. **Import to Vercel**:
+   - Go to [vercel.com](https://vercel.com) and log in.
+   - Click **"Add New..."** -> **"Project"**.
+   - Select your `vernaledger-ai` repository and click **Import**.
+3. **Configure Environment Variables**:
+   - Expand the **Environment Variables** section.
+   - Key: `GEMINI_API_KEY`
+   - Value: `your_google_gemini_api_key_here`
+4. **Deploy**:
+   - Click **Deploy**. Vercel will automatically build the Python serverless API and serve the high-speed static frontend at `https://your-project.vercel.app`.
+
+---
+
+## ☁️ Deployment on Streamlit Community Cloud (Legacy)
 
 1. Fork or push this repository to your GitHub account.
 2. Sign in to [share.streamlit.io](https://share.streamlit.io/).
