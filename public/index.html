@@ -25,7 +25,16 @@
          ===================================================================== -->
     <div id="login-screen">
         <div class="login-card">
-            <div class="login-logo">⚡</div>
+            <div class="brand-logo-badge large">
+                <svg width="42" height="42" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(0, 242, 254, 0.2)" stroke="var(--neon-cyan)" stroke-width="1.8" stroke-linejoin="round"></path>
+                    <path d="M10 11 L16 22 L22 11" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M9 16 H23" stroke="rgba(0, 242, 254, 0.7)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                    <circle cx="16" cy="22" r="2.2" fill="var(--neon-green)" stroke="#ffffff" stroke-width="1"></circle>
+                    <circle cx="10" cy="11" r="1.5" fill="#ffffff"></circle>
+                    <circle cx="22" cy="11" r="1.5" fill="#ffffff"></circle>
+                </svg>
+            </div>
             <h1 style="font-size: 1.55rem; font-weight: 800; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                 VernaLedger.AI
             </h1>
@@ -71,17 +80,23 @@
         <!-- Mobile Top App Bar -->
         <header class="mobile-top-bar">
             <div class="brand">
-                <span class="live-dot"></span>
-                <span>⚡ VernaLedger</span>
+                <div class="brand-logo-badge mini">
+                    <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+                        <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(0, 242, 254, 0.2)" stroke="var(--neon-cyan)" stroke-width="1.8" stroke-linejoin="round"></path>
+                        <path d="M10 11 L16 22 L22 11" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M9 16 H23" stroke="rgba(0, 242, 254, 0.7)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                        <circle cx="16" cy="22" r="2.2" fill="var(--neon-green)" stroke="#ffffff" stroke-width="1"></circle>
+                        <circle cx="10" cy="11" r="1.5" fill="#ffffff"></circle>
+                        <circle cx="22" cy="11" r="1.5" fill="#ffffff"></circle>
+                    </svg>
+                </div>
+                <span>VernaLedger.AI</span>
             </div>
             <div class="actions">
-                <button class="btn-pill" id="mobile-top-staff-btn" onclick="switchView('staff')" style="display: none; background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.4); font-size: 0.72rem; padding: 4px 8px;">
-                    <span data-i18n="btn_staff">👥 स्टाफ</span>
-                </button>
                 <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
                 </button>
-                <button class="btn-pill btn-logout" onclick="handleLogout()" title="बाहेर पडा">
+                <button class="btn-pill btn-logout" onclick="handleLogout()" title="बाहेर पडा" data-i18n-title="btn_logout">
                     🚪
                 </button>
             </div>
@@ -92,7 +107,17 @@
             <div>
                 <div class="brand-section">
                     <div class="brand-title">
-                        <span>⚡</span> VernaLedger.AI
+                        <div class="brand-logo-badge mini">
+                            <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+                                <path d="M16 2 L28 7 V16 C28 23 23 28 16 30 C9 28 4 23 4 16 V7 L16 2 Z" fill="rgba(0, 242, 254, 0.2)" stroke="var(--neon-cyan)" stroke-width="1.8" stroke-linejoin="round"></path>
+                                <path d="M10 11 L16 22 L22 11" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M9 16 H23" stroke="rgba(0, 242, 254, 0.7)" stroke-width="1.5" stroke-dasharray="3 3"></path>
+                                <circle cx="16" cy="22" r="2.2" fill="var(--neon-green)" stroke="#ffffff" stroke-width="1"></circle>
+                                <circle cx="10" cy="11" r="1.5" fill="#ffffff"></circle>
+                                <circle cx="22" cy="11" r="1.5" fill="#ffffff"></circle>
+                            </svg>
+                        </div>
+                        <span>VernaLedger.AI</span>
                     </div>
                     <div class="brand-sub">Merchant Pro v7.5</div>
                 </div>
@@ -399,48 +424,48 @@
                  VIEW 3: STORE OPERATIONS & INVENTORY
                  ================================================================= -->
             <section id="view-business" class="view-section">
-                <!-- 4 KPI Cards (Store Business Summary) -->
-                <div class="grid-kpi" style="margin-bottom: 20px;">
-                    <div class="glass-card">
-                        <div class="kpi-title">
+                <!-- 4 KPI Cards: Compact 2x2 Grid (2 Rows) -->
+                <div class="grid-kpi-compact">
+                    <div class="glass-card-mini">
+                        <div class="kpi-title-mini">
                             <span data-i18n="kpi_sales">एकूण विक्री</span>
                             <span>💰</span>
                         </div>
-                        <div class="kpi-val" style="color: var(--neon-cyan);" id="kpi-total-sales">₹0.00</div>
+                        <div class="kpi-val-mini" style="color: var(--neon-cyan);" id="kpi-total-sales">₹0.00</div>
                     </div>
-                    <div class="glass-card accent-green">
-                        <div class="kpi-title">
+                    <div class="glass-card-mini accent-green">
+                        <div class="kpi-title-mini">
                             <span data-i18n="kpi_bills">एकूण पावत्या</span>
                             <span>🧾</span>
                         </div>
-                        <div class="kpi-val" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
+                        <div class="kpi-val-mini" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
                     </div>
-                    <div class="glass-card accent-purple">
-                        <div class="kpi-title">
+                    <div class="glass-card-mini accent-purple">
+                        <div class="kpi-title-mini">
                             <span data-i18n="kpi_avg">सरासरी बिल</span>
                             <span>📈</span>
                         </div>
-                        <div class="kpi-val" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
+                        <div class="kpi-val-mini" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
                     </div>
-                    <div class="glass-card accent-red">
-                        <div class="kpi-title">
+                    <div class="glass-card-mini accent-red">
+                        <div class="kpi-title-mini">
                             <span data-i18n="kpi_udhar">बाकी उधारी</span>
                             <span>⏳</span>
                         </div>
-                        <div class="kpi-val" style="color: var(--neon-red);" id="kpi-pending-udhar">₹0.00</div>
+                        <div class="kpi-val-mini" style="color: var(--neon-red);" id="kpi-pending-udhar">₹0.00</div>
                     </div>
                 </div>
 
-                <!-- Low Stock Alert Banner -->
-                <div id="low-stock-banner" style="display: none; background: rgba(255, 0, 85, 0.15); border: 1px solid var(--neon-red); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 1.5rem;">⚠️</span>
-                        <div>
-                            <div style="font-weight: 800; color: #fff; font-size: 0.95rem;" data-i18n="low_stock_notice">कमी स्टॉक अलर्ट (Low Stock Notice)</div>
-                            <div style="font-size: 0.8rem; color: #fca5a5;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</div>
+                <!-- Slim Compact Low Stock Alert Banner -->
+                <div id="low-stock-banner" class="low-stock-banner-compact" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.15rem;">⚠️</span>
+                        <div style="line-height: 1.25;">
+                            <span style="font-weight: 800; color: #fff; font-size: 0.8rem;" data-i18n="low_stock_notice">कमी साठा अलर्ट:</span>
+                            <span style="font-size: 0.74rem; color: #fca5a5; margin-left: 4px;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</span>
                         </div>
                     </div>
-                    <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: #fff;">ALERT</span>
+                    <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: #fff; font-size: 0.65rem; padding: 2px 6px;">ALERT</span>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
@@ -645,92 +670,29 @@
                 </div>
             </section>
 
-            <!-- =================================================================
-                 VIEW 6: STAFF & AUDIT LOGS (ADMIN RESTRICTED)
-                 ================================================================= -->
-            <section id="view-staff" class="view-section">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-                    <!-- Staff Accounts -->
-                    <div class="glass-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span>👥</span> <span data-i18n="card_staff_title">कर्मचारी खाती (RBAC Access)</span>
-                            </h3>
-                            <button class="btn-pill" onclick="openAddStaffModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
-                                <span data-i18n="btn_new_staff">+ नवीन कर्मचारी</span>
-                            </button>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="cyber-table">
-                                <thead>
-                                    <tr>
-                                        <th data-i18n="th_username">वापरकर्ता नाव</th>
-                                        <th data-i18n="th_role">भूमिका (Role)</th>
-                                        <th data-i18n="th_phone">मोबाईल</th>
-                                        <th data-i18n="th_action">कृती</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="staff-table-tbody">
-                                    <!-- Dynamic rows -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Audit Logs -->
-                    <div class="glass-card">
-                        <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                            <span>🛡️</span> <span data-i18n="card_audit_title">सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)</span>
-                        </h3>
-                        <div class="table-responsive" style="max-height: 380px;">
-                            <table class="cyber-table">
-                                <thead>
-                                    <tr>
-                                        <th data-i18n="th_time">वेळ</th>
-                                        <th data-i18n="th_username">वापरकर्ता</th>
-                                        <th data-i18n="th_action_name">कृती (Action)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="audit-table-tbody">
-                                    <tr>
-                                        <td>आत्ताच</td>
-                                        <td style="color: var(--neon-cyan);">admin</td>
-                                        <td>सिस्टीम सुरू झाली</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
         </main>
 
-        <!-- Mobile Bottom Navigation Dock (Fixed 64px) -->
+        <!-- Mobile Bottom Navigation Dock (Fixed 60px) -->
         <nav class="mobile-bottom-nav">
             <a class="tab-item active" data-view="scanner" onclick="switchView('scanner')">
                 <span class="icon">⚡</span>
-                <span class="label">स्कॅनर</span>
+                <span class="label" data-i18n="mob_nav_scanner">स्कॅनर</span>
             </a>
             <a class="tab-item" data-view="khata" onclick="switchView('khata')">
                 <span class="icon">💳</span>
-                <span class="label">खाते</span>
+                <span class="label" data-i18n="mob_nav_khata">खाते</span>
             </a>
             <a class="tab-item" data-view="business" onclick="switchView('business')">
                 <span class="icon">🏬</span>
-                <span class="label">ऑपरेशन्स</span>
+                <span class="label" data-i18n="mob_nav_business">ऑपरेशन्स</span>
             </a>
             <a class="tab-item" data-view="ledger" onclick="switchView('ledger')">
                 <span class="icon">📊</span>
-                <span class="label">लेजर</span>
+                <span class="label" data-i18n="mob_nav_ledger">लेजर</span>
             </a>
             <a class="tab-item" data-view="ai" onclick="switchView('ai')">
                 <span class="icon">🤖</span>
-                <span class="label">AI स्टुडिओ</span>
-            </a>
-            <a class="tab-item" id="mobile-tab-staff" data-view="staff" onclick="switchView('staff')" style="display: none;">
-                <span class="icon">👥</span>
-                <span class="label">स्टाफ</span>
+                <span class="label" data-i18n="mob_nav_ai">AI स्टुडिओ</span>
             </a>
         </nav>
     </div>
@@ -887,44 +849,6 @@
                     </div>
                     <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
                         💾 साठा नोंदवा
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Staff Modal -->
-    <div id="modal-add-staff" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: #fff;">👥 नवीन कर्मचारी खाते तयार करा</div>
-                <button onclick="closeModal('modal-add-staff')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
-            </div>
-            <div class="modal-body">
-                <form id="form-add-staff" onsubmit="submitAddStaff(event)" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">वापरकर्ता नाव (Username)</label>
-                        <input type="text" id="staff-input-user" class="input-cyber" required placeholder="उदा. mahesh">
-                    </div>
-                    <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">पासवर्ड (Password min 6 chars)</label>
-                        <input type="password" id="staff-input-pass" class="input-cyber" required minlength="6" placeholder="******">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">भूमिका (Role)</label>
-                            <select id="staff-input-role" class="input-cyber">
-                                <option value="Staff">स्टाफ (Staff)</option>
-                                <option value="Admin">ॲडमिन (Admin)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">मोबाईल नंबर</label>
-                            <input type="tel" id="staff-input-phone" class="input-cyber" placeholder="9876543210">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
-                        🚀 खाते तयार करा
                     </button>
                 </form>
             </div>

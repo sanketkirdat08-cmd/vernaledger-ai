@@ -1395,3 +1395,73 @@ body::after {
         max-height: 78vh !important;
     }
 }
+
+/* Custom Brand Logo Badge */
+.brand-logo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.25) 0%, rgba(59, 130, 246, 0.25) 50%, rgba(139, 92, 246, 0.25) 100%);
+    border: 1px solid rgba(0, 242, 254, 0.5);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.35);
+    flex-shrink: 0;
+}
+.brand-logo-badge.mini {
+    padding: 4px;
+    border-radius: 8px;
+}
+.brand-logo-badge.large {
+    padding: 14px;
+    border-radius: 22px;
+    box-shadow: 0 8px 30px rgba(0, 242, 254, 0.45);
+    margin-bottom: 12px;
+}
+
+/* Compact 2x2 KPI Grid for Operations */
+.grid-kpi-compact {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+}
+.glass-card-mini {
+    background: rgba(14, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 6px 10px;
+    box-shadow: var(--shadow-glass);
+    transition: all 0.2s ease;
+}
+.glass-card-mini:hover {
+    border-color: rgba(0, 242, 254, 0.4);
+    transform: translateY(-2px);
+}
+.kpi-title-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: var(--text-slate);
+    margin-bottom: 2px;
+}
+.kpi-val-mini {
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.2;
+}
+
+/* Slim Compact Low Stock Alert */
+.low-stock-banner-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 0, 85, 0.12);
+    border: 1px solid var(--neon-red);
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin-bottom: 12px;
+}

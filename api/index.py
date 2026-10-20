@@ -576,17 +576,39 @@ def process_voice_billing(req: VoiceBillRequest):
     log_activity(req.username or "admin", f"Created Voice Bill #{data['id']} (₹{data.get('grand_total', 0)})")
     return {"success": True, "data": data}
 
+def detect_msg_language(text: str) -> str:
+    """Detect whether user query is in Marathi or English."""
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if devanagari_count >= 2:
+        return "mr"
+    marathi_markers = ["आहे", "नाही", "सांगा", "किती", "काय", "उधारी", "खर्च", "विक्री", "साठा", "पावती", "हिशोब", "कोणाकडे", "कोणत्या", "कोणी", "नमस्कार"]
+    if any(m in text.lower() for m in marathi_markers):
+        return "mr"
+    if latin_count > devanagari_count:
+        return "en"
+    return "mr"
+
+def get_tts_voice(text: str) -> str:
+    """Exact Edge TTS voice selection matching original Streamlit app: Neerja for English, Aarohi for Marathi."""
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if latin_count > devanagari_count:
+        return "en-IN-NeerjaNeural"
+    return "mr-IN-AarohiNeural"
+
 # -----------------------------------------------------------------------------
-# EDGE TTS MARATHI AUDIO GENERATION (RETURNS BASE64 DIRECTLY)
+# EDGE TTS MARATHI / ENGLISH AUDIO GENERATION
 # -----------------------------------------------------------------------------
 @app.post("/api/tts")
 async def generate_tts(req: TTSRequest):
     if not edge_tts:
         raise HTTPException(status_code=500, detail="Edge TTS library is not installed")
 
-    voice = req.voice or "mr-IN-AarohiNeural"
+    clean_speech = re.sub(r"[*#_`]", "", req.text)
+    voice = get_tts_voice(clean_speech) if not req.voice or req.voice == "mr-IN-AarohiNeural" else req.voice
     try:
-        communicate = edge_tts.Communicate(req.text, voice, rate="+10%")
+        communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
         audio_bytes = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
@@ -861,12 +883,15 @@ async def rag_chat(req: RAGChatRequest):
     - College: Arvind Gavali College of Engineering, Satara (AGCOE), affiliated with DBATU University.
     """
 
+    query_lang = detect_msg_language(req.message)
+    is_english = query_lang == "en"
+    lang_instruction = "The user asked in English. You MUST reply ONLY in clear, professional English." if is_english else "The user asked in Marathi (मराठी). You MUST reply ONLY in natural Marathi (मराठी Devanagari script)."
+
     api_key = get_api_key()
     answer = None
     if api_key and genai:
         try:
             genai.configure(api_key=api_key)
-            lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear, professional English."
             history_text = "\n".join(
                 f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
                 for item in (req.chat_history or [])[-10:]
@@ -976,13 +1001,13 @@ async def rag_chat(req: RAGChatRequest):
                     f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
                 )
 
-    # 3. Edge TTS Voice Output (Auto voice speech if enabled)
+    # 3. Edge TTS Voice Output (Auto voice speech if enabled with Streamlit exact voice logic)
     audio_data = None
     if req.voice_output and edge_tts:
         try:
             clean_speech = re.sub(r"[*#_`]", "", answer)
-            voice = "mr-IN-AarohiNeural" if req.lang == "mr" else "en-US-JennyNeural"
-            communicate = edge_tts.Communicate(clean_speech[:250], voice, rate="+10%")
+            voice = get_tts_voice(clean_speech)
+            communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":

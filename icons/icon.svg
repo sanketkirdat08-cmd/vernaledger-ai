@@ -1,5 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#050B14"/>
-  <circle cx="256" cy="256" r="188" fill="#071B2E" stroke="#00F2FE" stroke-width="12"/>
-  <path d="M286 70 150 274h94l-18 168 136-220h-96z" fill="#00FF87" stroke="#00F2FE" stroke-width="8" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050B14"/>
+      <stop offset="100%" stop-color="#0a1526"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bgGrad)"/>
+  <path d="M256 42 L430 115 V250 C430 358 350 435 256 470 C162 435 82 358 82 250 V115 Z" fill="url(#shieldGrad)" stroke="#00f2fe" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M165 180 L256 345 L347 180" stroke="#ffffff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M150 255 H362" stroke="#00f2fe" stroke-width="16" stroke-dasharray="24 24" stroke-linecap="round"/>
+  <circle cx="256" cy="345" r="28" fill="#00ff87" stroke="#ffffff" stroke-width="10"/>
+  <circle cx="165" cy="180" r="20" fill="#ffffff"/>
+  <circle cx="347" cy="180" r="20" fill="#ffffff"/>
 </svg>

@@ -41,10 +41,13 @@ const i18n = {
         nav_business: "स्टोअर ऑपरेशन्स",
         nav_ledger: "लेजर व पावत्या",
         nav_ai: "AI बिझनेस स्टुडिओ",
-        nav_staff: "कर्मचारी व ऑडिट",
-        btn_staff: "👥 स्टाफ",
         btn_logout: "🚪 बाहेर पडा",
         lang_label: "🌐 मराठी",
+        mob_nav_scanner: "स्कॅनर",
+        mob_nav_khata: "खाते",
+        mob_nav_business: "ऑपरेशन्स",
+        mob_nav_ledger: "लेजर",
+        mob_nav_ai: "AI स्टुडिओ",
 
         hud_scanner_title: "⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग",
         hud_scanner_sub: "Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर",
@@ -56,8 +59,6 @@ const i18n = {
         hud_ledger_sub: "सर्व जुन्या पावत्यांचा इतिहास, शोध आणि थर्मल पावती प्रिंट",
         hud_ai_title: "🤖 VernaLedger AI बिझनेस स्टुडिओ",
         hud_ai_sub: "लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी",
-        hud_staff_title: "👥 कर्मचारी व्यवस्थापन व सुरक्षा ऑडिट",
-        hud_staff_sub: "भूमिका-आधारित प्रवेश (RBAC) व सिस्टम हालचालींचा संपूर्ण इतिहास",
 
         kpi_sales: "एकूण विक्री",
         kpi_bills: "एकूण पावत्या",
@@ -136,13 +137,6 @@ const i18n = {
         lbl_voice_output: "🔊 व्हॉइस उत्तर ऐका",
         btn_repeat_audio: "🔊 पुन्हा ऐका",
 
-        card_staff_title: "कर्मचारी खाती (RBAC Access)",
-        btn_new_staff: "+ नवीन कर्मचारी",
-        th_username: "वापरकर्ता नाव",
-        th_role: "भूमिका (Role)",
-        card_audit_title: "सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)",
-        th_time: "वेळ",
-        th_action_name: "कृती (Action)",
 
         receipt_preview_title: "🖨️ डिजिटल पावती प्रिव्ह्यू",
         receipt_bill_no_label: "Bill No:",
@@ -156,7 +150,6 @@ const i18n = {
         modal_entry_title: "💳 नवीन व्यवहार नोंदवा (जमा/उधारी)",
         modal_stock_title: "📦 नवीन माल नोंदवा (Inventory)",
         modal_expense_title: "💸 नवीन खर्च नोंदवा (Store Expense)",
-        modal_staff_title: "👥 नवीन कर्मचारी खाते तयार करा",
         btn_submit: "सेव्ह करा",
         btn_cancel: "रद्द करा"
     },
@@ -174,10 +167,13 @@ const i18n = {
         nav_business: "Store Operations",
         nav_ledger: "Ledger Database",
         nav_ai: "AI Business Studio",
-        nav_staff: "Staff & Audit",
-        btn_staff: "👥 Staff",
         btn_logout: "🚪 Logout",
         lang_label: "🌐 English",
+        mob_nav_scanner: "Scanner",
+        mob_nav_khata: "Khata",
+        mob_nav_business: "Operations",
+        mob_nav_ledger: "Ledger",
+        mob_nav_ai: "AI Studio",
 
         hud_scanner_title: "⚡ Smart Multimodal Scanner & Voice Billing",
         hud_scanner_sub: "Convert handwritten receipts into digital ledger using Gemini 2.5 Flash",
@@ -189,8 +185,6 @@ const i18n = {
         hud_ledger_sub: "Full history of saved receipts, search, and POS thermal print",
         hud_ai_title: "🤖 VernaLedger AI Business Studio",
         hud_ai_sub: "Real-time store intelligence powered by SQLite & Gemini 2.5 RAG",
-        hud_staff_title: "👥 Staff Management & Security Audit",
-        hud_staff_sub: "Role-based access control (RBAC) and system activity trails",
 
         kpi_sales: "Total Sales",
         kpi_bills: "Total Receipts",
@@ -269,13 +263,6 @@ const i18n = {
         lbl_voice_output: "🔊 Voice Audio Output",
         btn_repeat_audio: "🔊 Replay Audio",
 
-        card_staff_title: "Staff Accounts (RBAC Access)",
-        btn_new_staff: "+ New Staff",
-        th_username: "Username",
-        th_role: "Role",
-        card_audit_title: "Security & System Audit Trails",
-        th_time: "Time",
-        th_action_name: "Action",
 
         receipt_preview_title: "🖨️ Digital POS Receipt Preview",
         receipt_bill_no_label: "Bill No:",
@@ -289,7 +276,6 @@ const i18n = {
         modal_entry_title: "💳 Record Transaction (Credit/Payment)",
         modal_stock_title: "📦 Add Inventory Item",
         modal_expense_title: "💸 Record Store Expense",
-        modal_staff_title: "👥 Create Staff Account",
         btn_submit: "Save",
         btn_cancel: "Cancel"
     }
@@ -432,21 +418,7 @@ function showApp() {
     const badge = document.getElementById("sidebar-role-badge");
     badge.innerText = state.user.role.toUpperCase();
 
-    const staffNav = document.getElementById("nav-item-staff");
-    const mobileStaffTab = document.getElementById("mobile-tab-staff");
-    const mobileStaffBtn = document.getElementById("mobile-top-staff-btn");
-
-    if (state.user.role === "Admin") {
-        badge.className = "user-role-badge badge-admin";
-        if (staffNav) staffNav.style.display = "flex";
-        if (mobileStaffTab) mobileStaffTab.style.display = "flex";
-        if (mobileStaffBtn) mobileStaffBtn.style.display = "inline-flex";
-    } else {
-        badge.className = "user-role-badge badge-staff";
-        if (staffNav) staffNav.style.display = "none";
-        if (mobileStaffTab) mobileStaffTab.style.display = "none";
-        if (mobileStaffBtn) mobileStaffBtn.style.display = "none";
-    }
+    badge.className = "user-role-badge badge-admin";
 
     // Load initial data
     loadDashboardMetrics();
@@ -454,21 +426,14 @@ function showApp() {
     loadKhataData();
     loadInventoryData();
     loadExpensesData();
-    if (state.user.role === "Admin") {
-        loadStaffData();
-    }
-
     recalcBillTotal();
 
     // Restore saved view on refresh or URL hash
     const hash = window.location.hash.replace("#", "").trim();
     const saved = localStorage.getItem("verna_active_view") || "scanner";
     let targetView = hash || saved;
-    const validViews = ["scanner", "khata", "business", "ledger", "ai", "staff"];
+    const validViews = ["scanner", "khata", "business", "ledger", "ai"];
     if (!validViews.includes(targetView)) {
-        targetView = "scanner";
-    }
-    if (targetView === "staff" && state.user.role !== "Admin") {
         targetView = "scanner";
     }
     switchView(targetView);
@@ -490,10 +455,8 @@ function updateHudText() {
 }
 
 function switchView(viewName) {
-    if (viewName === "staff" && state.user && state.user.role !== "Admin") {
-        alert("केवळ ॲडमिनला कर्मचारी व्यवस्थापनाचा अधिकार आहे.");
-        return;
-    }
+    const validViews = ["scanner", "khata", "business", "ledger", "ai"];
+    if (!validViews.includes(viewName)) viewName = "scanner";
 
     state.currentView = viewName;
     localStorage.setItem("verna_active_view", viewName);
@@ -512,18 +475,6 @@ function switchView(viewName) {
     document.querySelectorAll(".mobile-bottom-nav .tab-item").forEach(tab => {
         tab.classList.toggle("active", tab.dataset.view === viewName);
     });
-
-    // Toggle Mobile Top Staff button state
-    const mobileStaffBtn = document.getElementById("mobile-top-staff-btn");
-    if (mobileStaffBtn) {
-        if (viewName === "staff") {
-            mobileStaffBtn.style.background = "var(--neon-cyan)";
-            mobileStaffBtn.style.color = "#050B14";
-        } else {
-            mobileStaffBtn.style.background = "rgba(0, 242, 254, 0.15)";
-            mobileStaffBtn.style.color = "var(--neon-cyan)";
-        }
-    }
 
     // Toggle View Sections
     document.querySelectorAll(".view-section").forEach(sec => {
@@ -1452,12 +1403,15 @@ function exportLedgerCSV() {
 // -----------------------------------------------------------------------------
 let currentPlayingAudio = null;
 let isAiProcessing = false;
+let currentAudioPlayToken = 0;
 
 function stopCurrentAudio() {
+    currentAudioPlayToken++; // Invalidate any in-flight TTS calls
     if (currentPlayingAudio) {
         try {
             currentPlayingAudio.pause();
             currentPlayingAudio.currentTime = 0;
+            currentPlayingAudio.src = "";
         } catch (e) {}
         currentPlayingAudio = null;
     }
@@ -1472,7 +1426,8 @@ function speakWithBrowserVoice(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    const isMr = /[\u0900-\u097f]/.test(text);
+    utterance.lang = isMr ? "mr-IN" : "en-IN";
     window.speechSynthesis.speak(utterance);
 }
 
@@ -1667,132 +1622,39 @@ async function submitAiChat() {
 
 async function speakText(encoded) {
     stopCurrentAudio();
+    const token = currentAudioPlayToken;
     const raw = decodeURIComponent(encoded);
+    const isMr = /[\u0900-\u097f]/.test(raw);
+    const voice = isMr ? "mr-IN-AarohiNeural" : "en-IN-NeerjaNeural";
+
     try {
         const res = await apiCall("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 text: raw,
-                voice: state.lang === "mr" ? "mr-IN-AarohiNeural" : "en-US-JennyNeural"
+                voice: voice
             })
         });
+        if (token !== currentAudioPlayToken) return; // Stale request cancelled by newer click!
         const data = await res.json();
+        if (token !== currentAudioPlayToken) return; // Stale request cancelled!
+
         if (data.audio_data) {
+            stopCurrentAudio();
+            const playToken = ++currentAudioPlayToken;
             currentPlayingAudio = new Audio(data.audio_data);
-            currentPlayingAudio.onended = () => { currentPlayingAudio = null; };
+            currentPlayingAudio.onended = () => {
+                if (currentAudioPlayToken === playToken) currentPlayingAudio = null;
+            };
             await currentPlayingAudio.play();
         } else {
             speakWithBrowserVoice(raw);
         }
     } catch (e) {
-        speakWithBrowserVoice(raw);
-    }
-}
-
-// -----------------------------------------------------------------------------
-// STAFF & AUDIT LOGS
-// -----------------------------------------------------------------------------
-async function loadStaffData() {
-    try {
-        const res = await apiCall("/api/users");
-        if (res.ok) {
-            const users = await res.json();
-            const tbody = document.getElementById("staff-table-tbody");
-            if (tbody) {
-                tbody.innerHTML = "";
-                users.forEach(u => {
-                    const isAdmin = u.role === "Admin";
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td style="font-weight: 700; color: #fff;">${escapeHtml(u.username)}</td>
-                        <td>
-                            <span class="user-role-badge ${isAdmin ? 'badge-admin' : 'badge-staff'}">
-                                ${u.role}
-                            </span>
-                        </td>
-                        <td style="color: var(--text-slate);">${escapeHtml(u.phone || '-')}</td>
-                        <td>
-                            ${!isAdmin ? `
-                                <button onclick="deleteStaffUser('${escapeHtml(u.username)}')" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">
-                                    ✕ हटवा
-                                </button>
-                            ` : '<span style="font-size: 0.72rem; color: var(--text-dim);">संरक्षित</span>'}
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
+        if (token === currentAudioPlayToken) {
+            speakWithBrowserVoice(raw);
         }
-    } catch (e) {
-        console.error("Staff load error:", e);
-    }
-
-    try {
-        const auditRes = await apiCall("/api/audit-logs");
-        if (auditRes.ok) {
-            const logs = await auditRes.json();
-            const auditTbody = document.getElementById("audit-table-tbody");
-            if (auditTbody && logs.length > 0) {
-                auditTbody.innerHTML = "";
-                logs.forEach(l => {
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td style="font-size: 0.75rem; color: var(--text-slate);">${escapeHtml(l.timestamp || '-')}</td>
-                        <td style="color: var(--neon-cyan); font-weight: 600;">${escapeHtml(l.username || 'system')}</td>
-                        <td style="color: #e2e8f0;">${escapeHtml(l.action || '-')}</td>
-                    `;
-                    auditTbody.appendChild(tr);
-                });
-            }
-        }
-    } catch (err) {
-        console.warn("Audit logs load error:", err);
-    }
-}
-
-function openAddStaffModal() {
-    document.getElementById("modal-add-staff").classList.add("active");
-}
-
-async function submitAddStaff(e) {
-    e.preventDefault();
-    const payload = {
-        username: document.getElementById("staff-input-user").value.trim(),
-        password: document.getElementById("staff-input-pass").value.trim(),
-        role: document.getElementById("staff-input-role").value,
-        phone: document.getElementById("staff-input-phone").value.trim()
-    };
-
-    try {
-        const res = await apiCall("/api/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || "कर्मचारी तयार करता आला नाही.");
-
-        closeModal("modal-add-staff");
-        document.getElementById("form-add-staff").reset();
-        loadStaffData();
-        alert("✅ कर्मचारी खाते यशस्वीरित्या तयार झाले!");
-    } catch (err) {
-        alert("एरर: " + err.message);
-    }
-}
-
-async function deleteStaffUser(username) {
-    if (!confirm(`वापरकर्ता '${username}' डिलीट करायचा का?`)) return;
-    try {
-        const res = await apiCall(`/api/users/${username}`, { method: "DELETE" });
-        if (!res.ok) {
-            const j = await res.json();
-            throw new Error(j.detail || "डिलीट करता आले नाही");
-        }
-        loadStaffData();
-    } catch (e) {
-        alert("एरर: " + e.message);
     }
 }
 
