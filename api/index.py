@@ -227,7 +227,9 @@ def get_api_key() -> str:
             import tomllib
             with open(secrets_path, "rb") as secrets_file:
                 secrets = tomllib.load(secrets_file)
-            return str(secrets.get("GEMINI_API_KEY", "")).strip()
+            key = str(secrets.get("GEMINI_API_KEY", "")).strip()
+            if key and not key.startswith("PASTE_YOUR_"):
+                return key
     except (OSError, ValueError) as exc:
         logger.warning("Could not read local API configuration: %s", exc)
     return ""
