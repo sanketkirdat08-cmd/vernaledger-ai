@@ -219,7 +219,18 @@ init_db()
 
 def get_api_key() -> str:
     key = os.getenv("GEMINI_API_KEY", "").strip()
-    return key
+    if key:
+        return key
+    secrets_path = os.path.join(ROOT_DIR, ".streamlit", "secrets.toml")
+    try:
+        if os.path.exists(secrets_path):
+            import tomllib
+            with open(secrets_path, "rb") as secrets_file:
+                secrets = tomllib.load(secrets_file)
+            return str(secrets.get("GEMINI_API_KEY", "")).strip()
+    except (OSError, ValueError) as exc:
+        logger.warning("Could not read local API configuration: %s", exc)
+    return ""
 
 # -----------------------------------------------------------------------------
 # PYDANTIC DATA MODELS
@@ -827,10 +838,17 @@ async def rag_chat(req: RAGChatRequest):
         try:
             genai.configure(api_key=api_key)
             lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear English."
+            history_text = "\n".join(
+                f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
+                for item in (req.chat_history or [])[-10:]
+            )
             prompt = f"""
             You are VernaLedger AI, a high-intelligence vernacular retail business advisor and financial assistant.
             {db_context}
             
+            Recent conversation:
+            {history_text or "(none)"}
+
             User Message / Query: "{req.message}"
             {f"Action Performed: {action_status}" if action_status else ""}
 
@@ -839,6 +857,8 @@ async def rag_chat(req: RAGChatRequest):
             2. If an action was performed, acknowledge it clearly.
             3. {lang_instruction}
             4. Keep answers crisp, warm, respectful, and actionable for an Indian kirana store merchant.
+            5. Answer the user's actual question. Never repeat a generic greeting or unrelated sales summary.
+            6. If the database does not contain the requested fact, say so clearly and suggest what can be added.
             """
             models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash']
             for m in models_to_try:
@@ -857,14 +877,43 @@ async def rag_chat(req: RAGChatRequest):
         if action_status:
             answer = action_status
         else:
-            answer = f"नमस्कार! आजची एकूण विक्री ₹{today_sales:,.2f} झाली असून बाकी उधारी ₹{pending_udhar:,.2f} आहे. दुकानाबद्दल आपण काहीही विचारू शकता."
+            normalized = user_msg.casefold()
+            is_english = req.lang != "mr"
+            if any(word in normalized for word in ["विक्री", "sales", "revenue", "हिशोब"]):
+                answer = (
+                    f"Today's sales are ₹{today_sales:,.2f}. There are {bill_count} receipts in total."
+                    if is_english else
+                    f"आजची विक्री ₹{today_sales:,.2f} आहे. एकूण {bill_count} पावत्या नोंदलेल्या आहेत."
+                )
+            elif any(word in normalized for word in ["उधारी", "credit", "pending", "बाकी"]):
+                answer = (
+                    f"Total pending customer credit is ₹{pending_udhar:,.2f}."
+                    if is_english else
+                    f"एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे."
+                )
+            elif any(word in normalized for word in ["साठा", "stock", "inventory"]):
+                items = ", ".join(item["item_name"] for item in low_stock) if low_stock else ("No low-stock items currently." if is_english else "सध्या कोणताही कमी साठा नाही.")
+                answer = ("Low-stock items: " if is_english else "कमी साठा: ") + items
+            elif any(word in normalized for word in ["कोणी", "developer", "project", "प्रकल्प"]):
+                answer = (
+                    "This project was developed by Sanket Kirdat, Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik at AGCOE, Satara."
+                    if is_english else
+                    "हा प्रकल्प Sanket Kirdat, Sakshi Bhagat, Vaishnavi Dhavale आणि Rushikesh Mulik यांनी AGCOE, Satara येथे विकसित केला आहे."
+                )
+            else:
+                answer = (
+                    "I cannot answer that accurately because the AI service is unavailable. Please ask about sales, credit, stock or the project."
+                    if is_english else
+                    "माफ करा, या प्रश्नाचे अचूक उत्तर देण्यासाठी AI सेवा उपलब्ध नाही. कृपया विक्री, उधारी, साठा किंवा प्रकल्पाबद्दल प्रश्न विचारा."
+                )
 
     # 3. Edge TTS Voice Output (Auto voice speech if enabled)
     audio_data = None
     if req.voice_output and edge_tts:
         try:
             clean_speech = re.sub(r"[*#_`]", "", answer)
-            communicate = edge_tts.Communicate(clean_speech[:250], "mr-IN-AarohiNeural", rate="+10%")
+            voice = "mr-IN-AarohiNeural" if req.lang == "mr" else "en-US-JennyNeural"
+            communicate = edge_tts.Communicate(clean_speech[:250], voice, rate="+10%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
@@ -906,5 +955,3 @@ public_dir = os.path.join(ROOT_DIR, "public")
 if os.path.exists(public_dir):
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
-
-

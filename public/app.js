@@ -63,6 +63,11 @@ const i18n = {
 // INITIALIZATION
 // -----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch((error) => {
+            console.warn("Offline app shell could not be registered:", error);
+        });
+    }
     // Set today's date in bill input
     const today = new Date().toISOString().split("T")[0];
     const billDateInput = document.getElementById("bill-date");
@@ -422,8 +427,8 @@ function initSpeechRecognition() {
     }
 
     state.speechRecognition = new SpeechRecognition();
-    state.speechRecognition.continuous = false;
-    state.speechRecognition.interimResults = false;
+    state.speechRecognition.continuous = true;
+    state.speechRecognition.interimResults = true;
     state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
 
     state.speechRecognition.onstart = () => {
@@ -434,9 +439,16 @@ function initSpeechRecognition() {
     };
 
     state.speechRecognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const currentText = document.getElementById("voice-transcript-text").value;
-        document.getElementById("voice-transcript-text").value = (currentText ? currentText + " " : "") + transcript;
+        const output = document.getElementById("voice-transcript-text");
+        let finalText = "";
+        let interimText = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const text = event.results[i][0].transcript;
+            if (event.results[i].isFinal) finalText += text;
+            else interimText += text;
+        }
+        const currentText = output.value.replace(/\s*\[.*\]$/, "").trim();
+        output.value = `${currentText}${finalText.trim() ? ` ${finalText.trim()}` : ""}${interimText.trim() ? ` [${interimText.trim()}]` : ""}`.trim();
     };
 
     state.speechRecognition.onerror = (event) => {
@@ -460,7 +472,12 @@ function toggleVoiceRecording() {
         stopVoiceRecording();
     } else {
         state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
-        state.speechRecognition.start();
+        try {
+            state.speechRecognition.start();
+        } catch (err) {
+            console.warn("Speech recognition could not start:", err);
+            stopVoiceRecording();
+        }
     }
 }
 
@@ -1153,6 +1170,14 @@ function stopCurrentAudio() {
     }
 }
 
+function speakWithBrowserVoice(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    window.speechSynthesis.speak(utterance);
+}
+
 let ragSpeechRecognition = null;
 let isRagListening = false;
 
@@ -1207,7 +1232,12 @@ function toggleRagVoice() {
         stopRagVoice();
     } else {
         ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
-        ragSpeechRecognition.start();
+        try {
+            ragSpeechRecognition.start();
+        } catch (err) {
+            console.warn("RAG speech recognition could not start:", err);
+            stopRagVoice();
+        }
     }
 }
 
@@ -1226,6 +1256,7 @@ function clearAiChat() {
             संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत काहीही विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
         </div>
     `;
+    state.chatHistory = [];
 }
 
 function askAiPrompt(text) {
@@ -1270,12 +1301,18 @@ async function submitAiChat() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 message: msg,
+                chat_history: state.chatHistory.slice(-10),
                 lang: state.lang,
                 voice_output: voiceOutput,
                 username: state.user ? state.user.username : "admin"
             })
         });
         const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || "AI उत्तर मिळू शकले नाही.");
+        }
+        state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
+        state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
 
         // If an action was performed (Khata or Expense added), auto refresh UI
         if (data.action_status) {
@@ -1302,11 +1339,15 @@ async function submitAiChat() {
         // Auto-play voice if enabled and audio returned
         if (voiceOutput && data.audio_data) {
             try {
-                const audio = new Audio(data.audio_data);
-                audio.play();
+                currentPlayingAudio = new Audio(data.audio_data);
+                currentPlayingAudio.onended = () => { currentPlayingAudio = null; };
+                await currentPlayingAudio.play();
             } catch (err) {
                 console.warn("Auto-play error:", err);
+                speakWithBrowserVoice(data.answer || "");
             }
+        } else if (voiceOutput) {
+            speakWithBrowserVoice(data.answer || "");
         }
     } catch (e) {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
@@ -1323,20 +1364,21 @@ async function speakText(encoded) {
         const res = await apiCall("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: raw, voice: "mr-IN-AarohiNeural" })
+            body: JSON.stringify({
+                text: raw,
+                voice: state.lang === "mr" ? "mr-IN-AarohiNeural" : "en-US-JennyNeural"
+            })
         });
         const data = await res.json();
         if (data.audio_data) {
-            new Audio(data.audio_data).play();
+            currentPlayingAudio = new Audio(data.audio_data);
+            currentPlayingAudio.onended = () => { currentPlayingAudio = null; };
+            await currentPlayingAudio.play();
         } else {
-            const ut = new SpeechSynthesisUtterance(raw);
-            ut.lang = "mr-IN";
-            window.speechSynthesis.speak(ut);
+            speakWithBrowserVoice(raw);
         }
     } catch (e) {
-        const ut = new SpeechSynthesisUtterance(raw);
-        ut.lang = "mr-IN";
-        window.speechSynthesis.speak(ut);
+        speakWithBrowserVoice(raw);
     }
 }
 
@@ -1434,6 +1476,8 @@ function closeModal(id) {
 function toggleLanguage() {
     state.lang = state.lang === "mr" ? "en" : "mr";
     localStorage.setItem("verna_lang", state.lang);
+    if (state.speechRecognition) state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    if (ragSpeechRecognition) ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
     applyLanguage();
 }
 

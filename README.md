@@ -182,6 +182,21 @@ VernaLedger.AI features a production-grade **FastAPI Serverless Backend** (`api/
 4. **Deploy**:
    - Click **Deploy**. Vercel will automatically build the Python serverless API and serve the high-speed static frontend at `https://your-project.vercel.app`.
 
+### Install as a mobile or desktop app
+
+The frontend includes a PWA manifest, install icons, and a service worker. Open the
+HTTPS Vercel URL in Chrome or Edge, then choose **Install VernaLedger** from the
+browser menu. Installation requires the deployed HTTPS URL; `localhost` is only for
+local development.
+
+### Production data persistence
+
+Vercel serverless functions do not provide durable local SQLite storage. For
+production use, configure a managed database such as Supabase and migrate the
+ledger tables before relying on the app for permanent receipts or khata records.
+Set `GEMINI_API_KEY` and the database connection variables in the Vercel project
+Environment Variables for Production, Preview, and Development as appropriate.
+
 ---
 
 ## ☁️ Deployment on Streamlit Community Cloud (Legacy)
@@ -217,4 +232,3 @@ This project was developed by the Engineering Team at **Arvind Gavali College of
 ## 📄 License
 
 This project is developed for academic, retail empowerment, and research purposes. All rights reserved.
-

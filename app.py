@@ -9,8 +9,8 @@ from api.index import app
 if __name__ == "__main__":
     import uvicorn
     print("=" * 65)
-    print("⚡ VernaLedger.AI - Merchant Pro v7.5 (Starting Server)")
-    print("🔗 Local Server: http://localhost:8000")
-    print("📄 API Docs:     http://localhost:8000/docs")
+    print("VernaLedger.AI - Merchant Pro v7.5 (Starting Server)")
+    print("Local Server: http://localhost:8000")
+    print("API Docs:     http://localhost:8000/docs")
     print("=" * 65)
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
