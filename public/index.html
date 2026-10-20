@@ -76,7 +76,7 @@
             </div>
             <div class="actions">
                 <button class="btn-pill" id="mobile-top-staff-btn" onclick="switchView('staff')" style="display: none; background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.4); font-size: 0.72rem; padding: 4px 8px;">
-                    👥 स्टाफ
+                    <span data-i18n="btn_staff">👥 स्टाफ</span>
                 </button>
                 <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
@@ -160,7 +160,7 @@
                         ● LIVE CLOUD DB
                     </span>
                     <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="hud-lang-btn">🌐 मराठी</button>
-                    <button class="btn-pill btn-logout" onclick="handleLogout()">🚪 Logout</button>
+                    <button class="btn-pill btn-logout" onclick="handleLogout()" data-i18n="btn_logout">🚪 बाहेर पडा</button>
                 </div>
             </div>
 
@@ -172,16 +172,16 @@
                     <!-- Left: Input Methods (AI Vision & Vernacular Voice) -->
                     <div class="glass-card">
                         <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                            <span>📸</span> पावती स्कॅन / व्हॉइस इनपुट
+                            <span>📸</span> <span data-i18n="card_scan_input">पावती स्कॅन / व्हॉइस इनपुट</span>
                         </h3>
 
                         <!-- Mode Switcher Tabs -->
                         <div style="display: flex; gap: 8px; margin-bottom: 16px;">
                             <button class="btn-pill" id="tab-btn-vision" onclick="switchScannerMode('vision')" style="background: rgba(0, 242, 254, 0.2); color: var(--neon-cyan); border-color: var(--neon-cyan);">
-                                📷 AI व्हिजन स्कॅनर
+                                <span data-i18n="tab_vision">📷 AI व्हिजन स्कॅनर</span>
                             </button>
                             <button class="btn-pill" id="tab-btn-voice" onclick="switchScannerMode('voice')" style="background: rgba(255,255,255,0.05); color: var(--text-slate); border-color: transparent;">
-                                🎙️ मराठी व्हॉइस बिलिंग
+                                <span data-i18n="tab_voice">🎙️ व्हॉइस बिलिंग</span>
                             </button>
                         </div>
 
@@ -190,16 +190,16 @@
                             <div class="upload-dropzone" onclick="document.getElementById('receipt-file-input').click()">
                                 <input type="file" id="receipt-file-input" accept="image/*" style="display: none;" onchange="handleReceiptFileSelect(event)">
                                 <div style="font-size: 2.2rem; margin-bottom: 8px;">📄</div>
-                                <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा</div>
-                                <div style="font-size: 0.78rem; color: var(--text-slate); margin-top: 4px;">PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)</div>
+                                <div style="font-weight: 700; font-size: 0.95rem; color: #fff;" data-i18n="dropzone_title">पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा</div>
+                                <div style="font-size: 0.78rem; color: var(--text-slate); margin-top: 4px;" data-i18n="dropzone_sub">PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)</div>
                             </div>
 
                             <div style="display: flex; gap: 10px; margin-top: 14px;">
                                 <button class="btn-cyber" style="flex: 1;" onclick="openCameraModal()">
-                                    📷 लाईव्ह कॅमेराने फोटो काढा
+                                    <span data-i18n="btn_camera">📷 लाईव्ह कॅमेराने फोटो काढा</span>
                                 </button>
                                 <button class="btn-cyber success" id="btn-run-ocr" style="flex: 1;" onclick="submitReceiptOCR()" disabled>
-                                    ⚡ AI स्कॅन करा
+                                    <span data-i18n="btn_ocr">⚡ AI स्कॅन करा</span>
                                 </button>
                             </div>
 
@@ -213,20 +213,20 @@
                         <!-- Voice Container -->
                         <div id="scanner-voice-container" style="display: none; text-align: center;">
                             <p style="font-size: 0.86rem; color: var(--text-slate); margin-bottom: 12px;">
-                                मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान मराठीत बोला (उदा. "सागर ला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये")
+                                <span data-i18n="voice_hint">मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान मराठीत बोला (उदा. "सागर ला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये")</span>
                             </p>
 
                             <button id="btn-voice-mic" class="mic-btn-pulse" onclick="toggleVoiceRecording()">
                                 🎙️
                             </button>
                             <div id="voice-recording-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 12px;">
-                                बोलण्यासाठी माईक वर क्लिक करा
+                                <span data-i18n="voice_ready">बोलण्यासाठी माईक वर क्लिक करा</span>
                             </div>
 
-                            <textarea id="voice-transcript-text" class="input-cyber" rows="3" placeholder="येथे उच्चारलेला मजकूर दिसेल किंवा स्वतः टाईप करा..."></textarea>
+                            <textarea id="voice-transcript-text" class="input-cyber" rows="3" placeholder="येथे उच्चारलेला मजकूर दिसेल किंवा स्वतः टाईप करा..." data-i18n-ph="voice_placeholder"></textarea>
 
                             <button class="btn-cyber success" style="width: 100%; margin-top: 14px;" onclick="submitVoiceBilling()">
-                                ⚡ व्हॉइस वरून पावती तयार करा
+                                <span data-i18n="btn_voice_submit">⚡ व्हॉइस वरून पावती तयार करा</span>
                             </button>
                         </div>
 
@@ -358,7 +358,7 @@
                     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
                         <input type="text" id="khata-search-input" class="input-cyber" placeholder="🔍 ग्राहकाचे नाव किंवा मोबाईल नंबर शोधा..." style="max-width: 380px;" oninput="filterKhataList()">
                         <button class="btn-cyber success" onclick="openAddKhataModal()">
-                            + नवीन खाते / व्यवहार जोडा
+                            <span data-i18n="btn_new_customer">+ नवीन खाते</span> / व्यवहार जोडा
                         </button>
                     </div>
                 </div>
@@ -436,7 +436,7 @@
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="font-size: 1.5rem;">⚠️</span>
                         <div>
-                            <div style="font-weight: 800; color: #fff; font-size: 0.95rem;">कमी स्टॉक अलर्ट (Low Stock Notice)</div>
+                            <div style="font-weight: 800; color: #fff; font-size: 0.95rem;" data-i18n="low_stock_notice">कमी स्टॉक अलर्ट (Low Stock Notice)</div>
                             <div style="font-size: 0.8rem; color: #fca5a5;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</div>
                         </div>
                     </div>
@@ -448,10 +448,10 @@
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                             <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span>📦</span> दुकानातील माल व साठा (Inventory)
+                                <span>📦</span> <span data-i18n="card_inventory">दुकानातील माल साठा</span>
                             </h3>
                             <button class="btn-pill" onclick="openAddInventoryModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
-                                + नवीन माल
+                                <span data-i18n="btn_new_stock">+ नवीन माल</span>
                             </button>
                         </div>
 
@@ -610,9 +610,9 @@
                     <!-- Clean Horizontal Chips Bar (Swipable) -->
                     <div class="prompt-chips" style="margin-bottom: 10px; padding: 2px 0;">
                         <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजची विक्री?</span>
-                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')">👥 बाकी उधारी?</span>
-                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')">🚨 कमी साठा?</span>
-                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')">🎓 प्रोजेक्ट डेव्हलपर्स?</span>
+                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')" data-i18n="chip_udhar">👥 बाकी उधारी किती?</span>
+                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')" data-i18n="chip_low_stock">🚨 कमी साठा?</span>
+                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')" data-i18n="chip_developers">🎓 प्रोजेक्ट डेव्हलपर्स?</span>
                     </div>
 
                     <!-- Scrollable Messages Container (ONLY this container scrolls) -->
@@ -636,7 +636,7 @@
                             <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" title="माईक द्वारे मराठीत बोला">
                                 🎙️
                             </button>
-                            <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" onkeypress="if(event.key==='Enter') submitAiChat()">
+                            <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" data-i18n-ph="ph_ai_input" onkeypress="if(event.key==='Enter') submitAiChat()">
                             <button class="rag-send-btn" onclick="submitAiChat()" id="btn-ai-send" title="पाठवा">
                                 <span>पाठवा</span> 🚀
                             </button>
@@ -654,10 +654,10 @@
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                             <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span>👥</span> कर्मचारी खाती (RBAC Access)
+                                <span>👥</span> <span data-i18n="card_staff_title">कर्मचारी खाती (RBAC Access)</span>
                             </h3>
                             <button class="btn-pill" onclick="openAddStaffModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
-                                + नवीन कर्मचारी
+                                <span data-i18n="btn_new_staff">+ नवीन कर्मचारी</span>
                             </button>
                         </div>
 
@@ -665,10 +665,10 @@
                             <table class="cyber-table">
                                 <thead>
                                     <tr>
-                                        <th>वापरकर्ता नाव</th>
-                                        <th>भूमिका (Role)</th>
-                                        <th>मोबाईल</th>
-                                        <th>कृती</th>
+                                        <th data-i18n="th_username">वापरकर्ता नाव</th>
+                                        <th data-i18n="th_role">भूमिका (Role)</th>
+                                        <th data-i18n="th_phone">मोबाईल</th>
+                                        <th data-i18n="th_action">कृती</th>
                                     </tr>
                                 </thead>
                                 <tbody id="staff-table-tbody">
@@ -681,15 +681,15 @@
                     <!-- Audit Logs -->
                     <div class="glass-card">
                         <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                            <span>🛡️</span> सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)
+                            <span>🛡️</span> <span data-i18n="card_audit_title">सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)</span>
                         </h3>
                         <div class="table-responsive" style="max-height: 380px;">
                             <table class="cyber-table">
                                 <thead>
                                     <tr>
-                                        <th>वेळ</th>
-                                        <th>वापरकर्ता</th>
-                                        <th>कृती (Action)</th>
+                                        <th data-i18n="th_time">वेळ</th>
+                                        <th data-i18n="th_username">वापरकर्ता</th>
+                                        <th data-i18n="th_action_name">कृती (Action)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="audit-table-tbody">
@@ -741,27 +741,27 @@
     
     <!-- Thermal Print Modal (58mm/80mm POS Styled) -->
     <div id="modal-thermal" class="modal-overlay">
-        <div class="modal-box">
+        <div class="modal-box modal-receipt-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: #fff;">🖨️ थर्मल पावती प्रिव्ह्यू (POS Receipt)</div>
+                <div style="font-weight: 800; font-size: 0.95rem; color: #fff;" data-i18n="receipt_preview_title">🖨️ डिजिटल पावती प्रिव्ह्यू</div>
                 <button onclick="closeModal('modal-thermal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
                 <div id="thermal-print-target" class="thermal-receipt">
                     <div class="center" style="font-size: 1.15rem; font-weight: 900; margin-bottom: 2px;" id="receipt-shop-name">महादेव किराणा स्टोअर</div>
-                    <div class="center" style="font-size: 0.72rem; color: #4b5563;">मेन रोड, मार्केट यार्ड, सातारा | Ph: 9876543210</div>
+                    <div class="center" style="font-size: 0.72rem; color: #4b5563;" id="receipt-shop-addr">मेन रोड, मार्केट यार्ड, सातारा | Ph: 9876543210</div>
                     <div class="center" style="font-size: 0.7rem; color: #4b5563;">GSTIN: 27AAAAA0000A1Z5</div>
                     <hr>
                     <div class="row-flex" style="font-size: 0.75rem;">
-                        <span>Bill No: <strong id="receipt-bill-no">#VL-882</strong></span>
+                        <span><span data-i18n="receipt_bill_no_label">Bill No:</span> <strong id="receipt-bill-no">#VL-882</strong></span>
                         <span id="receipt-print-date">20-10-2026</span>
                     </div>
                     <hr>
                     <div style="font-size: 0.75rem;">
                         <div class="row-flex" style="font-weight: 800; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px;">
-                            <span style="flex: 2; text-align: left;">वस्तू</span>
-                            <span style="flex: 1; text-align: center;">नग</span>
-                            <span style="flex: 1; text-align: right;">रक्कम (₹)</span>
+                            <span style="flex: 2; text-align: left;" data-i18n="th_item">वस्तू</span>
+                            <span style="flex: 1; text-align: center;" data-i18n="th_qty">नग</span>
+                            <span style="flex: 1; text-align: right;" data-i18n="th_amount">रक्कम (₹)</span>
                         </div>
                         <div id="receipt-print-items" style="margin-top: 6px;">
                             <!-- Injected rows -->
@@ -769,30 +769,30 @@
                     </div>
                     <hr>
                     <div class="row-flex" style="font-size: 0.95rem; font-weight: 900;">
-                        <span>एकूण देय रक्कम:</span>
+                        <span data-i18n="receipt_total_label">एकूण देय रक्कम:</span>
                         <span id="receipt-print-total">₹253.00</span>
                     </div>
                     <hr>
-                    <div class="center" style="margin: 10px 0;">
+                    <div class="center" style="margin: 8px 0;">
                         <!-- QR Code simulation for UPI Payment -->
-                        <div style="display: inline-block; padding: 6px; background: #fff; border: 1px solid #000; border-radius: 4px;">
-                            <img id="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=merchant@upi&pn=KiranaStore&am=253.00" alt="UPI QR" style="width: 80px; height: 80px; display: block;">
+                        <div style="display: inline-block; padding: 4px; background: #fff; border: 1px solid #111; border-radius: 4px;">
+                            <img id="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=merchant@upi&pn=KiranaStore&am=253.00" alt="UPI QR" style="width: 76px; height: 76px; display: block;">
                         </div>
-                        <div style="font-size: 0.65rem; color: #4b5563; margin-top: 2px;">स्कॅन करून UPI द्वारे पैसे भरा</div>
+                        <div style="font-size: 0.65rem; color: #4b5563; margin-top: 2px;" data-i18n="receipt_upi_text">स्कॅन करून UPI द्वारे पैसे भरा</div>
                     </div>
-                    <div class="center" style="font-size: 0.72rem; font-weight: 700; margin-top: 6px;">
+                    <div class="center" style="font-size: 0.72rem; font-weight: 700; margin-top: 4px;" data-i18n="receipt_greeting">
                         🙏 पुन्हा भेट द्या! धन्यवाद! 🙏
                     </div>
-                    <div class="center" style="font-size: 0.62rem; color: #6b7280; margin-top: 2px;">
+                    <div class="center" style="font-size: 0.60rem; color: #6b7280; margin-top: 2px;">
                         Powered by VernaLedger.AI
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-top: 18px; justify-content: center;">
-                    <button class="btn-cyber" onclick="triggerBrowserPrint()">
-                        🖨️ आताच प्रिंट करा (Print)
+                <div class="receipt-modal-actions" style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+                    <button class="btn-cyber" onclick="triggerBrowserPrint()" style="flex: 1; min-height: 40px; font-size: 0.85rem;" data-i18n="btn_print_now">
+                        🖨️ आताच प्रिंट करा
                     </button>
-                    <button class="btn-pill btn-logout" onclick="closeModal('modal-thermal')">
+                    <button class="btn-pill btn-logout" onclick="closeModal('modal-thermal')" style="padding: 0 16px; min-height: 40px; font-size: 0.85rem;" data-i18n="btn_close">
                         बंद करा
                     </button>
                 </div>

@@ -809,7 +809,7 @@ async def rag_chat(req: RAGChatRequest):
         except Exception as e:
             action_status = f"खर्च नोंद त्रुटी: {e}"
 
-    # 2. Build Live SQLite Context
+    # 2. Build Rich Live SQLite Context
     conn = get_db()
     total_sales = conn.execute("SELECT SUM(grand_total) FROM receipts").fetchone()[0] or 0.0
     bill_count = conn.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] or 0
@@ -817,27 +817,47 @@ async def rag_chat(req: RAGChatRequest):
     today_sales = conn.execute("SELECT SUM(grand_total) FROM receipts WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
     recent_receipts = [dict(r) for r in conn.execute("SELECT vendor_name, date, grand_total FROM receipts ORDER BY id DESC LIMIT 5").fetchall()]
     
-    # Khata context
-    khata_rows = [dict(r) for r in conn.execute("SELECT customer_name, amount, transaction_type, due_date FROM customer_khata ORDER BY id DESC LIMIT 6").fetchall()]
+    # Khata & Customer Dues context
+    khata_rows = [dict(r) for r in conn.execute("SELECT customer_name, amount, transaction_type, due_date FROM customer_khata ORDER BY id DESC LIMIT 10").fetchall()]
     credit_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Credit Given'").fetchone()[0] or 0.0
     paid_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Payment Received'").fetchone()[0] or 0.0
     pending_udhar = max(0.0, credit_sum - paid_sum)
 
-    # Inventory context
-    low_stock = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit FROM shop_inventory WHERE stock_qty <= alert_limit").fetchall()]
-    all_inv = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory LIMIT 10").fetchall()]
+    # Calculate individual customer balances
+    cust_dues = {}
+    for row in conn.execute("SELECT customer_name, amount, transaction_type FROM customer_khata").fetchall():
+        c = row["customer_name"]
+        a = float(row["amount"] or 0)
+        if row["transaction_type"] == "Credit Given":
+            cust_dues[c] = cust_dues.get(c, 0.0) + a
+        elif row["transaction_type"] == "Payment Received":
+            cust_dues[c] = cust_dues.get(c, 0.0) - a
+    sorted_dues = sorted([(k, max(0.0, v)) for k, v in cust_dues.items() if v > 0], key=lambda x: x[1], reverse=True)
+
+    # Inventory context (Full inventory for accurate stock lookups)
+    all_inv = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit, alert_limit, selling_price FROM shop_inventory ORDER BY stock_qty ASC").fetchall()]
+    low_stock = [i for i in all_inv if i["stock_qty"] <= i["alert_limit"]]
+
+    # Expenses & Profit context
+    total_expenses = conn.execute("SELECT SUM(amount) FROM business_expenses").fetchone()[0] or 0.0
+    today_expenses = conn.execute("SELECT SUM(amount) FROM business_expenses WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
+    recent_expenses = [dict(r) for r in conn.execute("SELECT expense_title, category, amount, date FROM business_expenses ORDER BY id DESC LIMIT 5").fetchall()]
+    net_profit = total_sales - total_expenses
     conn.close()
 
     db_context = f"""
     LIVE STORE DATABASE CONTEXT:
-    - Total Gross Revenue: Rs. {total_sales:,.2f} across {bill_count} bills.
+    - Lifetime Gross Sales: Rs. {total_sales:,.2f} ({bill_count} receipts recorded)
     - Today's Sales: Rs. {today_sales:,.2f}
+    - Total Store Expenses: Rs. {total_expenses:,.2f} | Today's Expenses: Rs. {today_expenses:,.2f}
+    - Net Margin / Profit: Rs. {net_profit:,.2f}
     - Total Pending Customer Credit (उधारी): Rs. {pending_udhar:,.2f}
+    - Customer Pending Dues (Sorted Highest to Lowest): {sorted_dues}
+    - Low Stock Alert Items: {low_stock}
+    - Complete Store Stock: {all_inv}
     - Recent Bills: {recent_receipts}
-    - Recent Khata Entries: {khata_rows}
-    - Low Stock Items (साठा संपत आलेला): {low_stock}
-    - Sample Shop Inventory: {all_inv}
-    - Project Details: VernaLedger.AI developed by Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
+    - Recent Expenses: {recent_expenses}
+    - Project Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
     - College: Arvind Gavali College of Engineering, Satara (AGCOE), affiliated with DBATU University.
     """
 
@@ -846,28 +866,29 @@ async def rag_chat(req: RAGChatRequest):
     if api_key and genai:
         try:
             genai.configure(api_key=api_key)
-            lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear English."
+            lang_instruction = "Respond naturally in Marathi (मराठी Devanagari script)." if req.lang == "mr" else "Respond in clear, professional English."
             history_text = "\n".join(
                 f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
                 for item in (req.chat_history or [])[-10:]
             )
             prompt = f"""
-            You are VernaLedger AI, a high-intelligence vernacular retail business advisor and financial assistant.
+            You are VernaLedger AI, a high-intelligence, ultra-precise retail advisor for Indian Kirana stores.
             {db_context}
             
             Recent conversation:
             {history_text or "(none)"}
 
-            User Message / Query: "{req.message}"
+            User Question: "{req.message}"
             {f"Action Performed: {action_status}" if action_status else ""}
 
-            INSTRUCTIONS:
-            1. Answer accurately using only verified facts from the live store database context.
-            2. If an action was performed, acknowledge it clearly.
+            CRITICAL ANSWERING RULES:
+            1. STRICT BREVITY: Answer ONLY what was specifically asked. Keep answers concise, factual, and strictly limited to the user's specific query ('जे विचारले तेवढेच मर्यादित व अचूक उत्तर द्या').
+            2. DO NOT provide long greetings, unprompted financial summaries, or unnecessary paragraphs.
             3. {lang_instruction}
-            4. Keep answers crisp, warm, respectful, and actionable for an Indian kirana store merchant.
-            5. Answer the user's actual question. Never repeat a generic greeting or unrelated sales summary.
-            6. If the database does not contain the requested fact, say so clearly and suggest what can be added.
+            4. Item & Customer Names:
+               - When answering in Marathi: Use ONLY the Marathi name (e.g. 'साखर', 'सागर पाटील'). Never include English in parentheses.
+               - When answering in English: Use ONLY the English name (e.g. 'Sugar', 'Sagar Patil'). Never include Marathi.
+            5. Provide exact numbers with ₹ and concise bullet points where appropriate.
             """
             models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash']
             for m in models_to_try:
@@ -875,7 +896,7 @@ async def rag_chat(req: RAGChatRequest):
                     model = genai.GenerativeModel(m)
                     res = model.generate_content(prompt)
                     if res and res.text:
-                        answer = res.text
+                        answer = res.text.strip()
                         break
                 except Exception:
                     continue
@@ -888,21 +909,60 @@ async def rag_chat(req: RAGChatRequest):
         else:
             normalized = user_msg.casefold()
             is_english = req.lang != "mr"
-            if any(word in normalized for word in ["विक्री", "sales", "revenue", "हिशोब"]):
-                answer = (
-                    f"Today's sales are ₹{today_sales:,.2f}. There are {bill_count} receipts in total."
-                    if is_english else
-                    f"आजची विक्री ₹{today_sales:,.2f} आहे. एकूण {bill_count} पावत्या नोंदलेल्या आहेत."
-                )
+
+            # Helper for localized name in fallback
+            def clean_name(val):
+                if "(" in val and ")" in val:
+                    parts = val.split("(")
+                    return parts[1].replace(")", "").strip() if is_english else parts[0].strip()
+                return val
+
+            if any(word in normalized for word in ["कोणाकडे जास्त", "जास्त उधारी", "who owes", "highest credit", "highest due"]):
+                if sorted_dues:
+                    top_list = [f"{clean_name(name)}: ₹{amt:,.2f}" for name, amt in sorted_dues[:3]]
+                    answer = (
+                        f"Top pending dues: {', '.join(top_list)}. Total credit: ₹{pending_udhar:,.2f}."
+                        if is_english else
+                        f"सर्वात जास्त उधारी: {', '.join(top_list)}. एकूण बाकी उधारी: ₹{pending_udhar:,.2f}."
+                    )
+                else:
+                    answer = "No pending customer dues currently." if is_english else "सध्या कोणाकडेही उधारी बाकी नाही."
             elif any(word in normalized for word in ["उधारी", "credit", "pending", "बाकी"]):
                 answer = (
                     f"Total pending customer credit is ₹{pending_udhar:,.2f}."
                     if is_english else
                     f"एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे."
                 )
+            elif any(word in normalized for word in ["कमी साठा", "low stock", "साठा संपत", "out of stock"]):
+                if low_stock:
+                    items = ", ".join(f"{clean_name(item['item_name'])} ({item['stock_qty']} {item['unit']})" for item in low_stock)
+                    answer = (f"Low-stock items: {items}." if is_english else f"कमी साठा असलेल्या वस्तू: {items}.")
+                else:
+                    answer = "All items have sufficient stock." if is_english else "सर्व वस्तूंचा साठा मुबलक आहे."
             elif any(word in normalized for word in ["साठा", "stock", "inventory"]):
-                items = ", ".join(item["item_name"] for item in low_stock) if low_stock else ("No low-stock items currently." if is_english else "सध्या कोणताही कमी साठा नाही.")
-                answer = ("Low-stock items: " if is_english else "कमी साठा: ") + items
+                answer = (
+                    f"There are {len(all_inv)} items in stock. Low stock items: {len(low_stock)}."
+                    if is_english else
+                    f"दुकानात एकूण {len(all_inv)} वस्तूंचा साठा आहे. यापैकी {len(low_stock)} वस्तूंचा साठा कमी आहे."
+                )
+            elif any(word in normalized for word in ["नफा", "profit", "margin", "खर्च", "expense"]):
+                answer = (
+                    f"Total expenses: ₹{total_expenses:,.2f}. Net margin: ₹{net_profit:,.2f}."
+                    if is_english else
+                    f"एकूण दुकान खर्च: ₹{total_expenses:,.2f}. निव्वळ नफा (Net Margin): ₹{net_profit:,.2f}."
+                )
+            elif any(word in normalized for word in ["आजची विक्री", "today's sales", "today sales"]):
+                answer = (
+                    f"Today's sales are ₹{today_sales:,.2f}."
+                    if is_english else
+                    f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे."
+                )
+            elif any(word in normalized for word in ["विक्री", "sales", "revenue", "हिशोब"]):
+                answer = (
+                    f"Today's sales: ₹{today_sales:,.2f}. Gross revenue: ₹{total_sales:,.2f} across {bill_count} bills."
+                    if is_english else
+                    f"आजची विक्री: ₹{today_sales:,.2f}. एकूण विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)."
+                )
             elif any(word in normalized for word in ["कोणी", "developer", "project", "प्रकल्प"]):
                 answer = (
                     "This project was developed by Sanket Kirdat, Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik at AGCOE, Satara."
@@ -911,9 +971,9 @@ async def rag_chat(req: RAGChatRequest):
                 )
             else:
                 answer = (
-                    "I cannot answer that accurately because the AI service is unavailable. Please ask about sales, credit, stock or the project."
+                    f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
                     if is_english else
-                    "माफ करा, या प्रश्नाचे अचूक उत्तर देण्यासाठी AI सेवा उपलब्ध नाही. कृपया विक्री, उधारी, साठा किंवा प्रकल्पाबद्दल प्रश्न विचारा."
+                    f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
                 )
 
     # 3. Edge TTS Voice Output (Auto voice speech if enabled)

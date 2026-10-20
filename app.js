@@ -25,41 +25,297 @@ const state = {
     chatHistory: []
 };
 
-// I18N Translations
+// I18N Translations (100% Complete Bilingual Coverage)
 const i18n = {
     mr: {
+        app_name: "VernaLedger.AI",
+        tagline: "किराणा दुकानांसाठी सुरक्षित स्मार्ट लेजर",
+        login_title: "मर्चंट लॉगिन",
+        login_demo_admin: "⚡ ॲडमिन डेमो",
+        login_demo_staff: "👤 स्टाफ डेमो",
+        lbl_username: "वापरकर्ता नाव",
+        lbl_password: "पासवर्ड",
+        btn_login: "🔐 ॲप्लिकेशन उघडा",
         nav_scanner: "स्मार्ट स्कॅनर",
         nav_khata: "ग्राहक खाते",
         nav_business: "स्टोअर ऑपरेशन्स",
         nav_ledger: "लेजर व पावत्या",
         nav_ai: "AI बिझनेस स्टुडिओ",
         nav_staff: "कर्मचारी व ऑडिट",
+        btn_staff: "👥 स्टाफ",
+        btn_logout: "🚪 बाहेर पडा",
+        lang_label: "🌐 मराठी",
+
+        hud_scanner_title: "⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग",
+        hud_scanner_sub: "Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर",
+        hud_khata_title: "💳 ग्राहक खाते व डिजिटल उधारी वही",
+        hud_khata_sub: "WhatsApp द्वारे १-क्लिक देय स्मरणपत्रे व पारदर्शक जमा-खर्च हिशोब",
+        hud_business_title: "🏬 स्टोअर ऑपरेशन्स, माल साठा व खर्च",
+        hud_business_sub: "इन्व्हेंटरी ट्रॅकिंग, कमी स्टॉक अलर्ट्स आणि दैनिक खर्च व्यवस्थापन",
+        hud_ledger_title: "📊 सुरक्षित डिजिटल लेजर डेटाबेस",
+        hud_ledger_sub: "सर्व जुन्या पावत्यांचा इतिहास, शोध आणि थर्मल पावती प्रिंट",
+        hud_ai_title: "🤖 VernaLedger AI बिझनेस स्टुडिओ",
+        hud_ai_sub: "लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी",
+        hud_staff_title: "👥 कर्मचारी व्यवस्थापन व सुरक्षा ऑडिट",
+        hud_staff_sub: "भूमिका-आधारित प्रवेश (RBAC) व सिस्टम हालचालींचा संपूर्ण इतिहास",
+
         kpi_sales: "एकूण विक्री",
         kpi_bills: "एकूण पावत्या",
         kpi_avg: "सरासरी बिल",
         kpi_udhar: "बाकी उधारी",
-        ocr_scanning: "Gemini 2.5 Flash द्वारे विश्लेषण सुरू आहे...",
+
+        card_scan_input: "पावती स्कॅन / व्हॉइस इनपुट",
+        tab_vision: "📷 AI व्हिजन स्कॅनर",
+        tab_voice: "🎙️ व्हॉइस बिलिंग",
+        dropzone_title: "पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा",
+        dropzone_sub: "PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)",
+        btn_camera: "📷 लाईव्ह कॅमेराने फोटो काढा",
+        btn_ocr: "⚡ AI स्कॅन करा",
+        voice_hint: "मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान मराठीत बोला (उदा. 'सागर ला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये')",
+        voice_ready: "बोलण्यासाठी माईक वर क्लिक करा",
         voice_listening: "मी ऐकत आहे... सामान बोला...",
-        voice_ready: "बोलण्यासाठी माईक वर क्लिक करा"
+        voice_placeholder: "येथे उच्चारलेला मजकूर दिसेल किंवा स्वतः टाईप करा...",
+        btn_voice_submit: "⚡ व्हॉइस वरून पावती तयार करा",
+
+        card_current_bill: "📋 सध्याचे बिल (Live POS)",
+        lbl_vendor: "किराणा स्टोअर नाव",
+        lbl_date: "तारीख",
+        lbl_category: "श्रेणी",
+        th_item: "वस्तू नाव",
+        th_qty: "नग/प्रमाण",
+        th_rate: "दर (₹)",
+        th_total: "एकूण (₹)",
+        th_action: "कृती",
+        btn_add_item: "+ वस्तू जोडा",
+        lbl_grand_total: "एकूण देय रक्कम:",
+        btn_save_ledger: "💾 लेजरमध्ये सेव्ह करा",
+        btn_print_receipt: "🖨️ प्रिंट पावती",
+        btn_add_to_khata: "💳 खात्यावर उधारी नोंदवा",
+
+        kpi_customers: "एकूण ग्राहक",
+        kpi_txns: "एकूण व्यवहार",
+        card_khata_title: "ग्राहक उधारी यादी",
+        btn_new_customer: "+ नवीन खाते",
+        ph_search_khata: "ग्राहक नाव किंवा मोबाईल नंबरने शोधा...",
+        th_customer: "ग्राहक नाव",
+        th_phone: "मोबाईल",
+        th_type: "प्रकार",
+        th_amount: "रक्कम (₹)",
+        th_note: "टीप",
+        th_due: "बाकी उधारी",
+        btn_whatsapp: "WhatsApp तगादा",
+        btn_add_entry: "+ जमा/उधारी",
+        btn_history: "इतिहास",
+
+        low_stock_notice: "कमी स्टॉक अलर्ट (Low Stock Notice)",
+        low_stock_msg: "काही वस्तूंचा साठा संपत आला आहे.",
+        card_inventory: "दुकानातील माल साठा",
+        btn_new_stock: "+ नवीन माल",
+        th_stock: "साठा",
+        th_price: "किंमत (₹)",
+        th_status: "स्थिती",
+        card_expenses: "दैनिक दुकान खर्च",
+        btn_new_expense: "+ नवीन खर्च",
+        th_reason: "खर्चाचे कारण",
+
+        card_ledger_title: "सर्व जुन्या पावत्यांचा इतिहास",
+        ph_search_ledger: "पावती क्रमांक किंवा दुकानाच्या नावाने शोधा...",
+        btn_export_csv: "📥 CSV डाउनलोड",
+        th_bill_no: "बिल क्र.",
+        th_store_customer: "दुकान / ग्राहक",
+
+        card_ai_title: "VernaLedger AI बिझनेस स्टुडिओ",
+        chip_sales: "💰 आजची एकूण विक्री किती?",
+        chip_udhar: "👥 बाकी उधारी किती?",
+        chip_low_stock: "🚨 कमी साठा?",
+        chip_developers: "🎓 प्रोजेक्ट डेव्हलपर्स?",
+        ai_greeting: "नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.",
+        ai_voice_listening: "🎙️ मी ऐकत आहे... प्रश्न विचारा किंवा उधारी बोला...",
+        ph_ai_input: "येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')",
+        btn_send: "पाठवा",
+        lbl_voice_output: "🔊 व्हॉइस उत्तर ऐका",
+        btn_repeat_audio: "🔊 पुन्हा ऐका",
+
+        card_staff_title: "कर्मचारी खाती (RBAC Access)",
+        btn_new_staff: "+ नवीन कर्मचारी",
+        th_username: "वापरकर्ता नाव",
+        th_role: "भूमिका (Role)",
+        card_audit_title: "सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)",
+        th_time: "वेळ",
+        th_action_name: "कृती (Action)",
+
+        receipt_preview_title: "🖨️ डिजिटल पावती प्रिव्ह्यू",
+        receipt_bill_no_label: "Bill No:",
+        receipt_total_label: "एकूण देय रक्कम:",
+        receipt_upi_text: "स्कॅन करून UPI द्वारे पैसे भरा",
+        receipt_greeting: "🙏 पुन्हा भेट द्या! धन्यवाद! 🙏",
+        btn_print_now: "🖨️ आताच प्रिंट करा",
+        btn_close: "बंद करा",
+
+        modal_khata_title: "👥 नवीन ग्राहक खाते उघडा",
+        modal_entry_title: "💳 नवीन व्यवहार नोंदवा (जमा/उधारी)",
+        modal_stock_title: "📦 नवीन माल नोंदवा (Inventory)",
+        modal_expense_title: "💸 नवीन खर्च नोंदवा (Store Expense)",
+        modal_staff_title: "👥 नवीन कर्मचारी खाते तयार करा",
+        btn_submit: "सेव्ह करा",
+        btn_cancel: "रद्द करा"
     },
     en: {
+        app_name: "VernaLedger.AI",
+        tagline: "Secure Smart Retail Ledger for Kirana Stores",
+        login_title: "Merchant Login",
+        login_demo_admin: "⚡ Admin Demo",
+        login_demo_staff: "👤 Staff Demo",
+        lbl_username: "Username",
+        lbl_password: "Password",
+        btn_login: "🔐 Open Application",
         nav_scanner: "Smart Scanner",
         nav_khata: "Customer Khata",
         nav_business: "Store Operations",
         nav_ledger: "Ledger Database",
         nav_ai: "AI Business Studio",
         nav_staff: "Staff & Audit",
+        btn_staff: "👥 Staff",
+        btn_logout: "🚪 Logout",
+        lang_label: "🌐 English",
+
+        hud_scanner_title: "⚡ Smart Multimodal Scanner & Voice Billing",
+        hud_scanner_sub: "Convert handwritten receipts into digital ledger using Gemini 2.5 Flash",
+        hud_khata_title: "💳 Customer Khata & Digital Credit Ledger",
+        hud_khata_sub: "1-Click WhatsApp payment reminders and transparent accounts",
+        hud_business_title: "🏬 Store Operations, Inventory & Expenses",
+        hud_business_sub: "Inventory tracking, low-stock alerts, and daily expense management",
+        hud_ledger_title: "📊 Secure Digital Ledger Database",
+        hud_ledger_sub: "Full history of saved receipts, search, and POS thermal print",
+        hud_ai_title: "🤖 VernaLedger AI Business Studio",
+        hud_ai_sub: "Real-time store intelligence powered by SQLite & Gemini 2.5 RAG",
+        hud_staff_title: "👥 Staff Management & Security Audit",
+        hud_staff_sub: "Role-based access control (RBAC) and system activity trails",
+
         kpi_sales: "Total Sales",
-        kpi_bills: "Total Bills",
-        kpi_avg: "Avg Ticket",
+        kpi_bills: "Total Receipts",
+        kpi_avg: "Average Ticket",
         kpi_udhar: "Pending Udhar",
-        ocr_scanning: "Analyzing receipt with Gemini 2.5 Flash...",
+
+        card_scan_input: "Receipt Scanner / Voice Input",
+        tab_vision: "📷 AI Vision Scanner",
+        tab_voice: "🎙️ Voice Billing",
+        dropzone_title: "Select Receipt Photo or Drag Here",
+        dropzone_sub: "PNG, JPG, JPEG (Handwritten or Printed Bill)",
+        btn_camera: "📷 Capture with Live Camera",
+        btn_ocr: "⚡ AI Scan Receipt",
+        voice_hint: "Click microphone and speak customer name and items (e.g. '2 kg sugar 50 rupees and 1 oil 150 rupees to Sagar')",
+        voice_ready: "Click mic to speak",
         voice_listening: "Listening... Speak items...",
-        voice_ready: "Click mic to speak"
+        voice_placeholder: "Spoken text will appear here or type manually...",
+        btn_voice_submit: "⚡ Generate Bill from Voice",
+
+        card_current_bill: "📋 Current Live Bill (POS)",
+        lbl_vendor: "Kirana Store Name",
+        lbl_date: "Date",
+        lbl_category: "Category",
+        th_item: "Item Name",
+        th_qty: "Qty",
+        th_rate: "Rate (₹)",
+        th_total: "Total (₹)",
+        th_action: "Action",
+        btn_add_item: "+ Add Item",
+        lbl_grand_total: "Grand Total:",
+        btn_save_ledger: "💾 Save to Ledger",
+        btn_print_receipt: "🖨️ Print Receipt",
+        btn_add_to_khata: "💳 Add to Khata (Credit)",
+
+        kpi_customers: "Total Customers",
+        kpi_txns: "Total Txns",
+        card_khata_title: "Customer Ledger Accounts",
+        btn_new_customer: "+ New Customer",
+        ph_search_khata: "Search customer by name or phone...",
+        th_customer: "Customer Name",
+        th_phone: "Mobile",
+        th_type: "Type",
+        th_amount: "Amount (₹)",
+        th_note: "Notes",
+        th_due: "Pending Due",
+        btn_whatsapp: "WhatsApp Reminder",
+        btn_add_entry: "+ Credit/Payment",
+        btn_history: "History",
+
+        low_stock_notice: "Low Stock Alert Notice",
+        low_stock_msg: "Some items are running out of stock.",
+        card_inventory: "Store Inventory & Stock",
+        btn_new_stock: "+ Add Stock",
+        th_stock: "Stock",
+        th_price: "Price (₹)",
+        th_status: "Status",
+        card_expenses: "Daily Store Expenses",
+        btn_new_expense: "+ Add Expense",
+        th_reason: "Expense Reason",
+
+        card_ledger_title: "All Saved Receipts History",
+        ph_search_ledger: "Search by receipt number or store...",
+        btn_export_csv: "📥 Export CSV",
+        th_bill_no: "Bill #",
+        th_store_customer: "Store / Customer",
+
+        card_ai_title: "VernaLedger AI Business Studio",
+        chip_sales: "💰 Today's total sales?",
+        chip_udhar: "👥 Total pending credit?",
+        chip_low_stock: "🚨 Low stock items?",
+        chip_developers: "🎓 Project Developers?",
+        ai_greeting: "Hello! I am <strong>VernaLedger AI</strong>. You can ask in English or Marathi about your store sales, customer credit, stock, or expenses, or speak voice commands to record entries.",
+        ai_voice_listening: "🎙️ Listening... Ask a question or speak credit...",
+        ph_ai_input: "Ask a question or speak... (e.g. 'What is today's sales?')",
+        btn_send: "Send",
+        lbl_voice_output: "🔊 Voice Audio Output",
+        btn_repeat_audio: "🔊 Replay Audio",
+
+        card_staff_title: "Staff Accounts (RBAC Access)",
+        btn_new_staff: "+ New Staff",
+        th_username: "Username",
+        th_role: "Role",
+        card_audit_title: "Security & System Audit Trails",
+        th_time: "Time",
+        th_action_name: "Action",
+
+        receipt_preview_title: "🖨️ Digital POS Receipt Preview",
+        receipt_bill_no_label: "Bill No:",
+        receipt_total_label: "Grand Total:",
+        receipt_upi_text: "Scan to pay via UPI",
+        receipt_greeting: "🙏 Thank you! Visit Again! 🙏",
+        btn_print_now: "🖨️ Print Now",
+        btn_close: "Close",
+
+        modal_khata_title: "👥 Add New Customer Khata",
+        modal_entry_title: "💳 Record Transaction (Credit/Payment)",
+        modal_stock_title: "📦 Add Inventory Item",
+        modal_expense_title: "💸 Record Store Expense",
+        modal_staff_title: "👥 Create Staff Account",
+        btn_submit: "Save",
+        btn_cancel: "Cancel"
     }
 };
 
-// -----------------------------------------------------------------------------
+// Helper: Show item and customer names strictly ONCE in the active language
+function formatLocalizedName(name, lang = state.lang) {
+    if (!name) return "";
+    name = String(name).trim();
+    // Check format: "Marathi (English)" e.g. "साखर (Sugar M-30)" or "सागर पाटील (Sagar Patil)"
+    const parenMatch = name.match(/^([^(]+)\s*\(([^)]+)\)$/);
+    if (parenMatch) {
+        const mrPart = parenMatch[1].trim();
+        const enPart = parenMatch[2].trim();
+        return lang === "en" ? enPart : mrPart;
+    }
+    // Check format: "Marathi / English"
+    const slashMatch = name.match(/^([^/]+)\s*\/\s*(.+)$/);
+    if (slashMatch) {
+        const mrPart = slashMatch[1].trim();
+        const enPart = slashMatch[2].trim();
+        return lang === "en" ? enPart : mrPart;
+    }
+    return name;
+}
+
 // INITIALIZATION
 // -----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -221,6 +477,18 @@ function showApp() {
 // -----------------------------------------------------------------------------
 // VIEW NAVIGATION
 // -----------------------------------------------------------------------------
+function updateHudText() {
+    const dict = i18n[state.lang] || i18n.mr;
+    const view = state.currentView || "scanner";
+    const titleKey = `hud_${view}_title`;
+    const subKey = `hud_${view}_sub`;
+
+    const titleEl = document.getElementById("hud-title");
+    const subEl = document.getElementById("hud-subtitle");
+    if (titleEl && dict[titleKey]) titleEl.innerText = dict[titleKey];
+    if (subEl && dict[subKey]) subEl.innerText = dict[subKey];
+}
+
 function switchView(viewName) {
     if (viewName === "staff" && state.user && state.user.role !== "Admin") {
         alert("केवळ ॲडमिनला कर्मचारी व्यवस्थापनाचा अधिकार आहे.");
@@ -262,38 +530,8 @@ function switchView(viewName) {
         sec.classList.toggle("active", sec.id === `view-${viewName}`);
     });
 
-    // Update HUD titles
-    const hudTitles = {
-        scanner: {
-            title: "⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग",
-            sub: "Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर"
-        },
-        khata: {
-            title: "💳 ग्राहक खाते व डिजिटल उधारी वही",
-            sub: "WhatsApp द्वारे १-क्लिक देय स्मरणपत्रे व पारदर्शक जमा-खर्च हिशोब"
-        },
-        business: {
-            title: "🏬 स्टोअर ऑपरेशन्स, माल साठा व खर्च",
-            sub: "इन्व्हेंटरी ट्रॅकिंग, कमी स्टॉक अलर्ट्स आणि दैनिक खर्च व्यवस्थापन"
-        },
-        ledger: {
-            title: "📊 सुरक्षित डिजिटल लेजर डेटाबेस",
-            sub: "सर्व जुन्या पावत्यांचा इतिहास, शोध आणि थर्मल पावती प्रिंट"
-        },
-        ai: {
-            title: "🤖 VernaLedger AI बिझनेस स्टुडिओ",
-            sub: "लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी"
-        },
-        staff: {
-            title: "👥 कर्मचारी व्यवस्थापन व सुरक्षा ऑडिट",
-            sub: "भूमिका-आधारित प्रवेश (RBAC) व सिस्टम हालचालींचा संपूर्ण इतिहास"
-        }
-    };
-
-    if (hudTitles[viewName]) {
-        document.getElementById("hud-title").innerText = hudTitles[viewName].title;
-        document.getElementById("hud-subtitle").innerText = hudTitles[viewName].sub;
-    }
+    // Update HUD titles based on active language
+    updateHudText();
 }
 
 // -----------------------------------------------------------------------------
@@ -577,10 +815,11 @@ function populateBillCard(data) {
 
     if (data.items && data.items.length > 0) {
         data.items.forEach(item => {
-            appendBillRow(item.item_name || "", item.quantity || "1", item.rate || 0, item.total_price || 0);
+            const displayName = formatLocalizedName(item.item_name || "", state.lang);
+            appendBillRow(displayName, item.quantity || "1", item.rate || 0, item.total_price || 0);
         });
     } else {
-        appendBillRow("साखर", "1 kg", 44, 44);
+        appendBillRow(state.lang === "mr" ? "साखर" : "Sugar", "1 kg", 44, 44);
     }
 
     recalcBillTotal();
@@ -726,20 +965,22 @@ async function playCurrentBillTTS() {
 // Thermal Print Modal
 function openThermalPrintModal() {
     const bill = getCurrentBillData();
-    document.getElementById("receipt-shop-name").innerText = bill.vendor_name;
+    const isMr = state.lang === "mr";
+    document.getElementById("receipt-shop-name").innerText = formatLocalizedName(bill.vendor_name, state.lang) || (isMr ? "महादेव किराणा स्टोअर" : "Mahadev Kirana Store");
     document.getElementById("receipt-bill-no").innerText = `#VL-${Math.floor(100 + Math.random() * 900)}`;
     document.getElementById("receipt-print-date").innerText = bill.date;
     document.getElementById("receipt-print-total").innerText = `₹${bill.grand_total.toFixed(2)}`;
 
-    // Build items HTML
+    // Build items HTML with localized item names
     const container = document.getElementById("receipt-print-items");
     container.innerHTML = "";
     bill.items.forEach(i => {
+        const displayName = formatLocalizedName(i.item_name, state.lang);
         const div = document.createElement("div");
         div.className = "row-flex";
         div.style.marginBottom = "3px";
         div.innerHTML = `
-            <span style="flex: 2; text-align: left;">${escapeHtml(i.item_name)}</span>
+            <span style="flex: 2; text-align: left;">${escapeHtml(displayName)}</span>
             <span style="flex: 1; text-align: center;">${escapeHtml(i.quantity)}</span>
             <span style="flex: 1; text-align: right;">₹${i.total_price.toFixed(2)}</span>
         `;
@@ -798,32 +1039,34 @@ function renderKhataCards(customers) {
         );
         const waLink = `https://wa.me/91${safePhone}?text=${waMsg}`;
 
+        const displayName = formatLocalizedName(c.name, state.lang);
+        const isMr = state.lang === "mr";
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                 <div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">${escapeHtml(c.name)}</div>
-                    <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(c.phone || "नंबर नाही")}</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">${escapeHtml(displayName)}</div>
+                    <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(c.phone || (isMr ? "नंबर नाही" : "No Phone"))}</div>
                 </div>
                 <span class="user-role-badge ${isDebt ? 'badge-staff' : 'badge-admin'}">
-                    ${isDebt ? 'उधारी बाकी' : 'हिशोब क्लिअर'}
+                    ${isDebt ? (isMr ? 'उधारी बाकी' : 'Credit Due') : (isMr ? 'हिशोब क्लिअर' : 'Cleared')}
                 </span>
             </div>
 
-            <div style="margin: 12px 0;">
-                <div style="font-size: 0.75rem; color: var(--text-slate);">सध्याची बाकी रक्कम (Balance):</div>
-                <div style="font-size: 1.4rem; font-weight: 800; color: ${isDebt ? 'var(--neon-red)' : 'var(--neon-green)'};">
+            <div style="margin: 10px 0;">
+                <div style="font-size: 0.75rem; color: var(--text-slate);">${isMr ? 'सध्याची बाकी रक्कम (Balance):' : 'Current Balance Due:'}</div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: ${isDebt ? 'var(--neon-red)' : 'var(--neon-green)'};">
                     ₹${Math.abs(c.balance).toFixed(2)}
                 </div>
             </div>
 
-            <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
                 ${isDebt && safePhone ? `
                     <a href="${waLink}" target="_blank" class="btn-cyber whatsapp" style="flex: 1; font-size: 0.78rem; padding: 6px 10px; text-decoration: none;">
-                        💬 WhatsApp तगादा
+                        ${isMr ? '💬 WhatsApp तगादा' : '💬 WhatsApp Alert'}
                     </a>
                 ` : ''}
                 <button class="btn-pill btn-lang" onclick="prefillKhataPayment('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}')">
-                    + व्यवहार
+                    ${isMr ? '+ व्यवहार' : '+ Entry'}
                 </button>
             </div>
         `;
@@ -837,14 +1080,16 @@ function renderKhataTable(transactions) {
 
     transactions.forEach(t => {
         const isCredit = t.transaction_type === "Credit Given";
+        const isMr = state.lang === "mr";
+        const displayName = formatLocalizedName(t.customer_name, state.lang);
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">#${t.id}</td>
-            <td style="font-weight: 700; color: #fff;">${escapeHtml(t.customer_name)}</td>
+            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
             <td style="color: var(--text-slate);">${escapeHtml(t.phone)}</td>
             <td>
                 <span class="user-role-badge ${isCredit ? 'badge-staff' : 'badge-admin'}">
-                    ${isCredit ? 'उधारी दिली' : 'जमा केले'}
+                    ${isCredit ? (isMr ? 'उधारी दिली' : 'Credit Given') : (isMr ? 'जमा केले' : 'Payment Received')}
                 </span>
             </td>
             <td style="font-weight: 800; color: ${isCredit ? 'var(--neon-red)' : 'var(--neon-green)'};">
@@ -936,45 +1181,56 @@ async function loadInventoryData() {
         if (!res.ok) return;
         const data = await res.json();
         state.allInventory = data;
+        renderInventoryTable(data);
+    } catch (e) {
+        console.error("Inventory error:", e);
+    }
+}
 
-        const tbody = document.getElementById("inventory-table-tbody");
-        tbody.innerHTML = "";
+function renderInventoryTable(data) {
+    if (!data) data = state.allInventory || [];
+    const tbody = document.getElementById("inventory-table-tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
 
-        let lowStockItems = [];
+    const isMr = state.lang === "mr";
+    let lowStockItems = [];
 
-        data.forEach(item => {
-            const isLow = item.stock_qty <= item.alert_limit;
-            if (isLow) lowStockItems.push(`${item.item_name} (${item.stock_qty} ${item.unit})`);
+    data.forEach(item => {
+        const isLow = item.stock_qty <= item.alert_limit;
+        const displayName = formatLocalizedName(item.item_name, state.lang);
+        if (isLow) lowStockItems.push(`${displayName} (${item.stock_qty} ${item.unit})`);
 
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td style="font-weight: 700; color: #fff;">${escapeHtml(item.item_name)}</td>
-                <td style="font-weight: 800; color: ${isLow ? 'var(--neon-red)' : 'var(--neon-cyan)'};">
-                    ${item.stock_qty} ${escapeHtml(item.unit)}
-                </td>
-                <td>₹${Number(item.selling_price).toFixed(2)}</td>
-                <td>
-                    <span class="user-role-badge ${isLow ? 'badge-staff' : 'badge-admin'}">
-                        ${isLow ? 'कमी साठा' : 'उपलब्ध'}
-                    </span>
-                </td>
-                <td>
-                    <button onclick="deleteInventoryItem(${item.id})" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">✕</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
+            <td style="font-weight: 800; color: ${isLow ? 'var(--neon-red)' : 'var(--neon-cyan)'};">
+                ${item.stock_qty} ${escapeHtml(item.unit)}
+            </td>
+            <td>₹${Number(item.selling_price).toFixed(2)}</td>
+            <td>
+                <span class="user-role-badge ${isLow ? 'badge-staff' : 'badge-admin'}">
+                    ${isLow ? (isMr ? 'कमी साठा' : 'Low Stock') : (isMr ? 'उपलब्ध' : 'In Stock')}
+                </span>
+            </td>
+            <td>
+                <button onclick="deleteInventoryItem(${item.id})" style="background: none; border: none; color: var(--neon-red); cursor: pointer;" title="हटवा">
+                    ✕
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 
-        // Banner visibility
-        const banner = document.getElementById("low-stock-banner");
+    const banner = document.getElementById("low-stock-banner");
+    const bannerText = document.getElementById("low-stock-items-text");
+    if (banner && bannerText) {
         if (lowStockItems.length > 0) {
             banner.style.display = "flex";
-            document.getElementById("low-stock-items-text").innerText = `साठा कमी: ${lowStockItems.join(', ')}`;
+            bannerText.innerText = (isMr ? "कमी साठा: " : "Low Stock: ") + lowStockItems.join(", ");
         } else {
             banner.style.display = "none";
         }
-    } catch (e) {
-        console.error("Inventory error:", e);
     }
 }
 
@@ -1105,10 +1361,12 @@ function renderLedgerTable(receipts) {
     }
 
     receipts.forEach(r => {
+        const isMr = state.lang === 'mr';
+        const displayName = formatLocalizedName(r.vendor_name || (isMr ? 'किराणा स्टोअर' : 'Kirana Store'), state.lang);
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--neon-cyan);">#VL-${r.id}</td>
-            <td style="font-weight: 700; color: #fff;">${escapeHtml(r.vendor_name || 'किराणा स्टोअर')}</td>
+            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
             <td>${r.date}</td>
             <td><span class="user-role-badge badge-admin">${escapeHtml(r.category || 'General')}</span></td>
             <td style="font-weight: 800; color: var(--neon-green); font-size: 0.95rem;">₹${Number(r.grand_total).toFixed(2)}</td>
@@ -1555,22 +1813,64 @@ function toggleLanguage() {
 }
 
 function applyLanguage() {
-    const isMr = state.lang === "mr";
-    const label = isMr ? "🌐 मराठी" : "🌐 English";
-    
-    const mBtn = document.getElementById("mobile-lang-btn");
-    if (mBtn) mBtn.innerText = label;
-    const dBtn = document.getElementById("desktop-lang-btn");
-    if (dBtn) dBtn.innerText = isMr ? "🌐 मराठी / EN" : "🌐 English / MR";
-    const hBtn = document.getElementById("hud-lang-btn");
-    if (hBtn) hBtn.innerText = label;
-
-    // Apply i18n data tags
     const dict = i18n[state.lang] || i18n.mr;
+    const isMr = state.lang === "mr";
+
+    // 1. Language buttons
+    const mBtn = document.getElementById("mobile-lang-btn");
+    if (mBtn) mBtn.innerText = dict.lang_label;
+    const dBtn = document.getElementById("desktop-lang-btn");
+    if (dBtn) dBtn.innerText = dict.lang_label;
+    const hBtn = document.getElementById("hud-lang-btn");
+    if (hBtn) hBtn.innerText = dict.lang_label;
+
+    // 2. All [data-i18n] text nodes
     document.querySelectorAll("[data-i18n]").forEach(el => {
         const key = el.getAttribute("data-i18n");
-        if (dict[key]) el.innerText = dict[key];
+        if (dict[key]) el.innerHTML = dict[key];
     });
+
+    // 3. All [data-i18n-ph] input placeholders
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+        const key = el.getAttribute("data-i18n-ph");
+        if (dict[key]) el.placeholder = dict[key];
+    });
+
+    // 4. All [data-i18n-title] tooltip titles
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+        const key = el.getAttribute("data-i18n-title");
+        if (dict[key]) el.title = dict[key];
+    });
+
+    // 5. Update HUD Text
+    updateHudText();
+
+    // 6. Update Send button text
+    const sendBtn = document.getElementById("btn-ai-send");
+    if (sendBtn && !isAiProcessing) {
+        sendBtn.innerHTML = `<span>${dict.btn_send}</span> 🚀`;
+    }
+
+    // 7. Update initial AI greeting if present
+    const aiInitial = document.querySelector(".chat-ai-initial");
+    if (aiInitial) {
+        aiInitial.innerHTML = dict.ai_greeting;
+    }
+
+    // 8. Re-render dynamic tables so item & customer names switch languages instantly!
+    if (state.allInventory && state.allInventory.length > 0) {
+        renderInventoryTable(state.allInventory);
+    }
+    if (state.allKhata && state.allKhata.customers && state.allKhata.customers.length > 0) {
+        renderKhataCards(state.allKhata.customers);
+        renderKhataTable(state.allKhata.transactions);
+    }
+    if (state.allReceipts && state.allReceipts.length > 0) {
+        renderLedgerTable(state.allReceipts);
+    }
+    if (state.currentBill && state.currentBill.items) {
+        renderBillItems();
+    }
 }
 
 function escapeHtml(text) {
@@ -1591,3 +1891,8 @@ window.addEventListener("hashchange", () => {
         switchView(hash);
     }
 });
+
+function renderBillItems() {
+    if (!state.currentBill) return;
+    populateBillCard(state.currentBill);
+}

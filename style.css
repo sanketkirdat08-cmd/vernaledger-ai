@@ -943,23 +943,33 @@ body::after {
 }
 
 /* Thermal POS Receipt */
+.modal-receipt-box {
+    max-width: 360px;
+    width: 95vw;
+    margin: 14px auto;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    background: rgba(10, 18, 36, 0.98);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+}
 .thermal-receipt {
     background: #ffffff;
-    color: #111827;
-    font-family: 'Courier New', Courier, monospace;
-    padding: 16px;
+    color: #0f172a;
+    font-family: 'JetBrains Mono', 'Mukta', system-ui, -apple-system, monospace;
+    padding: 14px 12px;
     width: 100%;
-    max-width: 330px;
+    max-width: 310px;
     margin: 0 auto;
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-    font-size: 0.82rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.08);
+    font-size: 0.78rem;
     line-height: 1.35;
+    box-sizing: border-box;
 }
 .thermal-receipt hr {
     border: none;
-    border-top: 1px dashed #4b5563;
-    margin: 8px 0;
+    border-top: 1px dashed #64748b;
+    margin: 6px 0;
 }
 .thermal-receipt .center {
     text-align: center;
@@ -967,6 +977,13 @@ body::after {
 .thermal-receipt .row-flex {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+.receipt-modal-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 8px;
+    background: inherit;
 }
 
 @media print {
