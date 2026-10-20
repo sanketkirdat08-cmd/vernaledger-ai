@@ -787,10 +787,20 @@ def health_check():
     }
 
 # -----------------------------------------------------------------------------
+# DUAL ROUTE ALIASES (SUPPORTS BOTH /api/* AND /* FOR VERCEL REWRITES)
+# -----------------------------------------------------------------------------
+for route in list(app.routes):
+    if hasattr(route, "path") and route.path.startswith("/api/"):
+        alias_path = route.path.replace("/api", "", 1)
+        if alias_path:
+            app.add_api_route(alias_path, route.endpoint, methods=route.methods)
+
+# -----------------------------------------------------------------------------
 # STATIC FILES SERVING (FOR LOCAL RUN & FALLBACK)
 # -----------------------------------------------------------------------------
 public_dir = os.path.join(ROOT_DIR, "public")
 if os.path.exists(public_dir):
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
+
 

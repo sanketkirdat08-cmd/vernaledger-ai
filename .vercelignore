@@ -1,0 +1,15 @@
+# Exclude heavy presentation files & legacy Streamlit files from Vercel Lambda bundle
+app_streamlit_backup.py
+requirements-streamlit.txt
+*.pptx
+VernaLedger_Presentation.html
+create_presentation.py
+backups/
+chat_input_component/
+.devcontainer/
+.streamlit/
+.kilo/
+app.log
+venv/
+*.pyc
+__pycache__/

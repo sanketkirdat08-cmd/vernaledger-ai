@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050B14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>VernaLedger.AI - Merchant Pro v7.5</title>
+    
+    <!-- Google Fonts for Marathi Devanagari & Cyberpunk UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- =====================================================================
+         1. SECURE AUTHENTICATION SCREEN
+         ===================================================================== -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo">⚡</div>
+            <h1 style="font-size: 1.55rem; font-weight: 800; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                VernaLedger.AI
+            </h1>
+            <p style="font-size: 0.8rem; color: var(--text-slate); margin-top: 4px; font-family: 'JetBrains Mono', monospace;">
+                MERCHANT PRO v7.5 (VERCEL EDITION)
+            </p>
+            <p style="font-size: 0.88rem; color: #cbd5e1; margin: 12px 0 20px 0;">
+                भारतीय व्यापाऱ्यांसाठी व्हर्नाक्युलर AI डिजिटल लेजर व बिलिंग प्रणाली
+            </p>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div style="margin-bottom: 14px; text-align: left;">
+                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;">वापरकर्ता नाव (Username)</label>
+                    <input type="text" id="login-username" class="input-cyber" value="admin" required autocomplete="username">
+                </div>
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;">पासवर्ड (Password)</label>
+                    <input type="password" id="login-password" class="input-cyber" value="admin123" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" id="btn-login-submit" class="btn-cyber" style="width: 100%; padding: 12px; font-size: 1rem;">
+                    🚀 सिस्टममध्ये प्रवेश करा (Login)
+                </button>
+            </form>
+
+            <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <p style="font-size: 0.74rem; color: var(--text-dim); margin-bottom: 8px;">झटपट डेमो क्रेडेंशियल्स (Quick Access):</p>
+                <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                    <span class="quick-cred-chip" onclick="fillDemoCreds('admin', 'admin123')">⚡ Master Admin</span>
+                    <span class="quick-cred-chip" onclick="fillDemoCreds('sanket', 'admin123')">👤 Sanket (Lead Dev)</span>
+                </div>
+            </div>
+            
+            <div id="login-alert" style="display: none; margin-top: 14px; padding: 10px; border-radius: 10px; font-size: 0.82rem; background: rgba(255, 0, 85, 0.15); border: 1px solid var(--neon-red); color: #ff809b;"></div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         2. CORE APP CONTAINER (POST LOGIN)
+         ===================================================================== -->
+    <div id="app-container" style="display: none;">
+
+        <!-- Mobile Top App Bar -->
+        <header class="mobile-top-bar">
+            <div class="brand">
+                <span class="live-dot"></span>
+                <span>⚡ VernaLedger</span>
+            </div>
+            <div class="actions">
+                <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
+                    🌐 मराठी
+                </button>
+                <button class="btn-pill btn-logout" onclick="handleLogout()" title="बाहेर पडा">
+                    🚪
+                </button>
+            </div>
+        </header>
+
+        <!-- Desktop Sidebar Rail -->
+        <aside class="desktop-sidebar">
+            <div>
+                <div class="brand-section">
+                    <div class="brand-title">
+                        <span>⚡</span> VernaLedger.AI
+                    </div>
+                    <div class="brand-sub">Merchant Pro v7.5</div>
+                </div>
+
+                <nav class="sidebar-nav">
+                    <a class="nav-link active" data-view="scanner" onclick="switchView('scanner')">
+                        <span class="icon">⚡</span>
+                        <span class="label" data-i18n="nav_scanner">स्मार्ट स्कॅनर</span>
+                    </a>
+                    <a class="nav-link" data-view="khata" onclick="switchView('khata')">
+                        <span class="icon">💳</span>
+                        <span class="label" data-i18n="nav_khata">ग्राहक खाते</span>
+                    </a>
+                    <a class="nav-link" data-view="business" onclick="switchView('business')">
+                        <span class="icon">🏬</span>
+                        <span class="label" data-i18n="nav_business">स्टोअर ऑपरेशन्स</span>
+                    </a>
+                    <a class="nav-link" data-view="ledger" onclick="switchView('ledger')">
+                        <span class="icon">📊</span>
+                        <span class="label" data-i18n="nav_ledger">लेजर व पावत्या</span>
+                    </a>
+                    <a class="nav-link" data-view="ai" onclick="switchView('ai')">
+                        <span class="icon">🤖</span>
+                        <span class="label" data-i18n="nav_ai">AI बिझनेस स्टुडिओ</span>
+                    </a>
+                    <a class="nav-link" id="nav-item-staff" data-view="staff" onclick="switchView('staff')">
+                        <span class="icon">👥</span>
+                        <span class="label" data-i18n="nav_staff">कर्मचारी व ऑडिट</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-pill">
+                    <div>
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #fff;" id="sidebar-user-name">admin</div>
+                        <div style="font-size: 0.68rem; color: var(--text-dim);" id="sidebar-user-role">Role: Admin</div>
+                    </div>
+                    <span class="user-role-badge badge-admin" id="sidebar-role-badge">ADMIN</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-pill btn-lang" style="flex: 1; justify-content: center;" onclick="toggleLanguage()" id="desktop-lang-btn">
+                        🌐 मराठी / EN
+                    </button>
+                    <button class="btn-pill btn-logout" onclick="handleLogout()" title="Logout">
+                        🚪
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Viewport -->
+        <main class="main-viewport">
+            <!-- Top Action HUD (Desktop) -->
+            <div class="top-action-hud">
+                <div class="view-title-group">
+                    <h2 id="hud-title">⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग</h2>
+                    <p id="hud-subtitle">Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर</p>
+                </div>
+                <div class="hud-controls">
+                    <span style="font-size: 0.78rem; color: var(--neon-green); background: rgba(0,255,135,0.1); border: 1px solid rgba(0,255,135,0.3); padding: 4px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
+                        ● LIVE CLOUD DB
+                    </span>
+                    <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="hud-lang-btn">🌐 मराठी</button>
+                    <button class="btn-pill btn-logout" onclick="handleLogout()">🚪 Logout</button>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 VIEW 1: SMART MULTIMODAL SCANNER & VOICE BILLING
+                 ================================================================= -->
+            <section id="view-scanner" class="view-section active">
+                <!-- 4 KPI Cards -->
+                <div class="grid-kpi">
+                    <div class="glass-card">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_sales">आजची एकूण विक्री</span>
+                            <span>💰</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-cyan);" id="kpi-total-sales">₹0.00</div>
+                    </div>
+                    <div class="glass-card accent-green">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_bills">एकूण पावत्या</span>
+                            <span>🧾</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
+                    </div>
+                    <div class="glass-card accent-purple">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_avg">सरासरी पावती मूल्य</span>
+                            <span>📈</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
+                    </div>
+                    <div class="glass-card accent-red">
+                        <div class="kpi-title">
+                            <span data-i18n="kpi_udhar">बाकी एकूण उधारी</span>
+                            <span>⏳</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-red);" id="kpi-pending-udhar">₹0.00</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                    <!-- Left: Input Methods (AI Vision & Vernacular Voice) -->
+                    <div class="glass-card">
+                        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span>📸</span> पावती स्कॅन / व्हॉइस इनपुट
+                        </h3>
+
+                        <!-- Mode Switcher Tabs -->
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <button class="btn-pill" id="tab-btn-vision" onclick="switchScannerMode('vision')" style="background: rgba(0, 242, 254, 0.2); color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                                📷 AI व्हिजन स्कॅनर
+                            </button>
+                            <button class="btn-pill" id="tab-btn-voice" onclick="switchScannerMode('voice')" style="background: rgba(255,255,255,0.05); color: var(--text-slate); border-color: transparent;">
+                                🎙️ मराठी व्हॉइस बिलिंग
+                            </button>
+                        </div>
+
+                        <!-- Vision Container -->
+                        <div id="scanner-vision-container">
+                            <div class="upload-dropzone" onclick="document.getElementById('receipt-file-input').click()">
+                                <input type="file" id="receipt-file-input" accept="image/*" style="display: none;" onchange="handleReceiptFileSelect(event)">
+                                <div style="font-size: 2.2rem; margin-bottom: 8px;">📄</div>
+                                <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा</div>
+                                <div style="font-size: 0.78rem; color: var(--text-slate); margin-top: 4px;">PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)</div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 14px;">
+                                <button class="btn-cyber" style="flex: 1;" onclick="openCameraModal()">
+                                    📷 लाईव्ह कॅमेराने फोटो काढा
+                                </button>
+                                <button class="btn-cyber success" id="btn-run-ocr" style="flex: 1;" onclick="submitReceiptOCR()" disabled>
+                                    ⚡ AI स्कॅन करा
+                                </button>
+                            </div>
+
+                            <!-- Image Preview Area -->
+                            <div id="image-preview-wrapper" style="display: none; margin-top: 14px; text-align: center;">
+                                <img id="image-preview" src="" alt="Receipt Preview" style="max-height: 180px; max-width: 100%; border-radius: 12px; border: 1px solid var(--card-border); object-fit: contain;">
+                                <div style="font-size: 0.74rem; color: var(--text-slate); margin-top: 4px;" id="image-preview-name">receipt.jpg</div>
+                            </div>
+                        </div>
+
+                        <!-- Voice Container -->
+                        <div id="scanner-voice-container" style="display: none; text-align: center;">
+                            <p style="font-size: 0.86rem; color: var(--text-slate); margin-bottom: 12px;">
+                                मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान मराठीत बोला (उदा. "सागर ला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये")
+                            </p>
+
+                            <button id="btn-voice-mic" class="mic-btn-pulse" onclick="toggleVoiceRecording()">
+                                🎙️
+                            </button>
+                            <div id="voice-recording-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 12px;">
+                                बोलण्यासाठी माईक वर क्लिक करा
+                            </div>
+
+                            <textarea id="voice-transcript-text" class="input-cyber" rows="3" placeholder="येथे उच्चारलेला मजकूर दिसेल किंवा स्वतः टाईप करा..."></textarea>
+
+                            <button class="btn-cyber success" style="width: 100%; margin-top: 14px;" onclick="submitVoiceBilling()">
+                                ⚡ व्हॉइस वरून पावती तयार करा
+                            </button>
+                        </div>
+
+                        <!-- Status Spinner -->
+                        <div id="scanner-loader" style="display: none; margin-top: 16px; text-align: center; padding: 12px; background: rgba(0, 242, 254, 0.08); border-radius: 12px; border: 1px solid var(--neon-cyan);">
+                            <div style="font-size: 1.2rem; animation: spin 1s infinite linear; display: inline-block;">⚙️</div>
+                            <div style="font-size: 0.85rem; font-weight: 700; color: var(--neon-cyan); margin-top: 6px;" id="scanner-loader-text">
+                                Gemini 2.5 Flash द्वारे विश्लेषण सुरू आहे...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Editable Live Bill & Receipt Action Center -->
+                    <div class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <span>🧾</span> डिजिटल पावती प्रिव्ह्यू
+                            </h3>
+                            <span class="user-role-badge badge-admin" id="bill-badge-status">READY</span>
+                        </div>
+
+                        <!-- Vendor & Date Inputs -->
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;">दुकान / विक्रेत्याचे नाव</label>
+                                <input type="text" id="bill-vendor-name" class="input-cyber" value="महादेव किराणा स्टोअर">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;">तारीख</label>
+                                <input type="date" id="bill-date" class="input-cyber">
+                            </div>
+                        </div>
+
+                        <!-- Bill Line Items Table -->
+                        <div class="table-responsive" style="max-height: 220px;">
+                            <table class="cyber-table" id="bill-items-table">
+                                <thead>
+                                    <tr>
+                                        <th>वस्तू / माल</th>
+                                        <th style="width: 80px;">नग / वजन</th>
+                                        <th style="width: 80px;">दर (₹)</th>
+                                        <th style="width: 80px;">एकूण (₹)</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bill-items-tbody">
+                                    <!-- Dynamic Rows -->
+                                    <tr>
+                                        <td><input type="text" class="input-cyber item-name" value="साखर (Sugar)"></td>
+                                        <td><input type="text" class="input-cyber item-qty" value="2 kg" oninput="recalcBillTotal()"></td>
+                                        <td><input type="number" class="input-cyber item-rate" value="44.0" oninput="recalcBillTotal()"></td>
+                                        <td class="item-total" style="font-weight: 700; color: var(--neon-cyan);">88.00</td>
+                                        <td><button onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">✕</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="text" class="input-cyber item-name" value="शेंगदाणा तेल"></td>
+                                        <td><input type="text" class="input-cyber item-qty" value="1 ltr" oninput="recalcBillTotal()"></td>
+                                        <td><input type="number" class="input-cyber item-rate" value="165.0" oninput="recalcBillTotal()"></td>
+                                        <td class="item-total" style="font-weight: 700; color: var(--neon-cyan);">165.00</td>
+                                        <td><button onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">✕</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                            <button class="btn-pill" onclick="addBillRow()" style="background: rgba(0, 242, 254, 0.1); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.3);">
+                                + वस्तू जोडा (Add Item)
+                            </button>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.8rem; color: var(--text-slate);">एकूण रक्कम:</span>
+                                <span style="font-size: 1.45rem; font-weight: 800; color: var(--neon-green); margin-left: 8px;" id="bill-grand-total">₹253.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px;">
+                            <button class="btn-cyber" onclick="openThermalPrintModal()">
+                                🖨️ प्रिंट (Print)
+                            </button>
+                            <button class="btn-cyber" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border-color: #a78bfa;" onclick="playCurrentBillTTS()">
+                                🔊 ऐका (Voice)
+                            </button>
+                            <button class="btn-cyber success" onclick="saveCurrentBillToLedger()">
+                                💾 सेव्ह (Save)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 VIEW 2: CUSTOMER KHATA (DIGITAL UDHAR LEDGER)
+                 ================================================================= -->
+            <section id="view-khata" class="view-section">
+                <div class="grid-kpi">
+                    <div class="glass-card accent-red">
+                        <div class="kpi-title">
+                            <span>एकूण बाकी उधारी</span>
+                            <span>⏳</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-red);" id="khata-kpi-pending">₹0.00</div>
+                    </div>
+                    <div class="glass-card accent-green">
+                        <div class="kpi-title">
+                            <span>जमा झालेली रक्कम</span>
+                            <span>✅</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-green);" id="khata-kpi-recovered">₹0.00</div>
+                    </div>
+                    <div class="glass-card">
+                        <div class="kpi-title">
+                            <span>नोंदणीकृत ग्राहक</span>
+                            <span>👥</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-cyan);" id="khata-kpi-customers">0</div>
+                    </div>
+                    <div class="glass-card accent-amber">
+                        <div class="kpi-title">
+                            <span>एकूण व्यवहार</span>
+                            <span>📝</span>
+                        </div>
+                        <div class="kpi-val" style="color: var(--neon-amber);" id="khata-kpi-txns">0</div>
+                    </div>
+                </div>
+
+                <!-- Customer Khata Controls -->
+                <div class="glass-card" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+                        <input type="text" id="khata-search-input" class="input-cyber" placeholder="🔍 ग्राहकाचे नाव किंवा मोबाईल नंबर शोधा..." style="max-width: 380px;" oninput="filterKhataList()">
+                        <button class="btn-cyber success" onclick="openAddKhataModal()">
+                            + नवीन खाते / व्यवहार जोडा
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Customer Summary Cards Grid -->
+                <div id="khata-customers-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <!-- Injected by JavaScript -->
+                </div>
+
+                <!-- All Khata Transactions Table -->
+                <div class="glass-card">
+                    <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 14px;">
+                        📜 संपूर्ण खाते व्यवहार इतिहास (Transaction Audit)
+                    </h3>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ग्राहक नाव</th>
+                                    <th>मोबाईल</th>
+                                    <th>प्रकार</th>
+                                    <th>रक्कम (₹)</th>
+                                    <th>तारीख</th>
+                                    <th>देय तारीख</th>
+                                    <th>कृती</th>
+                                </tr>
+                            </thead>
+                            <tbody id="khata-table-tbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 VIEW 3: STORE OPERATIONS & INVENTORY
+                 ================================================================= -->
+            <section id="view-business" class="view-section">
+                <!-- Low Stock Alert Banner -->
+                <div id="low-stock-banner" style="display: none; background: rgba(255, 0, 85, 0.15); border: 1px solid var(--neon-red); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 1.5rem;">⚠️</span>
+                        <div>
+                            <div style="font-weight: 800; color: #fff; font-size: 0.95rem;">कमी स्टॉक अलर्ट (Low Stock Notice)</div>
+                            <div style="font-size: 0.8rem; color: #fca5a5;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</div>
+                        </div>
+                    </div>
+                    <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: #fff;">ALERT</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
+                    <!-- Left: Inventory Stock -->
+                    <div class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <span>📦</span> दुकानातील माल व साठा (Inventory)
+                            </h3>
+                            <button class="btn-pill" onclick="openAddInventoryModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                                + नवीन माल
+                            </button>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 380px;">
+                            <table class="cyber-table">
+                                <thead>
+                                    <tr>
+                                        <th>वस्तू नाव</th>
+                                        <th>साठा</th>
+                                        <th>किंमत (₹)</th>
+                                        <th>स्थिती</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Daily Expenses & WhatsApp Digest -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- Expense Card -->
+                        <div class="glass-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                                <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                    <span>📉</span> दैनंदिन बिझनेस खर्च (Expenses)
+                                </h3>
+                                <span style="font-size: 0.85rem; font-weight: 800; color: var(--neon-red);" id="total-expenses-display">₹0.00</span>
+                            </div>
+
+                            <form id="expense-form" onsubmit="handleAddExpense(event)" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+                                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+                                    <input type="text" id="expense-title" class="input-cyber" placeholder="खर्चाचे नाव (उदा. लाईट बिल, वाहतूक)" required>
+                                    <input type="number" id="expense-amount" class="input-cyber" placeholder="रक्कम (₹)" required>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <select id="expense-category" class="input-cyber">
+                                        <option value="दुकान खर्च">दुकान खर्च (Shop)</option>
+                                        <option value="वाहतूक / हमाली">वाहतूक / हमाली (Transport)</option>
+                                        <option value="लाईट / पाणी">लाईट / पाणी (Utilities)</option>
+                                        <option value="पगार">पगार (Salary)</option>
+                                        <option value="इतर">इतर (Other)</option>
+                                    </select>
+                                    <button type="submit" class="btn-cyber success">
+                                        + नोंद करा
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="table-responsive" style="max-height: 180px;">
+                                <table class="cyber-table">
+                                    <thead>
+                                        <tr>
+                                            <th>खर्च</th>
+                                            <th>प्रवर्ग</th>
+                                            <th>रक्कम (₹)</th>
+                                            <th>तारीख</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expenses-table-tbody">
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp Business Digest Card -->
+                        <div class="glass-card accent-green">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                                <span>📲</span> दैनिक बिझनेस रिपोर्ट (WhatsApp Digest)
+                            </h3>
+                            <p style="font-size: 0.82rem; color: var(--text-slate); margin-bottom: 14px;">
+                                आजचा संपूर्ण विक्री, उधारी वसुली आणि निव्वळ नफ्याचा अहवाल १-क्लिक मध्ये स्वतःच्या किंवा मालकाच्या WhatsApp वर पाठवा.
+                            </p>
+                            <button class="btn-cyber whatsapp" style="width: 100%;" onclick="shareDailyDigestWhatsApp()">
+                                💬 WhatsApp वर दैनिक रिपोर्ट शेअर करा
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 VIEW 4: LEDGER DATABASE & RECEIPTS HISTORY
+                 ================================================================= -->
+            <section id="view-ledger" class="view-section">
+                <div class="glass-card" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+                        <input type="text" id="ledger-search-input" class="input-cyber" placeholder="🔍 पावती क्रमांक, विक्रेता किंवा कॅटेगरी शोधा..." style="max-width: 400px;" oninput="filterLedgerList()">
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-cyber" onclick="exportLedgerCSV()">
+                                📥 CSV डाऊनलोड (Export)
+                            </button>
+                            <button class="btn-pill btn-lang" onclick="loadReceiptsLedger()">
+                                🔄 रिफ्रेश
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 14px;">
+                        📚 सुरक्षित डिजिटल लेजर डेटाबेस (SQLite ACID Verified)
+                    </h3>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>पावती क्र.</th>
+                                    <th>विक्रेता / ग्राहक</th>
+                                    <th>तारीख</th>
+                                    <th>प्रवर्ग</th>
+                                    <th>एकूण रक्कम (₹)</th>
+                                    <th>कृती</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-table-tbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 VIEW 5: NEURAL AI STUDIO (RAG ENGINE QUERY)
+                 ================================================================= -->
+            <section id="view-ai" class="view-section">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div>
+                            <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <span>🤖</span> VernaLedger AI बिझनेस ॲडव्हायझर
+                            </h3>
+                            <p style="font-size: 0.78rem; color: var(--text-slate);">
+                                लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी
+                            </p>
+                        </div>
+                        <span style="font-size: 0.72rem; color: var(--neon-cyan); background: rgba(0,242,254,0.1); border: 1px solid var(--neon-cyan); padding: 4px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
+                            RAG ENGINE ACTIVE
+                        </span>
+                    </div>
+
+                    <!-- Prompt Suggestion Chips -->
+                    <div class="prompt-chips">
+                        <span class="chip" onclick="askAiPrompt('आजची एकूण विक्री किती झाली आहे?')">📊 आजची एकूण विक्री किती?</span>
+                        <span class="chip" onclick="askAiPrompt('उधारी कोणाकडे बाकी आहे आणि किती?')">💳 उधारी कोणाकडे बाकी?</span>
+                        <span class="chip" onclick="askAiPrompt('कोणत्या मालाचा साठा संपत आला आहे?')">⚠️ कमी स्टॉक कोणता?</span>
+                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणाच्या मार्गदर्शनाखाली कोणी तयार केला?')">🎓 प्रोजेक्ट डेव्हलपर्स कोण?</span>
+                    </div>
+
+                    <!-- Chat Container -->
+                    <div class="chat-container">
+                        <div class="chat-history" id="ai-chat-history">
+                            <div class="chat-bubble chat-ai">
+                                नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा स्टोअरच्या विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत काहीही विचारू शकता.
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-top: 12px;">
+                            <input type="text" id="ai-user-input" class="input-cyber" placeholder="येथे आपला प्रश्न विचारा... (उदा. आजचा नफा किती?)" onkeypress="if(event.key==='Enter') submitAiChat()">
+                            <button class="btn-cyber" onclick="submitAiChat()" id="btn-ai-send">
+                                🚀 पाठवा
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 VIEW 6: STAFF & AUDIT LOGS (ADMIN RESTRICTED)
+                 ================================================================= -->
+            <section id="view-staff" class="view-section">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                    <!-- Staff Accounts -->
+                    <div class="glass-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <span>👥</span> कर्मचारी खाती (RBAC Access)
+                            </h3>
+                            <button class="btn-pill" onclick="openAddStaffModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                                + नवीन कर्मचारी
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="cyber-table">
+                                <thead>
+                                    <tr>
+                                        <th>वापरकर्ता नाव</th>
+                                        <th>भूमिका (Role)</th>
+                                        <th>मोबाईल</th>
+                                        <th>कृती</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-table-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Audit Logs -->
+                    <div class="glass-card">
+                        <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                            <span>🛡️</span> सुरक्षा व सिस्टीम ऑडिट ट्रेल्स (Audit Logs)
+                        </h3>
+                        <div class="table-responsive" style="max-height: 380px;">
+                            <table class="cyber-table">
+                                <thead>
+                                    <tr>
+                                        <th>वेळ</th>
+                                        <th>वापरकर्ता</th>
+                                        <th>कृती (Action)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-table-tbody">
+                                    <tr>
+                                        <td>आत्ताच</td>
+                                        <td style="color: var(--neon-cyan);">admin</td>
+                                        <td>सिस्टीम सुरू झाली</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Mobile Bottom Navigation Dock (Fixed 64px) -->
+        <nav class="mobile-bottom-nav">
+            <a class="tab-item active" data-view="scanner" onclick="switchView('scanner')">
+                <span class="icon">⚡</span>
+                <span class="label">स्कॅनर</span>
+            </a>
+            <a class="tab-item" data-view="khata" onclick="switchView('khata')">
+                <span class="icon">💳</span>
+                <span class="label">खाते</span>
+            </a>
+            <a class="tab-item" data-view="business" onclick="switchView('business')">
+                <span class="icon">🏬</span>
+                <span class="label">ऑपरेशन्स</span>
+            </a>
+            <a class="tab-item" data-view="ledger" onclick="switchView('ledger')">
+                <span class="icon">📊</span>
+                <span class="label">लेजर</span>
+            </a>
+            <a class="tab-item" data-view="ai" onclick="switchView('ai')">
+                <span class="icon">🤖</span>
+                <span class="label">AI स्टुडिओ</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- =====================================================================
+         3. MODALS & OVERLAYS
+         ===================================================================== -->
+    
+    <!-- Thermal Print Modal (58mm/80mm POS Styled) -->
+    <div id="modal-thermal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div style="font-weight: 800; font-size: 1rem; color: #fff;">🖨️ थर्मल पावती प्रिव्ह्यू (POS Receipt)</div>
+                <button onclick="closeModal('modal-thermal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div id="thermal-print-target" class="thermal-receipt">
+                    <div class="center" style="font-size: 1.15rem; font-weight: 900; margin-bottom: 2px;" id="receipt-shop-name">महादेव किराणा स्टोअर</div>
+                    <div class="center" style="font-size: 0.72rem; color: #4b5563;">मेन रोड, मार्केट यार्ड, सातारा | Ph: 9876543210</div>
+                    <div class="center" style="font-size: 0.7rem; color: #4b5563;">GSTIN: 27AAAAA0000A1Z5</div>
+                    <hr>
+                    <div class="row-flex" style="font-size: 0.75rem;">
+                        <span>Bill No: <strong id="receipt-bill-no">#VL-882</strong></span>
+                        <span id="receipt-print-date">20-10-2026</span>
+                    </div>
+                    <hr>
+                    <div style="font-size: 0.75rem;">
+                        <div class="row-flex" style="font-weight: 800; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px;">
+                            <span style="flex: 2; text-align: left;">वस्तू</span>
+                            <span style="flex: 1; text-align: center;">नग</span>
+                            <span style="flex: 1; text-align: right;">रक्कम (₹)</span>
+                        </div>
+                        <div id="receipt-print-items" style="margin-top: 6px;">
+                            <!-- Injected rows -->
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row-flex" style="font-size: 0.95rem; font-weight: 900;">
+                        <span>एकूण देय रक्कम:</span>
+                        <span id="receipt-print-total">₹253.00</span>
+                    </div>
+                    <hr>
+                    <div class="center" style="margin: 10px 0;">
+                        <!-- QR Code simulation for UPI Payment -->
+                        <div style="display: inline-block; padding: 6px; background: #fff; border: 1px solid #000; border-radius: 4px;">
+                            <img id="receipt-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=merchant@upi&pn=KiranaStore&am=253.00" alt="UPI QR" style="width: 80px; height: 80px; display: block;">
+                        </div>
+                        <div style="font-size: 0.65rem; color: #4b5563; margin-top: 2px;">स्कॅन करून UPI द्वारे पैसे भरा</div>
+                    </div>
+                    <div class="center" style="font-size: 0.72rem; font-weight: 700; margin-top: 6px;">
+                        🙏 पुन्हा भेट द्या! धन्यवाद! 🙏
+                    </div>
+                    <div class="center" style="font-size: 0.62rem; color: #6b7280; margin-top: 2px;">
+                        Powered by VernaLedger.AI
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px; justify-content: center;">
+                    <button class="btn-cyber" onclick="triggerBrowserPrint()">
+                        🖨️ आताच प्रिंट करा (Print)
+                    </button>
+                    <button class="btn-pill btn-logout" onclick="closeModal('modal-thermal')">
+                        बंद करा
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Khata Entry Modal -->
+    <div id="modal-add-khata" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div style="font-weight: 800; font-size: 1rem; color: #fff;">💳 नवीन खाते व्यवहार नोंदवा</div>
+                <button onclick="closeModal('modal-add-khata')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-khata" onsubmit="submitAddKhata(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">ग्राहकाचे नाव (Customer Name)</label>
+                        <input type="text" id="khata-input-name" class="input-cyber" required placeholder="उदा. सागर पाटील">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">मोबाईल नंबर (WhatsApp)</label>
+                        <input type="tel" id="khata-input-phone" class="input-cyber" required placeholder="उदा. 9876543210" pattern="[0-9]{10}">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">व्यवहार प्रकार</label>
+                            <select id="khata-input-type" class="input-cyber">
+                                <option value="Credit Given">उधारी दिली (Credit Given)</option>
+                                <option value="Payment Received">पैसे जमा केले (Payment)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">रक्कम (₹)</label>
+                            <input type="number" id="khata-input-amount" class="input-cyber" required placeholder="उदा. 500" step="0.5">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">परतफेडीची देय तारीख (Due Date)</label>
+                        <input type="date" id="khata-input-due" class="input-cyber">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">नोंद / तपशील (Notes)</label>
+                        <input type="text" id="khata-input-notes" class="input-cyber" placeholder="उदा. किराणा सामान उधारी">
+                    </div>
+                    <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
+                        💾 व्यवहार सेव्ह करा
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Inventory Modal -->
+    <div id="modal-add-inventory" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div style="font-weight: 800; font-size: 1rem; color: #fff;">📦 नवीन वस्तू / माल जोडा</div>
+                <button onclick="closeModal('modal-add-inventory')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-inventory" onsubmit="submitAddInventory(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">वस्तूचे नाव (Item Name)</label>
+                        <input type="text" id="inv-input-name" class="input-cyber" required placeholder="उदा. साखर (Sugar M-30)">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">उपलब्ध साठा (Stock Qty)</label>
+                            <input type="number" id="inv-input-qty" class="input-cyber" required placeholder="उदा. 50" step="0.5">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">एकक (Unit)</label>
+                            <select id="inv-input-unit" class="input-cyber">
+                                <option value="kg">kg (किलो)</option>
+                                <option value="pcs">pcs (नग)</option>
+                                <option value="ltr">ltr (लिटर)</option>
+                                <option value="pkt">pkt (पॉकेट)</option>
+                                <option value="box">box (बॉक्स)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">विक्री किंमत (₹)</label>
+                            <input type="number" id="inv-input-price" class="input-cyber" required placeholder="उदा. 45" step="0.5">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">कमी साठा मर्यादा (Alert Limit)</label>
+                            <input type="number" id="inv-input-limit" class="input-cyber" value="5" step="1">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
+                        💾 साठा नोंदवा
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div id="modal-add-staff" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div style="font-weight: 800; font-size: 1rem; color: #fff;">👥 नवीन कर्मचारी खाते तयार करा</div>
+                <button onclick="closeModal('modal-add-staff')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-staff" onsubmit="submitAddStaff(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">वापरकर्ता नाव (Username)</label>
+                        <input type="text" id="staff-input-user" class="input-cyber" required placeholder="उदा. mahesh">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);">पासवर्ड (Password min 6 chars)</label>
+                        <input type="password" id="staff-input-pass" class="input-cyber" required minlength="6" placeholder="******">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">भूमिका (Role)</label>
+                            <select id="staff-input-role" class="input-cyber">
+                                <option value="Staff">स्टाफ (Staff)</option>
+                                <option value="Admin">ॲडमिन (Admin)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);">मोबाईल नंबर</label>
+                            <input type="tel" id="staff-input-phone" class="input-cyber" placeholder="9876543210">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
+                        🚀 खाते तयार करा
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Camera Modal -->
+    <div id="modal-camera" class="modal-overlay">
+        <div class="modal-box" style="max-width: 480px;">
+            <div class="modal-header">
+                <div style="font-weight: 800; font-size: 1rem; color: #fff;">📷 पावतीचा फोटो काढा</div>
+                <button onclick="closeCameraModal()" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <video id="camera-video-stream" autoplay playsinline style="width: 100%; border-radius: 12px; background: #000; border: 1px solid var(--neon-cyan);"></video>
+                <canvas id="camera-canvas" style="display: none;"></canvas>
+                <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <button class="btn-cyber success" style="flex: 1;" onclick="captureCameraPhoto()">
+                        📸 फोटो क्लिक करा
+                    </button>
+                    <button class="btn-pill btn-logout" onclick="closeCameraModal()">
+                        रद्द करा
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
