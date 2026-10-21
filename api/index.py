@@ -602,6 +602,20 @@ TTS_VOICES = {
     "es": "es-ES-ElviraNeural", "fr": "fr-FR-DeniseNeural",
 }
 
+def prepare_speech_phonetics(text: str) -> str:
+    """Optimize Marathi and English phonetic pronunciation for Edge-TTS and Web Speech."""
+    clean = re.sub(r"[*#_`]", "", text or "")
+    clean = re.sub(r"\bAI\b", "ए आय", clean, flags=re.IGNORECASE)
+    clean = clean.replace("Attar", "Atar").replace("अत्तार", "अतार")
+    clean = clean.replace("Kaisar", "कैसर")
+    clean = clean.replace("Dhavale", "ढवळे").replace("dhavale", "ढवळे")
+    clean = clean.replace("Mulik", "मुळीक").replace("mulik", "मुळीक")
+    clean = clean.replace("Gavali", "गवळी").replace("gavali", "गवळी")
+    clean = clean.replace("AGCOE", "ए जी सी ओ ई")
+    clean = clean.replace("DBATU", "डी बाटू")
+    clean = clean.replace("Rs.", "रुपये").replace("Rs", "रुपये")
+    return clean
+
 def get_tts_voice(text: str, language: str = "") -> str:
     """Exact Edge TTS voice selection: Neerja for English, Aarohi for Marathi."""
     clean = text or ""
@@ -622,7 +636,7 @@ async def generate_tts(req: TTSRequest):
     if not edge_tts:
         raise HTTPException(status_code=500, detail="Edge TTS library is not installed")
 
-    clean_speech = re.sub(r"[*#_`]", "", req.text)
+    clean_speech = prepare_speech_phonetics(req.text)
     voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(clean_speech)
     try:
         communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
@@ -896,9 +910,9 @@ async def rag_chat(req: RAGChatRequest):
     - Complete Store Stock: {all_inv}
     - Recent Bills: {recent_receipts}
     - Recent Expenses: {recent_expenses}
-    - Project Guide: Kaisar Attar Sir.
-    - Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
-    - College: Arvind Gavali College of Engineering, Satara, Maharashtra.
+    - Project Guide: Kaisar Atar Sir (प्राध्यापक कैसर अतार सर).
+    - Developers: Sanket Kirdat (Lead Developer - संकेत किर्दत), Sakshi Bhagat (साक्षी भगत), Vaishnavi Dhavale (वैष्णवी ढवळे), Rushikesh Mulik (ऋषिकेश मुळीक).
+    - College: Arvind Gavali College of Engineering (अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग), Satara, Maharashtra.
     """
 
     query_lang = detect_msg_language(req.message, req.lang or "mr")
@@ -1016,11 +1030,11 @@ DO NOT use Devanagari script. Every sentence must be in English."""
                     if is_english else
                     f"आजची विक्री: ₹{today_sales:,.2f}. एकूण विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)."
                 )
-            elif any(word in normalized for word in ["कोणी", "developer", "developers", "project", "प्रकल्प", "guide", "मार्गदर्शक", "kaisar", "attar"]):
+            elif any(word in normalized for word in ["कोणी", "developer", "developers", "project", "प्रकल्प", "guide", "मार्गदर्शक", "kaisar", "atar", "attar", "ढवळे", "मुळीक", "गवळी"]):
                 answer = (
-                    "Project Guide: Kaisar Attar Sir. Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
+                    "Project Guide: Kaisar Atar Sir. Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
                     if is_english else
-                    "प्रकल्प मार्गदर्शक: Kaisar Attar Sir. विकासक: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale आणि Rushikesh Mulik. महाविद्यालय: Arvind Gavali College of Engineering, Satara, Maharashtra."
+                    "प्रकल्प मार्गदर्शक: प्राध्यापक कैसर अतार सर. विकासक: संकेत किर्दत (मुख्य विकासक), साक्षी भगत, वैष्णवी ढवळे आणि ऋषिकेश मुळीक. महाविद्यालय: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा."
                 )
             else:
                 answer = (
@@ -1033,7 +1047,7 @@ DO NOT use Devanagari script. Every sentence must be in English."""
     audio_data = None
     if req.voice_output and edge_tts:
         try:
-            clean_speech = re.sub(r"[*#_`]", "", answer)
+            clean_speech = prepare_speech_phonetics(answer)
             voice = get_tts_voice(clean_speech, query_lang)
             communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
             audio_bytes = bytearray()

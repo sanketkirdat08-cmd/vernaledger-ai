@@ -709,7 +709,8 @@ function initSpeechRecognition() {
             else interimText += text;
         }
         const currentText = output.value.replace(/\s*\[.*\]$/, "").trim();
-        output.value = `${currentText}${finalText.trim() ? ` ${finalText.trim()}` : ""}${interimText.trim() ? ` [${interimText.trim()}]` : ""}`.trim();
+        const combined = `${currentText}${finalText.trim() ? ` ${finalText.trim()}` : ""}${interimText.trim() ? ` [${interimText.trim()}]` : ""}`.trim();
+        output.value = autoCorrectMarathiSpeech(combined);
     };
 
     state.speechRecognition.onerror = (event) => {
@@ -1488,44 +1489,125 @@ function stopCurrentAudio() {
     }
 }
 
+function prepareClientSpeech(text) {
+    if (!text) return "";
+    let clean = text.replace(/[*#_`]/g, "");
+    clean = clean.replace(/\bAI\b/gi, "ए आय");
+    clean = clean.replace(/Attar/g, "अतार").replace(/अत्तार/g, "अतार");
+    clean = clean.replace(/Kaisar/gi, "कैसर");
+    clean = clean.replace(/Dhavale/gi, "ढवळे");
+    clean = clean.replace(/Mulik/gi, "मुळीक");
+    clean = clean.replace(/Gavali/gi, "गवळी");
+    clean = clean.replace(/AGCOE/gi, "ए जी सी ओ ई");
+    clean = clean.replace(/DBATU/gi, "डी बाटू");
+    clean = clean.replace(/Rs\./g, "रुपये").replace(/\bRs\b/g, "रुपये");
+    return clean;
+}
+
+function autoCorrectMarathiSpeech(text) {
+    if (!text) return "";
+    let corrected = text;
+    const corrections = [
+        [/\bअत्तार\b/g, "अतार"],
+        [/\battar\b/gi, "अतार"],
+        [/\bधवले\b/g, "ढवळे"],
+        [/\bदवले\b/g, "ढवळे"],
+        [/\bधवळे\b/g, "ढवळे"],
+        [/\bdhavale\b/gi, "ढवळे"],
+        [/\bमुलिक\b/g, "मुळीक"],
+        [/\bmulik\b/gi, "मुळीक"],
+        [/\bगावली\b/g, "गवळी"],
+        [/\bगवली\b/g, "गवळी"],
+        [/\bगावळी\b/g, "गवळी"],
+        [/\bgavali\b/gi, "गवळी"],
+        [/\bउढारी\b/g, "उधारी"],
+        [/\bउधारीत\b/g, "उधारी"],
+        [/\bविक्रि\b/g, "विक्री"],
+        [/\bसाठ\b/g, "साठा"],
+        [/\bस्टॉक\b/g, "साठा"],
+        [/\bकैसर अत्तार\b/g, "कैसर अतार"],
+        [/\bकेसर अतार\b/g, "कैसर अतार"],
+        [/\bकेसर अत्तार\b/g, "कैसर अतार"],
+        [/\bसंकेत किरदत\b/g, "संकेत किर्दत"],
+        [/\bकिरदत\b/g, "किर्दत"],
+        [/\bऋषिकेश मुलिक\b/g, "ऋषिकेश मुळीक"],
+        [/\bवैष्णवी धवले\b/g, "वैष्णवी ढवळे"],
+        [/\bसाक्षी\b/g, "साक्षी"]
+    ];
+    for (const [pattern, repl] of corrections) {
+        corrected = corrected.replace(pattern, repl);
+    }
+    return corrected;
+}
+
 function speakWithBrowserVoice(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const phoneticText = prepareClientSpeech(text);
+    const utterance = new SpeechSynthesisUtterance(phoneticText);
     utterance.lang = getLanguage().speech;
     window.speechSynthesis.speak(utterance);
 }
 
 let ragSpeechRecognition = null;
 let isRagListening = false;
+let ragPendingSubmitTimer = null;
+let ragRecognizedText = "";
 
 function initRagSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     ragSpeechRecognition = new SpeechRecognition();
-    ragSpeechRecognition.continuous = false;
-    ragSpeechRecognition.interimResults = false;
+    ragSpeechRecognition.continuous = true;
+    ragSpeechRecognition.interimResults = true;
+    ragSpeechRecognition.maxAlternatives = 3;
     ragSpeechRecognition.lang = getLanguage().speech;
 
     ragSpeechRecognition.onstart = () => {
         isRagListening = true;
+        ragRecognizedText = "";
+        if (ragPendingSubmitTimer) clearTimeout(ragPendingSubmitTimer);
         const btn = document.getElementById("btn-rag-mic");
         if (btn) btn.classList.add("listening");
         const status = document.getElementById("rag-voice-status");
         if (status) {
             status.innerText = state.lang === "mr" 
-                ? "🎙️ मी ऐकत आहे... मराठीत बोला (Listening in Marathi)..." 
-                : "🎙️ Listening... please speak in English...";
+                ? "🎙️ मी ऐकत आहे... अचूक टाईप होत आहे (Listening & Typing)..." 
+                : "🎙️ Listening... live typing...";
             status.style.display = "block";
         }
     };
 
     ragSpeechRecognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript.trim();
-        if (transcript) {
-            document.getElementById("ai-user-input").value = transcript;
-            submitAiChat();
+        let interim = "";
+        let finalStr = "";
+
+        for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res.isFinal) {
+                finalStr += res[0].transcript + " ";
+            } else {
+                interim += res[0].transcript;
+            }
+        }
+
+        let combined = (finalStr + interim).trim();
+        let cleaned = autoCorrectMarathiSpeech(combined);
+        const inputField = document.getElementById("ai-user-input");
+        if (inputField) {
+            inputField.value = cleaned;
+        }
+        ragRecognizedText = autoCorrectMarathiSpeech(finalStr.trim() || combined);
+
+        // Auto submit debounce after user stops speaking
+        if (ragPendingSubmitTimer) clearTimeout(ragPendingSubmitTimer);
+        if (finalStr.trim().length > 0) {
+            ragPendingSubmitTimer = setTimeout(() => {
+                if (isRagListening && ragSpeechRecognition) {
+                    try { ragSpeechRecognition.stop(); } catch (e) {}
+                }
+            }, 1400);
         }
     };
 
@@ -1536,6 +1618,12 @@ function initRagSpeech() {
 
     ragSpeechRecognition.onend = () => {
         stopRagVoice();
+        if (ragPendingSubmitTimer) clearTimeout(ragPendingSubmitTimer);
+        const inputField = document.getElementById("ai-user-input");
+        const currentText = (inputField ? inputField.value : ragRecognizedText).trim();
+        if (currentText.length > 0 && !isAiProcessing) {
+            submitAiChat();
+        }
     };
 }
 
@@ -1551,7 +1639,8 @@ function toggleRagVoice() {
     }
 
     if (isRagListening) {
-        ragSpeechRecognition.stop();
+        if (ragPendingSubmitTimer) clearTimeout(ragPendingSubmitTimer);
+        try { ragSpeechRecognition.stop(); } catch (e) {}
         stopRagVoice();
     } else {
         ragSpeechRecognition.lang = getLanguage().speech;
