@@ -10,8 +10,5 @@ if exist venv\Scripts\activate.bat (
     call venv\Scripts\activate.bat
 )
 
-echo Opening http://localhost:8000 in your browser...
-start http://localhost:8000
-
 python app.py
 pause
