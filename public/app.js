@@ -328,7 +328,7 @@ function formatLocalizedName(name, lang = state.lang) {
 // -----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js").catch((error) => {
+        navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch((error) => {
             console.warn("Offline app shell could not be registered:", error);
         });
     }
