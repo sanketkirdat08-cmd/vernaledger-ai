@@ -27,15 +27,7 @@ const state = {
 
 const supportedLanguages = [
     { code: "mr", label: "मराठी", speech: "mr-IN", tts: "mr-IN-AarohiNeural" },
-    { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" },
-    { code: "hi", label: "हिन्दी", speech: "hi-IN", tts: "hi-IN-SwaraNeural" },
-    { code: "gu", label: "ગુજરાતી", speech: "gu-IN", tts: "gu-IN-DhwaniNeural" },
-    { code: "ta", label: "தமிழ்", speech: "ta-IN", tts: "ta-IN-PallaviNeural" },
-    { code: "te", label: "తెలుగు", speech: "te-IN", tts: "te-IN-ShrutiNeural" },
-    { code: "kn", label: "ಕನ್ನಡ", speech: "kn-IN", tts: "kn-IN-SapnaNeural" },
-    { code: "bn", label: "বাংলা", speech: "bn-IN", tts: "bn-IN-TanishaaNeural" },
-    { code: "es", label: "Español", speech: "es-ES", tts: "es-ES-ElviraNeural" },
-    { code: "fr", label: "Français", speech: "fr-FR", tts: "fr-FR-DeniseNeural" }
+    { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" }
 ];
 
 if (!supportedLanguages.some(language => language.code === state.lang)) {
@@ -211,6 +203,7 @@ const i18n = {
         kpi_sales: "Total Sales",
         kpi_bills: "Total Receipts",
         kpi_avg: "Average Ticket",
+        kpi_profit: "Net Profit",
         kpi_udhar: "Pending Udhar",
 
         card_scan_input: "Receipt Scanner / Voice Input",
@@ -1520,7 +1513,12 @@ function initRagSpeech() {
         const btn = document.getElementById("btn-rag-mic");
         if (btn) btn.classList.add("listening");
         const status = document.getElementById("rag-voice-status");
-        if (status) status.style.display = "block";
+        if (status) {
+            status.innerText = state.lang === "mr" 
+                ? "🎙️ मी ऐकत आहे... मराठीत बोला (Listening in Marathi)..." 
+                : "🎙️ Listening... please speak in English...";
+            status.style.display = "block";
+        }
     };
 
     ragSpeechRecognition.onresult = (event) => {
@@ -1763,6 +1761,8 @@ function applyLanguage() {
     if (dBtn) dBtn.innerText = `🌐 ${language.label}`;
     const hBtn = document.getElementById("hud-lang-btn");
     if (hBtn) hBtn.innerText = `🌐 ${language.label}`;
+    const cBtn = document.getElementById("chat-lang-btn");
+    if (cBtn) cBtn.innerText = isMr ? "🌐 भाषा: मराठी (mr-IN)" : "🌐 Language: English (en-IN)";
     document.querySelectorAll(".language-select").forEach(select => {
         select.value = state.lang;
     });

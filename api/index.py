@@ -564,19 +564,35 @@ SUPPORTED_LANGUAGES = {
 }
 
 def detect_msg_language(text: str, requested: str = "mr") -> str:
-    """Use the selected language, with script detection as a safe fallback."""
-    if requested in SUPPORTED_LANGUAGES:
-        return requested
-    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
-    latin_count = len(re.findall(r"[A-Za-z]", text))
+    """Detect whether user query is in Marathi or English based on actual text first, fallback to requested."""
+    clean = (text or "").strip()
+    if not clean:
+        return requested if requested in ["mr", "en"] else "mr"
+
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
+    latin_count = len(re.findall(r"[A-Za-z]", clean))
+
+    # 1. If message has Devanagari characters, it is 100% Marathi
     if devanagari_count >= 2:
         return "mr"
-    marathi_markers = ["आहे", "नाही", "सांगा", "किती", "काय", "उधारी", "खर्च", "विक्री", "साठा", "पावती", "हिशोब", "कोणाकडे", "कोणत्या", "कोणी", "नमस्कार"]
-    if any(m in text.lower() for m in marathi_markers):
+
+    # 2. Check for common Marathi / Marathi-English phonetics (Hinglish/Maringlish)
+    marathi_markers = [
+        "ahe", "aahe", "nahi", "nahiy", "sanga", "kiti", "kay", "udhari", "kharch",
+        "vikri", "satha", "pavti", "hishob", "konakade", "koni", "namaskar",
+        "dili", "dile", "ghetle", "zale", "jhale", "kar", "kara", "lihi", "dya",
+        "साखर", "तेल", "गहू", "तांदूळ", "चहा", "साबण", "दुकान", "बाकी"
+    ]
+    lower_clean = clean.lower()
+    if any(m in lower_clean for m in marathi_markers):
         return "mr"
-    if latin_count > devanagari_count:
+
+    # 3. If predominantly Latin letters without Marathi markers, it's English
+    if latin_count > devanagari_count and latin_count >= 3:
         return "en"
-    return "mr"
+
+    # 4. Fallback to requested language
+    return requested if requested in ["mr", "en"] else "mr"
 
 TTS_VOICES = {
     "mr": "mr-IN-AarohiNeural", "en": "en-IN-NeerjaNeural",
@@ -587,11 +603,14 @@ TTS_VOICES = {
 }
 
 def get_tts_voice(text: str, language: str = "") -> str:
-    devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
-    latin_count = len(re.findall(r"[A-Za-z]", text))
-    if language in TTS_VOICES:
-        return TTS_VOICES[language]
-    if latin_count > devanagari_count:
+    """Exact Edge TTS voice selection: Neerja for English, Aarohi for Marathi."""
+    clean = text or ""
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
+    latin_count = len(re.findall(r"[A-Za-z]", clean))
+
+    if devanagari_count >= 2 or language == "mr":
+        return "mr-IN-AarohiNeural"
+    if (latin_count > devanagari_count and latin_count >= 3) or language == "en":
         return "en-IN-NeerjaNeural"
     return "mr-IN-AarohiNeural"
 
@@ -883,9 +902,18 @@ async def rag_chat(req: RAGChatRequest):
     """
 
     query_lang = detect_msg_language(req.message, req.lang or "mr")
-    is_english = query_lang == "en"
-    language_name = SUPPORTED_LANGUAGES[query_lang][0]
-    lang_instruction = f"The user selected {language_name}. You MUST reply ONLY in clear, natural {language_name}. Do not translate into another language."
+    is_marathi = (query_lang == "mr")
+
+    if is_marathi:
+        lang_instruction = """CRITICAL STRICT LANGUAGE RULE:
+The user asked in Marathi (मराठी). You MUST reply ONLY and EXCLUSIVELY in pure, natural Marathi (मराठी Devanagari script).
+DO NOT use English words or English sentences.
+Write amounts with 'रुपये' or '₹'.
+Keep the reply concise, polite, and strictly in Marathi."""
+    else:
+        lang_instruction = """CRITICAL STRICT LANGUAGE RULE:
+The user asked in English. You MUST reply ONLY and EXCLUSIVELY in clear, professional English.
+DO NOT use Devanagari script. Every sentence must be in English."""
 
     api_key = get_api_key()
     answer = None
@@ -933,7 +961,7 @@ async def rag_chat(req: RAGChatRequest):
             answer = action_status
         else:
             normalized = user_msg.casefold()
-            is_english = req.lang != "mr"
+            is_english = (query_lang == "en")
 
             # Helper for localized name in fallback
             def clean_name(val):
