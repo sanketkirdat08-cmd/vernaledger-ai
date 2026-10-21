@@ -90,7 +90,19 @@
                 <button class="btn-pill btn-lang" id="mob-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला" style="padding: 4px 10px;">
                     <span id="mob-theme-icon">☀️</span>
                 </button>
-                <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
+                <select class="language-select mobile-language-select" id="mobile-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
+                    <option value="mr">मराठी</option>
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी</option>
+                    <option value="gu">ગુજરાતી</option>
+                    <option value="ta">தமிழ்</option>
+                    <option value="te">తెలుగు</option>
+                    <option value="kn">ಕನ್ನಡ</option>
+                    <option value="bn">বাংলা</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                </select>
+                <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
                 </button>
                 <button class="btn-pill btn-logout" onclick="handleLogout()" title="बाहेर पडा" data-i18n-title="btn_logout">
@@ -142,10 +154,16 @@
                 <div class="dev-credit-box" style="margin-bottom: 10px; padding: 6px 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.22); border-radius: 10px; border-left: 3px solid var(--neon-cyan);">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <span style="font-size: 0.65rem; text-transform: uppercase; color: var(--neon-cyan); font-weight: 800; letter-spacing: 0.5px;">👨‍💻 Sanket Kirdat & Team</span>
-                        <span style="font-size: 0.58rem; color: var(--text-dim); background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 6px;">AGCOE</span>
+                        <span style="font-size: 0.58rem; color: var(--text-dim); background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 6px;">AGCE Satara</span>
                     </div>
                     <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">
-                        Sakshi B. • Vaishnavi D. • Rushikesh M.
+                        Sakshi Bhagat • Vaishnavi Dhavale • Rushikesh Mulik
+                    </div>
+                    <div style="font-size: 0.62rem; color: var(--text-dim); margin-top: 3px;">
+                        Arvind Gavali College of Engineering, Satara, Maharashtra
+                    </div>
+                    <div style="font-size: 0.62rem; color: var(--text-dim); margin-top: 2px;">
+                        Project Guide: Kaisar Attar Sir
                     </div>
                 </div>
 
@@ -174,7 +192,19 @@
                     <span style="font-size: 0.78rem; color: var(--neon-green); background: rgba(0,255,135,0.1); border: 1px solid rgba(0,255,135,0.3); padding: 4px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
                         ● LIVE CLOUD DB
                     </span>
-                    <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="hud-lang-btn">🌐 मराठी</button>
+                    <select class="language-select" id="hud-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
+                        <option value="mr">मराठी</option>
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="gu">ગુજરાતી</option>
+                        <option value="ta">தமிழ்</option>
+                        <option value="te">తెలుగు</option>
+                        <option value="kn">ಕನ್ನಡ</option>
+                        <option value="bn">বাংলা</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                    </select>
+                    <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="hud-lang-btn" title="Next language">🌐 मराठी</button>
                     <button class="btn-pill btn-logout" onclick="handleLogout()" data-i18n="btn_logout">🚪 बाहेर पडा</button>
                 </div>
             </div>
@@ -608,7 +638,7 @@
                                 <span style="color: var(--neon-cyan);">✨</span> Verna AI Chatbot
                             </h3>
                             <div style="font-size: 0.76rem; color: var(--neon-cyan); font-weight: 600; margin-top: 2px;">
-                                👨‍💻 संकेत किर्दत (Lead Dev) | साक्षी भगत | वैष्णवी ढवळे | ऋषिकेश मुळीक (AGCOE सातारा)
+                                🌐 Ask questions by text or voice in your preferred language
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -627,7 +657,6 @@
                         <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजची विक्री?</span>
                         <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')" data-i18n="chip_udhar">👥 बाकी उधारी किती?</span>
                         <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')" data-i18n="chip_low_stock">🚨 कमी साठा?</span>
-                        <span class="chip" onclick="askAiPrompt('हा प्रकल्प कोणी तयार केला आहे आणि मार्गदर्शक कोण आहेत?')" data-i18n="chip_developers">🎓 प्रोजेक्ट डेव्हलपर्स?</span>
                     </div>
 
                     <!-- Scrollable Messages Container (ONLY this container scrolls) -->

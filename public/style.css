@@ -243,6 +243,23 @@ body::after {
     background: var(--neon-cyan);
     color: var(--bg-dark);
 }
+.language-select {
+    min-height: 32px;
+    padding: 5px 24px 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    background: rgba(0, 242, 254, 0.1);
+    color: var(--neon-cyan);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+}
+.language-select option {
+    background: #0a1128;
+    color: #f8fafc;
+}
 .btn-logout {
     background: rgba(255, 0, 85, 0.12);
     color: var(--neon-red);
@@ -535,6 +552,15 @@ body::after {
     .mobile-top-bar .btn-pill {
         padding: 4px 10px !important;
         font-size: 0.72rem !important;
+    }
+    .mobile-language-select {
+        max-width: 92px;
+        padding-left: 7px;
+        padding-right: 4px;
+        font-size: 0.68rem;
+    }
+    .language-cycle-button {
+        display: none !important;
     }
 
     /* Main Viewport on Mobile */
@@ -1259,6 +1285,13 @@ body::after {
         padding: 6px 6px !important;
         font-size: 0.78rem !important;
         border-radius: 8px !important;
+    }
+    .table-responsive {
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+    button, select, input, textarea {
+        touch-action: manipulation;
     }
 
     /* Bill Action Buttons on Mobile */

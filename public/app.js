@@ -25,6 +25,27 @@ const state = {
     chatHistory: []
 };
 
+const supportedLanguages = [
+    { code: "mr", label: "मराठी", speech: "mr-IN", tts: "mr-IN-AarohiNeural" },
+    { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" },
+    { code: "hi", label: "हिन्दी", speech: "hi-IN", tts: "hi-IN-SwaraNeural" },
+    { code: "gu", label: "ગુજરાતી", speech: "gu-IN", tts: "gu-IN-DhwaniNeural" },
+    { code: "ta", label: "தமிழ்", speech: "ta-IN", tts: "ta-IN-PallaviNeural" },
+    { code: "te", label: "తెలుగు", speech: "te-IN", tts: "te-IN-ShrutiNeural" },
+    { code: "kn", label: "ಕನ್ನಡ", speech: "kn-IN", tts: "kn-IN-SapnaNeural" },
+    { code: "bn", label: "বাংলা", speech: "bn-IN", tts: "bn-IN-TanishaaNeural" },
+    { code: "es", label: "Español", speech: "es-ES", tts: "es-ES-ElviraNeural" },
+    { code: "fr", label: "Français", speech: "fr-FR", tts: "fr-FR-DeniseNeural" }
+];
+
+if (!supportedLanguages.some(language => language.code === state.lang)) {
+    state.lang = "mr";
+}
+
+function getLanguage(code = state.lang) {
+    return supportedLanguages.find(language => language.code === code) || supportedLanguages[0];
+}
+
 // I18N Translations (100% Complete Bilingual Coverage)
 const i18n = {
     mr: {
@@ -676,7 +697,7 @@ function initSpeechRecognition() {
     state.speechRecognition = new SpeechRecognition();
     state.speechRecognition.continuous = true;
     state.speechRecognition.interimResults = true;
-    state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    state.speechRecognition.lang = getLanguage().speech;
 
     state.speechRecognition.onstart = () => {
         state.isRecording = true;
@@ -718,7 +739,7 @@ function toggleVoiceRecording() {
         state.speechRecognition.stop();
         stopVoiceRecording();
     } else {
-        state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+        state.speechRecognition.lang = getLanguage().speech;
         try {
             state.speechRecognition.start();
         } catch (err) {
@@ -1478,8 +1499,7 @@ function speakWithBrowserVoice(text) {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    const isMr = /[\u0900-\u097f]/.test(text);
-    utterance.lang = isMr ? "mr-IN" : "en-IN";
+    utterance.lang = getLanguage().speech;
     window.speechSynthesis.speak(utterance);
 }
 
@@ -1493,7 +1513,7 @@ function initRagSpeech() {
     ragSpeechRecognition = new SpeechRecognition();
     ragSpeechRecognition.continuous = false;
     ragSpeechRecognition.interimResults = false;
-    ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    ragSpeechRecognition.lang = getLanguage().speech;
 
     ragSpeechRecognition.onstart = () => {
         isRagListening = true;
@@ -1536,7 +1556,7 @@ function toggleRagVoice() {
         ragSpeechRecognition.stop();
         stopRagVoice();
     } else {
-        ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+        ragSpeechRecognition.lang = getLanguage().speech;
         try {
             ragSpeechRecognition.start();
         } catch (err) {
@@ -1676,8 +1696,7 @@ async function speakText(encoded) {
     stopCurrentAudio();
     const token = currentAudioPlayToken;
     const raw = decodeURIComponent(encoded);
-    const isMr = /[\u0900-\u097f]/.test(raw);
-    const voice = isMr ? "mr-IN-AarohiNeural" : "en-IN-NeerjaNeural";
+    const voice = getLanguage().tts;
 
     try {
         const res = await apiCall("/api/tts", {
@@ -1718,25 +1737,35 @@ function closeModal(id) {
     if (el) el.classList.remove("active");
 }
 
-function toggleLanguage() {
-    state.lang = state.lang === "mr" ? "en" : "mr";
+function setLanguage(languageCode) {
+    if (!supportedLanguages.some(language => language.code === languageCode)) return;
+    state.lang = languageCode;
     localStorage.setItem("verna_lang", state.lang);
-    if (state.speechRecognition) state.speechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
-    if (ragSpeechRecognition) ragSpeechRecognition.lang = state.lang === "mr" ? "mr-IN" : "en-IN";
+    if (state.speechRecognition) state.speechRecognition.lang = getLanguage().speech;
+    if (ragSpeechRecognition) ragSpeechRecognition.lang = getLanguage().speech;
     applyLanguage();
+}
+
+function toggleLanguage() {
+    const currentIndex = supportedLanguages.findIndex(language => language.code === state.lang);
+    setLanguage(supportedLanguages[(currentIndex + 1) % supportedLanguages.length].code);
 }
 
 function applyLanguage() {
     const dict = i18n[state.lang] || i18n.mr;
     const isMr = state.lang === "mr";
+    const language = getLanguage();
 
     // 1. Language buttons
     const mBtn = document.getElementById("mobile-lang-btn");
-    if (mBtn) mBtn.innerText = dict.lang_label;
+    if (mBtn) mBtn.innerText = `🌐 ${language.label}`;
     const dBtn = document.getElementById("desktop-lang-btn");
-    if (dBtn) dBtn.innerText = dict.lang_label;
+    if (dBtn) dBtn.innerText = `🌐 ${language.label}`;
     const hBtn = document.getElementById("hud-lang-btn");
-    if (hBtn) hBtn.innerText = dict.lang_label;
+    if (hBtn) hBtn.innerText = `🌐 ${language.label}`;
+    document.querySelectorAll(".language-select").forEach(select => {
+        select.value = state.lang;
+    });
 
     // 2. All [data-i18n] text nodes
     document.querySelectorAll("[data-i18n]").forEach(el => {
