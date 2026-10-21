@@ -500,11 +500,19 @@ async function loadDashboardMetrics() {
         const data = await res.json();
         state.dashboard = data;
 
-        // Populate top KPI cards
-        document.getElementById("kpi-total-sales").innerText = `₹${data.total_sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-        document.getElementById("kpi-total-bills").innerText = data.total_bills;
-        document.getElementById("kpi-avg-ticket").innerText = `₹${data.avg_ticket.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-        document.getElementById("kpi-pending-udhar").innerText = `₹${data.pending_udhar.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        // Populate top KPI cards safely
+        const elSales = document.getElementById("kpi-total-sales");
+        if (elSales) elSales.innerText = `₹${data.total_sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        const elBills = document.getElementById("kpi-total-bills");
+        if (elBills) elBills.innerText = data.total_bills;
+
+        const elAvg = document.getElementById("kpi-avg-ticket");
+        if (elAvg) elAvg.innerText = `₹${data.avg_ticket.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        const elPending = document.getElementById("kpi-pending-udhar");
+        if (elPending) elPending.innerText = `₹${data.pending_udhar.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
         const netProfitEl = document.getElementById("kpi-net-profit");
         if (netProfitEl) {
             const np = (data.net_profit !== undefined) ? data.net_profit : (data.total_sales - data.total_expenses);
