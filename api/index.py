@@ -975,7 +975,6 @@ async def rag_chat(req: RAGChatRequest):
     today_expenses = conn.execute("SELECT SUM(amount) FROM business_expenses WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
     recent_expenses = [dict(r) for r in conn.execute("SELECT expense_title, category, amount, date FROM business_expenses ORDER BY id DESC LIMIT 5").fetchall()]
     net_profit = total_sales - total_expenses
-    conn.close()
 
     # Targeted Query Entity Search (Directly from Streamlit)
     specific_context = []
@@ -988,6 +987,7 @@ async def rag_chat(req: RAGChatRequest):
             s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w}%",)).fetchall()
             for sm in s_match:
                 specific_context.append(f"शोधलेली वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
+    conn.close()
 
     db_context = f"""
     [लाइव्ह दुकानाची आकडेवारी (Live Shop Statistics)]:
@@ -1033,6 +1033,11 @@ async def rag_chat(req: RAGChatRequest):
         "Do not invent internal project facts or database values. If a requested internal "
         "fact is absent from the supplied context, say that it is not present in the "
         "available context instead of guessing. Always follow the response-language instruction."
+    )
+
+    history_text = "\n".join(
+        f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
+        for item in (req.chat_history or [])[-10:]
     )
 
     rag_context = f"""
