@@ -86,8 +86,10 @@
 - **Cryptographic Security:** Passwords hashed with salted `PBKDF2-HMAC-SHA256`.
 - **Immutable Audit Trail:** Comprehensive activity logging for financial compliance.
 
-### 7. 🌐 Seamless Bilingual Toggle
-- Switch dynamically between **English** and **मराठी** across all screens, metrics, and thermal slips.
+### 7. 🌐 Multilingual Text & Voice AI
+- The AI Business Studio accepts typed and spoken questions in **Marathi, English, Hindi, Gujarati, Tamil, Telugu, Kannada, Bengali, Spanish, and French**.
+- Speech recognition uses the selected locale and neural voice output uses a matching Edge-TTS voice where available.
+- The application language selector persists the chosen language and the Kirana mode layout is optimized for desktop and mobile screens.
 
 ---
 

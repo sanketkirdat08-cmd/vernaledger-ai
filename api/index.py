@@ -555,8 +555,18 @@ def process_voice_billing(req: VoiceBillRequest):
     log_activity(req.username or "admin", f"Created Voice Bill #{data['id']} (₹{data.get('grand_total', 0)})")
     return {"success": True, "data": data}
 
-def detect_msg_language(text: str) -> str:
-    """Detect whether user query is in Marathi or English."""
+SUPPORTED_LANGUAGES = {
+    "mr": ("Marathi", "mr-IN"), "en": ("English", "en-IN"),
+    "hi": ("Hindi", "hi-IN"), "gu": ("Gujarati", "gu-IN"),
+    "ta": ("Tamil", "ta-IN"), "te": ("Telugu", "te-IN"),
+    "kn": ("Kannada", "kn-IN"), "bn": ("Bengali", "bn-IN"),
+    "es": ("Spanish", "es-ES"), "fr": ("French", "fr-FR"),
+}
+
+def detect_msg_language(text: str, requested: str = "mr") -> str:
+    """Use the selected language, with script detection as a safe fallback."""
+    if requested in SUPPORTED_LANGUAGES:
+        return requested
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
     latin_count = len(re.findall(r"[A-Za-z]", text))
     if devanagari_count >= 2:
@@ -568,10 +578,19 @@ def detect_msg_language(text: str) -> str:
         return "en"
     return "mr"
 
-def get_tts_voice(text: str) -> str:
-    """Exact Edge TTS voice selection matching original Streamlit app: Neerja for English, Aarohi for Marathi."""
+TTS_VOICES = {
+    "mr": "mr-IN-AarohiNeural", "en": "en-IN-NeerjaNeural",
+    "hi": "hi-IN-SwaraNeural", "gu": "gu-IN-DhwaniNeural",
+    "ta": "ta-IN-PallaviNeural", "te": "te-IN-ShrutiNeural",
+    "kn": "kn-IN-SapnaNeural", "bn": "bn-IN-TanishaaNeural",
+    "es": "es-ES-ElviraNeural", "fr": "fr-FR-DeniseNeural",
+}
+
+def get_tts_voice(text: str, language: str = "") -> str:
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", text))
     latin_count = len(re.findall(r"[A-Za-z]", text))
+    if language in TTS_VOICES:
+        return TTS_VOICES[language]
     if latin_count > devanagari_count:
         return "en-IN-NeerjaNeural"
     return "mr-IN-AarohiNeural"
@@ -585,7 +604,7 @@ async def generate_tts(req: TTSRequest):
         raise HTTPException(status_code=500, detail="Edge TTS library is not installed")
 
     clean_speech = re.sub(r"[*#_`]", "", req.text)
-    voice = get_tts_voice(clean_speech) if not req.voice or req.voice == "mr-IN-AarohiNeural" else req.voice
+    voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(clean_speech)
     try:
         communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
         audio_bytes = bytearray()
@@ -858,13 +877,15 @@ async def rag_chat(req: RAGChatRequest):
     - Complete Store Stock: {all_inv}
     - Recent Bills: {recent_receipts}
     - Recent Expenses: {recent_expenses}
-    - Project Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
-    - College: Arvind Gavali College of Engineering, Satara (AGCOE), affiliated with DBATU University.
+    - Project Guide: Kaisar Attar Sir.
+    - Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik.
+    - College: Arvind Gavali College of Engineering, Satara, Maharashtra.
     """
 
-    query_lang = detect_msg_language(req.message)
+    query_lang = detect_msg_language(req.message, req.lang or "mr")
     is_english = query_lang == "en"
-    lang_instruction = "The user asked in English. You MUST reply ONLY in clear, professional English." if is_english else "The user asked in Marathi (मराठी). You MUST reply ONLY in natural Marathi (मराठी Devanagari script)."
+    language_name = SUPPORTED_LANGUAGES[query_lang][0]
+    lang_instruction = f"The user selected {language_name}. You MUST reply ONLY in clear, natural {language_name}. Do not translate into another language."
 
     api_key = get_api_key()
     answer = None
@@ -967,11 +988,11 @@ async def rag_chat(req: RAGChatRequest):
                     if is_english else
                     f"आजची विक्री: ₹{today_sales:,.2f}. एकूण विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)."
                 )
-            elif any(word in normalized for word in ["कोणी", "developer", "project", "प्रकल्प"]):
+            elif any(word in normalized for word in ["कोणी", "developer", "developers", "project", "प्रकल्प", "guide", "मार्गदर्शक", "kaisar", "attar"]):
                 answer = (
-                    "This project was developed by Sanket Kirdat, Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik at AGCOE, Satara."
+                    "Project Guide: Kaisar Attar Sir. Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
                     if is_english else
-                    "हा प्रकल्प Sanket Kirdat, Sakshi Bhagat, Vaishnavi Dhavale आणि Rushikesh Mulik यांनी AGCOE, Satara येथे विकसित केला आहे."
+                    "प्रकल्प मार्गदर्शक: Kaisar Attar Sir. विकासक: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale आणि Rushikesh Mulik. महाविद्यालय: Arvind Gavali College of Engineering, Satara, Maharashtra."
                 )
             else:
                 answer = (
@@ -985,7 +1006,7 @@ async def rag_chat(req: RAGChatRequest):
     if req.voice_output and edge_tts:
         try:
             clean_speech = re.sub(r"[*#_`]", "", answer)
-            voice = get_tts_voice(clean_speech)
+            voice = get_tts_voice(clean_speech, query_lang)
             communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
