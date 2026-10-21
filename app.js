@@ -50,7 +50,7 @@ const i18n = {
         mob_nav_ai: "AI स्टुडिओ",
 
         hud_scanner_title: "⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग",
-        hud_scanner_sub: "Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर",
+        hud_scanner_sub: "हस्तलिखित व छापील पावत्यांचे १ सेकंदात डिजिटल बिलामध्ये रूपांतर",
         hud_khata_title: "💳 ग्राहक खाते व डिजिटल उधारी वही",
         hud_khata_sub: "WhatsApp द्वारे १-क्लिक देय स्मरणपत्रे व पारदर्शक जमा-खर्च हिशोब",
         hud_business_title: "🏬 स्टोअर ऑपरेशन्स, माल साठा व खर्च",
@@ -58,11 +58,12 @@ const i18n = {
         hud_ledger_title: "📊 सुरक्षित डिजिटल लेजर डेटाबेस",
         hud_ledger_sub: "सर्व जुन्या पावत्यांचा इतिहास, शोध आणि थर्मल पावती प्रिंट",
         hud_ai_title: "🤖 VernaLedger AI बिझनेस स्टुडिओ",
-        hud_ai_sub: "लाइव्ह SQLite डेटाबेस व Gemini 2.5 RAG द्वारे स्टोअर अंतर्दृष्टी",
+        hud_ai_sub: "तुमच्या दुकानाचा नफा, उधारी व साठ्याचा वैयक्तिक AI सल्लागार",
 
         kpi_sales: "एकूण विक्री",
         kpi_bills: "एकूण पावत्या",
         kpi_avg: "सरासरी बिल",
+        kpi_profit: "निव्वळ नफा",
         kpi_udhar: "बाकी उधारी",
 
         card_scan_input: "पावती स्कॅन / व्हॉइस इनपुट",
@@ -422,6 +423,10 @@ function showApp() {
 
     // Load initial data
     loadDashboardMetrics();
+
+    // Initialize High-Contrast Theme (किराणा मोड)
+    initTheme();
+
     loadReceiptsLedger();
     loadKhataData();
     loadInventoryData();
@@ -500,6 +505,11 @@ async function loadDashboardMetrics() {
         document.getElementById("kpi-total-bills").innerText = data.total_bills;
         document.getElementById("kpi-avg-ticket").innerText = `₹${data.avg_ticket.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById("kpi-pending-udhar").innerText = `₹${data.pending_udhar.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        const netProfitEl = document.getElementById("kpi-net-profit");
+        if (netProfitEl) {
+            const np = (data.net_profit !== undefined) ? data.net_profit : (data.total_sales - data.total_expenses);
+            netProfitEl.innerText = `₹${np.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        }
 
         // Populate Khata KPI
         const khataPending = document.getElementById("khata-kpi-pending");
@@ -972,6 +982,7 @@ async function loadKhataData() {
 
 function renderKhataCards(customers) {
     const grid = document.getElementById("khata-customers-grid");
+    if (!grid) return;
     grid.innerHTML = "";
 
     if (!customers || customers.length === 0) {
@@ -979,14 +990,43 @@ function renderKhataCards(customers) {
         return;
     }
 
-    customers.forEach(c => {
+    // Update Filter Pill Badges
+    const allCount = customers.length;
+    const pendingCount = customers.filter(c => c.balance > 0).length;
+    const clearedCount = customers.filter(c => c.balance <= 0).length;
+    const elAll = document.getElementById("count-all-cust");
+    const elPend = document.getElementById("count-pending-cust");
+    const elClr = document.getElementById("count-cleared-cust");
+    if (elAll) elAll.innerText = allCount;
+    if (elPend) elPend.innerText = pendingCount;
+    if (elClr) elClr.innerText = clearedCount;
+
+    // Apply Filter
+    let list = customers;
+    if (state.khataFilter === "pending") {
+        list = customers.filter(c => c.balance > 0);
+    } else if (state.khataFilter === "cleared") {
+        list = customers.filter(c => c.balance <= 0);
+    }
+
+    if (list.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 30px;">या फिल्टरमध्ये कोणतेही ग्राहक सापडले नाहीत.</div>`;
+        return;
+    }
+
+    list.forEach(c => {
         const isDebt = c.balance > 0;
         const card = document.createElement("div");
         card.className = `glass-card ${isDebt ? 'accent-red' : 'accent-green'}`;
 
-        const safePhone = c.phone.replace(/\D/g, "");
+        const safePhone = (c.phone || "").replace(/\D/g, "");
         const waMsg = encodeURIComponent(
-            `नमस्कार ${c.name} जी! आपल्याकडे किराणा दुकानाचे एकूण ₹${c.balance.toFixed(2)} उधारीचे येणे बाकी आहे. कृपया लवकरात लवकर भरणा करावा. धन्यवाद!`
+            `🙏 *महादेव किराणा स्टोअर*\n` +
+            `नमस्कार ${c.name} जी!\n` +
+            `आपल्या खात्यावर दुकानाचे एकूण *₹${c.balance.toFixed(2)}* उधारीचे येणे बाकी आहे.\n\n` +
+            `💳 कृपया खालील UPI लिंकवरून GooglePay / PhonePe द्वारे पेमेंट करावे:\n` +
+            `upi://pay?pa=merchant@upi&pn=KiranaStore&am=${c.balance.toFixed(2)}&cu=INR\n\n` +
+            `लवकरात लवकर भरणा करून सहकार्य करावे. धन्यवाद!`
         );
         const waLink = `https://wa.me/91${safePhone}?text=${waMsg}`;
 
@@ -995,30 +1035,34 @@ function renderKhataCards(customers) {
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                 <div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">${escapeHtml(displayName)}</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #fff;">${escapeHtml(displayName)}</div>
                     <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(c.phone || (isMr ? "नंबर नाही" : "No Phone"))}</div>
                 </div>
                 <span class="user-role-badge ${isDebt ? 'badge-staff' : 'badge-admin'}">
-                    ${isDebt ? (isMr ? 'उधारी बाकी' : 'Credit Due') : (isMr ? 'हिशोब क्लिअर' : 'Cleared')}
+                    ${isDebt ? (isMr ? '🔴 उधारी बाकी' : 'Credit Due') : (isMr ? '🟢 हिशोब क्लिअर' : 'Cleared')}
                 </span>
             </div>
 
-            <div style="margin: 10px 0;">
+            <div style="margin: 10px 0; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
                 <div style="font-size: 0.75rem; color: var(--text-slate);">${isMr ? 'सध्याची बाकी रक्कम (Balance):' : 'Current Balance Due:'}</div>
-                <div style="font-size: 1.35rem; font-weight: 800; color: ${isDebt ? 'var(--neon-red)' : 'var(--neon-green)'};">
-                    ₹${Math.abs(c.balance).toFixed(2)}
+                <div style="font-size: 1.45rem; font-weight: 800; color: ${isDebt ? 'var(--neon-red)' : 'var(--neon-green)'};">
+                    ₹${Math.abs(c.balance).toFixed(2)} ${isDebt ? (isMr ? 'येणे बाकी' : 'Pending') : (isMr ? 'क्लिअर' : 'Nil')}
                 </div>
             </div>
 
-            <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <!-- Khatabook Style Quick Action Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px;">
+                <button class="btn-give-credit" onclick="quickKhataAction('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}', 'Credit Given')">
+                    🔴 ₹ उधारी दिली
+                </button>
+                <button class="btn-get-payment" onclick="quickKhataAction('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}', 'Payment Received')">
+                    🟢 ₹ जमा मिळाले
+                </button>
                 ${isDebt && safePhone ? `
-                    <a href="${waLink}" target="_blank" class="btn-cyber whatsapp" style="flex: 1; font-size: 0.78rem; padding: 6px 10px; text-decoration: none;">
-                        ${isMr ? '💬 WhatsApp तगादा' : '💬 WhatsApp Alert'}
+                    <a href="${waLink}" target="_blank" class="btn-whatsapp-share" style="grid-column: 1/-1; padding: 6px 10px; font-size: 0.78rem;">
+                        📲 WhatsApp तगादा पाठवा
                     </a>
                 ` : ''}
-                <button class="btn-pill btn-lang" onclick="prefillKhataPayment('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}')">
-                    ${isMr ? '+ व्यवहार' : '+ Entry'}
-                </button>
             </div>
         `;
         grid.appendChild(card);
@@ -1757,4 +1801,99 @@ window.addEventListener("hashchange", () => {
 function renderBillItems() {
     if (!state.currentBill) return;
     populateBillCard(state.currentBill);
+}
+
+
+// -----------------------------------------------------------------------------
+// KHATABOOK-BEATING ENHANCEMENTS: THEME, QUICK ACTIONS & WHATSAPP SHARING
+// -----------------------------------------------------------------------------
+
+function initTheme() {
+    const saved = localStorage.getItem("verna_theme") || "dark";
+    applyTheme(saved);
+}
+
+function toggleTheme() {
+    const isLight = document.body.classList.contains("light-theme");
+    const next = isLight ? "dark" : "light";
+    applyTheme(next);
+    localStorage.setItem("verna_theme", next);
+}
+
+function applyTheme(theme) {
+    const isLight = (theme === "light");
+    if (isLight) {
+        document.body.classList.add("light-theme");
+    } else {
+        document.body.classList.remove("light-theme");
+    }
+    const lbl = document.getElementById("theme-label");
+    const icon = document.getElementById("theme-icon");
+    const mobIcon = document.getElementById("mob-theme-icon");
+    if (lbl) lbl.innerText = isLight ? "नाईट मोड (Dark)" : "किराणा मोड (Light)";
+    if (icon) icon.innerText = isLight ? "🌙" : "☀️";
+    if (mobIcon) mobIcon.innerText = isLight ? "🌙" : "☀️";
+}
+
+state.khataFilter = "all";
+
+function setKhataFilter(filterType) {
+    state.khataFilter = filterType;
+    document.querySelectorAll(".khata-filter-pill").forEach(p => p.classList.remove("active"));
+    const activeBtn = document.getElementById(`filter-pill-${filterType}`);
+    if (activeBtn) activeBtn.classList.add("active");
+    if (state.allKhata && state.allKhata.customers) {
+        renderKhataCards(state.allKhata.customers);
+    }
+}
+
+function quickKhataAction(name, phone, type) {
+    document.getElementById("khata-input-name").value = name;
+    document.getElementById("khata-input-phone").value = phone;
+    document.getElementById("khata-input-type").value = type;
+    document.getElementById("khata-input-amount").value = "";
+    openAddKhataModal();
+    setTimeout(() => {
+        const amtInput = document.getElementById("khata-input-amount");
+        if (amtInput) amtInput.focus();
+    }, 150);
+}
+
+function openWhatsAppBillModal() {
+    const modal = document.getElementById("modal-whatsapp-share");
+    if (modal) modal.classList.add("active");
+}
+
+function confirmSendWhatsAppBill() {
+    const phoneInput = document.getElementById("wa-share-phone");
+    const phone = (phoneInput.value || "").replace(/\D/g, "");
+    if (!phone || phone.length < 10) {
+        alert("कृपया वैध १० अंकी मोबाईल नंबर टाका!");
+        return;
+    }
+    const vendor = document.getElementById("bill-vendor-name")?.value || "किराणा स्टोअर";
+    const total = document.getElementById("bill-grand-total")?.innerText || "₹0";
+    const rows = document.querySelectorAll("#bill-items-tbody tr");
+    let itemsList = "";
+    rows.forEach(r => {
+        const name = r.querySelector(".item-name")?.value || "";
+        const qty = r.querySelector(".item-qty")?.value || "";
+        const tot = r.querySelector(".item-total")?.innerText || "";
+        if (name) {
+            itemsList += `• ${name} (${qty}) - ₹${tot}\n`;
+        }
+    });
+
+    const msg = encodeURIComponent(
+        `🧾 *डिजिटल पावती - ${vendor}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `${itemsList}` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `💰 *एकूण रक्कम: ${total}*\n\n` +
+        `🙏 खरेदी केल्याबद्दल धन्यवाद!\n` +
+        `_VernaLedger.AI द्वारे पाठवले_`
+    );
+
+    closeModal("modal-whatsapp-share");
+    window.open(`https://wa.me/91${phone}?text=${msg}`, "_blank");
 }

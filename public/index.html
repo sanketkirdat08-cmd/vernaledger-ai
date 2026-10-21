@@ -87,6 +87,9 @@
                 <span>VernaLedger.AI</span>
             </div>
             <div class="actions">
+                <button class="btn-pill btn-lang" id="mob-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला" style="padding: 4px 10px;">
+                    <span id="mob-theme-icon">☀️</span>
+                </button>
                 <button class="btn-pill btn-lang" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
                 </button>
@@ -130,10 +133,7 @@
                         <span class="icon">🤖</span>
                         <span class="label" data-i18n="nav_ai">AI बिझनेस स्टुडिओ</span>
                     </a>
-                    <a class="nav-link" id="nav-item-staff" data-view="staff" onclick="switchView('staff')">
-                        <span class="icon">👥</span>
-                        <span class="label" data-i18n="nav_staff">कर्मचारी व ऑडिट</span>
-                    </a>
+                    
                 </nav>
             </div>
 
@@ -149,6 +149,9 @@
                     </div>
                 </div>
 
+                <button class="btn-pill" id="theme-toggle-btn" onclick="toggleTheme()" style="margin-bottom: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700;">
+                    <span id="theme-icon">☀️</span> <span id="theme-label">किराणा मोड (Light)</span>
+                </button>
                 <div class="user-pill" style="margin-bottom: 0;">
                     <div>
                         <div style="font-size: 0.82rem; font-weight: 700; color: #fff;" id="sidebar-user-name">admin</div>
@@ -315,15 +318,15 @@
                         </div>
 
                         <!-- Action Buttons -->
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px;">
+                            <button class="btn-cyber success" onclick="saveCurrentBillToLedger()" style="grid-column: 1/-1; padding: 10px; font-size: 0.95rem;">
+                                💾 बिल सेव्ह करा (Save Bill)
+                            </button>
+                            <button class="btn-whatsapp-share" onclick="openWhatsAppBillModal()">
+                                📲 WhatsApp बिल पाठवा
+                            </button>
                             <button class="btn-cyber" onclick="openThermalPrintModal()">
-                                🖨️ प्रिंट (Print)
-                            </button>
-                            <button class="btn-cyber" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border-color: #a78bfa;" onclick="playCurrentBillTTS()">
-                                🔊 ऐका (Voice)
-                            </button>
-                            <button class="btn-cyber success" onclick="saveCurrentBillToLedger()">
-                                💾 सेव्ह (Save)
+                                🖨️ पावती प्रिंट (Print)
                             </button>
                         </div>
                     </div>
@@ -427,12 +430,12 @@
                         </div>
                         <div class="kpi-val-mini" style="color: var(--neon-green);" id="kpi-total-bills">0</div>
                     </div>
-                    <div class="glass-card-mini accent-purple">
+                    <div class="glass-card-mini accent-green">
                         <div class="kpi-title-mini">
-                            <span data-i18n="kpi_avg">सरासरी बिल</span>
-                            <span>📈</span>
+                            <span data-i18n="kpi_profit">निव्वळ नफा</span>
+                            <span>💵</span>
                         </div>
-                        <div class="kpi-val-mini" style="color: var(--neon-purple);" id="kpi-avg-ticket">₹0.00</div>
+                        <div class="kpi-val-mini" style="color: var(--neon-green); font-weight: 800;" id="kpi-net-profit">₹0.00</div>
                     </div>
                     <div class="glass-card-mini accent-red">
                         <div class="kpi-title-mini">
@@ -865,5 +868,33 @@
     </div>
 
     <script src="app.js"></script>
+
+    <!-- =====================================================================
+         WHATSAPP BILL SHARE MODAL
+         ===================================================================== -->
+    <div id="modal-whatsapp-share" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 style="color: #25D366; display: flex; align-items: center; gap: 8px;">
+                    <span>📲</span> WhatsApp वर पावती पाठवा
+                </h3>
+                <button class="modal-close" onclick="closeModal('modal-whatsapp-share')">✕</button>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-slate); margin-bottom: 14px;">
+                ग्राहकाचा १० अंकी WhatsApp नंबर टाका. बिलाचा संपूर्ण तपशील आणि UPI पेमेंट लिंक थेट त्यांच्या WhatsApp वर उघडेल:
+            </p>
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 0.78rem; font-weight: 700; color: #fff;">ग्राहकाचा WhatsApp मोबाईल नंबर:</label>
+                <input type="tel" id="wa-share-phone" class="input-cyber" placeholder="उदा. 9822001122" maxlength="10" style="font-size: 1.1rem; letter-spacing: 1px;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-cyber" style="flex: 1;" onclick="closeModal('modal-whatsapp-share')">रद्द करा</button>
+                <button class="btn-whatsapp-share" style="flex: 2;" onclick="confirmSendWhatsAppBill()">
+                    🚀 WhatsApp वर पाठवा
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

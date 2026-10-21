@@ -1469,3 +1469,175 @@ body::after {
     padding: 5px 10px;
     margin-bottom: 12px;
 }
+
+/* ==========================================================================
+   HIGH-CONTRAST MERCHANT MODE (किराणा मोड - LIGHT THEME)
+   ========================================================================== */
+body.light-theme {
+    --bg-dark: #F8FAFC;
+    --card-bg: rgba(255, 255, 255, 0.98);
+    --card-border: rgba(203, 213, 225, 0.9);
+    --neon-cyan: #0284C7;
+    --neon-green: #16A34A;
+    --neon-purple: #7C3AED;
+    --electric-blue: #2563EB;
+    --neon-red: #DC2626;
+    --neon-amber: #D97706;
+    --text-white: #0F172A;
+    --text-slate: #334155;
+    --text-dim: #64748B;
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+}
+
+body.light-theme::before,
+body.light-theme::after {
+    display: none !important;
+}
+
+body.light-theme .desktop-sidebar {
+    background: #FFFFFF !important;
+    border-right: 1px solid #E2E8F0 !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-theme .mobile-top-bar,
+body.light-theme .mobile-bottom-nav {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .glass-card,
+body.light-theme .glass-card-mini,
+body.light-theme .chat-container {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+    color: #0F172A !important;
+}
+
+body.light-theme .glass-card h3,
+body.light-theme .glass-card-mini .kpi-val-mini,
+body.light-theme .brand-title,
+body.light-theme .nav-link,
+body.light-theme .tab-item {
+    color: #0F172A !important;
+}
+
+body.light-theme .input-cyber,
+body.light-theme .rag-input {
+    background: #F8FAFC !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #0F172A !important;
+}
+
+body.light-theme .input-cyber:focus,
+body.light-theme .rag-input:focus {
+    border-color: #0284C7 !important;
+    background: #FFFFFF !important;
+}
+
+body.light-theme .cyber-table th {
+    background: #F1F5F9 !important;
+    color: #334155 !important;
+    border-bottom: 2px solid #CBD5E1 !important;
+}
+
+body.light-theme .cyber-table td {
+    border-bottom: 1px solid #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+body.light-theme .chat-bubble.chat-ai {
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+    border: 1px solid #CBD5E1 !important;
+}
+
+body.light-theme .chat-bubble.chat-user {
+    background: #0284C7 !important;
+    color: #FFFFFF !important;
+}
+
+/* WhatsApp Action Button */
+.btn-whatsapp-share {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 700;
+    border: none !important;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+    transition: all 0.2s ease;
+}
+.btn-whatsapp-share:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.5);
+}
+
+/* Khatabook Quick Gave/Got Actions */
+.btn-give-credit {
+    background: rgba(220, 38, 38, 0.12) !important;
+    color: #DC2626 !important;
+    border: 1px solid rgba(220, 38, 38, 0.4) !important;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-give-credit:hover {
+    background: #DC2626 !important;
+    color: #FFFFFF !important;
+}
+
+.btn-get-payment {
+    background: rgba(22, 163, 74, 0.12) !important;
+    color: #16A34A !important;
+    border: 1px solid rgba(22, 163, 74, 0.4) !important;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-get-payment:hover {
+    background: #16A34A !important;
+    color: #FFFFFF !important;
+}
+
+/* Khata Filter Pills */
+.khata-filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.khata-filter-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-slate);
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.khata-filter-pill.active {
+    background: var(--neon-cyan);
+    color: #050B14;
+    border-color: var(--neon-cyan);
+    font-weight: 800;
+}

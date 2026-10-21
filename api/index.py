@@ -325,45 +325,7 @@ def login(req: LoginRequest):
         "phone": user["phone"]
     }
 
-@app.get("/api/users")
-def get_users():
-    conn = get_db()
-    rows = conn.execute("SELECT username, role, phone FROM users").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-@app.post("/api/users")
-def create_user(req: NewUserRequest):
-    if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    
-    conn = get_db()
-    try:
-        pass_hash = hash_password_secure(req.password)
-        conn.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (req.username.strip(), pass_hash, req.role, req.phone))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Username already exists")
-    conn.close()
-    return {"success": True, "message": f"User {req.username} created"}
-
-@app.delete("/api/users/{username}")
-def delete_user(username: str):
-    if username.lower() in ["admin", "sanket"]:
-        raise HTTPException(status_code=400, detail="Cannot delete Master Admin account")
-    conn = get_db()
-    conn.execute("DELETE FROM users WHERE username = ?", (username,))
-    conn.commit()
-    conn.close()
-    return {"success": True}
-
-@app.get("/api/audit-logs")
-def get_audit_logs():
-    conn = get_db()
-    rows = conn.execute("SELECT username, action, timestamp FROM audit_logs ORDER BY id DESC LIMIT 50").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+# Staff & Audit Logs removed per clean merchant architecture
 
 # -----------------------------------------------------------------------------
 # DASHBOARD METRICS ENDPOINT
@@ -417,6 +379,7 @@ def get_dashboard_metrics():
         "cash_recovered": payment_received,
         "pending_udhar": pending_udhar,
         "total_expenses": total_expenses,
+        "net_profit": net_margin,
         "low_stock_count": low_stock_count,
         "recent_receipts": recent_receipts,
         "daily_digest_mr": daily_digest_mr
@@ -508,8 +471,16 @@ async def process_ocr(file: UploadFile = File(...)):
         "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
         (data.get("vendor_name", "Kirana Store"), rec_date, data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
     )
-    conn.commit()
     data["id"] = cursor.lastrowid
+    # Auto-sync to Customer Khata if spoken text mentions credit/udhar
+    if any(k in req.transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
+        cust = data.get("vendor_name", "").replace("अनामित (Local Kirana)", "").strip() or "ग्राहक"
+        cursor.execute(
+            "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (cust, "", data["grand_total"], "Credit Given", date.today().strftime("%Y-%m-%d"), "", f"व्हॉइस बिल #{data['id']}")
+        )
+        data["auto_khata_added"] = True
+    conn.commit()
     conn.close()
 
     return {"success": True, "data": data}
@@ -569,8 +540,16 @@ def process_voice_billing(req: VoiceBillRequest):
         "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
         (data.get("vendor_name", "Voice Bill"), date.today().strftime("%Y-%m-%d"), data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
     )
-    conn.commit()
     data["id"] = cursor.lastrowid
+    # Auto-sync to Customer Khata if spoken text mentions credit/udhar
+    if any(k in req.transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
+        cust = data.get("vendor_name", "").replace("अनामित (Local Kirana)", "").strip() or "ग्राहक"
+        cursor.execute(
+            "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (cust, "", data["grand_total"], "Credit Given", date.today().strftime("%Y-%m-%d"), "", f"व्हॉइस बिल #{data['id']}")
+        )
+        data["auto_khata_added"] = True
+    conn.commit()
     conn.close()
 
     log_activity(req.username or "admin", f"Created Voice Bill #{data['id']} (₹{data.get('grand_total', 0)})")
