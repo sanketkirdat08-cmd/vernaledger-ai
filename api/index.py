@@ -883,7 +883,7 @@ async def rag_chat(req: RAGChatRequest):
             txt = user_msg.replace(phone, "") if phone else user_msg
             amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
             amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-            ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹"}
+            ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
             parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
             cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
             if amount > 0:
@@ -906,7 +906,7 @@ async def rag_chat(req: RAGChatRequest):
             txt = user_msg.replace(phone, "") if phone else user_msg
             amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
             amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-            ignored = {"जमा", "कर", "करा", "लिही", "लिहा", "नोंदव", "नोंदवा", "झाले", "झाली", "पैसे", "दिले", "पावती", "पेमेंट", "हप्ता", "दिला", "सेव्ह", "रुपये", "रु", "₹"}
+            ignored = {"जमा", "कर", "करा", "लिही", "लिहा", "नोंदव", "नोंदवा", "झाले", "झाली", "पैसे", "दिले", "पावती", "पेमेंट", "हप्ता", "दिला", "सेव्ह", "रुपये", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
             parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
             cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
             if amount > 0:
@@ -950,23 +950,24 @@ async def rag_chat(req: RAGChatRequest):
     recent_receipts = [dict(r) for r in conn.execute("SELECT vendor_name, date, grand_total FROM receipts ORDER BY id DESC LIMIT 5").fetchall()]
     
     # Khata & Customer Dues context
-    khata_rows = [dict(r) for r in conn.execute("SELECT customer_name, amount, transaction_type, due_date FROM customer_khata ORDER BY id DESC LIMIT 10").fetchall()]
-    credit_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Credit Given'").fetchone()[0] or 0.0
-    paid_sum = conn.execute("SELECT SUM(amount) FROM customer_khata WHERE transaction_type = 'Payment Received'").fetchone()[0] or 0.0
+    credit_sum = conn.execute("SELECT COALESCE(SUM(amount), 0) FROM customer_khata WHERE transaction_type LIKE '%Credit%' OR transaction_type LIKE '%उधारी%'").fetchone()[0] or 0.0
+    paid_sum = conn.execute("SELECT COALESCE(SUM(amount), 0) FROM customer_khata WHERE transaction_type LIKE '%Payment%' OR transaction_type LIKE '%जमा%' OR transaction_type LIKE '%वसुली%'").fetchone()[0] or 0.0
     pending_udhar = max(0.0, credit_sum - paid_sum)
 
     # Calculate individual customer balances
     cust_dues = {}
     for row in conn.execute("SELECT customer_name, amount, transaction_type FROM customer_khata").fetchall():
-        c = row["customer_name"]
+        c_name = (row["customer_name"] or "").strip()
+        c_name = re.sub(r"\s+(?:ला|ना|कडे|च्याकडे|ची|चे|चा|कडून)$", "", c_name, flags=re.IGNORECASE).strip()
         a = float(row["amount"] or 0)
-        if row["transaction_type"] == "Credit Given":
-            cust_dues[c] = cust_dues.get(c, 0.0) + a
-        elif row["transaction_type"] == "Payment Received":
-            cust_dues[c] = cust_dues.get(c, 0.0) - a
+        tt = (row["transaction_type"] or "").lower()
+        if "credit" in tt or "उधारी" in tt:
+            cust_dues[c_name] = cust_dues.get(c_name, 0.0) + a
+        elif "payment" in tt or "जमा" in tt or "वसुली" in tt:
+            cust_dues[c_name] = cust_dues.get(c_name, 0.0) - a
     sorted_dues = sorted([(k, max(0.0, v)) for k, v in cust_dues.items() if v > 0], key=lambda x: x[1], reverse=True)
 
-    # Inventory context (Full inventory for accurate stock lookups)
+    # Inventory context
     all_inv = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit, alert_limit, selling_price FROM shop_inventory ORDER BY stock_qty ASC").fetchall()]
     low_stock = [i for i in all_inv if i["stock_qty"] <= i["alert_limit"]]
 
@@ -976,38 +977,48 @@ async def rag_chat(req: RAGChatRequest):
     recent_expenses = [dict(r) for r in conn.execute("SELECT expense_title, category, amount, date FROM business_expenses ORDER BY id DESC LIMIT 5").fetchall()]
     net_profit = total_sales - total_expenses
 
-    # Targeted Query Entity Search (Directly from Streamlit)
+    # Targeted Query Entity Search (Dynamic Lookup from Streamlit)
     specific_context = []
     clean_q_words = re.findall(r'[\u0900-\u097fA-Za-z]+', req.message)
     for w in clean_q_words:
-        if len(w) >= 3 and w.lower() not in ["किती", "आहे", "सांगा", "माहिती", "काय", "कसे", "कोठे", "येणे", "बाकी", "shop", "what", "how"]:
-            c_match = conn.execute("SELECT customer_name, SUM(CASE WHEN transaction_type = 'Credit Given' THEN amount ELSE -amount END) as bal FROM customer_khata WHERE customer_name LIKE ? GROUP BY customer_name", (f"%{w}%",)).fetchone()
-            if c_match and c_match[0]:
-                specific_context.append(f"शोधलेला ग्राहक '{c_match[0]}': शिल्लक उधारी = {float(c_match[1] or 0):,.2f} रुपये")
-            s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w}%",)).fetchall()
+        w_clean = re.sub(r'(?:ला|ना|कडे|च्याकडे|ची|चे|चा|कडून)$', '', w).strip()
+        if len(w_clean) >= 2 and w_clean.lower() not in ["किती", "आहे", "सांगा", "माहिती", "काय", "कसे", "कोठे", "येणे", "बाकी", "shop", "what", "how", "give"]:
+            c_matches = conn.execute("SELECT customer_name FROM customer_khata WHERE customer_name LIKE ?", (f"%{w_clean}%",)).fetchall()
+            if c_matches:
+                found_name = c_matches[0]["customer_name"]
+                found_name_clean = re.sub(r"\s+(?:ला|ना|कडे|च्याकडे|ची|चे|चा|कडून)$", "", found_name).strip()
+                bal = cust_dues.get(found_name_clean, 0.0)
+                specific_context.append(f"ग्राहक '{found_name_clean}': बाकी उधारी = ₹{bal:,.2f}")
+            s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w_clean}%",)).fetchall()
             for sm in s_match:
-                specific_context.append(f"शोधलेली वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
+                specific_context.append(f"वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
     conn.close()
 
+    # Build clean human-readable Marathi strings for AI context
+    khata_summary = [f"{name}: ₹{amt:,.2f} उधारी बाकी" for name, amt in sorted_dues[:5]]
+    inv_summary = [f"{item['item_name']}: {item['stock_qty']} {item['unit']} (दर: ₹{item['selling_price']})" for item in all_inv]
+    low_summary = [f"{item['item_name']} (कमी साठा: शिल्लक {item['stock_qty']} {item['unit']}, अलर्ट: {item['alert_limit']})" for item in low_stock]
+    rec_summary = [f"{r['vendor_name'] or 'ग्राहक'}: ₹{r['grand_total']:,.2f}" for r in recent_receipts]
+    exp_summary = [f"{e['expense_title']}: ₹{e['amount']:,.2f}" for e in recent_expenses]
+
     db_context = f"""
-    [लाइव्ह दुकानाची आकडेवारी (Live Shop Statistics)]:
-    - आजची विक्री: {today_sales:,.2f} रुपये
-    - एकूण विक्री: {total_sales:,.2f} रुपये ({bill_count} पावत्या)
-    - बाजारातील एकूण उधारी येणे बाकी: {pending_udhar:,.2f} रुपये
-    - प्रमुख उधारी ग्राहक (शिल्लक): {sorted_dues[:5]}
-    - कमी साठा (Low Stock Warning): {low_stock}
-    - संपूर्ण साठा: {all_inv}
-    - एकूण व्यवसाय खर्च: {total_expenses:,.2f} रुपये
-    - निव्वळ नफा (Net Margin): {net_profit:,.2f} रुपये
-    - अलीकडील पावत्या: {recent_receipts}
-    - अलीकडील खर्च: {recent_expenses}
+    [लाइव्ह दुकानाची खरी आकडेवारी (Live Shop Real Data)]:
+    - आजची विक्री: ₹{today_sales:,.2f}
+    - एकूण नोंदवलेली विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)
+    - बाजारातील एकूण उधारी येणे बाकी: ₹{pending_udhar:,.2f}
+    - प्रमुख उधारी ग्राहक: {', '.join(khata_summary) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'}
+    - कमी साठा असलेल्या वस्तू: {', '.join(low_summary) if low_summary else 'कोणत्याही वस्तूचा साठा कमी नाही.'}
+    - दुकानात उपलब्ध वस्तूंचा साठा: {', '.join(inv_summary) if inv_summary else 'साठ्यात वस्तू नाहीत.'}
+    - एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f}
+    - निव्वळ नफा (Net Margin): ₹{net_profit:,.2f}
+    - अलीकडील पावत्या: {', '.join(rec_summary) if rec_summary else 'पावत्या नाहीत.'}
+    - अलीकडील खर्च: {', '.join(exp_summary) if exp_summary else 'खर्च नाहीत.'}
     {('- विशिष्ट शोध परिणाम: ' + '; '.join(specific_context)) if specific_context else ''}
     """
 
     query_lang = detect_msg_language(req.message, req.lang or "mr")
     is_marathi = (query_lang == "mr")
 
-    # Exact instructions from Streamlit commit 32e8d15 and e54dfe6
     language_instruction = (
         "You are an intelligent AI assistant for VernaLedger AI. Detect the language of "
         "the latest user query automatically and respond strictly in that same language: "
@@ -1027,12 +1038,10 @@ async def rag_chat(req: RAGChatRequest):
         "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
         "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
         "If answering in Marathi, write all names strictly in Marathi Devanagari script without brackets or English translations.\n"
+        "When answering about shop sales, credit, inventory, expenses, or profit, use the Live Shop Real Data and Specific Search Results above.\n"
         "Format monetary answers clearly and professionally. Use bold text or bullet points where appropriate.\n"
         "STRICT BREVITY: Answer ONLY what was specifically asked. Keep answers concise, factual, and strictly limited to the user's specific query ('जे विचारले तेवढेच मर्यादित व अचूक उत्तर द्या').\n"
-        "Item & Customer Names: When answering in Marathi use only Marathi names; when answering in English use only English names.\n"
-        "Do not invent internal project facts or database values. If a requested internal "
-        "fact is absent from the supplied context, say that it is not present in the "
-        "available context instead of guessing. Always follow the response-language instruction."
+        "Always follow the response-language instruction."
     )
 
     history_text = "\n".join(
@@ -1064,10 +1073,11 @@ async def rag_chat(req: RAGChatRequest):
         try:
             genai.configure(api_key=api_key)
             generation_config = {
-                "temperature": 0.3,
+                "temperature": 0.2,
                 "max_output_tokens": 1024,
             }
-            models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-lite-latest', 'gemini-pro']
+            # Priority fast models working right now
+            models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
