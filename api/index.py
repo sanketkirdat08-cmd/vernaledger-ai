@@ -602,28 +602,100 @@ TTS_VOICES = {
     "es": "es-ES-ElviraNeural", "fr": "fr-FR-DeniseNeural",
 }
 
-def prepare_speech_phonetics(text: str) -> str:
-    """Optimize Marathi and English phonetic pronunciation for Edge-TTS and Web Speech."""
-    clean = re.sub(r"[*#_`]", "", text or "")
-    clean = re.sub(r"\bAI\b", "ए आय", clean, flags=re.IGNORECASE)
-    clean = clean.replace("Attar", "Atar").replace("अत्तार", "अतार")
-    clean = clean.replace("Kaisar", "कैसर")
-    clean = clean.replace("Dhavale", "ढवळे").replace("dhavale", "ढवळे")
-    clean = clean.replace("Mulik", "मुळीक").replace("mulik", "मुळीक")
-    clean = clean.replace("Gavali", "गवळी").replace("gavali", "गवळी")
-    clean = clean.replace("AGCOE", "ए जी सी ओ ई")
-    clean = clean.replace("DBATU", "डी बाटू")
-    clean = clean.replace("Rs.", "रुपये").replace("Rs", "रुपये")
-    return clean
+def prepare_speech_phonetics(audio_text: str, tts_voice: str = "mr-IN-AarohiNeural") -> str:
+    """Accurate Marathi and English phonetic pronunciation engine directly from Streamlit."""
+    if not audio_text:
+        return ""
+    audio_text = re.sub(r"[*#_`]", "", audio_text)
+    devanagari_count = len(re.findall(r"[\u0900-\u097f]", audio_text))
+    if devanagari_count:
+        audio_text = re.sub(r"\s*[\(\[][A-Za-z][^\)\]]*[\)\]]", "", audio_text)
+
+    if tts_voice.startswith("mr-") or devanagari_count >= 2:
+        audio_text = re.sub(r"\bVernaLedger\s*AI\b", "व्हर्ना लेजर ए आय", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bVernaLedger\b", "व्हर्ना लेजर", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bUPI\b", "यु पी आय", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bSMS\b", "एस एम एस", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCOE\b", "ए जी सी ओ ई", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bDBATU\b", "डी बाटू", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
+
+        # Convert English name occurrences to Marathi so Aarohi won't stumble on English
+        audio_text = re.sub(r"\bSanket\s+Kirdat\b", "संकेत किर-दत", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bSanket\b", "संकेत", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bSakshi\s+Bhagat\b", "साक्षी भगत", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bVaishnavi\s+(?:Dhavale|Dhawale)\b", "वैष्णवी ढव्-ळे", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+(?:Atar|Attar)(?:\s+Sir)?\b", "प्राध्यापक कै-सर अतार सर", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bLead\s+Developer\b", "प्रमुख विकासक", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bProject\s+Guide\b", "प्रकल्प मार्गदर्शक", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bDevelopers\b", "इतर विकासक", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bCollege\b", "महाविद्यालय", audio_text, flags=re.IGNORECASE)
+
+        pronunciation_hints = {
+            "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
+            "ढवाळे": "ढव्-ळे",
+            "ढवळे": "ढव्-ळे",
+            "अरविंद गवळी": "अरविंद गव्-ळी",
+            "गवाली": "गव्-ळी",
+            "गवळी": "गव्-ळी",
+            "कैसर अतार": "कै-सर अतार",
+            "कॅसर अतार": "कै-सर अतार",
+            "कैसर अत्तार": "कै-सर अतार",
+            "कॅसर अत्तार": "कै-सर अतार",
+            "कैसर": "कै-सर",
+            "कॅसर": "कै-सर",
+            "कौसर": "कै-सर",
+            "अतार सर": "अतार सर",
+            "किर्दत": "किर-दत",
+            "किरदत": "किर-दत",
+            "साक्षी भगत": "साक्षी भगत",
+            "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
+            "मुळीक": "मुळीक",
+            "मुलिक": "मुळीक",
+        }
+        for name, pronunciation in pronunciation_hints.items():
+            audio_text = audio_text.replace(name, pronunciation)
+        audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
+
+    elif tts_voice.startswith("en-"):
+        audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCE\b", "A G C E", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCOE\b", "A G C O E", audio_text, flags=re.IGNORECASE)
+        en_pronunciations = {
+            "Kirdat": "Keer-dat",
+            "Atar": "Ah-tar",
+            "Attar": "Ah-tar",
+            "Dhavale": "Dhaw-ley",
+            "Dhawale": "Dhaw-ley",
+            "Mulik": "Moo-lik",
+            "Gavali": "Gawali",
+        }
+        for name, pronunciation in en_pronunciations.items():
+            audio_text = audio_text.replace(name, pronunciation)
+
+    audio_text = re.sub(r"[ \t]+", " ", audio_text)
+    audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
+    audio_text = re.sub(r" *([.!?।]) *", r"\1 ", audio_text)
+    audio_text = re.sub(r"\s*\n\s*", ". ", audio_text).strip()
+    return audio_text
 
 def get_tts_voice(text: str, language: str = "") -> str:
-    """Exact Edge TTS voice selection: Neerja for English, Aarohi for Marathi."""
+    """Exact Edge TTS voice selection from Streamlit."""
     clean = text or ""
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
     latin_count = len(re.findall(r"[A-Za-z]", clean))
 
     if devanagari_count >= 2 or language == "mr":
         return "mr-IN-AarohiNeural"
+    if (latin_count > devanagari_count and latin_count >= 3) or language == "en":
+        return "en-IN-NeerjaNeural"
+    return "mr-IN-AarohiNeural"
     if (latin_count > devanagari_count and latin_count >= 3) or language == "en":
         return "en-IN-NeerjaNeural"
     return "mr-IN-AarohiNeural"
@@ -636,10 +708,17 @@ async def generate_tts(req: TTSRequest):
     if not edge_tts:
         raise HTTPException(status_code=500, detail="Edge TTS library is not installed")
 
-    clean_speech = prepare_speech_phonetics(req.text)
-    voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(clean_speech)
+    voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(req.text)
+    clean_speech = prepare_speech_phonetics(req.text, voice)
+    if len(clean_speech) > 750:
+        spoken_text = clean_speech[:750]
+        sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
+        if sentence_end and sentence_end.end() > 600:
+            spoken_text = spoken_text[:sentence_end.end()]
+    else:
+        spoken_text = clean_speech
     try:
-        communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
+        communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%")
         audio_bytes = bytearray()
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
@@ -898,70 +977,100 @@ async def rag_chat(req: RAGChatRequest):
     net_profit = total_sales - total_expenses
     conn.close()
 
+    # Targeted Query Entity Search (Directly from Streamlit)
+    specific_context = []
+    clean_q_words = re.findall(r'[\u0900-\u097fA-Za-z]+', req.message)
+    for w in clean_q_words:
+        if len(w) >= 3 and w.lower() not in ["किती", "आहे", "सांगा", "माहिती", "काय", "कसे", "कोठे", "येणे", "बाकी", "shop", "what", "how"]:
+            c_match = conn.execute("SELECT customer_name, SUM(CASE WHEN transaction_type = 'Credit Given' THEN amount ELSE -amount END) as bal FROM customer_khata WHERE customer_name LIKE ? GROUP BY customer_name", (f"%{w}%",)).fetchone()
+            if c_match and c_match[0]:
+                specific_context.append(f"शोधलेला ग्राहक '{c_match[0]}': शिल्लक उधारी = {float(c_match[1] or 0):,.2f} रुपये")
+            s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w}%",)).fetchall()
+            for sm in s_match:
+                specific_context.append(f"शोधलेली वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
+
     db_context = f"""
-    LIVE STORE DATABASE CONTEXT:
-    - Lifetime Gross Sales: Rs. {total_sales:,.2f} ({bill_count} receipts recorded)
-    - Today's Sales: Rs. {today_sales:,.2f}
-    - Total Store Expenses: Rs. {total_expenses:,.2f} | Today's Expenses: Rs. {today_expenses:,.2f}
-    - Net Margin / Profit: Rs. {net_profit:,.2f}
-    - Total Pending Customer Credit (उधारी): Rs. {pending_udhar:,.2f}
-    - Customer Pending Dues (Sorted Highest to Lowest): {sorted_dues}
-    - Low Stock Alert Items: {low_stock}
-    - Complete Store Stock: {all_inv}
-    - Recent Bills: {recent_receipts}
-    - Recent Expenses: {recent_expenses}
-    - Project Guide: Kaisar Atar Sir (प्राध्यापक कैसर अतार सर).
-    - Developers: Sanket Kirdat (Lead Developer - संकेत किर्दत), Sakshi Bhagat (साक्षी भगत), Vaishnavi Dhavale (वैष्णवी ढवळे), Rushikesh Mulik (ऋषिकेश मुळीक).
-    - College: Arvind Gavali College of Engineering (अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग), Satara, Maharashtra.
+    [लाइव्ह दुकानाची आकडेवारी (Live Shop Statistics)]:
+    - आजची विक्री: {today_sales:,.2f} रुपये
+    - एकूण विक्री: {total_sales:,.2f} रुपये ({bill_count} पावत्या)
+    - बाजारातील एकूण उधारी येणे बाकी: {pending_udhar:,.2f} रुपये
+    - प्रमुख उधारी ग्राहक (शिल्लक): {sorted_dues[:5]}
+    - कमी साठा (Low Stock Warning): {low_stock}
+    - संपूर्ण साठा: {all_inv}
+    - एकूण व्यवसाय खर्च: {total_expenses:,.2f} रुपये
+    - निव्वळ नफा (Net Margin): {net_profit:,.2f} रुपये
+    - अलीकडील पावत्या: {recent_receipts}
+    - अलीकडील खर्च: {recent_expenses}
+    {('- विशिष्ट शोध परिणाम: ' + '; '.join(specific_context)) if specific_context else ''}
     """
 
     query_lang = detect_msg_language(req.message, req.lang or "mr")
     is_marathi = (query_lang == "mr")
 
-    if is_marathi:
-        lang_instruction = """CRITICAL STRICT LANGUAGE RULE:
-The user asked in Marathi (मराठी). You MUST reply ONLY and EXCLUSIVELY in pure, natural Marathi (मराठी Devanagari script).
-DO NOT use English words or English sentences.
-Write amounts with 'रुपये' or '₹'.
-Keep the reply concise, polite, and strictly in Marathi."""
-    else:
-        lang_instruction = """CRITICAL STRICT LANGUAGE RULE:
-The user asked in English. You MUST reply ONLY and EXCLUSIVELY in clear, professional English.
-DO NOT use Devanagari script. Every sentence must be in English."""
+    # Exact instructions from Streamlit commit 32e8d15 and e54dfe6
+    language_instruction = (
+        "You are an intelligent AI assistant for VernaLedger AI. Detect the language of "
+        "the latest user query automatically and respond strictly in that same language: "
+        "English queries, including Romanized English, require professional, clear English; "
+        "Marathi queries require natural, grammatically correct Marathi; Hindi queries "
+        "require fluent Hindi. Do not translate the query or answer into another language "
+        "and do not use a default language."
+    )
+
+    assistant_instruction = (
+        "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
+        "project details, creators, developers, guide, college, or ledger records such as receipts, credit, "
+        "expenses, and stock, use the supplied reference context as the source of truth.\n"
+        "When asked who made the project, who the developers are, or who the guide is, ALWAYS explicitly and completely state the names:\n"
+        "- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)\n"
+        "- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)\n"
+        "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
+        "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
+        "If answering in Marathi, write all names strictly in Marathi Devanagari script without brackets or English translations.\n"
+        "Format monetary answers clearly and professionally. Use bold text or bullet points where appropriate.\n"
+        "STRICT BREVITY: Answer ONLY what was specifically asked. Keep answers concise, factual, and strictly limited to the user's specific query ('जे विचारले तेवढेच मर्यादित व अचूक उत्तर द्या').\n"
+        "Item & Customer Names: When answering in Marathi use only Marathi names; when answering in English use only English names.\n"
+        "Do not invent internal project facts or database values. If a requested internal "
+        "fact is absent from the supplied context, say that it is not present in the "
+        "available context instead of guessing. Always follow the response-language instruction."
+    )
+
+    rag_context = f"""
+    The following are reference facts only. They do not set the response language.
+
+    [Reference context]:
+    - Project: VernaLedger AI
+    - Project Guide: प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
+    - Lead Developer: संकेत किर्दत (Sanket Kirdat)
+    - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
+    - College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
+    - Database Context:
+    {db_context}
+    - Database Action Result:
+    {action_status or "No database action was performed."}
+
+    [Recent conversation context]:
+    {history_text or "(none)"}
+    """
 
     api_key = get_api_key()
     answer = None
     if api_key and genai:
         try:
             genai.configure(api_key=api_key)
-            history_text = "\n".join(
-                f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
-                for item in (req.chat_history or [])[-10:]
-            )
-            prompt = f"""
-            You are VernaLedger AI, a high-intelligence, ultra-precise retail advisor for Indian Kirana stores.
-            {db_context}
-            
-            Recent conversation:
-            {history_text or "(none)"}
-
-            User Question: "{req.message}"
-            {f"Action Performed: {action_status}" if action_status else ""}
-
-            CRITICAL ANSWERING RULES:
-            1. STRICT BREVITY: Answer ONLY what was specifically asked. Keep answers concise, factual, and strictly limited to the user's specific query ('जे विचारले तेवढेच मर्यादित व अचूक उत्तर द्या').
-            2. DO NOT provide long greetings, unprompted financial summaries, or unnecessary paragraphs.
-            3. {lang_instruction}
-            4. Item & Customer Names:
-               - When answering in Marathi: Use ONLY the Marathi name (e.g. 'साखर', 'सागर पाटील'). Never include English in parentheses.
-               - When answering in English: Use ONLY the English name (e.g. 'Sugar', 'Sagar Patil'). Never include Marathi.
-            5. Provide exact numbers with ₹ and concise bullet points where appropriate.
-            """
-            models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash']
+            generation_config = {
+                "temperature": 0.3,
+                "max_output_tokens": 1024,
+            }
+            models_to_try = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-lite-latest', 'gemini-pro']
             for m in models_to_try:
                 try:
-                    model = genai.GenerativeModel(m)
-                    res = model.generate_content(prompt)
+                    model = genai.GenerativeModel(
+                        model_name=m,
+                        system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
+                        generation_config=generation_config
+                    )
+                    res = model.generate_content([rag_context, f"[Latest user query — answer this query]\n{req.message}"])
                     if res and res.text:
                         answer = res.text.strip()
                         break
@@ -1032,9 +1141,9 @@ DO NOT use Devanagari script. Every sentence must be in English."""
                 )
             elif any(word in normalized for word in ["कोणी", "developer", "developers", "project", "प्रकल्प", "guide", "मार्गदर्शक", "kaisar", "atar", "attar", "ढवळे", "मुळीक", "गवळी"]):
                 answer = (
-                    "Project Guide: Kaisar Atar Sir. Developers: Sanket Kirdat (Lead Developer), Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
+                    "Project Guide: Prof. Kaisar Atar Sir. Lead Developer: Sanket Kirdat. Developers: Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
                     if is_english else
-                    "प्रकल्प मार्गदर्शक: प्राध्यापक कैसर अतार सर. विकासक: संकेत किर्दत (मुख्य विकासक), साक्षी भगत, वैष्णवी ढवळे आणि ऋषिकेश मुळीक. महाविद्यालय: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा."
+                    "प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर. प्रमुख विकासक: संकेत किर्दत. इतर विकासक: साक्षी भगत, वैष्णवी ढवळे आणि ऋषिकेश मुळीक. महाविद्यालय: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा."
                 )
             else:
                 answer = (
@@ -1047,9 +1156,17 @@ DO NOT use Devanagari script. Every sentence must be in English."""
     audio_data = None
     if req.voice_output and edge_tts:
         try:
-            clean_speech = prepare_speech_phonetics(answer)
-            voice = get_tts_voice(clean_speech, query_lang)
-            communicate = edge_tts.Communicate(clean_speech[:350], voice, rate="+10%")
+            voice = get_tts_voice(answer, query_lang)
+            clean_speech = prepare_speech_phonetics(answer, voice)
+            if len(clean_speech) > 750:
+                spoken_text = clean_speech[:750]
+                sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
+                if sentence_end and sentence_end.end() > 600:
+                    spoken_text = spoken_text[:sentence_end.end()]
+            else:
+                spoken_text = clean_speech
+
+            communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
