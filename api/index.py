@@ -278,7 +278,9 @@ class ExpenseRequest(BaseModel):
     notes: Optional[str] = ""
 
 class RAGChatRequest(BaseModel):
-    message: str
+    message: Optional[str] = ""
+    audio_data: Optional[str] = None
+    mime_type: Optional[str] = "audio/webm"
     chat_history: Optional[List[Dict[str, Any]]] = []
     lang: Optional[str] = "mr"
     voice_output: Optional[bool] = False
@@ -996,81 +998,10 @@ def add_expense(req: ExpenseRequest):
 # -----------------------------------------------------------------------------
 @app.post("/api/rag-chat")
 async def rag_chat(req: RAGChatRequest):
-    # 1. Voice Action Command Detection & Auto-Execution
-    action_status = ""
-    user_msg = req.message.strip()
-
-    # (A) उधारी नोंदवणे (Add Khata Credit)
-    if any(kw in user_msg for kw in ["उधारी नोंदव", "उधारी लिही", "उधारी कर", "उधारी झाली", "उधारी दिली", "उधारी नोंद", "उधारी सेव्ह", "credit दे"]):
-        try:
-            phone_m = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", user_msg)
-            phone = phone_m.group(0) if phone_m else ""
-            txt = user_msg.replace(phone, "") if phone else user_msg
-            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
-            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-            ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
-            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
-            cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
-            if amount > 0:
-                conn = get_db()
-                conn.execute(
-                    "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (cust_name, phone, amount, "Credit Given", date.today().strftime("%Y-%m-%d"), "", user_msg)
-                )
-                conn.commit()
-                conn.close()
-                action_status = f"✅ Customer Khata मध्ये {cust_name} साठी ₹{amount:,.2f} उधारी नोंदवली गेली."
-        except Exception as e:
-            action_status = f"उधारी नोंद त्रुटी: {e}"
-
-    # (B) जमा / वसुली नोंदवणे (Record Customer Payment)
-    elif any(kw in user_msg for kw in ["जमा कर", "जमा लिही", "जमा नोंदव", "जमा झाले", "पैसे दिले", "पावती कर", "पेमेंट जमा", "हप्ता दिला"]):
-        try:
-            phone_m = re.search(r"(?<!\d)[6-9]\d{9}(?!\d)", user_msg)
-            phone = phone_m.group(0) if phone_m else ""
-            txt = user_msg.replace(phone, "") if phone else user_msg
-            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", txt)
-            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-            ignored = {"जमा", "कर", "करा", "लिही", "लिहा", "नोंदव", "नोंदवा", "झाले", "झाली", "पैसे", "दिले", "पावती", "पेमेंट", "हप्ता", "दिला", "सेव्ह", "रुपये", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
-            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in txt.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
-            cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
-            if amount > 0:
-                conn = get_db()
-                conn.execute(
-                    "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (cust_name, phone, amount, "Payment Received", date.today().strftime("%Y-%m-%d"), "", user_msg)
-                )
-                conn.commit()
-                conn.close()
-                action_status = f"✅ Customer Khata मध्ये {cust_name} यांच्याकडून ₹{amount:,.2f} जमा नोंदवले गेले."
-        except Exception as e:
-            action_status = f"जमा नोंद त्रुटी: {e}"
-
-    # (C) व्यवसाय खर्च नोंदवणे (Record Expense)
-    elif any(kw in user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "खर्च सेव्ह", "expense add"]):
-        try:
-            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
-            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-            ignored = {"खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला", "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"}
-            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
-            exp_title = " ".join(p for p in parts if p).strip() or "दुकान खर्च"
-            if amount > 0:
-                conn = get_db()
-                conn.execute(
-                    "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
-                    (exp_title, amount, "दुकान खर्च", date.today().strftime("%Y-%m-%d"), user_msg)
-                )
-                conn.commit()
-                conn.close()
-                action_status = f"✅ दुकान खर्च नोंद: '{exp_title}' साठी ₹{amount:,.2f} सेव्ह झाले."
-        except Exception as e:
-            action_status = f"खर्च नोंद त्रुटी: {e}"
-
-    # 2. Build Rich Live SQLite Context
     conn = get_db()
+    today_str = date.today().strftime("%Y-%m-%d")
     total_sales = conn.execute("SELECT SUM(grand_total) FROM receipts").fetchone()[0] or 0.0
     bill_count = conn.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] or 0
-    today_str = date.today().strftime("%Y-%m-%d")
     today_sales = conn.execute("SELECT SUM(grand_total) FROM receipts WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
     recent_receipts = [dict(r) for r in conn.execute("SELECT vendor_name, date, grand_total FROM receipts ORDER BY id DESC LIMIT 5").fetchall()]
     
@@ -1079,7 +1010,6 @@ async def rag_chat(req: RAGChatRequest):
     paid_sum = conn.execute("SELECT COALESCE(SUM(amount), 0) FROM customer_khata WHERE transaction_type LIKE '%Payment%' OR transaction_type LIKE '%जमा%' OR transaction_type LIKE '%वसुली%'").fetchone()[0] or 0.0
     pending_udhar = max(0.0, credit_sum - paid_sum)
 
-    # Calculate individual customer balances
     cust_dues = {}
     for row in conn.execute("SELECT customer_name, amount, transaction_type FROM customer_khata").fetchall():
         c_name = (row["customer_name"] or "").strip()
@@ -1092,34 +1022,14 @@ async def rag_chat(req: RAGChatRequest):
             cust_dues[c_name] = cust_dues.get(c_name, 0.0) - a
     sorted_dues = sorted([(k, max(0.0, v)) for k, v in cust_dues.items() if v > 0], key=lambda x: x[1], reverse=True)
 
-    # Inventory context
     all_inv = [dict(r) for r in conn.execute("SELECT item_name, stock_qty, unit, alert_limit, selling_price FROM shop_inventory ORDER BY stock_qty ASC").fetchall()]
     low_stock = [i for i in all_inv if i["stock_qty"] <= i["alert_limit"]]
 
-    # Expenses & Profit context
     total_expenses = conn.execute("SELECT SUM(amount) FROM business_expenses").fetchone()[0] or 0.0
     today_expenses = conn.execute("SELECT SUM(amount) FROM business_expenses WHERE date = ?", (today_str,)).fetchone()[0] or 0.0
     recent_expenses = [dict(r) for r in conn.execute("SELECT expense_title, category, amount, date FROM business_expenses ORDER BY id DESC LIMIT 5").fetchall()]
     net_profit = total_sales - total_expenses
 
-    # Targeted Query Entity Search (Dynamic Lookup from Streamlit)
-    specific_context = []
-    clean_q_words = re.findall(r'[\u0900-\u097fA-Za-z]+', req.message)
-    for w in clean_q_words:
-        w_clean = re.sub(r'(?:ला|ना|कडे|च्याकडे|ची|चे|चा|कडून)$', '', w).strip()
-        if len(w_clean) >= 2 and w_clean.lower() not in ["किती", "आहे", "सांगा", "माहिती", "काय", "कसे", "कोठे", "येणे", "बाकी", "shop", "what", "how", "give"]:
-            c_matches = conn.execute("SELECT customer_name FROM customer_khata WHERE customer_name LIKE ?", (f"%{w_clean}%",)).fetchall()
-            if c_matches:
-                found_name = c_matches[0]["customer_name"]
-                found_name_clean = re.sub(r"\s+(?:ला|ना|कडे|च्याकडे|ची|चे|चा|कडून)$", "", found_name).strip()
-                bal = cust_dues.get(found_name_clean, 0.0)
-                specific_context.append(f"ग्राहक '{found_name_clean}': बाकी उधारी = ₹{bal:,.2f}")
-            s_match = conn.execute("SELECT item_name, stock_qty, unit, selling_price FROM shop_inventory WHERE item_name LIKE ?", (f"%{w_clean}%",)).fetchall()
-            for sm in s_match:
-                specific_context.append(f"वस्तू '{sm[0]}': साठा = {sm[1]} {sm[2]}, दर = ₹{sm[3]}")
-    conn.close()
-
-    # Build clean human-readable Marathi strings for AI context
     khata_summary = [f"{name}: ₹{amt:,.2f} उधारी बाकी" for name, amt in sorted_dues[:5]]
     inv_summary = [f"{item['item_name']}: {item['stock_qty']} {item['unit']} (दर: ₹{item['selling_price']})" for item in all_inv]
     low_summary = [f"{item['item_name']} (कमी साठा: शिल्लक {item['stock_qty']} {item['unit']}, अलर्ट: {item['alert_limit']})" for item in low_stock]
@@ -1138,153 +1048,187 @@ async def rag_chat(req: RAGChatRequest):
     - निव्वळ नफा (Net Margin): ₹{net_profit:,.2f}
     - अलीकडील पावत्या: {', '.join(rec_summary) if rec_summary else 'पावत्या नाहीत.'}
     - अलीकडील खर्च: {', '.join(exp_summary) if exp_summary else 'खर्च नाहीत.'}
-    {('- विशिष्ट शोध परिणाम: ' + '; '.join(specific_context)) if specific_context else ''}
-    """
-
-    query_lang = detect_msg_language(req.message, req.lang or "mr")
-    is_marathi = (query_lang == "mr")
-
-    language_instruction = (
-        "You are an intelligent AI assistant for VernaLedger AI. Detect the language of "
-        "the latest user query automatically and respond strictly in that same language: "
-        "English queries, including Romanized English, require professional, clear English; "
-        "Marathi queries require natural, grammatically correct Marathi; Hindi queries "
-        "require fluent Hindi. Do not translate the query or answer into another language "
-        "and do not use a default language."
-    )
-
-    assistant_instruction = (
-        "Choose how to answer based on the user's intent. For questions about VernaLedger AI, "
-        "project details, creators, developers, guide, college, or ledger records such as receipts, credit, "
-        "expenses, and stock, use the supplied reference context as the source of truth.\n"
-        "When asked who made the project, who the developers are, or who the guide is, ALWAYS explicitly and completely state the names:\n"
-        "- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)\n"
-        "- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)\n"
-        "- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)\n"
-        "- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)\n"
-        "If answering in Marathi, write all names strictly in Marathi Devanagari script without brackets or English translations.\n"
-        "When answering about shop sales, credit, inventory, expenses, or profit, use the Live Shop Real Data and Specific Search Results above.\n"
-        "Format monetary answers clearly and professionally. Use bold text or bullet points where appropriate.\n"
-        "STRICT BREVITY: Answer ONLY what was specifically asked. Keep answers concise, factual, and strictly limited to the user's specific query ('जे विचारले तेवढेच मर्यादित व अचूक उत्तर द्या').\n"
-        "Always follow the response-language instruction."
-    )
-
-    history_text = "\n".join(
-        f"{item.get('role', 'user')}: {item.get('parts', [{}])[0].get('text', '')}"
-        for item in (req.chat_history or [])[-10:]
-    )
-
-    rag_context = f"""
-    The following are reference facts only. They do not set the response language.
-
-    [Reference context]:
-    - Project: VernaLedger AI
-    - Project Guide: प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
-    - Lead Developer: संकेत किर्दत (Sanket Kirdat)
-    - Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
-    - College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
-    - Database Context:
-    {db_context}
-    - Database Action Result:
-    {action_status or "No database action was performed."}
-
-    [Recent conversation context]:
-    {history_text or "(none)"}
     """
 
     api_key = get_api_key()
+    action_status = ""
+    user_transcript = ""
     answer = None
-    if api_key and genai:
+
+    # -------------------------------------------------------------------------
+    # BRANCH A: NATIVE MULTIMODAL AUDIO PROCESSING WITH GEMINI 3.8 FLASH
+    # -------------------------------------------------------------------------
+    if req.audio_data and api_key and genai:
         try:
             genai.configure(api_key=api_key)
-            generation_config = {
-                "temperature": 0.2,
-                "max_output_tokens": 1024,
-            }
-            # Priority fast models working right now
-            models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
+            raw_b64 = req.audio_data
+            if "," in raw_b64:
+                raw_b64 = raw_b64.split(",", 1)[1]
+            audio_bytes = base64.b64decode(raw_b64)
+
+            mime = (req.mime_type or "audio/webm").split(";")[0].strip()
+            audio_part = {"mime_type": mime, "data": audio_bytes}
+
+            audio_prompt = f"""
+            You are VernaLedger AI, a state-of-the-art Native Multimodal Voice Assistant for Indian Kirana stores.
+            The user has provided a raw spoken audio voice message.
+            
+            TASKS:
+            1. Transcribe the user's spoken words accurately into `user_transcript` (in Marathi, Hindi, or English as spoken).
+            2. Understand their query or instruction:
+               - If they asked about shop sales, credit (उधारी), inventory/stock (साठा), profit (नफा), or store performance, answer factually using the Live Shop Real Data below.
+               - If they asked about project creators, guide, or college:
+                 * Project Guide: प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
+                 * Lead Developer: संकेत किर्दत (Sanket Kirdat)
+                 * Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
+                 * College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
+               - If they gave an accounting/billing voice command:
+                 * 'उधारी नोंदव' or 'credit': detected_action = 'CREDIT', customer_name, amount
+                 * 'जमा नोंदव' or 'पैसे आले': detected_action = 'PAYMENT', customer_name, amount
+                 * 'खर्च नोंदव' or 'expense': detected_action = 'EXPENSE', item_name, amount
+                 Otherwise: detected_action = 'NONE'
+            3. Respond in the EXACT SAME LANGUAGE as the user spoke (natural, fluent Marathi for Marathi queries, English for English queries). Keep the answer concise, accurate, and professional.
+            
+            OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
+            {{
+                "user_transcript": "<exact words spoken by user in Marathi/English>",
+                "answer": "<your clear, factual answer in the same language as user>",
+                "detected_action": "NONE",
+                "customer_name": "",
+                "amount": 0.0,
+                "item_name": ""
+            }}
+            
+            [Live Shop Real Data]:
+            {db_context}
+            """
+
+            models_to_try = ['models/gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest']
             for m in models_to_try:
                 try:
-                    model = genai.GenerativeModel(
-                        model_name=m,
-                        system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
-                        generation_config=generation_config
-                    )
-                    res = model.generate_content([rag_context, f"[Latest user query — answer this query]\n{req.message}"])
+                    model = genai.GenerativeModel(model_name=m)
+                    res = model.generate_content([audio_prompt, audio_part])
                     if res and res.text:
-                        answer = res.text.strip()
+                        clean_text = res.text.replace('```json', '').replace('```', '').strip()
+                        parsed = json.loads(clean_text)
+                        user_transcript = parsed.get("user_transcript", "")
+                        answer = parsed.get("answer", "")
+                        act = parsed.get("detected_action", "NONE")
+                        cust = parsed.get("customer_name", "").strip() or "ग्राहक"
+                        amt = float(parsed.get("amount", 0.0) or 0.0)
+                        item = parsed.get("item_name", "").strip() or "दुकान खर्च"
+
+                        # Execute detected actions directly in SQLite database
+                        if act == "CREDIT" and amt > 0:
+                            conn.execute(
+                                "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                (cust, "", amt, "Credit Given", today_str, "", user_transcript)
+                            )
+                            conn.commit()
+                            action_status = f"✅ Customer Khata मध्ये {cust} साठी ₹{amt:,.2f} उधारी नोंदवली गेली."
+                        elif act == "PAYMENT" and amt > 0:
+                            conn.execute(
+                                "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                (cust, "", amt, "Payment Received", today_str, "", user_transcript)
+                            )
+                            conn.commit()
+                            action_status = f"✅ Customer Khata मध्ये {cust} यांच्याकडून ₹{amt:,.2f} जमा नोंदवले गेले."
+                        elif act == "EXPENSE" and amt > 0:
+                            conn.execute(
+                                "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
+                                (item, amt, "दुकान खर्च", today_str, user_transcript)
+                            )
+                            conn.commit()
+                            action_status = f"✅ दुकान खर्च नोंद: '{item}' साठी ₹{amt:,.2f} सेव्ह झाले."
                         break
-                except Exception:
+                except Exception as ex_m:
+                    logger.warning(f"Audio model {m} failed: {ex_m}")
                     continue
         except Exception as e:
-            logger.error(f"Gemini error: {e}")
+            logger.error(f"Native audio processing failed: {e}")
 
+    # -------------------------------------------------------------------------
+    # BRANCH B: TEXT QUERY PROCESSING (KEYBOARD / PRE-TRANSCRIBED)
+    # -------------------------------------------------------------------------
     if not answer:
-        if action_status:
-            answer = action_status
-        else:
-            normalized = user_msg.casefold()
-            is_english = (query_lang == "en")
+        user_msg = (req.message or user_transcript or "").strip()
+        if not user_msg:
+            user_msg = "दुकान हिशोब माहिती"
 
-            # Helper for localized name in fallback
-            def clean_name(val):
-                if "(" in val and ")" in val:
-                    parts = val.split("(")
-                    return parts[1].replace(")", "").strip() if is_english else parts[0].strip()
-                return val
-
-            if any(word in normalized for word in ["कोणाकडे जास्त", "जास्त उधारी", "who owes", "highest credit", "highest due"]):
-                if sorted_dues:
-                    top_list = [f"{clean_name(name)}: ₹{amt:,.2f}" for name, amt in sorted_dues[:3]]
-                    answer = (
-                        f"Top pending dues: {', '.join(top_list)}. Total credit: ₹{pending_udhar:,.2f}."
-                        if is_english else
-                        f"सर्वात जास्त उधारी: {', '.join(top_list)}. एकूण बाकी उधारी: ₹{pending_udhar:,.2f}."
+        # Action detection for text
+        if any(kw in user_msg for kw in ["उधारी नोंदव", "उधारी लिही", "उधारी कर", "उधारी झाली", "उधारी दिली", "credit दे"]):
+            try:
+                amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
+                amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+                ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
+                parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+                cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
+                if amount > 0:
+                    conn.execute(
+                        "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (cust_name, "", amount, "Credit Given", today_str, "", user_msg)
                     )
-                else:
-                    answer = "No pending customer dues currently." if is_english else "सध्या कोणाकडेही उधारी बाकी नाही."
-            elif any(word in normalized for word in ["उधारी", "credit", "pending", "बाकी"]):
-                answer = (
-                    f"Total pending customer credit is ₹{pending_udhar:,.2f}."
-                    if is_english else
-                    f"एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे."
-                )
-            elif any(word in normalized for word in ["कमी साठा", "low stock", "साठा संपत", "out of stock"]):
-                if low_stock:
-                    items = ", ".join(f"{clean_name(item['item_name'])} ({item['stock_qty']} {item['unit']})" for item in low_stock)
-                    answer = (f"Low-stock items: {items}." if is_english else f"कमी साठा असलेल्या वस्तू: {items}.")
-                else:
-                    answer = "All items have sufficient stock." if is_english else "सर्व वस्तूंचा साठा मुबलक आहे."
-            elif any(word in normalized for word in ["साठा", "stock", "inventory"]):
-                answer = (
-                    f"There are {len(all_inv)} items in stock. Low stock items: {len(low_stock)}."
-                    if is_english else
-                    f"दुकानात एकूण {len(all_inv)} वस्तूंचा साठा आहे. यापैकी {len(low_stock)} वस्तूंचा साठा कमी आहे."
-                )
-            elif any(word in normalized for word in ["नफा", "profit", "margin", "खर्च", "expense"]):
-                answer = (
-                    f"Total expenses: ₹{total_expenses:,.2f}. Net margin: ₹{net_profit:,.2f}."
-                    if is_english else
-                    f"एकूण दुकान खर्च: ₹{total_expenses:,.2f}. निव्वळ नफा (Net Margin): ₹{net_profit:,.2f}."
-                )
-            elif any(word in normalized for word in ["आजची विक्री", "today's sales", "today sales"]):
-                answer = (
-                    f"Today's sales are ₹{today_sales:,.2f}."
-                    if is_english else
-                    f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे."
-                )
-            elif any(word in normalized for word in ["विक्री", "sales", "revenue", "हिशोब"]):
-                answer = (
-                    f"Today's sales: ₹{today_sales:,.2f}. Gross revenue: ₹{total_sales:,.2f} across {bill_count} bills."
-                    if is_english else
-                    f"आजची विक्री: ₹{today_sales:,.2f}. एकूण विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)."
-                )
-            elif any(word in normalized for word in ["कोणी", "developer", "developers", "project", "प्रकल्प", "guide", "मार्गदर्शक", "kaisar", "atar", "attar", "ढवळे", "मुळीक", "गवळी"]):
-                answer = (
-                    "Project Guide: Prof. Kaisar Atar Sir. Lead Developer: Sanket Kirdat. Developers: Sakshi Bhagat, Vaishnavi Dhavale and Rushikesh Mulik. College: Arvind Gavali College of Engineering, Satara, Maharashtra."
-                    if is_english else
-                    "प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर. प्रमुख विकासक: संकेत किर्दत. इतर विकासक: साक्षी भगत, वैष्णवी ढवळे आणि ऋषिकेश मुळीक. महाविद्यालय: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा."
-                )
+                    conn.commit()
+                    action_status = f"✅ Customer Khata मध्ये {cust_name} साठी ₹{amount:,.2f} उधारी नोंदवली गेली."
+            except Exception as e:
+                action_status = f"उधारी नोंद त्रुटी: {e}"
+
+        elif any(kw in user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "expense add"]):
+            try:
+                amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
+                amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+                ignored = {"खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला", "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"}
+                parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+                exp_title = " ".join(p for p in parts if p).strip() or "दुकान खर्च"
+                if amount > 0:
+                    conn.execute(
+                        "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
+                        (exp_title, amount, "दुकान खर्च", today_str, user_msg)
+                    )
+                    conn.commit()
+                    action_status = f"✅ दुकान खर्च नोंद: '{exp_title}' साठी ₹{amount:,.2f} सेव्ह झाले."
+            except Exception as e:
+                action_status = f"खर्च नोंद त्रुटी: {e}"
+
+        query_lang = detect_msg_language(user_msg, req.lang or "mr")
+        is_english = (query_lang == "en")
+
+        language_instruction = (
+            "Detect the user language automatically. If the user asked in English, answer in clear English. "
+            "If in Marathi, answer in natural grammatically correct Marathi. Keep the answer concise and factual."
+        )
+
+        assistant_instruction = """You are the intelligent AI assistant for VernaLedger AI.
+When asked about developers, creators, or project guide, ALWAYS explicitly state:
+- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
+- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)
+- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
+- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
+Use the Live Shop Real Data to answer store questions (sales, credit, inventory, expenses). Keep answers brief and factual."""
+
+        if api_key and genai:
+            try:
+                genai.configure(api_key=api_key)
+                models_to_try = ['models/gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest']
+                for m in models_to_try:
+                    try:
+                        model = genai.GenerativeModel(
+                            model_name=m,
+                            system_instruction=f"{language_instruction}\n\n{assistant_instruction}"
+                        )
+                        res = model.generate_content([db_context, f"[User Query]\n{user_msg}"])
+                        if res and res.text:
+                            answer = res.text.strip()
+                            break
+                    except Exception:
+                        continue
+            except Exception as e:
+                logger.error(f"Text Gemini error: {e}")
+
+        # Fallback if AI call failed
+        if not answer:
+            if action_status:
+                answer = action_status
             else:
                 answer = (
                     f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
@@ -1292,21 +1236,21 @@ async def rag_chat(req: RAGChatRequest):
                     f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
                 )
 
-    # 3. Edge TTS Voice Output (Auto voice speech if enabled with Streamlit exact voice logic)
+    conn.close()
+
+    # -------------------------------------------------------------------------
+    # STEP 3: HIGH-FIDELITY NEURAL VOICE SYNTHESIS (EDGE-TTS)
+    # -------------------------------------------------------------------------
     audio_data = None
-    if req.voice_output and edge_tts:
+    if req.voice_output and edge_tts and answer:
         try:
-            voice = get_tts_voice(answer, query_lang)
+            detected_lang = detect_msg_language(answer, req.lang or "mr")
+            voice = get_tts_voice(answer, detected_lang)
             clean_speech = prepare_speech_phonetics(answer, voice)
             if len(clean_speech) > 750:
-                spoken_text = clean_speech[:750]
-                sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
-                if sentence_end and sentence_end.end() > 600:
-                    spoken_text = spoken_text[:sentence_end.end()]
-            else:
-                spoken_text = clean_speech
+                clean_speech = clean_speech[:750]
 
-            communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%")
+            communicate = edge_tts.Communicate(clean_speech, voice, rate="+10%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
@@ -1314,10 +1258,11 @@ async def rag_chat(req: RAGChatRequest):
             b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
             audio_data = f"data:audio/mp3;base64,{b64_audio}"
         except Exception as e:
-            logger.warning(f"Voice output generation error: {e}")
+            logger.warning(f"Voice generation error: {e}")
 
     return {
         "success": True,
+        "user_transcript": user_transcript,
         "answer": answer,
         "action_status": action_status,
         "audio_data": audio_data

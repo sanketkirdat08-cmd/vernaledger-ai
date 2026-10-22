@@ -1629,89 +1629,173 @@ function speakWithBrowserVoice(text) {
 let ragSpeechRecognition = null;
 let isRagListening = false;
 let ragAutoSubmitTimer = null;
+let ragMediaRecorder = null;
+let ragAudioChunks = [];
+let isRagRecording = false;
+let ragRecordTimer = null;
+let ragRecordSeconds = 0;
 
-function initRagSpeech() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+// -----------------------------------------------------------------------------
+// NATIVE MULTIMODAL VOICE INTERACTION (GOOGLE GEMINI NATIVE AUDIO STREAM)
+// -----------------------------------------------------------------------------
+async function toggleRagVoice() {
+    if (isAiProcessing) return;
 
-    ragSpeechRecognition = new SpeechRecognition();
-    ragSpeechRecognition.continuous = false;
-    ragSpeechRecognition.interimResults = true;
-    ragSpeechRecognition.maxAlternatives = 3;
-    ragSpeechRecognition.lang = (state.lang === "en") ? "en-IN" : "mr-IN";
+    if (isRagRecording) {
+        stopRagNativeRecording();
+        return;
+    }
 
-    ragSpeechRecognition.onstart = () => {
-        isRagListening = true;
-        const btn = document.getElementById("btn-rag-mic");
-        if (btn) btn.classList.add("listening");
-        const status = document.getElementById("rag-voice-status");
-        if (status) {
-            status.innerText = (state.lang === "en") 
-                ? "🎙️ Listening live... speak clearly..." 
-                : "🎙️ मी ऐकत आहे... स्पष्ट बोला...";
-            status.style.display = "block";
-        }
-    };
+    // Check if getUserMedia is supported in this browser
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        fallbackWebSpeech();
+        return;
+    }
 
-    ragSpeechRecognition.onresult = (event) => {
-        let finalTranscript = "";
-        let interimTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
-            } else {
-                interimTranscript += event.results[i][0].transcript;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
             }
+        });
+
+        // Determine supported audio container
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
+                       MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
+                       MediaRecorder.isTypeSupported('audio/wav') ? 'audio/wav' : '';
         }
 
-        const inputField = document.getElementById("ai-user-input");
-        if (inputField) {
-            if (finalTranscript) {
-                const corrected = autoCorrectMarathiSpeech(finalTranscript.trim());
-                inputField.value = corrected;
-                if (ragAutoSubmitTimer) clearTimeout(ragAutoSubmitTimer);
-                ragAutoSubmitTimer = setTimeout(() => {
-                    submitAiChat();
-                }, 400);
-            } else if (interimTranscript) {
-                inputField.value = autoCorrectMarathiSpeech(interimTranscript);
+        ragMediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        ragAudioChunks = [];
+        isRagRecording = true;
+        ragRecordSeconds = 0;
+
+        const micBtn = document.getElementById("btn-rag-mic");
+        const statusEl = document.getElementById("rag-voice-status");
+        if (micBtn) {
+            micBtn.classList.add("listening");
+            micBtn.innerHTML = "⏹️";
+            micBtn.title = "रेकॉर्डिंग थांबवण्यासाठी टॅप करा";
+        }
+        if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे...</strong> (स्पष्ट बोला, पूर्ण झाल्यावर ⏹️ दाबा)`;
+        }
+
+        // Live seconds counter
+        ragRecordTimer = setInterval(() => {
+            ragRecordSeconds++;
+            if (statusEl && isRagRecording) {
+                statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे (${ragRecordSeconds}s)...</strong> (थांबवण्यासाठी ⏹️ दाबा)`;
             }
-        }
-    };
+            if (ragRecordSeconds >= 14) {
+                stopRagNativeRecording();
+            }
+        }, 1000);
 
-    ragSpeechRecognition.onerror = (event) => {
-        console.warn("RAG speech error:", event.error);
-        stopRagVoice();
-    };
+        ragMediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+                ragAudioChunks.push(e.data);
+            }
+        };
 
-    ragSpeechRecognition.onend = () => {
-        stopRagVoice();
-    };
+        ragMediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(track => track.stop());
+            clearInterval(ragRecordTimer);
+
+            if (micBtn) {
+                micBtn.classList.remove("listening");
+                micBtn.innerHTML = "🎙️";
+                micBtn.title = "माईक द्वारे थेट बोला";
+            }
+            if (statusEl) {
+                statusEl.style.display = "none";
+            }
+
+            if (ragAudioChunks.length === 0) return;
+
+            const finalMime = ragMediaRecorder.mimeType || 'audio/webm';
+            const audioBlob = new Blob(ragAudioChunks, { type: finalMime });
+
+            if (audioBlob.size < 500) {
+                console.warn("Audio too small, silence detected.");
+                return;
+            }
+
+            // Convert to Base64 data URL
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = async () => {
+                const base64Data = reader.result;
+                await submitNativeVoiceAi(base64Data, finalMime);
+            };
+        };
+
+        ragMediaRecorder.start(250);
+    } catch (err) {
+        console.warn("Microphone access error, falling back to Web Speech:", err);
+        fallbackWebSpeech();
+    }
 }
 
-function toggleRagVoice() {
+function stopRagNativeRecording() {
+    if (ragMediaRecorder && ragMediaRecorder.state !== "inactive") {
+        try { ragMediaRecorder.stop(); } catch (e) {}
+    }
+    isRagRecording = false;
+    clearInterval(ragRecordTimer);
+}
+
+// Fallback for browsers that block MediaRecorder or microphone
+function fallbackWebSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert("आपल्या ब्राऊझरमध्ये व्हॉइस इनपुट समर्थित नाही. कृपया खाली स्वतः टाईप करा.");
+        alert("आपल्या ब्राऊझरमध्ये मायक्रोफोन उपलब्ध नाही. कृपया स्वतः खाली टाईप करा.");
         return;
     }
 
     if (!ragSpeechRecognition) {
-        initRagSpeech();
+        ragSpeechRecognition = new SpeechRecognition();
+        ragSpeechRecognition.continuous = false;
+        ragSpeechRecognition.interimResults = true;
+        ragSpeechRecognition.lang = (state.lang === "en") ? "en-IN" : "mr-IN";
+
+        ragSpeechRecognition.onstart = () => {
+            isRagListening = true;
+            const btn = document.getElementById("btn-rag-mic");
+            if (btn) btn.classList.add("listening");
+            const status = document.getElementById("rag-voice-status");
+            if (status) {
+                status.innerText = "🎙️ ऐकत आहे... बोला...";
+                status.style.display = "block";
+            }
+        };
+
+        ragSpeechRecognition.onresult = (event) => {
+            let finalT = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
+            }
+            if (finalT) {
+                const corrected = autoCorrectMarathiSpeech(finalT.trim());
+                document.getElementById("ai-user-input").value = corrected;
+                stopRagVoice();
+                submitAiChat();
+            }
+        };
+
+        ragSpeechRecognition.onerror = () => stopRagVoice();
+        ragSpeechRecognition.onend = () => stopRagVoice();
     }
 
-    if (isRagListening) {
-        try { ragSpeechRecognition.stop(); } catch (e) {}
+    try {
+        ragSpeechRecognition.start();
+    } catch (e) {
         stopRagVoice();
-    } else {
-        ragSpeechRecognition.lang = (state.lang === "en") ? "en-IN" : "mr-IN";
-        try {
-            ragSpeechRecognition.start();
-        } catch (err) {
-            console.warn("RAG speech recognition could not start:", err);
-            stopRagVoice();
-        }
     }
 }
 
@@ -1738,16 +1822,91 @@ function askAiPrompt(text) {
     submitAiChat();
 }
 
+// Submit Native Spoken Voice Directly to Gemini Native Multimodal Model
+async function submitNativeVoiceAi(base64Audio, mimeType) {
+    if (isAiProcessing) return;
+    isAiProcessing = true;
+    stopCurrentAudio();
+
+    const historyContainer = document.getElementById("ai-chat-history");
+    const sendBtn = document.getElementById("btn-ai-send");
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<span>...</span> ⏳`;
+    }
+
+    // Add User Bubble with Audio Icon
+    const userBubble = document.createElement("div");
+    userBubble.className = "chat-bubble chat-user";
+    userBubble.innerHTML = `
+        <div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (व्हॉइस इनपुट)</div>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:1.1rem;">🎙️</span>
+            <span>व्हॉइस रेकॉर्डिंग पाठवत आहे...</span>
+        </div>
+    `;
+    historyContainer.appendChild(userBubble);
+    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+
+    // Add AI Typing Indicator
+    const aiBubble = document.createElement("div");
+    aiBubble.className = "chat-bubble chat-ai";
+    aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">🧠 जेमिनी मल्टिमोडल AI आवाज ऐकत आहे...</span>`;
+    historyContainer.appendChild(aiBubble);
+    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+
+    const voiceOutput = document.getElementById("ai-voice-toggle") ? document.getElementById("ai-voice-toggle").checked : true;
+
+    try {
+        const res = await apiCall("/api/rag-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "",
+                audio_data: base64Audio,
+                mime_type: mimeType,
+                lang: state.lang,
+                voice_output: voiceOutput,
+                chat_history: state.chatHistory.slice(-10)
+            })
+        });
+
+        const data = await res.json();
+
+        // Update user bubble with Gemini's exact native transcription
+        const spokenWords = data.user_transcript || "व्हॉइस ऑडिओ मेसेज";
+        userBubble.innerHTML = `
+            <div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (व्हॉइस इनपुट)</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:1.1rem;">🎙️</span>
+                <span>"${escapeHtml(spokenWords)}"</span>
+            </div>
+        `;
+        state.chatHistory.push({ role: "user", parts: [{ text: spokenWords }] });
+        state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
+
+        renderAiResponseBubble(aiBubble, data, voiceOutput);
+    } catch (err) {
+        aiBubble.innerHTML = `एरर: जेमिनी मल्टिमोडल व्हॉइस प्रोसेस होऊ शकला नाही. कृपया पुन्हा प्रयत्न करा.`;
+    } finally {
+        isAiProcessing = false;
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
+        }
+        historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+    }
+}
+
+// Submit Text Chat Message
 async function submitAiChat() {
-    if (isAiProcessing) return; // Prevent double submit
+    if (isAiProcessing) return;
 
     const input = document.getElementById("ai-user-input");
     const msg = input.value.trim();
     if (!msg) return;
 
-    // Stop any previously playing audio immediately
     stopCurrentAudio();
-
     isAiProcessing = true;
     input.value = "";
     const sendBtn = document.getElementById("btn-ai-send");
@@ -1757,14 +1916,12 @@ async function submitAiChat() {
     }
     const historyContainer = document.getElementById("ai-chat-history");
 
-    // Add User Bubble
     const userBubble = document.createElement("div");
     userBubble.className = "chat-bubble chat-user";
     userBubble.innerHTML = `<div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (You)</div>` + escapeHtml(msg);
     historyContainer.appendChild(userBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
-    // Add AI Typing Bubble
     const aiBubble = document.createElement("div");
     aiBubble.className = "chat-bubble chat-ai";
     aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">🧠 विचार करत आहे...</span>`;
@@ -1788,57 +1945,60 @@ async function submitAiChat() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "AI सर्व्हरशी संपर्क होऊ शकला नाही.");
 
-        // Record history
         state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
         state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
 
-        const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
-
-        const msgId = 'voice-' + Date.now();
-        const hasAudio = Boolean(data.audio_data);
-
-        aiBubble.innerHTML = `
-            <div>${formatted}</div>
-            ${data.action_status ? '<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ऑटो-ॲक्शन पूर्ण</div>' : ''}
-            ${hasAudio ? `
-                <div class="simple-voice-player" id="voice-player-${msgId}">
-                    <audio id="audio-${msgId}" src="${data.audio_data}" preload="metadata"></audio>
-                    <button class="voice-play-btn" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')" title="प्ले / थांबवा">▶</button>
-                    <div class="voice-slider-container">
-                        <input type="range" class="voice-seek-slider" id="seek-${msgId}" min="0" max="100" value="0" step="0.1"
-                               oninput="onVoiceSliderInput('${msgId}')" onchange="onVoiceSliderChange('${msgId}')" title="बोटाने पुढे-मागे ओढा">
-                    </div>
-                    <span class="voice-time" id="time-${msgId}">0:00</span>
-                </div>
-            ` : `
-                <div style="margin-top: 8px;">
-                    <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
-                        🔊 पुन्हा ऐका
-                    </button>
-                </div>
-            `}
-        `;
-
-        if (hasAudio) {
-            attachVoicePlayerListeners(msgId);
-            if (voiceOutput) {
-                togglePlayAudio(msgId);
-            }
-        } else if (voiceOutput) {
-            speakWithBrowserVoice(data.answer || "");
-        }
+        renderAiResponseBubble(aiBubble, data, voiceOutput);
     } catch (e) {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
     } finally {
         isAiProcessing = false;
-        const sendBtn = document.getElementById("btn-ai-send");
         if (sendBtn) {
             sendBtn.disabled = false;
             sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
         }
         historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+    }
+}
+
+// Common helper to render AI Bubble with minimalist 1-button touch seek player
+function renderAiResponseBubble(aiBubble, data, voiceOutput) {
+    const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+
+    const msgId = 'voice-' + Date.now();
+    const hasAudio = Boolean(data.audio_data);
+
+    aiBubble.innerHTML = `
+        <div>${formatted}</div>
+        ${data.action_status ? `<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ${data.action_status}</div>` : ''}
+        ${hasAudio ? `
+            <div class="simple-voice-player" id="voice-player-${msgId}">
+                <audio id="audio-${msgId}" src="${data.audio_data}" preload="metadata"></audio>
+                <button class="voice-play-btn" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')" title="प्ले / थांबवा">▶</button>
+                <div class="voice-slider-container">
+                    <input type="range" class="voice-seek-slider" id="seek-${msgId}" min="0" max="100" value="0" step="0.1"
+                           oninput="onVoiceSliderInput('${msgId}')" onchange="onVoiceSliderChange('${msgId}')" title="बोटाने पुढे-मागे ओढा">
+                </div>
+                <span class="voice-time" id="time-${msgId}">0:00</span>
+            </div>
+        ` : `
+            <div style="margin-top: 8px;">
+                <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
+                    🔊 पुन्हा ऐका
+                </button>
+            </div>
+        `}
+    `;
+
+    if (hasAudio) {
+        attachVoicePlayerListeners(msgId);
+        if (voiceOutput) {
+            togglePlayAudio(msgId);
+        }
+    } else if (voiceOutput) {
+        speakWithBrowserVoice(data.answer || "");
     }
 }
 
