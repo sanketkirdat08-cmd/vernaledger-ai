@@ -683,32 +683,35 @@ def detect_msg_language(text: str, requested: str = "mr") -> str:
     """Detect whether user query is in Marathi or English based on actual text first, fallback to requested."""
     clean = (text or "").strip()
     if not clean:
-        return requested if requested in ["mr", "en"] else "mr"
+        return requested if requested in ["mr", "en", "hi"] else "mr"
+
+    lower_clean = clean.lower()
+    if any(em in lower_clean for em in ["english madhe", "english mande", "in english", "speak in english", "answer in english", "इंग्रजीत", "इंग्लिश मध्ये"]):
+        return "en"
+    if any(mm in lower_clean for mm in ["marathi madhe", "marathi mande", "in marathi", "मराठीत", "मराठी मध्ये"]):
+        return "mr"
+    if any(hm in lower_clean for hm in ["hindi me", "hindi madhe", "in hindi", "हिंदी में", "हिन्दी मध्ये"]):
+        return "hi"
 
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
     latin_count = len(re.findall(r"[A-Za-z]", clean))
 
-    # 1. If message has Devanagari characters, it is 100% Marathi
     if devanagari_count >= 2:
-        return "mr"
+        return "hi" if requested == "hi" else "mr"
 
-    # 2. Check for common Marathi / Marathi-English phonetics (Hinglish/Maringlish)
     marathi_markers = [
         "ahe", "aahe", "nahi", "nahiy", "sanga", "kiti", "kay", "udhari", "kharch",
         "vikri", "satha", "pavti", "hishob", "konakade", "koni", "namaskar",
         "dili", "dile", "ghetle", "zale", "jhale", "kar", "kara", "lihi", "dya",
         "साखर", "तेल", "गहू", "तांदूळ", "चहा", "साबण", "दुकान", "बाकी"
     ]
-    lower_clean = clean.lower()
     if any(m in lower_clean for m in marathi_markers):
         return "mr"
 
-    # 3. If predominantly Latin letters without Marathi markers, it's English
     if latin_count > devanagari_count and latin_count >= 3:
         return "en"
 
-    # 4. Fallback to requested language
-    return requested if requested in ["mr", "en"] else "mr"
+    return requested if requested in ["mr", "en", "hi"] else "mr"
 
 TTS_VOICES = {
     "mr": "mr-IN-AarohiNeural", "en": "en-IN-NeerjaNeural",
@@ -802,18 +805,24 @@ def prepare_speech_phonetics(audio_text: str, tts_voice: str = "mr-IN-AarohiNeur
     return audio_text
 
 def get_tts_voice(text: str, language: str = "") -> str:
-    """Exact Edge TTS voice selection from Streamlit."""
+    """Intelligent Edge TTS voice selection based on the actual text being spoken."""
     clean = text or ""
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
     latin_count = len(re.findall(r"[A-Za-z]", clean))
 
-    if devanagari_count >= 2 or language == "mr":
+    # Priority 1: Direct inspection of response text characters
+    if latin_count > devanagari_count and latin_count >= 10:
+        return "en-IN-NeerjaNeural"
+    if devanagari_count >= 2:
+        if language == "hi" or any(hw in clean for hw in ["नमस्ते", "हूँ", "हैं", "किया गया", "किए", "चाहिए"]):
+            return "hi-IN-SwaraNeural"
         return "mr-IN-AarohiNeural"
-    if (latin_count > devanagari_count and latin_count >= 3) or language == "en":
+
+    # Priority 2: Fallback to requested language
+    if language == "en":
         return "en-IN-NeerjaNeural"
-    return "mr-IN-AarohiNeural"
-    if (latin_count > devanagari_count and latin_count >= 3) or language == "en":
-        return "en-IN-NeerjaNeural"
+    elif language == "hi":
+        return "hi-IN-SwaraNeural"
     return "mr-IN-AarohiNeural"
 
 # -----------------------------------------------------------------------------

@@ -1557,8 +1557,31 @@ function autoCorrectMarathiSpeech(text) {
     if (!text) return "";
     let corrected = text;
     const corrections = [
-        [/\bअत्तार\b/g, "अतार"],
+        // Romanized Marathi & Speech Recognition Common Phonetic Fixes
+        [/\b(?:mande|mandhe|madey|madye)\b/gi, "madhe"],
+        [/\benglish mande\b/gi, "english madhe"],
+        [/\bmarathi mande\b/gi, "marathi madhe"],
+        [/\bchi\b/gi, "ची"],
+        [/\bmahiti\b/gi, "माहिती"],
+        [/\bmaithi\b/gi, "माहिती"],
+        [/\bmaheeti\b/gi, "माहिती"],
+        [/\bmaheti\b/gi, "माहिती"],
+        [/\bsanga\b/gi, "सांगा"],
+        [/\bsango\b/gi, "सांगा"],
+        [/\bkiti\b/gi, "किती"],
+        [/\bketee\b/gi, "किती"],
+        [/\budhari\b/gi, "उधारी"],
+        [/\budari\b/gi, "उधारी"],
+        [/\bvikri\b/gi, "विक्री"],
+        [/\bwikri\b/gi, "विक्री"],
+        [/\bhishob\b/gi, "हिशोब"],
+        [/\bhisob\b/gi, "हिशोब"],
+        [/\bkharch\b/gi, "खर्च"],
+        [/\bsatha\b/gi, "साठा"],
+        [/\bkaise?r\s+atar\b/gi, "कैसर अतार"],
+        [/\batar\s+sir\b/gi, "अतार सर"],
         [/\battar\b/gi, "अतार"],
+        [/\bअत्तार\b/g, "अतार"],
         [/\bधवले\b/g, "ढवळे"],
         [/\bदवले\b/g, "ढवळे"],
         [/\bधवळे\b/g, "ढवळे"],
@@ -1605,6 +1628,7 @@ function speakWithBrowserVoice(text) {
 
 let ragSpeechRecognition = null;
 let isRagListening = false;
+let ragAutoSubmitTimer = null;
 
 function initRagSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1612,7 +1636,8 @@ function initRagSpeech() {
 
     ragSpeechRecognition = new SpeechRecognition();
     ragSpeechRecognition.continuous = false;
-    ragSpeechRecognition.interimResults = false;
+    ragSpeechRecognition.interimResults = true;
+    ragSpeechRecognition.maxAlternatives = 3;
     ragSpeechRecognition.lang = (state.lang === "en") ? "en-IN" : "mr-IN";
 
     ragSpeechRecognition.onstart = () => {
@@ -1622,27 +1647,36 @@ function initRagSpeech() {
         const status = document.getElementById("rag-voice-status");
         if (status) {
             status.innerText = (state.lang === "en") 
-                ? "🎙️ Listening... please speak in English..." 
-                : "🎙️ मी ऐकत आहे... मराठीत बोला...";
+                ? "🎙️ Listening live... speak clearly..." 
+                : "🎙️ मी ऐकत आहे... स्पष्ट बोला...";
             status.style.display = "block";
         }
     };
 
     ragSpeechRecognition.onresult = (event) => {
-        let transcript = "";
-        if (event.results && event.results.length > 0 && event.results[0].length > 0) {
-            transcript = event.results[0][0].transcript.trim();
-        }
-        if (transcript) {
-            const corrected = autoCorrectMarathiSpeech(transcript);
-            const inputField = document.getElementById("ai-user-input");
-            if (inputField) {
-                inputField.value = corrected;
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
             }
-            // Auto submit like Streamlit did
-            setTimeout(() => {
-                submitAiChat();
-            }, 300);
+        }
+
+        const inputField = document.getElementById("ai-user-input");
+        if (inputField) {
+            if (finalTranscript) {
+                const corrected = autoCorrectMarathiSpeech(finalTranscript.trim());
+                inputField.value = corrected;
+                if (ragAutoSubmitTimer) clearTimeout(ragAutoSubmitTimer);
+                ragAutoSubmitTimer = setTimeout(() => {
+                    submitAiChat();
+                }, 400);
+            } else if (interimTranscript) {
+                inputField.value = autoCorrectMarathiSpeech(interimTranscript);
+            }
         }
     };
 
@@ -1733,63 +1767,39 @@ async function submitAiChat() {
     // Add AI Typing Bubble
     const aiBubble = document.createElement("div");
     aiBubble.className = "chat-bubble chat-ai";
-    aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">विचार करत आहे... 🤖</span>`;
-    historyContainer.appendChild(aiBubble);
-    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
-
-    const voiceOutputToggle = document.getElementById("ai-voice-output-toggle");
-    const voiceOutput = voiceOutputToggle ? voiceOutputToggle.checked : true;
-
-    try {
-        const res = await apiCall("/api/rag-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: msg,
-                chat_history: state.chatHistory.slice(-10),
-                lang: state.lang,
-                voice_output: voiceOutput,
-                username: state.user ? state.user.username : "admin"
-            })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.detail || "AI उत्तर मिळू शकले नाही.");
-        }
-        state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
-        state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
-
-        // If an action was performed (Khata or Expense added), auto refresh UI
-        if (data.action_status) {
-            loadKhataData();
-            loadDashboardMetrics();
-            loadExpensesData();
-            loadInventoryData();
-        }
-
-        const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
+        const msgId = 'mpc-' + Date.now();
+        const hasAudio = Boolean(data.audio_data);
 
         aiBubble.innerHTML = `
             <div>${formatted}</div>
-            <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
-                <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
-                    🔊 पुन्हा ऐका
-                </button>
-                ${data.action_status ? '<span style="font-size: 0.72rem; color: var(--neon-green); font-weight: 700;">● ऑटो-ॲक्शन पूर्ण</span>' : ''}
-            </div>
+            ${data.action_status ? '<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ऑटो-ॲक्शन पूर्ण</div>' : ''}
+            ${hasAudio ? `
+                <div class="mpc-player" id="mpc-${msgId}">
+                    <audio id="audio-${msgId}" src="${data.audio_data}" preload="metadata"></audio>
+                    <div class="mpc-controls">
+                        <button class="mpc-btn" onclick="seekAudio('${msgId}', -5)" title="५ सेकंद मागे">⏪ 5s</button>
+                        <button class="mpc-btn mpc-btn-play" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')">▶️ प्ले</button>
+                        <button class="mpc-btn mpc-btn-stop" onclick="stopAudioMsg('${msgId}')" title="थांबवा">⏹️ बंद</button>
+                        <button class="mpc-btn" onclick="seekAudio('${msgId}', 5)" title="५ सेकंद पुढे">⏩ 5s</button>
+                        <span class="mpc-time" id="time-${msgId}">0:00 / 0:00</span>
+                    </div>
+                    <div class="mpc-progress-wrapper" onclick="seekAudioBar(event, '${msgId}')" title="टॅप करून पुढे-मागे करा">
+                        <div class="mpc-progress-bar" id="prog-${msgId}"></div>
+                    </div>
+                </div>
+            ` : `
+                <div style="margin-top: 8px;">
+                    <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
+                        🔊 पुन्हा ऐका
+                    </button>
+                </div>
+            `}
         `;
 
-        // Auto-play voice if enabled and audio returned
-        if (voiceOutput && data.audio_data) {
-            try {
-                currentPlayingAudio = new Audio(data.audio_data);
-                currentPlayingAudio.onended = () => { currentPlayingAudio = null; };
-                await currentPlayingAudio.play();
-            } catch (err) {
-                console.warn("Auto-play error:", err);
-                speakWithBrowserVoice(data.answer || "");
+        if (hasAudio) {
+            attachMpcAudioListeners(msgId);
+            if (voiceOutput) {
+                togglePlayAudio(msgId);
             }
         } else if (voiceOutput) {
             speakWithBrowserVoice(data.answer || "");
@@ -2050,4 +2060,108 @@ function confirmSendWhatsAppBill() {
 
     closeModal("modal-whatsapp-share");
     window.open(`https://wa.me/91${phone}?text=${msg}`, "_blank");
+}
+
+
+// -----------------------------------------------------------------------------
+// MPC-STYLE INTERACTIVE AUDIO PLAYER ENGINE
+// -----------------------------------------------------------------------------
+function formatAudioTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+function togglePlayAudio(msgId) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    const btn = document.getElementById(`btn-play-${msgId}`);
+    if (!audio) return;
+
+    if (audio.paused) {
+        // Pause any other playing audio on the page
+        document.querySelectorAll("audio").forEach(a => {
+            if (a !== audio && !a.paused) {
+                a.pause();
+                const otherId = a.id.replace("audio-", "");
+                const otherBtn = document.getElementById(`btn-play-${otherId}`);
+                if (otherBtn) {
+                    otherBtn.innerHTML = "▶️ प्ले";
+                    otherBtn.classList.remove("playing");
+                }
+            }
+        });
+        audio.play().catch(e => console.warn("Audio play prevented:", e));
+        if (btn) {
+            btn.innerHTML = "⏸️ थांबवा";
+            btn.classList.add("playing");
+        }
+    } else {
+        audio.pause();
+        if (btn) {
+            btn.innerHTML = "▶️ प्ले";
+            btn.classList.remove("playing");
+        }
+    }
+}
+
+function seekAudio(msgId, delta) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    if (!audio) return;
+    const newTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+    audio.currentTime = newTime;
+}
+
+function stopAudioMsg(msgId) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    const btn = document.getElementById(`btn-play-${msgId}`);
+    const prog = document.getElementById(`prog-${msgId}`);
+    const time = document.getElementById(`time-${msgId}`);
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    if (btn) {
+        btn.innerHTML = "▶️ प्ले";
+        btn.classList.remove("playing");
+    }
+    if (prog) prog.style.width = "0%";
+    if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+}
+
+function seekAudioBar(event, msgId) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    const wrapper = event.currentTarget;
+    if (!audio || !audio.duration) return;
+    const rect = wrapper.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    audio.currentTime = pos * audio.duration;
+}
+
+function attachMpcAudioListeners(msgId) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    const btn = document.getElementById(`btn-play-${msgId}`);
+    const prog = document.getElementById(`prog-${msgId}`);
+    const time = document.getElementById(`time-${msgId}`);
+    if (!audio) return;
+
+    audio.addEventListener("loadedmetadata", () => {
+        if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+    });
+
+    audio.addEventListener("timeupdate", () => {
+        if (audio.duration) {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            if (prog) prog.style.width = `${pct}%`;
+            if (time) time.innerText = `${formatAudioTime(audio.currentTime)} / ${formatAudioTime(audio.duration)}`;
+        }
+    });
+
+    audio.addEventListener("ended", () => {
+        if (btn) {
+            btn.innerHTML = "▶️ प्ले";
+            btn.classList.remove("playing");
+        }
+        if (prog) prog.style.width = "0%";
+        if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+    });
 }
