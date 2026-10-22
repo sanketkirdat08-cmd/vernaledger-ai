@@ -532,7 +532,7 @@ Return strictly valid JSON only:
   "grand_total": 0.0
 }"""
 
-    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
     response = None
     last_err = None
 
@@ -632,7 +632,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
   "grand_total": 0.0
 }}"""
 
-    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
     res_text = None
     for m in models_to_try:
         try:
@@ -1103,7 +1103,7 @@ async def rag_chat(req: RAGChatRequest):
             {db_context}
             """
 
-            models_to_try = ['models/gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest']
+            models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(model_name=m)
@@ -1209,7 +1209,7 @@ Use the Live Shop Real Data to answer store questions (sales, credit, inventory,
         if api_key and genai:
             try:
                 genai.configure(api_key=api_key)
-                models_to_try = ['models/gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest']
+                models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
                 for m in models_to_try:
                     try:
                         model = genai.GenerativeModel(
@@ -1247,10 +1247,14 @@ Use the Live Shop Real Data to answer store questions (sales, credit, inventory,
             detected_lang = detect_msg_language(answer, req.lang or "mr")
             voice = get_tts_voice(answer, detected_lang)
             clean_speech = prepare_speech_phonetics(answer, voice)
-            if len(clean_speech) > 750:
-                clean_speech = clean_speech[:750]
+            # Optimize speech length to punchy 1-2 sentence voice summary (max 180 chars) for instant audio generation
+            if len(clean_speech) > 180:
+                end_match = re.search(r'([.!?।\n])', clean_speech[60:180])
+                spoken_summary = clean_speech[:60 + end_match.end()].strip() if end_match else clean_speech[:180].strip()
+            else:
+                spoken_summary = clean_speech
 
-            communicate = edge_tts.Communicate(clean_speech, voice, rate="+10%")
+            communicate = edge_tts.Communicate(spoken_summary, voice, rate="+15%")
             audio_bytes = bytearray()
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
