@@ -1796,25 +1796,21 @@ async function submitAiChat() {
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>');
 
-        const msgId = 'mpc-' + Date.now();
+        const msgId = 'voice-' + Date.now();
         const hasAudio = Boolean(data.audio_data);
 
         aiBubble.innerHTML = `
             <div>${formatted}</div>
             ${data.action_status ? '<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ऑटो-ॲक्शन पूर्ण</div>' : ''}
             ${hasAudio ? `
-                <div class="mpc-player" id="mpc-${msgId}">
+                <div class="simple-voice-player" id="voice-player-${msgId}">
                     <audio id="audio-${msgId}" src="${data.audio_data}" preload="metadata"></audio>
-                    <div class="mpc-controls">
-                        <button class="mpc-btn" onclick="seekAudio('${msgId}', -5)" title="५ सेकंद मागे">⏪ 5s</button>
-                        <button class="mpc-btn mpc-btn-play" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')">▶️ प्ले</button>
-                        <button class="mpc-btn mpc-btn-stop" onclick="stopAudioMsg('${msgId}')" title="थांबवा">⏹️ बंद</button>
-                        <button class="mpc-btn" onclick="seekAudio('${msgId}', 5)" title="५ सेकंद पुढे">⏩ 5s</button>
-                        <span class="mpc-time" id="time-${msgId}">0:00 / 0:00</span>
+                    <button class="voice-play-btn" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')" title="प्ले / थांबवा">▶</button>
+                    <div class="voice-slider-container">
+                        <input type="range" class="voice-seek-slider" id="seek-${msgId}" min="0" max="100" value="0" step="0.1"
+                               oninput="onVoiceSliderInput('${msgId}')" onchange="onVoiceSliderChange('${msgId}')" title="बोटाने पुढे-मागे ओढा">
                     </div>
-                    <div class="mpc-progress-wrapper" onclick="seekAudioBar(event, '${msgId}')" title="टॅप करून पुढे-मागे करा">
-                        <div class="mpc-progress-bar" id="prog-${msgId}"></div>
-                    </div>
+                    <span class="voice-time" id="time-${msgId}">0:00</span>
                 </div>
             ` : `
                 <div style="margin-top: 8px;">
@@ -1826,7 +1822,7 @@ async function submitAiChat() {
         `;
 
         if (hasAudio) {
-            attachMpcAudioListeners(msgId);
+            attachVoicePlayerListeners(msgId);
             if (voiceOutput) {
                 togglePlayAudio(msgId);
             }
@@ -2093,10 +2089,12 @@ function confirmSendWhatsAppBill() {
 
 
 // -----------------------------------------------------------------------------
-// MPC-STYLE INTERACTIVE AUDIO PLAYER ENGINE
+// MINIMALIST TOUCH-DRAGGABLE VOICE PLAYER ENGINE (1 BUTTON + DRAGGABLE SLIDER)
 // -----------------------------------------------------------------------------
+const isVoiceSliderDragging = {};
+
 function formatAudioTime(seconds) {
-    if (isNaN(seconds) || seconds < 0) return "0:00";
+    if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -2115,82 +2113,113 @@ function togglePlayAudio(msgId) {
                 const otherId = a.id.replace("audio-", "");
                 const otherBtn = document.getElementById(`btn-play-${otherId}`);
                 if (otherBtn) {
-                    otherBtn.innerHTML = "▶️ प्ले";
+                    otherBtn.innerHTML = "▶";
                     otherBtn.classList.remove("playing");
                 }
             }
         });
         audio.play().catch(e => console.warn("Audio play prevented:", e));
         if (btn) {
-            btn.innerHTML = "⏸️ थांबवा";
+            btn.innerHTML = "⏸";
             btn.classList.add("playing");
         }
     } else {
         audio.pause();
         if (btn) {
-            btn.innerHTML = "▶️ प्ले";
+            btn.innerHTML = "▶";
             btn.classList.remove("playing");
         }
     }
 }
 
-function seekAudio(msgId, delta) {
+function onVoiceSliderInput(msgId) {
+    isVoiceSliderDragging[msgId] = true;
     const audio = document.getElementById(`audio-${msgId}`);
-    if (!audio) return;
-    const newTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
-    audio.currentTime = newTime;
-}
-
-function stopAudioMsg(msgId) {
-    const audio = document.getElementById(`audio-${msgId}`);
-    const btn = document.getElementById(`btn-play-${msgId}`);
-    const prog = document.getElementById(`prog-${msgId}`);
+    const slider = document.getElementById(`seek-${msgId}`);
     const time = document.getElementById(`time-${msgId}`);
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    if (btn) {
-        btn.innerHTML = "▶️ प्ले";
-        btn.classList.remove("playing");
+    if (audio && audio.duration && slider) {
+        const seekTo = (parseFloat(slider.value) / 100) * audio.duration;
+        if (time) time.innerText = `${formatAudioTime(seekTo)} / ${formatAudioTime(audio.duration)}`;
     }
-    if (prog) prog.style.width = "0%";
-    if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
 }
 
-function seekAudioBar(event, msgId) {
+function onVoiceSliderChange(msgId) {
     const audio = document.getElementById(`audio-${msgId}`);
-    const wrapper = event.currentTarget;
-    if (!audio || !audio.duration) return;
-    const rect = wrapper.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    audio.currentTime = pos * audio.duration;
+    const slider = document.getElementById(`seek-${msgId}`);
+    if (audio && audio.duration && slider) {
+        audio.currentTime = (parseFloat(slider.value) / 100) * audio.duration;
+    }
+    setTimeout(() => {
+        isVoiceSliderDragging[msgId] = false;
+    }, 120);
 }
 
-function attachMpcAudioListeners(msgId) {
+function attachVoicePlayerListeners(msgId) {
     const audio = document.getElementById(`audio-${msgId}`);
     const btn = document.getElementById(`btn-play-${msgId}`);
-    const prog = document.getElementById(`prog-${msgId}`);
+    const slider = document.getElementById(`seek-${msgId}`);
     const time = document.getElementById(`time-${msgId}`);
     if (!audio) return;
+
+    const updateDisplayTime = (cur, dur) => {
+        if (!time) return;
+        time.innerText = `${formatAudioTime(cur)} / ${formatAudioTime(dur)}`;
+    };
 
     audio.addEventListener("loadedmetadata", () => {
-        if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+        updateDisplayTime(0, audio.duration);
     });
 
     audio.addEventListener("timeupdate", () => {
-        if (audio.duration) {
+        if (audio.duration && !isVoiceSliderDragging[msgId]) {
             const pct = (audio.currentTime / audio.duration) * 100;
-            if (prog) prog.style.width = `${pct}%`;
-            if (time) time.innerText = `${formatAudioTime(audio.currentTime)} / ${formatAudioTime(audio.duration)}`;
+            if (slider) slider.value = pct;
+            updateDisplayTime(audio.currentTime, audio.duration);
         }
     });
 
     audio.addEventListener("ended", () => {
         if (btn) {
-            btn.innerHTML = "▶️ प्ले";
+            btn.innerHTML = "▶";
             btn.classList.remove("playing");
         }
-        if (prog) prog.style.width = "0%";
-        if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+        if (slider) slider.value = 0;
+        updateDisplayTime(0, audio.duration);
+        isVoiceSliderDragging[msgId] = false;
     });
+
+    if (slider) {
+        slider.addEventListener("pointerdown", () => { isVoiceSliderDragging[msgId] = true; });
+        slider.addEventListener("pointerup", () => {
+            setTimeout(() => { isVoiceSliderDragging[msgId] = false; }, 120);
+        });
+        slider.addEventListener("touchstart", () => { isVoiceSliderDragging[msgId] = true; }, { passive: true });
+        slider.addEventListener("touchend", () => {
+            setTimeout(() => { isVoiceSliderDragging[msgId] = false; }, 120);
+        }, { passive: true });
+    }
 }
+
+// Backward-compatibility aliases
+function attachMpcAudioListeners(msgId) { attachVoicePlayerListeners(msgId); }
+function seekAudio(msgId, delta) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    if (!audio) return;
+    audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+}
+function stopAudioMsg(msgId) {
+    const audio = document.getElementById(`audio-${msgId}`);
+    const btn = document.getElementById(`btn-play-${msgId}`);
+    const slider = document.getElementById(`seek-${msgId}`);
+    const time = document.getElementById(`time-${msgId}`);
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    if (btn) {
+        btn.innerHTML = "▶";
+        btn.classList.remove("playing");
+    }
+    if (slider) slider.value = 0;
+    if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
+}
+function seekAudioBar(event, msgId) { /* legacy */ }

@@ -1716,104 +1716,112 @@ body.light-theme .chat-bubble.chat-user {
 
 
 /* ==========================================================================
-   MPC-STYLE INTERACTIVE AUDIO PLAYER (PLAY/PAUSE/SEEK/STOP)
+   MINIMALIST TOUCH-DRAGGABLE VOICE PLAYER (1 BUTTON + DRAGGABLE SEEK BAR)
    ========================================================================== */
-.mpc-player {
-    background: rgba(10, 18, 36, 0.85);
+.simple-voice-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(10, 18, 36, 0.92);
     border: 1px solid rgba(0, 242, 254, 0.35);
-    border-radius: 12px;
-    padding: 8px 10px;
+    border-radius: 30px;
+    padding: 6px 14px;
     margin-top: 10px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(12px);
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
 }
 
-.mpc-controls {
+.voice-play-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    border: none;
+    color: #050b14;
+    font-size: 1.1rem;
+    font-weight: 800;
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-    width: 100%;
-}
-
-.mpc-btn {
-    background: rgba(0, 242, 254, 0.12);
-    border: 1px solid rgba(0, 242, 254, 0.35);
-    color: #FFFFFF;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.74rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.45);
+    transition: all 0.15s ease;
     touch-action: manipulation;
 }
 
-.mpc-btn:hover {
-    background: rgba(0, 242, 254, 0.25);
-    border-color: var(--neon-cyan);
-    box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+.voice-play-btn:active {
+    transform: scale(0.92);
 }
 
-.mpc-btn:active {
-    transform: scale(0.96);
-}
-
-.mpc-btn-play {
+.voice-play-btn.playing {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    border-color: var(--neon-green) !important;
-    min-width: 58px;
-    font-weight: 800;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6) !important;
 }
 
-.mpc-btn-play.playing {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-    border-color: #fbbf24 !important;
+.voice-slider-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
 }
 
-.mpc-btn-stop {
-    background: rgba(239, 68, 68, 0.18) !important;
-    border-color: rgba(239, 68, 68, 0.5) !important;
-    color: #fca5a5 !important;
+/* Touch-draggable slider (drag forward and backward with finger) */
+.voice-seek-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    touch-action: pan-y;
+    margin: 0;
+    padding: 0;
 }
 
-.mpc-time {
-    font-size: 0.7rem;
+.voice-seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px var(--neon-cyan);
+    cursor: grab;
+    transition: transform 0.1s ease;
+}
+
+.voice-seek-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.25);
+    box-shadow: 0 0 15px var(--neon-green);
+    background: var(--neon-green);
+}
+
+.voice-seek-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--neon-cyan);
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px var(--neon-cyan);
+    cursor: grab;
+}
+
+.voice-time {
+    font-size: 0.74rem;
     font-family: monospace, ui-monospace;
     color: var(--neon-cyan);
     font-weight: 700;
-    margin-left: auto;
     white-space: nowrap;
-    padding: 0 4px;
-}
-
-.mpc-progress-wrapper {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    margin-top: 6px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-}
-
-.mpc-progress-wrapper:hover {
-    height: 8px;
-}
-
-.mpc-progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green));
-    border-radius: 4px;
-    box-shadow: 0 0 8px var(--neon-cyan);
-    transition: width 0.08s linear;
+    min-width: 40px;
+    text-align: right;
+    padding-left: 4px;
 }
