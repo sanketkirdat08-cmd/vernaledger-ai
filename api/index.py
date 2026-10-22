@@ -1069,39 +1069,29 @@ async def rag_chat(req: RAGChatRequest):
             mime = (req.mime_type or "audio/webm").split(";")[0].strip()
             audio_part = {"mime_type": mime, "data": audio_bytes}
 
-            audio_prompt = f"""
-            You are VernaLedger AI, a state-of-the-art Native Multimodal Voice Assistant for Indian Kirana stores.
-            The user has provided a raw spoken audio voice message.
-            
-            TASKS:
-            1. Transcribe the user's spoken words accurately into `user_transcript` (in Marathi, Hindi, or English as spoken).
-            2. Understand their query or instruction:
-               - If they asked about shop sales, credit (उधारी), inventory/stock (साठा), profit (नफा), or store performance, answer factually using the Live Shop Real Data below.
-               - If they asked about project creators, guide, or college:
-                 * Project Guide: प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
-                 * Lead Developer: संकेत किर्दत (Sanket Kirdat)
-                 * Developers: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
-                 * College: अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
-               - If they gave an accounting/billing voice command:
-                 * 'उधारी नोंदव' or 'credit': detected_action = 'CREDIT', customer_name, amount
-                 * 'जमा नोंदव' or 'पैसे आले': detected_action = 'PAYMENT', customer_name, amount
-                 * 'खर्च नोंदव' or 'expense': detected_action = 'EXPENSE', item_name, amount
-                 Otherwise: detected_action = 'NONE'
-            3. Respond in the EXACT SAME LANGUAGE as the user spoke (natural, fluent Marathi for Marathi queries, English for English queries). Keep the answer concise, accurate, and professional.
-            
-            OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
-            {{
-                "user_transcript": "<exact words spoken by user in Marathi/English>",
-                "answer": "<your clear, factual answer in the same language as user>",
-                "detected_action": "NONE",
-                "customer_name": "",
-                "amount": 0.0,
-                "item_name": ""
-            }}
-            
-            [Live Shop Real Data]:
-            {db_context}
-            """
+            audio_prompt = f"""You are Verna AI, a quick Kirana store voice assistant.
+The user sent a voice message.
+
+TASKS:
+1. Transcribe speech accurately into `user_transcript`.
+2. Answer query or handle command:
+   - Store query (sales, credit, stock): Answer factually in 1 SHORT sentence using Live Shop Data.
+   - Voice action: 'उधारी नोंदव' -> CREDIT, 'जमा नोंदव' -> PAYMENT, 'खर्च नोंदव' -> EXPENSE. Otherwise NONE.
+   - If asked about team/guide/college: State Guide Prof. Kaisar Atar Sir, Lead Sanket Kirdat, AGCE Satara.
+3. RULES: Keep answers very SHORT, CRISP, and TO THE POINT (1-2 sentences max). Respond in the same language as spoken.
+
+OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
+{{
+    "user_transcript": "<exact words spoken>",
+    "answer": "<clean 1-2 sentence answer>",
+    "detected_action": "NONE",
+    "customer_name": "",
+    "amount": 0.0,
+    "item_name": ""
+}}
+
+[Live Shop Real Data]:
+{db_context}"""
 
             models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
             for m in models_to_try:
@@ -1198,13 +1188,18 @@ async def rag_chat(req: RAGChatRequest):
             "If in Marathi, answer in natural grammatically correct Marathi. Keep the answer concise and factual."
         )
 
-        assistant_instruction = """You are the intelligent AI assistant for VernaLedger AI.
-When asked about developers, creators, or project guide, ALWAYS explicitly state:
-- प्रकल्प मार्गदर्शक (Project Guide): प्रा. कैसर अतार सर (Prof. Kaisar Atar Sir)
-- प्रमुख विकासक (Lead Developer): संकेत किर्दत (Sanket Kirdat)
-- इतर विकासक (Developers): साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक (Sakshi Bhagat, Vaishnavi Dhavale, Rushikesh Mulik)
-- महाविद्यालय (College): अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara)
-Use the Live Shop Real Data to answer store questions (sales, credit, inventory, expenses). Keep answers brief and factual."""
+        # Direct answers for common questions to eliminate clutter
+        lower_msg = user_msg.lower()
+        if any(k in lower_msg for k in ['guide', 'developer', 'creator', 'कोण बनवला', 'मार्गदर्शक', 'विकासक', 'नाव काय', 'team', 'कॉलेज', 'college', 'who made']):
+            answer = ('प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर | प्रमुख विकासक: संकेत किर्दत | सह-विकासक: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा.')
+        elif lower_msg in ['namaskar', 'नमस्कार', 'hello', 'hi', 'हॅलो']:
+            answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
+
+        assistant_instruction = """You are Verna AI, an intelligent, fast store assistant for VernaLedger AI.
+CRITICAL RULES:
+1. Keep replies VERY SHORT, CRISP, and DIRECT (maximum 1 to 2 sentences). NEVER give long essays or unasked lists.
+2. NEVER mention developers, guide, or college unless explicitly asked.
+3. Only give the exact store figures (sales, credit, stock) asked by the user using Live Shop Data."""
 
         if api_key and genai:
             try:

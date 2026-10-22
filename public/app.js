@@ -332,10 +332,11 @@ function formatLocalizedName(name, lang = state.lang) {
 // INITIALIZATION
 // -----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+    // Unregister any old service workers to keep browser always 100% live and fresh
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).then((reg) => { reg.update(); }).catch((error) => {
-            console.warn("Offline app shell could not be registered:", error);
-        });
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+            for (const r of regs) r.unregister();
+        }).catch(() => {});
     }
     // Set today's date in bill input
     const today = new Date().toISOString().split("T")[0];

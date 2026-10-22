@@ -24,7 +24,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css?v=9.0">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+        // Force unregister all old service workers and clear caches on laptop/mobile
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var r of regs) r.unregister();
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then(function(keys) {
+                for (var k of keys) caches.delete(k);
+            });
+        }
+    </script>
+    <link rel="stylesheet" href="style.css?v=11.0">
 </head>
 <body>
 
@@ -95,9 +111,7 @@
                     <option value="en">🌐 English</option>
                     <option value="hi">🌐 हिन्दी</option>
                 </select>
-                <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="mobile-lang-btn">
-                    🌐 मराठी
-                </button>
+
                 <button class="btn-pill btn-logout" onclick="handleLogout()" title="बाहेर पडा" data-i18n-title="btn_logout">
                     🚪
                 </button>
@@ -144,20 +158,8 @@
 
             <div class="sidebar-footer">
                 <!-- Compact Sleek Developer Badge -->
-                <div class="dev-credit-box" style="margin-bottom: 10px; padding: 6px 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.22); border-radius: 10px; border-left: 3px solid var(--neon-cyan);">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-size: 0.65rem; text-transform: uppercase; color: var(--neon-cyan); font-weight: 800; letter-spacing: 0.5px;">👨‍💻 Sanket Kirdat & Team</span>
-                        <span style="font-size: 0.58rem; color: var(--text-dim); background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 6px;">AGCE Satara</span>
-                    </div>
-                    <div style="font-size: 0.7rem; color: #cbd5e1; margin-top: 2px;">
-                        Sakshi Bhagat • Vaishnavi Dhavale • Rushikesh Mulik
-                    </div>
-                    <div style="font-size: 0.62rem; color: var(--text-dim); margin-top: 3px;">
-                        Arvind Gavali College of Engineering, Satara, Maharashtra
-                    </div>
-                    <div style="font-size: 0.62rem; color: var(--text-dim); margin-top: 2px;">
-                        Project Guide: Kaisar Atar Sir
-                    </div>
+                <div style="font-size: 0.65rem; color: var(--text-dim); text-align: center; margin-bottom: 8px; font-weight: 600;">
+                    VernaLedger AI • AGCE Satara
                 </div>
 
                 <button class="btn-pill" id="theme-toggle-btn" onclick="toggleTheme()" style="margin-bottom: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700;">
@@ -178,19 +180,14 @@
             <!-- Top Action HUD (Desktop) -->
             <div class="top-action-hud">
                 <div class="view-title-group">
-                    <h2 id="hud-title">⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग</h2>
-                    <p id="hud-subtitle">Gemini 2.5 Flash द्वारे हस्तलिखित पावत्यांचे डिजिटल लेजरमध्ये रूपांतर</p>
+                    <h2 id="hud-title">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
                 <div class="hud-controls">
-                    <span style="font-size: 0.78rem; color: var(--neon-green); background: rgba(0,255,135,0.1); border: 1px solid rgba(0,255,135,0.3); padding: 4px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace;">
-                        ● LIVE CLOUD DB
-                    </span>
                     <select class="language-select" id="hud-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
                         <option value="mr">🌐 मराठी</option>
                         <option value="en">🌐 English</option>
                         <option value="hi">🌐 हिन्दी</option>
                     </select>
-                    <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="hud-lang-btn" title="Next language">🌐 मराठी</button>
                     <button class="btn-pill btn-logout" onclick="handleLogout()" data-i18n="btn_logout">🚪 बाहेर पडा</button>
                 </div>
             </div>
@@ -617,45 +614,34 @@
                  ================================================================= -->
             <section id="view-ai" class="view-section">
                 <div class="glass-card">
-                    <!-- Clean Chat Header -->
-                    <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
-                        <div>
-                            <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
-                                <span style="color: var(--neon-cyan);">✨</span> Verna AI Chatbot
-                            </h3>
-                            <div style="font-size: 0.76rem; color: var(--neon-cyan); font-weight: 600; margin-top: 2px;">
-                                🌐 Ask questions by text or voice in your preferred language
-                            </div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <span style="font-size: 0.72rem; color: var(--neon-cyan); background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.25); padding: 5px 10px; border-radius: 20px; font-weight: 700;">
-                                ⚡ ऑटो-डिटेक्ट भाषा (Auto Language)
-                            </span>
+                    <!-- Clean Minimalist Chat Header -->
+                    <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>🤖</span> Verna AI
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #fff; cursor: pointer; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
                                 <input type="checkbox" id="ai-voice-output-toggle" checked style="accent-color: var(--neon-cyan); cursor: pointer;">
                                 <span>🔊 Voice</span>
                             </label>
-                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="नवीन संभाषण सुरू करा" style="padding: 5px 12px;">
+                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="संभाषण स्वच्छ करा" style="padding: 5px 12px;">
                                 🗑️ Clear
                             </button>
                         </div>
                     </div>
 
-                    <!-- Clean Horizontal Chips Bar (Swipable) -->
-                    <div class="prompt-chips" style="margin-bottom: 10px; padding: 2px 0;">
-                        <span class="chip" onclick="askAiPrompt('आजचा एकूण हिशोब आणि विक्री किती झाली आहे?')">📊 आजची विक्री?</span>
-                        <span class="chip" onclick="askAiPrompt('ग्राहकांची एकूण उधारी किती बाकी आहे आणि कोणाकडे जास्त उधारी आहे?')" data-i18n="chip_udhar">👥 बाकी उधारी किती?</span>
-                        <span class="chip" onclick="askAiPrompt('कोणत्या वस्तूंचा साठा संपत आला आहे किंवा शून्य झाला आहे?')" data-i18n="chip_low_stock">🚨 कमी साठा?</span>
+                    <!-- Clean Quick Action Chips -->
+                    <div class="prompt-chips" style="margin-bottom: 12px; padding: 2px 0;">
+                        <span class="chip" onclick="askAiPrompt('आजची विक्री किती आहे?')">📊 आजची विक्री</span>
+                        <span class="chip" onclick="askAiPrompt('एकूण बाकी उधारी किती आहे?')">👥 बाकी उधारी</span>
+                        <span class="chip" onclick="askAiPrompt('कमी साठा असलेल्या वस्तू कोणत्या आहेत?')">🚨 कमी साठा</span>
                     </div>
 
-                    <!-- Scrollable Messages Container (ONLY this container scrolls) -->
+                    <!-- Scrollable Messages Container -->
                     <div class="chat-container">
                         <div class="chat-history" id="ai-chat-history">
                             <div class="chat-bubble chat-ai">
-                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 800; color: var(--neon-cyan); font-size: 0.78rem;">
-                                    <span>🤖</span> VernaLedger AI
-                                </div>
-                                नमस्कार! मी <strong>VernaLedger AI</strong> आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
+                                नमस्कार! मी <strong>Verna AI</strong>. दुकानातील विक्री, उधारी किंवा साठ्याबद्दल विचारा किंवा माईक दाबून बोला.
                             </div>
                         </div>
 
@@ -885,7 +871,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=9.0"></script>
+    <script src="app.js?v=11.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL
