@@ -804,17 +804,32 @@ async function submitReceiptOCR() {
             method: "POST",
             body: formData
         });
-        const json = await res.json();
 
-        if (!res.ok) {
-            throw new Error(json.detail || "OCR स्कॅनिंग अयशस्वी झाले.");
+        let json;
+        const text = await res.text();
+        try {
+            json = JSON.parse(text);
+        } catch (parseErr) {
+            if (!res.ok) {
+                throw new Error(`सर्व्हर तात्पुरता व्यस्त आहे (${res.status}). कृपया पुन्हा प्रयत्न करा.`);
+            }
+            throw new Error(`अवैध सर्व्हर रिस्पॉन्स.`);
+        }
+
+        if (!res.ok || !json.data) {
+            throw new Error(json.detail || json.error || "OCR स्कॅनिंग अयशस्वी झाले.");
         }
 
         populateBillCard(json.data);
         loadDashboardMetrics();
         loadReceiptsLedger();
-        alert("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!");
+        if (json.warning) {
+            alert("⚠️ " + json.warning);
+        } else {
+            alert("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!");
+        }
     } catch (err) {
+        console.error("OCR Error:", err);
         alert("OCR एरर: " + err.message);
     } finally {
         loader.style.display = "none";
