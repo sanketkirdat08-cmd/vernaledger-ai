@@ -1767,6 +1767,35 @@ async function submitAiChat() {
     // Add AI Typing Bubble
     const aiBubble = document.createElement("div");
     aiBubble.className = "chat-bubble chat-ai";
+    aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">🧠 विचार करत आहे...</span>`;
+    historyContainer.appendChild(aiBubble);
+    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+
+    const voiceOutput = document.getElementById("ai-voice-toggle") ? document.getElementById("ai-voice-toggle").checked : true;
+
+    try {
+        const res = await apiCall("/api/rag-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: msg,
+                lang: state.lang,
+                voice_output: voiceOutput,
+                chat_history: state.chatHistory.slice(-10)
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "AI सर्व्हरशी संपर्क होऊ शकला नाही.");
+
+        // Record history
+        state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
+        state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
+
+        const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+
         const msgId = 'mpc-' + Date.now();
         const hasAudio = Boolean(data.audio_data);
 
