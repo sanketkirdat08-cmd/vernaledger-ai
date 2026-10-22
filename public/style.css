@@ -1881,6 +1881,111 @@ body.light-theme .modal-header h3 {
     color: #0F172A !important;
 }
 
+/* ==========================================================================
+   HIGH-CONTRAST TEXT & READABILITY RULES FOR KIRANA MODE (LIGHT THEME)
+   ========================================================================== */
+/* Force any inline white text to dark high-contrast slate #0F172A */
+body.light-theme [style*="color: #fff"],
+body.light-theme [style*="color:#fff"],
+body.light-theme [style*="color: white"],
+body.light-theme [style*="color:white"],
+body.light-theme [style*="color: #cbd5e1"],
+body.light-theme [style*="color:#cbd5e1"] {
+    color: #0F172A !important;
+}
+
+/* Ensure buttons and badges with dark/colored backgrounds keep crisp white text */
+body.light-theme .btn-cyber,
+body.light-theme .btn-cyber span,
+body.light-theme .btn-cyber.success,
+body.light-theme .btn-whatsapp-share,
+body.light-theme .btn-whatsapp-share span,
+body.light-theme .chat-bubble.chat-user,
+body.light-theme .chat-bubble.chat-user div,
+body.light-theme .badge-staff,
+body.light-theme .badge-admin,
+body.light-theme .voice-play-btn,
+body.light-theme .voice-play-btn span {
+    color: #FFFFFF !important;
+}
+
+/* Clear Headings, Labels, and Paragraphs */
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme h4,
+body.light-theme strong,
+body.light-theme b,
+body.light-theme th {
+    color: #0F172A !important;
+}
+
+body.light-theme label {
+    color: #1E293B !important;
+    font-weight: 700 !important;
+}
+
+body.light-theme p,
+body.light-theme .text-slate,
+body.light-theme [style*="color: var(--text-slate)"] {
+    color: #334155 !important;
+}
+
+body.light-theme .text-dim,
+body.light-theme [style*="color: var(--text-dim)"] {
+    color: #475569 !important;
+}
+
+/* All Table Text */
+body.light-theme .cyber-table th {
+    background: #E2E8F0 !important;
+    color: #0F172A !important;
+    font-weight: 800 !important;
+    border-bottom: 2px solid #CBD5E1 !important;
+}
+
+body.light-theme .cyber-table td {
+    color: #0F172A !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+/* Input Fields text */
+body.light-theme .input-cyber,
+body.light-theme .rag-input,
+body.light-theme input,
+body.light-theme select,
+body.light-theme textarea {
+    color: #0F172A !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid #94A3B8 !important;
+    font-weight: 600 !important;
+}
+
+body.light-theme .input-cyber::placeholder,
+body.light-theme .rag-input::placeholder,
+body.light-theme textarea::placeholder {
+    color: #64748B !important;
+}
+
+/* Bill amounts */
+body.light-theme #bill-grand-total {
+    color: #15803D !important;
+    font-weight: 900 !important;
+}
+
+body.light-theme .item-total {
+    color: #0284C7 !important;
+    font-weight: 800 !important;
+}
+
+/* Customer Khata Cards Text */
+body.light-theme .glass-card [style*="font-size: 1.15rem"],
+body.light-theme .glass-card .customer-name {
+    color: #0F172A !important;
+    font-weight: 800 !important;
+}
+
 /* WhatsApp Action Button */
 .btn-whatsapp-share {
     display: inline-flex;

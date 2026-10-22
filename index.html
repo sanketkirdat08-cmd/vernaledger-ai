@@ -40,7 +40,7 @@
             });
         }
     </script>
-    <link rel="stylesheet" href="style.css?v=12.0">
+    <link rel="stylesheet" href="style.css?v=13.0">
 </head>
 <body>
 
@@ -167,7 +167,7 @@
                 </button>
                 <div class="user-pill" style="margin-bottom: 0;">
                     <div>
-                        <div style="font-size: 0.82rem; font-weight: 700; color: #fff;" id="sidebar-user-name">admin</div>
+                        <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-white);" id="sidebar-user-name">admin</div>
                         <div style="font-size: 0.68rem; color: var(--text-dim);" id="sidebar-user-role">Role: Admin</div>
                     </div>
                     <span class="user-role-badge badge-admin" id="sidebar-role-badge">ADMIN</span>
@@ -199,7 +199,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
                     <!-- Left: Input Methods (AI Vision & Vernacular Voice) -->
                     <div class="glass-card">
-                        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                        <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
                             <span>📸</span> <span data-i18n="card_scan_input">पावती स्कॅन / व्हॉइस इनपुट</span>
                         </h3>
 
@@ -218,7 +218,7 @@
                             <div class="upload-dropzone" onclick="document.getElementById('receipt-file-input').click()">
                                 <input type="file" id="receipt-file-input" accept="image/*" style="display: none;" onchange="handleReceiptFileSelect(event)">
                                 <div style="font-size: 2.2rem; margin-bottom: 8px;">📄</div>
-                                <div style="font-weight: 700; font-size: 0.95rem; color: #fff;" data-i18n="dropzone_title">पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा</div>
+                                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);" data-i18n="dropzone_title">पावतीचा फोटो निवडा किंवा येथे ड्रॅग करा</div>
                                 <div style="font-size: 0.78rem; color: var(--text-slate); margin-top: 4px;" data-i18n="dropzone_sub">PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)</div>
                             </div>
 
@@ -270,7 +270,7 @@
                     <!-- Right: Editable Live Bill & Receipt Action Center -->
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
                                 <span>🧾</span> डिजिटल पावती प्रिव्ह्यू
                             </h3>
                             <span class="user-role-badge badge-admin" id="bill-badge-status">READY</span>
@@ -398,7 +398,7 @@
 
                 <!-- All Khata Transactions Table -->
                 <div class="glass-card">
-                    <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 14px;">
+                    <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;">
                         📜 संपूर्ण खाते व्यवहार इतिहास (Transaction Audit)
                     </h3>
                     <div class="table-responsive">
@@ -464,18 +464,18 @@
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 1.15rem;">⚠️</span>
                         <div style="line-height: 1.25;">
-                            <span style="font-weight: 800; color: #fff; font-size: 0.8rem;" data-i18n="low_stock_notice">कमी साठा अलर्ट:</span>
+                            <span style="font-weight: 800; color: var(--text-white); font-size: 0.8rem;" data-i18n="low_stock_notice">कमी साठा अलर्ट:</span>
                             <span style="font-size: 0.74rem; color: #fca5a5; margin-left: 4px;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</span>
                         </div>
                     </div>
-                    <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: #fff; font-size: 0.65rem; padding: 2px 6px;">ALERT</span>
+                    <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: var(--text-white); font-size: 0.65rem; padding: 2px 6px;">ALERT</span>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
                     <!-- Left: Inventory Stock -->
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
                                 <span>📦</span> <span data-i18n="card_inventory">दुकानातील माल साठा</span>
                             </h3>
                             <button class="btn-pill" onclick="openAddInventoryModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
@@ -506,7 +506,7 @@
                         <!-- Expense Card -->
                         <div class="glass-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                                <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                                <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
                                     <span>📉</span> दैनंदिन बिझनेस खर्च (Expenses)
                                 </h3>
                                 <span style="font-size: 0.85rem; font-weight: 800; color: var(--neon-red);" id="total-expenses-display">₹0.00</span>
@@ -550,7 +550,7 @@
 
                         <!-- WhatsApp Business Digest Card -->
                         <div class="glass-card accent-green">
-                            <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                                 <span>📲</span> दैनिक बिझनेस रिपोर्ट (WhatsApp Digest)
                             </h3>
                             <p style="font-size: 0.82rem; color: var(--text-slate); margin-bottom: 14px;">
@@ -583,7 +583,7 @@
                 </div>
 
                 <div class="glass-card">
-                    <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 14px;">
+                    <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;">
                         📚 सुरक्षित डिजिटल लेजर डेटाबेस (SQLite ACID Verified)
                     </h3>
                     <div class="table-responsive">
@@ -616,11 +616,11 @@
                 <div class="glass-card">
                     <!-- Clean Minimalist Chat Header -->
                     <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
-                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px; margin: 0;">
                             <span>🤖</span> Verna AI
                         </h3>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #fff; cursor: pointer; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-white); cursor: pointer; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.3); padding: 5px 12px; border-radius: 20px;">
                                 <input type="checkbox" id="ai-voice-output-toggle" checked style="accent-color: var(--neon-cyan); cursor: pointer;">
                                 <span>🔊 Voice</span>
                             </label>
@@ -699,8 +699,8 @@
     <div id="modal-thermal" class="modal-overlay">
         <div class="modal-box modal-receipt-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 0.95rem; color: #fff;" data-i18n="receipt_preview_title">🖨️ डिजिटल पावती प्रिव्ह्यू</div>
-                <button onclick="closeModal('modal-thermal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-white);" data-i18n="receipt_preview_title">🖨️ डिजिटल पावती प्रिव्ह्यू</div>
+                <button onclick="closeModal('modal-thermal')" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
                 <div id="thermal-print-target" class="thermal-receipt">
@@ -760,8 +760,8 @@
     <div id="modal-add-khata" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: #fff;">💳 नवीन खाते व्यवहार नोंदवा</div>
-                <button onclick="closeModal('modal-add-khata')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">💳 नवीन खाते व्यवहार नोंदवा</div>
+                <button onclick="closeModal('modal-add-khata')" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body">
                 <form id="form-add-khata" onsubmit="submitAddKhata(event)" style="display: flex; flex-direction: column; gap: 12px;">
@@ -806,8 +806,8 @@
     <div id="modal-add-inventory" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: #fff;">📦 नवीन वस्तू / माल जोडा</div>
-                <button onclick="closeModal('modal-add-inventory')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">📦 नवीन वस्तू / माल जोडा</div>
+                <button onclick="closeModal('modal-add-inventory')" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body">
                 <form id="form-add-inventory" onsubmit="submitAddInventory(event)" style="display: flex; flex-direction: column; gap: 12px;">
@@ -853,8 +853,8 @@
     <div id="modal-camera" class="modal-overlay">
         <div class="modal-box" style="max-width: 480px;">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: #fff;">📷 पावतीचा फोटो काढा</div>
-                <button onclick="closeCameraModal()" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">📷 पावतीचा फोटो काढा</div>
+                <button onclick="closeCameraModal()" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
                 <video id="camera-video-stream" autoplay playsinline style="width: 100%; border-radius: 12px; background: #000; border: 1px solid var(--neon-cyan);"></video>
@@ -871,7 +871,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=11.0"></script>
+    <script src="app.js?v=13.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL
@@ -888,7 +888,7 @@
                 ग्राहकाचा १० अंकी WhatsApp नंबर टाका. बिलाचा संपूर्ण तपशील आणि UPI पेमेंट लिंक थेट त्यांच्या WhatsApp वर उघडेल:
             </p>
             <div style="margin-bottom: 16px;">
-                <label style="font-size: 0.78rem; font-weight: 700; color: #fff;">ग्राहकाचा WhatsApp मोबाईल नंबर:</label>
+                <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-white);">ग्राहकाचा WhatsApp मोबाईल नंबर:</label>
                 <input type="tel" id="wa-share-phone" class="input-cyber" placeholder="उदा. 9822001122" maxlength="10" style="font-size: 1.1rem; letter-spacing: 1px;">
             </div>
             <div style="display: flex; gap: 10px;">

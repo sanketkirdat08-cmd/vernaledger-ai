@@ -1071,7 +1071,7 @@ function renderKhataCards(customers) {
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                 <div>
-                    <div style="font-size: 1.15rem; font-weight: 800; color: #fff;">${escapeHtml(displayName)}</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-white);">${escapeHtml(displayName)}</div>
                     <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(c.phone || (isMr ? "नंबर नाही" : "No Phone"))}</div>
                 </div>
                 <span class="user-role-badge ${isDebt ? 'badge-staff' : 'badge-admin'}">
@@ -1116,7 +1116,7 @@ function renderKhataTable(transactions) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">#${t.id}</td>
-            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
+            <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
             <td style="color: var(--text-slate);">${escapeHtml(t.phone)}</td>
             <td>
                 <span class="user-role-badge ${isCredit ? 'badge-staff' : 'badge-admin'}">
@@ -1234,7 +1234,7 @@ function renderInventoryTable(data) {
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
+            <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
             <td style="font-weight: 800; color: ${isLow ? 'var(--neon-red)' : 'var(--neon-cyan)'};">
                 ${item.stock_qty} ${escapeHtml(item.unit)}
             </td>
@@ -1320,7 +1320,7 @@ async function loadExpensesData() {
         data.forEach(exp => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td style="font-weight: 700; color: #fff;">${escapeHtml(exp.expense_title)}</td>
+                <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(exp.expense_title)}</td>
                 <td style="color: var(--text-slate);">${escapeHtml(exp.category)}</td>
                 <td style="font-weight: 800; color: var(--neon-red);">₹${Number(exp.amount).toFixed(2)}</td>
                 <td style="font-size: 0.78rem;">${exp.date}</td>
@@ -1397,7 +1397,7 @@ function renderLedgerTable(receipts) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--neon-cyan);">#VL-${r.id}</td>
-            <td style="font-weight: 700; color: #fff;">${escapeHtml(displayName)}</td>
+            <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
             <td>${r.date}</td>
             <td><span class="user-role-badge badge-admin">${escapeHtml(r.category || 'General')}</span></td>
             <td style="font-weight: 800; color: var(--neon-green); font-size: 0.95rem;">₹${Number(r.grand_total).toFixed(2)}</td>
