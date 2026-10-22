@@ -17,7 +17,7 @@ import logging
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from PIL import Image
@@ -49,6 +49,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -----------------------------------------------------------------------------
+# ZERO-CACHE & INSTANT 200 OK MIDDLEWARE (ELIMINATES 304 NOT MODIFIED)
+# -----------------------------------------------------------------------------
+@app.middleware("http")
+async def force_fresh_reload_middleware(request: Request, call_next):
+    # Strip conditional caching headers from client request to prevent 304 Not Modified
+    request.scope["headers"] = [
+        (k, v) for k, v in request.scope.get("headers", [])
+        if k.lower() not in (b"if-none-match", b"if-modified-since")
+    ]
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 # -----------------------------------------------------------------------------
 # DATABASE MANAGEMENT (SERVERLESS COMPATIBLE)
