@@ -145,6 +145,7 @@ const i18n = {
         card_ledger_title: "सर्व जुन्या पावत्यांचा इतिहास",
         ph_search_ledger: "पावती क्रमांक किंवा दुकानाच्या नावाने शोधा...",
         btn_export_csv: "📥 CSV डाउनलोड",
+        btn_export_excel: "Excel (.xlsx) संपूर्ण डेटा डाऊनलोड",
         th_bill_no: "बिल क्र.",
         th_store_customer: "दुकान / ग्राहक",
 
@@ -275,6 +276,7 @@ const i18n = {
         card_ledger_title: "All Saved Receipts History",
         ph_search_ledger: "Search by receipt number or store...",
         btn_export_csv: "📥 Export CSV",
+        btn_export_excel: "Download Excel (.xlsx) Ledger",
         th_bill_no: "Bill #",
         th_store_customer: "Store / Customer",
 
@@ -305,6 +307,136 @@ const i18n = {
         modal_expense_title: "💸 Record Store Expense",
         btn_submit: "Save",
         btn_cancel: "Cancel"
+    },
+    hi: {
+        app_name: "VernaLedger.AI",
+        tagline: "किराना दुकानों के लिए सुरक्षित स्मार्ट डिजिटल लेजर",
+        login_title: "मर्चेंट लॉगिन",
+        login_demo_admin: "⚡ एडमिन डेमो",
+        login_demo_staff: "👤 स्टाफ डेमो",
+        lbl_username: "उपयोगकर्ता नाम",
+        lbl_password: "पासवर्ड",
+        btn_login: "🔐 एप्लिकेशन खोलें (Login)",
+        nav_scanner: "स्मार्ट स्कैनर",
+        nav_khata: "ग्राहक खाता",
+        nav_business: "स्टोर ऑपरेशन्स",
+        nav_ledger: "लेजर व रसीदें",
+        nav_ai: "AI बिजनेस स्टूडियो",
+        btn_logout: "🚪 बाहर निकलें",
+        lang_label: "🌐 हिन्दी",
+        mob_nav_scanner: "स्कैनर",
+        mob_nav_khata: "खाता",
+        mob_nav_business: "ऑपरेशन्स",
+        mob_nav_ledger: "लेजर",
+        mob_nav_ai: "AI स्टूडियो",
+
+        hud_scanner_title: "⚡ स्मार्ट मल्टीमॉडल स्कैनर व वॉइस बिलिंग",
+        hud_scanner_sub: "हस्तलिखित और मुद्रित बिलों का 1 सेकंड में डिजिटल बिल में रूपांतरण",
+        hud_khata_title: "💳 ग्राहक खाता व डिजिटल उधारी बही",
+        hud_khata_sub: "WhatsApp द्वारा 1-क्लिक भुगतान अनुस्मारक व पारदर्शी जमा-उधारी हिसाब",
+        hud_business_title: "🏬 स्टोर ऑपरेशन्स, माल स्टॉक व खर्च",
+        hud_business_sub: "इन्वेंट्री ट्रैकिंग, कम स्टॉक अलर्ट्स और दैनिक खर्च प्रबंधन",
+        hud_ledger_title: "📊 सुरक्षित डिजिटल लेजर डेटाबेस",
+        hud_ledger_sub: "सभी पुरानी रसीदों का इतिहास, खोज और थर्मल बिल प्रिंट",
+        hud_ai_title: "🤖 VernaLedger AI बिजनेस स्टूडियो",
+        hud_ai_sub: "आपकी दुकान की बिक्री, उधारी और स्टॉक का व्यक्तिगत AI सलाहकार",
+
+        kpi_sales: "कुल बिक्री",
+        kpi_bills: "कुल रसीदें",
+        kpi_avg: "औसत बिल",
+        kpi_profit: "शुद्ध लाभ",
+        kpi_udhar: "बकाया उधारी",
+
+        card_scan_input: "रसीद स्कैन / वॉइस इनपुट",
+        tab_vision: "📷 AI विजन स्कैनर",
+        tab_voice: "🎙️ वॉइस बिलिंग",
+        dropzone_title: "रसीद का फोटो चुनें या यहाँ ड्रैग करें",
+        dropzone_sub: "PNG, JPG, JPEG (हस्तलिखित या मुद्रित बिल)",
+        btn_camera: "📷 लाइव कैमरे से फोटो लें",
+        btn_ocr: "⚡ AI स्कैन करें",
+        voice_hint: "माइक दबाकर ग्राहक का नाम और सामान बोलें (उदा. 'रोहन को 2 किलो चीनी 50 रुपये और 1 तेल 150 रुपये')",
+        voice_ready: "बोलने के लिए माइक पर क्लिक करें",
+        voice_listening: "मैं सुन रहा हूँ... सामान का नाम बोलें...",
+        voice_placeholder: "यहाँ बोला गया पाठ दिखेगा या स्वयं टाइप करें...",
+        btn_voice_submit: "⚡ वॉइस से रसीद बनाएं",
+
+        card_current_bill: "📋 वर्तमान बिल (Live POS)",
+        lbl_vendor: "किराना स्टोर नाम",
+        lbl_date: "तारीख",
+        lbl_category: "श्रेणी",
+        th_item: "सामान का नाम",
+        th_qty: "मात्रा/वजन",
+        th_rate: "दर (₹)",
+        th_total: "कुल (₹)",
+        th_action: "कार्रवाई",
+        btn_add_item: "+ सामान जोड़ें",
+        lbl_grand_total: "कुल देय राशि:",
+        btn_save_ledger: "💾 लेजर में सेव करें",
+        btn_print_receipt: "🖨️ रसीद प्रिंट करें",
+        btn_add_to_khata: "💳 खाते पर उधारी दर्ज करें",
+
+        kpi_customers: "कुल ग्राहक",
+        kpi_txns: "कुल लेनदेन",
+        card_khata_title: "ग्राहक उधारी सूची",
+        btn_new_customer: "+ नया खाता",
+        ph_search_khata: "ग्राहक का नाम या मोबाइल नंबर से खोजें...",
+        th_customer: "ग्राहक का नाम",
+        th_phone: "मोबाइल",
+        th_type: "प्रकार",
+        th_amount: "राशि (₹)",
+        th_note: "टिप्पणी",
+        th_due: "बकाया उधारी",
+        btn_whatsapp: "WhatsApp तकादा",
+        btn_add_entry: "+ जमा/उधारी",
+        btn_history: "इतिहास",
+
+        low_stock_notice: "कम स्टॉक अलर्ट (Low Stock Notice)",
+        low_stock_msg: "कुछ वस्तुओं का स्टॉक समाप्त होने वाला है.",
+        card_inventory: "दुकान का स्टॉक (Inventory)",
+        btn_new_stock: "+ नया सामान",
+        th_stock: "स्टॉक",
+        th_price: "कीमत (₹)",
+        th_status: "स्थिति",
+        card_expenses: "दैनिक दुकान खर्च",
+        btn_new_expense: "+ नया खर्च",
+        th_reason: "खर्च का कारण",
+
+        card_ledger_title: "सभी पुरानी रसीदों का इतिहास",
+        ph_search_ledger: "रसीद संख्या या दुकान के नाम से खोजें...",
+        btn_export_csv: "📥 CSV डाउनलोड",
+        btn_export_excel: "Excel (.xlsx) संपूर्ण डेटा डाउनलोड",
+        th_bill_no: "बिल क्र.",
+        th_store_customer: "दुकान / ग्राहक",
+
+        card_ai_title: "VernaLedger AI बिजनेस स्टूडियो",
+        chip_sales: "💰 आज की कुल बिक्री कितनी है?",
+        chip_udhar: "👥 कुल बकाया उधारी कितनी है?",
+        chip_low_stock: "🚨 कम स्टॉक कौन सा है?",
+        chip_developers: "🎓 प्रोजेक्ट डेवलपर्स कौन हैं?",
+        ai_greeting: "नमस्ते! मैं <strong>VernaLedger AI</strong> हूँ। अपनी किराना दुकान की बिक्री, उधारी या स्टॉक के बारे में हिन्दी में पूछ सकते हैं या माइक दबाकर सीधे उधारी/खर्च दर्ज कर सकते हैं।",
+        ai_voice_listening: "🎙️ मैं सुन रहा हूँ... प्रश्न पूछें या उधारी बोलें...",
+        ph_ai_input: "यहाँ प्रश्न पूछें या बोलें... (उदा. 'आज की बिक्री कितनी है?')",
+        btn_send: "भेजें",
+        lbl_voice_output: "🔊 वॉइस उत्तर सुनें",
+        btn_repeat_audio: "🔊 दोबारा सुनें",
+
+        receipt_preview_title: "🖨️ डिजिटल रसीद पूर्वावलोकन",
+        receipt_bill_no_label: "Bill No:",
+        receipt_total_label: "कुल देय राशि:",
+        receipt_upi_text: "स्कैन करके UPI से भुगतान करें",
+        receipt_greeting: "🙏 फिर पधारें! धन्यवाद! 🙏",
+        btn_print_now: "🖨️ अभी प्रिंट करें",
+        btn_close: "बंद करें",
+
+        modal_khata_title: "👥 नया ग्राहक खाता खोलें",
+        modal_entry_title: "💳 नया लेनदेन दर्ज करें (जमा/उधारी)",
+        modal_stock_title: "📦 नया सामान दर्ज करें (Inventory)",
+        modal_expense_title: "💸 नया खर्च दर्ज करें (Store Expense)",
+        btn_submit: "सेव करें",
+        btn_cancel: "रद्द करें",
+        btn_save_bill: "💾 बिल सेव करें",
+        btn_whatsapp_bill: "📲 WhatsApp बिल",
+        ocr_scanning: "⚡ AI द्वारा रसीद स्कैनिंग जारी है..."
     }
 };
 
@@ -1068,31 +1200,43 @@ function renderKhataCards(customers) {
 
         const displayName = formatLocalizedName(c.name, state.lang);
         const isMr = state.lang === "mr";
+        const isHi = state.lang === "hi";
+        const badgeText = isDebt 
+            ? (isMr ? '🔴 उधारी बाकी' : (isHi ? '🔴 उधारी बकाया' : 'Credit Due'))
+            : (isMr ? '🟢 हिशोब क्लिअर' : (isHi ? '🟢 हिसाब क्लीयर' : 'Cleared'));
+        const balLabel = isMr ? 'सध्याची बाकी रक्कम (Balance):' : (isHi ? 'वर्तमान बकाया राशि (Balance):' : 'Current Balance Due:');
+        const balStatus = isDebt 
+            ? (isMr ? 'येणे बाकी' : (isHi ? 'बकाया' : 'Pending')) 
+            : (isMr ? 'क्लिअर' : (isHi ? 'क्लीयर' : 'Nil'));
+        const phoneLabel = c.phone || (isMr ? "नंबर नाही" : (isHi ? "नंबर नहीं" : "No Phone"));
+        const btnCreditText = isMr ? '🔴 ₹ उधारी दिली' : (isHi ? '🔴 ₹ उधारी दी' : '🔴 ₹ Give Credit');
+        const btnPaymentText = isMr ? '🟢 ₹ जमा मिळाले' : (isHi ? '🟢 ₹ जमा प्राप्त' : '🟢 ₹ Got Payment');
+
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                 <div>
                     <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-white);">${escapeHtml(displayName)}</div>
-                    <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(c.phone || (isMr ? "नंबर नाही" : "No Phone"))}</div>
+                    <div style="font-size: 0.78rem; color: var(--text-slate);">📞 ${escapeHtml(phoneLabel)}</div>
                 </div>
                 <span class="user-role-badge ${isDebt ? 'badge-staff' : 'badge-admin'}">
-                    ${isDebt ? (isMr ? '🔴 उधारी बाकी' : 'Credit Due') : (isMr ? '🟢 हिशोब क्लिअर' : 'Cleared')}
+                    ${badgeText}
                 </span>
             </div>
 
             <div style="margin: 10px 0; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-                <div style="font-size: 0.75rem; color: var(--text-slate);">${isMr ? 'सध्याची बाकी रक्कम (Balance):' : 'Current Balance Due:'}</div>
+                <div style="font-size: 0.75rem; color: var(--text-slate);">${balLabel}</div>
                 <div style="font-size: 1.45rem; font-weight: 800; color: ${isDebt ? 'var(--neon-red)' : 'var(--neon-green)'};">
-                    ₹${Math.abs(c.balance).toFixed(2)} ${isDebt ? (isMr ? 'येणे बाकी' : 'Pending') : (isMr ? 'क्लिअर' : 'Nil')}
+                    ₹${Math.abs(c.balance).toFixed(2)} ${balStatus}
                 </div>
             </div>
 
             <!-- Khatabook Style Quick Action Buttons -->
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px;">
                 <button class="btn-give-credit" onclick="quickKhataAction('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}', 'Credit Given')">
-                    🔴 ₹ उधारी दिली
+                    ${btnCreditText}
                 </button>
                 <button class="btn-get-payment" onclick="quickKhataAction('${escapeHtml(c.name)}', '${escapeHtml(c.phone)}', 'Payment Received')">
-                    🟢 ₹ जमा मिळाले
+                    ${btnPaymentText}
                 </button>
                 ${isDebt && safePhone ? `
                     <a href="${waLink}" target="_blank" class="btn-whatsapp-share" style="grid-column: 1/-1; padding: 6px 10px; font-size: 0.78rem;">
@@ -1120,7 +1264,7 @@ function renderKhataTable(transactions) {
             <td style="color: var(--text-slate);">${escapeHtml(t.phone)}</td>
             <td>
                 <span class="user-role-badge ${isCredit ? 'badge-staff' : 'badge-admin'}">
-                    ${isCredit ? (isMr ? 'उधारी दिली' : 'Credit Given') : (isMr ? 'जमा केले' : 'Payment Received')}
+                    ${isCredit ? (state.lang === "mr" ? 'उधारी दिली' : (state.lang === "hi" ? 'उधारी दी' : 'Credit Given')) : (state.lang === "mr" ? 'जमा केले' : (state.lang === "hi" ? 'जमा प्राप्त' : 'Payment Received'))}
                 </span>
             </td>
             <td style="font-weight: 800; color: ${isCredit ? 'var(--neon-red)' : 'var(--neon-green)'};">
@@ -1241,7 +1385,7 @@ function renderInventoryTable(data) {
             <td>₹${Number(item.selling_price).toFixed(2)}</td>
             <td>
                 <span class="user-role-badge ${isLow ? 'badge-staff' : 'badge-admin'}">
-                    ${isLow ? (isMr ? 'कमी साठा' : 'Low Stock') : (isMr ? 'उपलब्ध' : 'In Stock')}
+                    ${isLow ? (state.lang === "mr" ? 'कमी साठा' : (state.lang === "hi" ? 'कम स्टॉक' : 'Low Stock')) : (state.lang === "mr" ? 'उपलब्ध' : (state.lang === "hi" ? 'उपलब्ध' : 'In Stock'))}
                 </span>
             </td>
             <td>
@@ -1453,25 +1597,37 @@ async function deleteReceipt(id) {
     }
 }
 
-function exportLedgerCSV() {
-    if (!state.allReceipts || state.allReceipts.length === 0) {
-        alert("एक्सपोर्ट करण्यासाठी पावत्या उपलब्ध नाहीत.");
-        return;
+// =============================================================================
+// NATIVE MICROSOFT EXCEL (.XLSX) EXPORT CONTROLLER
+// Downloads server-generated OpenXML .xlsx with styled Marathi headers & numbers
+// =============================================================================
+function downloadExcelReport() {
+    try {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fileName = `VernaLedger_Receipts_${year}-${month}-${day}.xlsx`;
+        const downloadUrl = `/api/export/excel?t=${Date.now()}`;
+        
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.setAttribute("download", fileName);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (err) {
+        console.error("Excel download error:", err);
+        window.location.href = `/api/export/excel?t=${Date.now()}`;
     }
+}
 
-    let csvContent = "data:text/csv;charset=utf-8,ID,Vendor,Date,Category,GrandTotal\n";
-    state.allReceipts.forEach(r => {
-        const v = (r.vendor_name || "").replace(/"/g, '""');
-        csvContent += `${r.id},"${v}",${r.date},"${r.category || 'General'}",${r.grand_total}\n`;
-    });
+function exportLedgerExcel() {
+    downloadExcelReport();
+}
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `VernaLedger_Receipts_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+function exportLedgerCSV() {
+    downloadExcelReport();
 }
 
 // -----------------------------------------------------------------------------
@@ -2075,7 +2231,9 @@ function applyLanguage() {
     const hBtn = document.getElementById("hud-lang-btn");
     if (hBtn) hBtn.innerText = `🌐 ${language.label}`;
     const cBtn = document.getElementById("chat-lang-btn");
-    if (cBtn) cBtn.innerText = isMr ? "🌐 भाषा: मराठी (mr-IN)" : "🌐 Language: English (en-IN)";
+    if (cBtn) if (state.lang === "mr") cBtn.innerText = "🌐 भाषा: मराठी (mr-IN)";
+    else if (state.lang === "hi") cBtn.innerText = "🌐 भाषा: हिन्दी (hi-IN)";
+    else cBtn.innerText = "🌐 Language: English (en-IN)";
     document.querySelectorAll(".language-select").forEach(select => {
         select.value = state.lang;
     });

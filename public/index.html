@@ -40,7 +40,7 @@
             });
         }
     </script>
-    <link rel="stylesheet" href="style.css?v=13.0">
+    <link rel="stylesheet" href="style.css?v=30.0">
 </head>
 <body>
 
@@ -152,7 +152,6 @@
                         <span class="icon">🤖</span>
                         <span class="label" data-i18n="nav_ai">AI बिझनेस स्टुडिओ</span>
                     </a>
-                    
                 </nav>
             </div>
 
@@ -571,12 +570,9 @@
                 <div class="glass-card" style="margin-bottom: 20px;">
                     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
                         <input type="text" id="ledger-search-input" class="input-cyber" placeholder="🔍 पावती क्रमांक, विक्रेता किंवा कॅटेगरी शोधा..." style="max-width: 400px;" oninput="filterLedgerList()">
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn-cyber" onclick="exportLedgerCSV()">
-                                📥 CSV डाऊनलोड (Export)
-                            </button>
-                            <button class="btn-pill btn-lang" onclick="loadReceiptsLedger()">
-                                🔄 रिफ्रेश
+                        <div>
+                            <button class="btn-cyber" id="btn-ledger-excel-export" onclick="downloadExcelReport()" style="background: linear-gradient(135deg, #15803d, #16a34a) !important; color: #ffffff !important; border: 2px solid #22c55e !important; font-weight: 800; padding: 9px 20px; font-size: 0.95rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(34, 197, 94, 0.5);">
+                                📗 <span data-i18n="btn_export_excel">Excel (.xlsx) संपूर्ण डेटा डाऊनलोड</span>
                             </button>
                         </div>
                     </div>
@@ -871,7 +867,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=13.0"></script>
+    <script src="app.js?v=30.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL

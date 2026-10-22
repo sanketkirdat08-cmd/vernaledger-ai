@@ -8,6 +8,8 @@ import os
 import io
 import re
 import json
+import csv
+import xlsxwriter
 import time
 import base64
 import sqlite3
@@ -17,7 +19,7 @@ import logging
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from PIL import Image
@@ -876,6 +878,256 @@ async def generate_tts(req: TTSRequest):
 # -----------------------------------------------------------------------------
 # RECEIPTS & LEDGER DATABASE
 # -----------------------------------------------------------------------------
+@app.get("/api/export/excel")
+@app.get("/api/receipts/export-excel")
+@app.get("/export/excel")
+def export_receipts_excel():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM receipts ORDER BY id DESC").fetchall()
+    conn.close()
+
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    worksheet = workbook.add_worksheet("पावत्या लेजर (Receipts)")
+
+    # Formats
+    header_fmt = workbook.add_format({
+        'bold': True,
+        'font_name': 'Segoe UI',
+        'font_size': 11,
+        'font_color': '#FFFFFF',
+        'bg_color': '#15803D', # Emerald Green
+        'border': 1,
+        'border_color': '#CBD5E1',
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+    
+    id_fmt = workbook.add_format({
+        'font_name': 'Segoe UI',
+        'font_size': 10,
+        'bold': True,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'border_color': '#E2E8F0'
+    })
+
+    text_fmt = workbook.add_format({
+        'font_name': 'Segoe UI',
+        'font_size': 10,
+        'valign': 'vcenter',
+        'border': 1,
+        'border_color': '#E2E8F0'
+    })
+
+    center_fmt = workbook.add_format({
+        'font_name': 'Segoe UI',
+        'font_size': 10,
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'border_color': '#E2E8F0'
+    })
+
+    currency_fmt = workbook.add_format({
+        'font_name': 'Segoe UI',
+        'font_size': 10,
+        'bold': True,
+        'num_format': '₹#,##0.00',
+        'align': 'right',
+        'valign': 'vcenter',
+        'border': 1,
+        'border_color': '#E2E8F0',
+        'font_color': '#16A34A'
+    })
+
+    total_label_fmt = workbook.add_format({
+        'bold': True,
+        'font_name': 'Segoe UI',
+        'font_size': 11,
+        'align': 'right',
+        'valign': 'vcenter',
+        'top': 1,
+        'bottom': 6,
+        'top_color': '#94A3B8',
+        'bottom_color': '#15803D'
+    })
+
+    total_sum_fmt = workbook.add_format({
+        'bold': True,
+        'font_name': 'Segoe UI',
+        'font_size': 11,
+        'num_format': '₹#,##0.00',
+        'align': 'right',
+        'valign': 'vcenter',
+        'top': 1,
+        'bottom': 6,
+        'top_color': '#94A3B8',
+        'bottom_color': '#15803D',
+        'font_color': '#15803D'
+    })
+
+    headers = [
+        "बिल क्र. (Bill ID)",
+        "दुकान / ग्राहक नाव (Store / Customer)",
+        "तारीख (Date)",
+        "प्रवर्ग (Category)",
+        "वस्तू तपशील (Items Details)",
+        "एकूण रक्कम (Grand Total)"
+    ]
+
+    for col_idx, h in enumerate(headers):
+        worksheet.write(0, col_idx, h, header_fmt)
+
+    worksheet.set_row(0, 26)
+
+    max_len_vendor = 20
+    max_len_items = 25
+
+    for row_idx, r in enumerate(rows, start=1):
+        d = dict(r)
+        rid = f"#VL-{d['id']}"
+        vendor = (d.get("vendor_name") or "").strip() or "किराणा स्टोअर"
+        if len(vendor) > max_len_vendor:
+            max_len_vendor = min(len(vendor), 40)
+            
+        d_val = (d.get("date") or "").strip()
+        if not d_val or d_val.lower() == "voice entry":
+            d_val = datetime.now().strftime("%d/%m/%Y")
+            
+        cat = (d.get("category") or "").strip() or "General"
+        
+        items_summary = ""
+        raw_str = d.get("raw_json")
+        if raw_str:
+            try:
+                parsed = json.loads(raw_str)
+                items = parsed.get("items", [])
+                parts = []
+                for it in items:
+                    name = it.get("name") or it.get("item_name") or it.get("item") or ""
+                    qty = it.get("qty") or it.get("quantity") or ""
+                    unit = it.get("unit") or ""
+                    price = it.get("total") or it.get("price") or ""
+                    part = name
+                    if qty:
+                        part += f" ({qty}{' ' + unit if unit else ''})"
+                    if price:
+                        part += f": ₹{price}"
+                    if part.strip():
+                        parts.append(part.strip())
+                items_summary = " | ".join(parts)
+            except Exception:
+                pass
+        if len(items_summary) > max_len_items:
+            max_len_items = min(len(items_summary), 50)
+            
+        total = float(d.get("grand_total") or 0)
+
+        worksheet.write(row_idx, 0, rid, id_fmt)
+        worksheet.write(row_idx, 1, vendor, text_fmt)
+        worksheet.write(row_idx, 2, d_val, center_fmt)
+        worksheet.write(row_idx, 3, cat, center_fmt)
+        worksheet.write(row_idx, 4, items_summary, text_fmt)
+        worksheet.write(row_idx, 5, total, currency_fmt)
+        worksheet.set_row(row_idx, 20)
+
+    # Total summary row
+    total_row = len(rows) + 1
+    worksheet.write(total_row, 4, "एकूण बेरीज (Total Grand Revenue):", total_label_fmt)
+    if len(rows) > 0:
+        worksheet.write_formula(total_row, 5, f'=SUM(F2:F{len(rows)+1})', total_sum_fmt)
+    else:
+        worksheet.write(total_row, 5, 0.0, total_sum_fmt)
+    worksheet.set_row(total_row, 24)
+
+    worksheet.set_column(0, 0, 14)
+    worksheet.set_column(1, 1, max(max_len_vendor + 4, 25))
+    worksheet.set_column(2, 2, 15)
+    worksheet.set_column(3, 3, 14)
+    worksheet.set_column(4, 4, max(max_len_items + 4, 38))
+    worksheet.set_column(5, 5, 20)
+
+    workbook.close()
+    output.seek(0)
+    excel_bytes = output.getvalue()
+
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=VernaLedger_Receipts_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        }
+    )
+
+@app.get("/api/receipts/export-csv")
+def export_receipts_csv():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM receipts ORDER BY id DESC").fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    # Write UTF-8 BOM so Excel opens Devanagari correctly without mojibake
+    output.write("\ufeff")
+    writer = csv.writer(output, lineterminator="\r\n")
+    
+    writer.writerow([
+        "Bill ID (बिल क्र.)",
+        "Store / Customer Name (दुकान / ग्राहक नाव)",
+        "Date (तारीख)",
+        "Category (प्रवर्ग)",
+        "Items Details (वस्तू तपशील)",
+        "Grand Total (एकूण रक्कम ₹)"
+    ])
+
+    for r in rows:
+        d = dict(r)
+        bill_id = f"#VL-{d['id']}"
+        vendor = (d.get("vendor_name") or "").strip() or "किराणा स्टोअर"
+        
+        d_val = (d.get("date") or "").strip()
+        if not d_val or d_val.lower() == "voice entry":
+            d_val = datetime.now().strftime("%d/%m/%Y")
+        date_cell = f'="{d_val}"'
+        
+        cat = d.get("category") or "General"
+        
+        items_summary = ""
+        raw_str = d.get("raw_json")
+        if raw_str:
+            try:
+                parsed = json.loads(raw_str)
+                items = parsed.get("items", [])
+                parts = []
+                for it in items:
+                    name = it.get("name") or it.get("item_name") or it.get("item") or ""
+                    qty = it.get("qty") or it.get("quantity") or ""
+                    unit = it.get("unit") or ""
+                    price = it.get("total") or it.get("price") or ""
+                    part = name
+                    if qty:
+                        part += f" ({qty}{' ' + unit if unit else ''})"
+                    if price:
+                        part += f": ₹{price}"
+                    if part.strip():
+                        parts.append(part.strip())
+                items_summary = " | ".join(parts)
+            except Exception:
+                pass
+                
+        total = f"{float(d.get('grand_total') or 0):.2f}"
+        writer.writerow([bill_id, vendor, date_cell, cat, items_summary, total])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=VernaLedger_Receipts_{datetime.now().strftime('%Y-%m-%d')}.csv"
+        }
+    )
+
 @app.get("/api/receipts")
 def get_receipts(search: Optional[str] = None):
     conn = get_db()
@@ -1197,19 +1449,39 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 action_status = f"खर्च नोंद त्रुटी: {e}"
 
         query_lang = detect_msg_language(user_msg, req.lang or "mr")
+        is_hindi = (query_lang == "hi" or req.lang == "hi")
         is_english = (query_lang == "en")
 
-        language_instruction = (
-            "Detect the user language automatically. If the user asked in English, answer in clear English. "
-            "If in Marathi, answer in natural grammatically correct Marathi. Keep the answer concise and factual."
-        )
+        if is_hindi:
+            language_instruction = (
+                "The user is speaking or querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी). "
+                "Keep the answer concise, crisp, and factual (1-2 sentences maximum)."
+            )
+        elif is_english:
+            language_instruction = (
+                "The user asked in English. Answer in clear, polite English. Keep the answer concise and factual (1-2 sentences maximum)."
+            )
+        else:
+            language_instruction = (
+                "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
+            )
 
         # Direct answers for common questions to eliminate clutter
         lower_msg = user_msg.lower()
-        if any(k in lower_msg for k in ['guide', 'developer', 'creator', 'कोण बनवला', 'मार्गदर्शक', 'विकासक', 'नाव काय', 'team', 'कॉलेज', 'college', 'who made']):
-            answer = ('प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर | प्रमुख विकासक: संकेत किर्दत | सह-विकासक: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा.')
-        elif lower_msg in ['namaskar', 'नमस्कार', 'hello', 'hi', 'हॅलो']:
-            answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
+        if any(k in lower_msg for k in ['guide', 'developer', 'creator', 'कोण बनवला', 'मार्गदर्शक', 'विकासक', 'नाव काय', 'team', 'कॉलेज', 'college', 'who made', 'किसने बनाया', 'डेवलपर']):
+            if is_hindi:
+                answer = 'प्रोजेक्ट गाइड: प्रो. कैसर अतार सर | मुख्य डेवलपर: संकेत किर्दत | सह-डेवलपर्स: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजीनियरिंग, सातारा.'
+            elif is_english:
+                answer = 'Project Guide: Prof. Kaisar Atar Sir | Lead Developer: Sanket Kirdat | Co-Developers: Sakshi Bhagat, Vaishnavi Dhawale, Rushikesh Mulik | AGCE Satara.'
+            else:
+                answer = 'प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर | प्रमुख विकासक: संकेत किर्दत | सह-विकासक: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा.'
+        elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
+            if is_hindi:
+                answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
+            elif is_english:
+                answer = 'Hello! I am Verna AI. How can I help you today with your store sales, customer dues, or inventory?'
+            else:
+                answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
 
         assistant_instruction = """You are Verna AI, an intelligent, fast store assistant for VernaLedger AI.
 CRITICAL RULES:
