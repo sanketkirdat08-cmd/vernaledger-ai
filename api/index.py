@@ -1201,7 +1201,7 @@ CRITICAL RULES:
 2. NEVER mention developers, guide, or college unless explicitly asked.
 3. Only give the exact store figures (sales, credit, stock) asked by the user using Live Shop Data."""
 
-        if api_key and genai:
+        if not answer and api_key and genai:
             try:
                 genai.configure(api_key=api_key)
                 models_to_try = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']
