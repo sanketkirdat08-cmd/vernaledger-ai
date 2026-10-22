@@ -27,8 +27,17 @@ const state = {
 
 const supportedLanguages = [
     { code: "mr", label: "मराठी", speech: "mr-IN", tts: "mr-IN-AarohiNeural" },
-    { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" }
+    { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" },
+    { code: "hi", label: "हिन्दी", speech: "hi-IN", tts: "hi-IN-SwaraNeural" }
 ];
+
+function parseDevanagariNum(str) {
+    if (str === null || str === undefined) return 0;
+    const devanagariDigits = {'०':'0','१':'1','२':'2','३':'3','४':'4','५':'5','६':'6','७':'7','८':'8','९':'9'};
+    const normalized = String(str).replace(/[०-९]/g, d => devanagariDigits[d] || d);
+    const match = normalized.match(/[\d.]+/);
+    return match ? parseFloat(match[0]) : 0;
+}
 
 if (!supportedLanguages.some(language => language.code === state.lang)) {
     state.lang = "mr";
@@ -165,7 +174,10 @@ const i18n = {
         modal_stock_title: "📦 नवीन माल नोंदवा (Inventory)",
         modal_expense_title: "💸 नवीन खर्च नोंदवा (Store Expense)",
         btn_submit: "सेव्ह करा",
-        btn_cancel: "रद्द करा"
+        btn_cancel: "रद्द करा",
+        btn_save_bill: "💾 बिल सेव्ह करा",
+        btn_whatsapp_bill: "📲 WhatsApp बिल",
+        ocr_scanning: "⚡ AI द्वारे पावती स्कॅनिंग सुरू आहे..."
     },
     en: {
         app_name: "VernaLedger.AI",
@@ -843,18 +855,18 @@ function recalcBillTotal() {
 
     rows.forEach(row => {
         const qtyStr = row.querySelector(".item-qty").value;
-        const rate = parseFloat(row.querySelector(".item-rate").value) || 0;
-        
-        // Extract numeric quantity
-        const numMatch = qtyStr.match(/[\d.]+/);
-        const qtyNum = numMatch ? parseFloat(numMatch[0]) : 1;
+        const rateVal = row.querySelector(".item-rate").value;
+        const qtyNum = parseDevanagariNum(qtyStr) || 1;
+        const rate = parseDevanagariNum(rateVal) || 0;
         const total = qtyNum * rate;
 
-        row.querySelector(".item-total").innerText = total.toFixed(2);
+        const totalCell = row.querySelector(".item-total");
+        if (totalCell) totalCell.innerText = total.toFixed(2);
         grandTotal += total;
     });
 
-    document.getElementById("bill-grand-total").innerText = `₹${grandTotal.toFixed(2)}`;
+    const totalEl = document.getElementById("bill-grand-total");
+    if (totalEl) totalEl.innerText = `₹${grandTotal.toFixed(2)}`;
     return grandTotal;
 }
 

@@ -91,16 +91,9 @@
                     <span id="mob-theme-icon">☀️</span>
                 </button>
                 <select class="language-select mobile-language-select" id="mobile-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
-                    <option value="mr">मराठी</option>
-                    <option value="en">English</option>
-                    <option value="hi">हिन्दी</option>
-                    <option value="gu">ગુજરાતી</option>
-                    <option value="ta">தமிழ்</option>
-                    <option value="te">తెలుగు</option>
-                    <option value="kn">ಕನ್ನಡ</option>
-                    <option value="bn">বাংলা</option>
-                    <option value="es">Español</option>
-                    <option value="fr">Français</option>
+                    <option value="mr">🌐 मराठी</option>
+                    <option value="en">🌐 English</option>
+                    <option value="hi">🌐 हिन्दी</option>
                 </select>
                 <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="mobile-lang-btn">
                     🌐 मराठी
@@ -193,16 +186,9 @@
                         ● LIVE CLOUD DB
                     </span>
                     <select class="language-select" id="hud-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
-                        <option value="mr">मराठी</option>
-                        <option value="en">English</option>
-                        <option value="hi">हिन्दी</option>
-                        <option value="gu">ગુજરાતી</option>
-                        <option value="ta">தமிழ்</option>
-                        <option value="te">తెలుగు</option>
-                        <option value="kn">ಕನ್ನಡ</option>
-                        <option value="bn">বাংলা</option>
-                        <option value="es">Español</option>
-                        <option value="fr">Français</option>
+                        <option value="mr">🌐 मराठी</option>
+                        <option value="en">🌐 English</option>
+                        <option value="hi">🌐 हिन्दी</option>
                     </select>
                     <button class="btn-pill btn-lang language-cycle-button" onclick="toggleLanguage()" id="hud-lang-btn" title="Next language">🌐 मराठी</button>
                     <button class="btn-pill btn-logout" onclick="handleLogout()" data-i18n="btn_logout">🚪 बाहेर पडा</button>
@@ -239,7 +225,7 @@
                                 <div style="font-size: 0.78rem; color: var(--text-slate); margin-top: 4px;" data-i18n="dropzone_sub">PNG, JPG, JPEG (हस्तलिखित किंवा छापील बिल)</div>
                             </div>
 
-                            <div style="display: flex; gap: 10px; margin-top: 14px;">
+                            <div class="scanner-action-buttons" style="display: flex; gap: 10px; margin-top: 14px;">
                                 <button class="btn-cyber" style="flex: 1;" onclick="openCameraModal()">
                                     <span data-i18n="btn_camera">📷 लाईव्ह कॅमेराने फोटो काढा</span>
                                 </button>
@@ -279,7 +265,7 @@
                         <div id="scanner-loader" style="display: none; margin-top: 16px; text-align: center; padding: 12px; background: rgba(0, 242, 254, 0.08); border-radius: 12px; border: 1px solid var(--neon-cyan);">
                             <div style="font-size: 1.2rem; animation: spin 1s infinite linear; display: inline-block;">⚙️</div>
                             <div style="font-size: 0.85rem; font-weight: 700; color: var(--neon-cyan); margin-top: 6px;" id="scanner-loader-text">
-                                Gemini 2.5 Flash द्वारे विश्लेषण सुरू आहे...
+                                ⚡ AI द्वारे पावती स्कॅनिंग सुरू आहे...
                             </div>
                         </div>
                     </div>
@@ -296,11 +282,11 @@
                         <!-- Vendor & Date Inputs -->
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
-                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;">दुकान / विक्रेत्याचे नाव</label>
+                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_vendor">दुकान / विक्रेत्याचे नाव</label>
                                 <input type="text" id="bill-vendor-name" class="input-cyber" value="महादेव किराणा स्टोअर">
                             </div>
                             <div>
-                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;">तारीख</label>
+                                <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_date">तारीख</label>
                                 <input type="date" id="bill-date" class="input-cyber">
                             </div>
                         </div>
@@ -310,11 +296,11 @@
                             <table class="cyber-table" id="bill-items-table">
                                 <thead>
                                     <tr>
-                                        <th>वस्तू / माल</th>
-                                        <th style="width: 80px;">नग / वजन</th>
-                                        <th style="width: 80px;">दर (₹)</th>
-                                        <th style="width: 80px;">एकूण (₹)</th>
-                                        <th style="width: 40px;"></th>
+                                        <th data-i18n="th_item">वस्तू / माल</th>
+                                        <th data-i18n="th_qty">नग / वजन</th>
+                                        <th data-i18n="th_rate">दर (₹)</th>
+                                        <th data-i18n="th_total">एकूण (₹)</th>
+                                        <th style="width: 30px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="bill-items-tbody">
@@ -338,25 +324,25 @@
                         </div>
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                            <button class="btn-pill" onclick="addBillRow()" style="background: rgba(0, 242, 254, 0.1); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.3);">
-                                + वस्तू जोडा (Add Item)
+                            <button class="btn-pill" onclick="addBillRow()" style="background: rgba(0, 242, 254, 0.1); color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.3);" data-i18n="btn_add_item">
+                                + वस्तू जोडा
                             </button>
                             <div style="text-align: right;">
-                                <span style="font-size: 0.8rem; color: var(--text-slate);">एकूण रक्कम:</span>
+                                <span style="font-size: 0.8rem; color: var(--text-slate);" data-i18n="lbl_grand_total">एकूण रक्कम:</span>
                                 <span style="font-size: 1.45rem; font-weight: 800; color: var(--neon-green); margin-left: 8px;" id="bill-grand-total">₹253.00</span>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px;">
-                            <button class="btn-cyber success" onclick="saveCurrentBillToLedger()" style="grid-column: 1/-1; padding: 10px; font-size: 0.95rem;">
-                                💾 बिल सेव्ह करा (Save Bill)
+                            <button class="btn-cyber success" onclick="saveCurrentBillToLedger()" style="grid-column: 1/-1; padding: 10px; font-size: 0.95rem;" data-i18n="btn_save_bill">
+                                💾 बिल सेव्ह करा
                             </button>
-                            <button class="btn-whatsapp-share" onclick="openWhatsAppBillModal()">
-                                📲 WhatsApp बिल पाठवा
+                            <button class="btn-whatsapp-share" onclick="openWhatsAppBillModal()" data-i18n="btn_whatsapp_bill">
+                                📲 WhatsApp बिल
                             </button>
-                            <button class="btn-cyber" onclick="openThermalPrintModal()">
-                                🖨️ पावती प्रिंट (Print)
+                            <button class="btn-cyber" onclick="openThermalPrintModal()" data-i18n="btn_print_receipt">
+                                🖨️ पावती प्रिंट
                             </button>
                         </div>
                     </div>

@@ -392,16 +392,100 @@ def get_dashboard_metrics():
     }
 
 # -----------------------------------------------------------------------------
-# MULTIMODAL OCR BILLING (GEMINI FLASH)
+# MULTIMODAL OCR BILLING (GEMINI FLASH & DEVANAGARI INTELLIGENCE)
 # -----------------------------------------------------------------------------
+def normalize_devanagari_digits(text: str) -> str:
+    if not text:
+        return ""
+    devanagari_map = str.maketrans('०१२३४५६७८९', '0123456789')
+    return str(text).translate(devanagari_map)
+
 def clean_json_str(text: str) -> dict:
-    text = re.sub(r'```json\s*', '', text)
-    text = re.sub(r'```\s*$', '', text).strip()
+    if not text:
+        return {}
+    text = normalize_devanagari_digits(text)
+    text = re.sub(r'```json\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'```\s*', '', text).strip()
     start_idx = text.find('{')
     end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        return json.loads(text[start_idx:end_idx + 1])
-    return json.loads(text)
+    raw = text[start_idx:end_idx + 1] if (start_idx != -1 and end_idx != -1 and end_idx > start_idx) else text
+    raw = re.sub(r',\s*([}\]])', r'\1', raw)
+
+    data = None
+    try:
+        data = json.loads(raw)
+    except Exception:
+        try:
+            raw_fixed = re.sub(r"(?<!\\)'", '"', raw)
+            data = json.loads(raw_fixed)
+        except Exception as e:
+            logger.warning("JSON parsing error: %s", e)
+            data = {}
+
+    if not isinstance(data, dict):
+        data = {}
+
+    items = data.get("items", [])
+    clean_items = []
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("item_name") or item.get("name") or "").strip()
+            if not name:
+                continue
+            qty_str = str(item.get("quantity") or item.get("qty") or "1").strip()
+            qty_clean = normalize_devanagari_digits(qty_str)
+            qty_num_match = re.search(r'[\d.]+', qty_clean)
+            qty_val = float(qty_num_match.group(0)) if qty_num_match else 1.0
+
+            rate_raw = item.get("rate") or 0.0
+            if isinstance(rate_raw, str):
+                rate_raw = normalize_devanagari_digits(rate_raw)
+                rate_m = re.search(r'[\d.]+', rate_raw.replace(',', ''))
+                rate_val = float(rate_m.group(0)) if rate_m else 0.0
+            else:
+                rate_val = float(rate_raw or 0.0)
+
+            total_raw = item.get("total_price") or item.get("total") or 0.0
+            if isinstance(total_raw, str):
+                total_raw = normalize_devanagari_digits(total_raw)
+                total_m = re.search(r'[\d.]+', total_raw.replace(',', ''))
+                total_val = float(total_m.group(0)) if total_m else 0.0
+            else:
+                total_val = float(total_raw or 0.0)
+
+            # Auto-compute if missing
+            if total_val == 0.0 and rate_val > 0.0:
+                total_val = round(qty_val * rate_val, 2)
+            elif rate_val == 0.0 and total_val > 0.0 and qty_val > 0:
+                rate_val = round(total_val / qty_val, 2)
+
+            clean_items.append({
+                "item_name": name,
+                "quantity": qty_str,
+                "rate": rate_val,
+                "total_price": total_val
+            })
+
+    data["items"] = clean_items
+    calc_grand = sum(i["total_price"] for i in clean_items)
+
+    gt_raw = data.get("grand_total") or 0.0
+    if isinstance(gt_raw, str):
+        gt_raw = normalize_devanagari_digits(gt_raw)
+        gt_m = re.search(r'[\d.]+', gt_raw.replace(',', ''))
+        gt_val = float(gt_m.group(0)) if gt_m else 0.0
+    else:
+        gt_val = float(gt_raw or 0.0)
+
+    data["grand_total"] = gt_val if (gt_val > 0.0 and abs(gt_val - calc_grand) < 1.0) else (calc_grand if calc_grand > 0 else gt_val)
+    if not data.get("vendor_name"):
+        data["vendor_name"] = "महादेव किराणा स्टोअर"
+    if not data.get("date"):
+        data["date"] = date.today().strftime("%Y-%m-%d")
+    data["category"] = data.get("category") or "General"
+    return data
 
 @app.post("/api/ocr")
 async def process_ocr(file: UploadFile = File(...)):
@@ -415,36 +499,38 @@ async def process_ocr(file: UploadFile = File(...)):
     contents = await file.read()
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
-        img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+        img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
 
     genai.configure(api_key=api_key)
-    prompt = """
-    You are an expert document OCR scanner specialized in Marathi, Devanagari handwritten and printed ledgers, invoices, and retail receipts.
-    CRITICAL OCR INSTRUCTIONS:
-    1. Extract Vendor/Shop Name at the top in complete Marathi or English script.
-    2. Extract EVERY line item row accurately:
-       - item_name: Full item name (e.g. 'साखर', 'शेंगदाणा तेल', 'गहू', 'चहा पावडर').
-       - quantity: Numeric count with unit (e.g. '1 kg', '2 pcs', '500 gm').
-       - rate: Numeric price per unit in rupees (e.g. 45.0).
-       - total_price: Line item total in rupees (quantity * rate).
-    3. Calculate grand_total = SUM of all item totals.
-    
-    Output strictly in this JSON format:
-    {
-      "vendor_name": "string",
-      "date": "string",
-      "category": "General",
-      "items": [
-        {"item_name": "string", "quantity": "string", "rate": 0.0, "total_price": 0.0}
-      ],
-      "grand_total": 0.0
-    }
-    Return ONLY valid JSON.
-    """
+    prompt = """You are the world's most advanced multilingual document OCR scanner specialized in Indian retail receipts, Marathi/Devanagari handwritten ledger slips, and printed bills.
 
-    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
+TASK:
+Examine this image with extreme care and extract all details with 100% precision:
+1. vendor_name: Shop, merchant, or customer party name at the top (in Marathi Devanagari or English). Default: "महादेव किराणा स्टोअर".
+2. date: Receipt date (YYYY-MM-DD or DD/MM/YYYY). If missing, use today's date.
+3. items: Extract EVERY SINGLE LINE ITEM visible on the bill/slip:
+   - item_name: Name of grocery/item in Devanagari Marathi or English (e.g. 'साखर', 'शेंगदाणा तेल', 'गहू', 'चहा पावडर', 'साबण').
+   - quantity: Quantity with unit (e.g. '1 kg', '2 लिटर', '500 gm', '1 पाकीट', '2 नग').
+   - rate: Numeric price per unit (float).
+   - total_price: Numeric line total (quantity * rate). If only total is written, calculate rate = total / quantity.
+4. grand_total: The sum of all item totals or final bill total amount.
+
+Convert all Devanagari Marathi numbers (०, १, २, ३, ४, ५, ६, ७, ८, ९) to standard Arabic digits (0, 1, 2, 3, 4, 5, 6, 7, 8, 9) in 'rate', 'total_price', and 'grand_total'.
+
+Return strictly valid JSON only:
+{
+  "vendor_name": "string",
+  "date": "string",
+  "category": "General",
+  "items": [
+    {"item_name": "string", "quantity": "string", "rate": 0.0, "total_price": 0.0}
+  ],
+  "grand_total": 0.0
+}"""
+
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
     response = None
     last_err = None
 
@@ -462,7 +548,7 @@ async def process_ocr(file: UploadFile = File(...)):
     today_str = date.today().strftime("%Y-%m-%d")
     if not response:
         data = {
-            "vendor_name": "किराणा पावती (Scan)",
+            "vendor_name": "महादेव किराणा स्टोअर",
             "date": today_str,
             "category": "General",
             "items": [
@@ -472,19 +558,17 @@ async def process_ocr(file: UploadFile = File(...)):
         }
     else:
         data = clean_json_str(response)
-        if not data or not isinstance(data, dict):
-            data = {
-                "vendor_name": "किराणा पावती (Scan)",
-                "date": today_str,
-                "category": "General",
-                "items": [
-                    {"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 50.0, "total_price": 50.0}
-                ],
-                "grand_total": 50.0
-            }
-
-    if data.get('items') and data.get('grand_total', 0) == 0:
-        data['grand_total'] = sum(i.get('total_price', 0) for i in data['items'])
+        if not data or not data.get("items"):
+            # If clean_json_str returned empty items because of unparseable response, ensure valid structure
+            if not data:
+                data = {}
+            if not data.get("vendor_name"):
+                data["vendor_name"] = "महादेव किराणा स्टोअर"
+            data["date"] = data.get("date") or today_str
+            data["category"] = data.get("category") or "General"
+            if not data.get("items"):
+                data["items"] = [{"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 50.0, "total_price": 50.0}]
+                data["grand_total"] = 50.0
 
     # Save to SQLite
     rec_date = data.get("date") or today_str
@@ -520,28 +604,33 @@ def process_voice_billing(req: VoiceBillRequest):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in Vercel environment.")
 
     genai.configure(api_key=api_key)
-    prompt = f"""
-    Convert the following spoken Marathi/English store billing transaction into structured receipt JSON:
-    Spoken Text: "{req.transcript}"
-    
-    1. Extract vendor name if spoken, otherwise "अनामित (Local Kirana)".
-    2. Extract all items, quantities, rates per unit, and calculate total_price = quantity * rate.
-    3. Calculate grand_total = sum of all items total_price.
-    
-    Output strictly in this JSON format:
-    {{
-      "vendor_name": "string",
-      "date": "Voice Bill",
-      "category": "General",
-      "items": [
-        {{"item_name": "string", "quantity": "string", "rate": 0.0, "total_price": 0.0}}
-      ],
-      "grand_total": 0.0
-    }}
-    Return ONLY valid JSON.
-    """
+    prompt = f"""You are an expert vernacular billing intelligence system for Maharashtra Kirana stores.
+Convert the following spoken store transaction into structured receipt JSON:
+Spoken Text: "{req.transcript}"
 
-    models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
+RULES:
+1. Party / Customer / Vendor Name:
+   - Identify if a person/customer name is spoken (e.g. 'कैलास अतार', 'ढवळे', 'मुळीक', 'गवळी', 'सागर', 'रमेश', 'सुरेश', 'पाटील', 'सोनवणे').
+   - If a customer name is spoken, set vendor_name to that customer name. If no name is spoken, use "महादेव किराणा स्टोअर".
+2. Extract all line items:
+   - item_name: Clean item name in Marathi Devanagari (e.g. 'साखर', 'शेंगदाणा तेल', 'गहू', 'चहा पावडर', 'साबण').
+   - quantity: Quantity with unit (e.g. '2 किलो', '1 लिटर', '500 gm', '2 नग').
+   - rate: Price per unit in rupees (float).
+   - total_price: Line item total = quantity * rate.
+3. Calculate grand_total = sum of all line item totals.
+
+Convert all Devanagari numbers to standard Arabic digits. Return strictly valid JSON:
+{{
+  "vendor_name": "string",
+  "date": "{date.today().strftime('%Y-%m-%d')}",
+  "category": "Kirana",
+  "items": [
+    {{"item_name": "string", "quantity": "string", "rate": 0.0, "total_price": 0.0}}
+  ],
+  "grand_total": 0.0
+}}"""
+
+    models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
     res_text = None
     for m in models_to_try:
         try:
@@ -557,21 +646,23 @@ def process_voice_billing(req: VoiceBillRequest):
         raise HTTPException(status_code=500, detail="Could not parse voice billing input")
 
     data = clean_json_str(res_text)
+    today_str = date.today().strftime("%Y-%m-%d")
+    rec_date = data.get("date") or today_str
     raw_json_str = json.dumps(data, ensure_ascii=False)
 
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-        (data.get("vendor_name", "Voice Bill"), date.today().strftime("%Y-%m-%d"), data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
+        (data.get("vendor_name", "Voice Bill"), rec_date, data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
     )
     data["id"] = cursor.lastrowid
     # Auto-sync to Customer Khata if spoken text mentions credit/udhar
     if any(k in req.transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
-        cust = data.get("vendor_name", "").replace("अनामित (Local Kirana)", "").strip() or "ग्राहक"
+        cust = data.get("vendor_name", "").replace("महादेव किराणा स्टोअर", "").strip() or "ग्राहक"
         cursor.execute(
             "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (cust, "", data["grand_total"], "Credit Given", date.today().strftime("%Y-%m-%d"), "", f"व्हॉइस बिल #{data['id']}")
+            (cust, "", data["grand_total"], "Credit Given", today_str, "", f"व्हॉइस बिल #{data['id']}")
         )
         data["auto_khata_added"] = True
     conn.commit()
@@ -1102,7 +1193,7 @@ async def rag_chat(req: RAGChatRequest):
                 "max_output_tokens": 1024,
             }
             # Priority fast models working right now
-            models_to_try = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.8-flash']
+            models_to_try = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash-lite']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
