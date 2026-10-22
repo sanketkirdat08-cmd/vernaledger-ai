@@ -1543,22 +1543,22 @@ body::after {
 }
 
 /* ==========================================================================
-   HIGH-CONTRAST MERCHANT MODE (किराणा मोड - LIGHT THEME)
+   HIGH-CONTRAST MERCHANT MODE (किराणा मोड - EYE-COMFORT LIGHT THEME)
    ========================================================================== */
 body.light-theme {
-    --bg-dark: #F8FAFC;
-    --card-bg: rgba(255, 255, 255, 0.98);
-    --card-border: rgba(203, 213, 225, 0.9);
+    --bg-dark: #E2E8F0;
+    --card-bg: #FFFFFF;
+    --card-border: #CBD5E1;
     --neon-cyan: #0284C7;
-    --neon-green: #16A34A;
+    --neon-green: #15803D;
     --neon-purple: #7C3AED;
     --electric-blue: #2563EB;
-    --neon-red: #DC2626;
-    --neon-amber: #D97706;
+    --neon-red: #B91C1C;
+    --neon-amber: #B45309;
     --text-white: #0F172A;
     --text-slate: #334155;
     --text-dim: #64748B;
-    background: #F1F5F9 !important;
+    background: #E8EEF5 !important;
     color: #0F172A !important;
 }
 
@@ -1567,69 +1567,318 @@ body.light-theme::after {
     display: none !important;
 }
 
-body.light-theme .desktop-sidebar {
-    background: #FFFFFF !important;
-    border-right: 1px solid #E2E8F0 !important;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05) !important;
+/* Eye-Friendly Top Action HUD */
+body.light-theme .top-action-hud {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 18px;
+}
+body.light-theme #hud-title {
+    color: #0F172A !important;
 }
 
+/* Sidebar Styling with Clear Structural Contrast */
+body.light-theme .desktop-sidebar {
+    background: #F8FAFC !important;
+    border-right: 1.5px solid #CBD5E1 !important;
+    box-shadow: 3px 0 14px rgba(15, 23, 42, 0.05) !important;
+}
+
+body.light-theme .brand-title,
+body.light-theme .brand-title span {
+    color: #0F172A !important;
+}
+body.light-theme .brand-sub {
+    color: #64748B !important;
+}
+
+body.light-theme .nav-link {
+    color: #334155 !important;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+body.light-theme .nav-link:hover {
+    background: #EEF2F6 !important;
+    color: #0F172A !important;
+}
+body.light-theme .nav-link.active {
+    background: #E0F2FE !important;
+    color: #0369A1 !important;
+    border-left: 3.5px solid #0284C7 !important;
+    font-weight: 800;
+}
+body.light-theme .nav-link .icon {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+/* Mobile Bars */
 body.light-theme .mobile-top-bar,
 body.light-theme .mobile-bottom-nav {
-    background: #FFFFFF !important;
-    border-color: #E2E8F0 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
-}
-
-body.light-theme .glass-card,
-body.light-theme .glass-card-mini,
-body.light-theme .chat-container {
-    background: #FFFFFF !important;
-    border-color: #E2E8F0 !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
-    color: #0F172A !important;
-}
-
-body.light-theme .glass-card h3,
-body.light-theme .glass-card-mini .kpi-val-mini,
-body.light-theme .brand-title,
-body.light-theme .nav-link,
-body.light-theme .tab-item {
-    color: #0F172A !important;
-}
-
-body.light-theme .input-cyber,
-body.light-theme .rag-input {
     background: #F8FAFC !important;
-    border: 1px solid #CBD5E1 !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.07) !important;
+}
+body.light-theme .mobile-top-bar .brand span {
+    color: #0F172A !important;
+}
+body.light-theme .mobile-bottom-nav .tab-item {
+    color: #475569 !important;
+}
+body.light-theme .mobile-bottom-nav .tab-item.active {
+    color: #0284C7 !important;
+    background: #E0F2FE !important;
+    border-radius: 10px;
+    font-weight: 800;
+}
+
+/* Cards & Surface Separation */
+body.light-theme .glass-card,
+body.light-theme .glass-card-mini {
+    background: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    color: #0F172A !important;
+}
+body.light-theme .glass-card h3 {
     color: #0F172A !important;
 }
 
+/* Rich, Comfortable Color Tints for KPI & Khata Cards */
+body.light-theme .glass-card.accent-green,
+body.light-theme .glass-card-mini.accent-green {
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+    border: 1.5px solid #86EFAC !important;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.10) !important;
+}
+body.light-theme .glass-card.accent-green .kpi-title,
+body.light-theme .glass-card-mini.accent-green .kpi-title-mini {
+    color: #166534 !important;
+    font-weight: 700;
+}
+body.light-theme .glass-card.accent-green .kpi-val,
+body.light-theme .glass-card-mini.accent-green .kpi-val-mini {
+    color: #15803D !important;
+    font-weight: 900;
+}
+
+body.light-theme .glass-card.accent-red,
+body.light-theme .glass-card-mini.accent-red {
+    background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%) !important;
+    border: 1.5px solid #FCA5A5 !important;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.10) !important;
+}
+body.light-theme .glass-card.accent-red .kpi-title,
+body.light-theme .glass-card-mini.accent-red .kpi-title-mini {
+    color: #991B1B !important;
+    font-weight: 700;
+}
+body.light-theme .glass-card.accent-red .kpi-val,
+body.light-theme .glass-card-mini.accent-red .kpi-val-mini {
+    color: #B91C1C !important;
+    font-weight: 900;
+}
+
+body.light-theme .glass-card.accent-amber {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%) !important;
+    border: 1.5px solid #FCD34D !important;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.10) !important;
+}
+body.light-theme .glass-card.accent-amber .kpi-title {
+    color: #92400E !important;
+    font-weight: 700;
+}
+body.light-theme .glass-card.accent-amber .kpi-val {
+    color: #B45309 !important;
+    font-weight: 900;
+}
+
+body.light-theme .glass-card-mini:not(.accent-green):not(.accent-red) {
+    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%) !important;
+    border: 1.5px solid #7DD3FC !important;
+}
+body.light-theme .glass-card-mini:not(.accent-green):not(.accent-red) .kpi-title-mini {
+    color: #075985 !important;
+    font-weight: 700;
+}
+body.light-theme .glass-card-mini:not(.accent-green):not(.accent-red) .kpi-val-mini {
+    color: #0369A1 !important;
+    font-weight: 900;
+}
+
+/* User & Auth Pill */
+body.light-theme .user-pill {
+    background: #E2E8F0 !important;
+    border: 1px solid #CBD5E1 !important;
+}
+body.light-theme #sidebar-user-name {
+    color: #0F172A !important;
+}
+
+/* Inputs & Form Fields */
+body.light-theme .input-cyber,
+body.light-theme .rag-input,
+body.light-theme .language-select {
+    background: #FFFFFF !important;
+    border: 1.5px solid #94A3B8 !important;
+    color: #0F172A !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
 body.light-theme .input-cyber:focus,
-body.light-theme .rag-input:focus {
+body.light-theme .rag-input:focus,
+body.light-theme .language-select:focus {
     border-color: #0284C7 !important;
     background: #FFFFFF !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18) !important;
+}
+body.light-theme .input-cyber::placeholder,
+body.light-theme .rag-input::placeholder {
+    color: #64748B !important;
 }
 
+/* Tables with High Readability */
 body.light-theme .cyber-table th {
-    background: #F1F5F9 !important;
-    color: #334155 !important;
+    background: #E2E8F0 !important;
+    color: #1E293B !important;
+    font-weight: 800;
     border-bottom: 2px solid #CBD5E1 !important;
+    text-transform: none;
 }
-
 body.light-theme .cyber-table td {
     border-bottom: 1px solid #E2E8F0 !important;
     color: #0F172A !important;
 }
-
-body.light-theme .chat-bubble.chat-ai {
+body.light-theme .cyber-table tbody tr:hover {
     background: #F1F5F9 !important;
-    color: #0F172A !important;
-    border: 1px solid #CBD5E1 !important;
 }
 
+/* Upload Dropzone */
+body.light-theme .upload-dropzone {
+    background: #F8FAFC !important;
+    border: 2px dashed #94A3B8 !important;
+    color: #1E293B !important;
+}
+body.light-theme .upload-dropzone:hover {
+    background: #F0F9FF !important;
+    border-color: #0284C7 !important;
+}
+body.light-theme .upload-dropzone div {
+    color: #1E293B !important;
+}
+
+/* Buttons in Eye-Comfort Light Mode */
+body.light-theme .btn-cyber {
+    background: #0284C7 !important;
+    border: 1px solid #0369A1 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25) !important;
+    font-weight: 700;
+}
+body.light-theme .btn-cyber:hover {
+    background: #0369A1 !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+}
+body.light-theme .btn-cyber.success {
+    background: #16A34A !important;
+    border: 1px solid #15803D !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25) !important;
+}
+body.light-theme .btn-cyber.success:hover {
+    background: #15803D !important;
+}
+body.light-theme .btn-pill {
+    background: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    color: #334155 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    font-weight: 700;
+}
+body.light-theme .btn-pill:hover {
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+    border-color: #94A3B8 !important;
+}
+body.light-theme .btn-pill.btn-logout {
+    background: #FEE2E2 !important;
+    color: #B91C1C !important;
+    border-color: #FCA5A5 !important;
+}
+body.light-theme .btn-pill.btn-logout:hover {
+    background: #DC2626 !important;
+    color: #FFFFFF !important;
+}
+
+/* Chatbot in Kirana Mode */
+body.light-theme .chat-container {
+    background: #F4F7FB !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+}
+body.light-theme .chat-bubble.chat-ai {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+}
 body.light-theme .chat-bubble.chat-user {
+    background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+}
+body.light-theme .chip {
+    background: #FFFFFF !important;
+    color: #1E293B !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+}
+body.light-theme .chip:hover {
     background: #0284C7 !important;
     color: #FFFFFF !important;
+    border-color: #0284C7 !important;
+}
+
+/* 1-Button Touch Voice Player in Kirana Mode */
+body.light-theme .simple-voice-player {
+    background: #F8FAFC !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+}
+body.light-theme .voice-play-btn {
+    background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
+}
+body.light-theme .voice-play-btn.playing {
+    background: linear-gradient(135deg, #16A34A 0%, #15803D 100%) !important;
+}
+body.light-theme .voice-seek-slider {
+    background: #CBD5E1 !important;
+}
+body.light-theme .voice-seek-slider::-webkit-slider-thumb {
+    background: #0284C7 !important;
+    box-shadow: 0 0 4px rgba(2, 132, 199, 0.6) !important;
+}
+body.light-theme .voice-time {
+    color: #334155 !important;
+}
+
+/* Modals & Receipts */
+body.light-theme .modal-box,
+body.light-theme .modal-card {
+    background: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18) !important;
+    color: #0F172A !important;
+}
+body.light-theme .modal-header {
+    border-bottom: 1.5px solid #E2E8F0 !important;
+}
+body.light-theme .modal-header div,
+body.light-theme .modal-header h3 {
+    color: #0F172A !important;
 }
 
 /* WhatsApp Action Button */
