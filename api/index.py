@@ -1636,15 +1636,75 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
             )
 
-        # Direct answers for common questions to eliminate clutter and provide instant sub-second response
+        # Direct answers for common questions and full academic/developer dossier
         lower_msg = user_msg.lower()
-        if any(k in lower_msg for k in ['guide', 'developer', 'creator', 'कोण बनवला', 'मार्गदर्शक', 'विकासक', 'नाव काय', 'team', 'कॉलेज', 'college', 'who made', 'किसने बनाया', 'डेवलपर']):
-            if is_hindi:
-                answer = 'प्रोजेक्ट गाइड: प्रो. कैसर अतार सर | मुख्य डेवलपर: संकेत किर्दत | सह-डेवलपर्स: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजीनियरिंग, सातारा.'
-            elif is_english:
-                answer = 'Project Guide: Prof. Kaisar Atar Sir | Lead Developer: Sanket Kirdat | Co-Developers: Sakshi Bhagat, Vaishnavi Dhawale, Rushikesh Mulik | AGCE Satara.'
-            else:
-                answer = 'प्रकल्प मार्गदर्शक: प्रा. कैसर अतार सर | प्रमुख विकासक: संकेत किर्दत | सह-विकासक: साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक | अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा.'
+
+        # 1. Full Project Dossier (All Information: College, Guide, Team, Features)
+        if any(k in lower_msg for k in ['सर्व माहिती', 'सर्व माहिती दे', 'सर्व माहिती सांगा', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']):
+            answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
+• **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
+• **पदवी:** B.Tech (Bachelor of Technology)
+• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
+• **महाविद्यालयाचे नाव:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara - AGCE)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
+
+🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
+• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **विभाग:** Department of Artificial Intelligence & Data Science, AGCE Satara
+
+👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
+१. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
+३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Co-Developer - Database & Ledger Architecture)
+
+🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
+स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
+१. 📸 **स्मार्ट मल्टिमोडल स्कॅनर:** हस्तलिखित मराठी पावत्यांचे ५ AI पिलर्सद्वारे (ViT, Multimodal, TPUs, Attention, Document AI) क्षणार्धात अचूक डिजिटल बिलात रूपांतर.
+२. 🎙️ **स्थानिक व्हॉइस बिलिंग:** मराठी भाषेत बोलून थेट पावती तयार करणे.
+३. 💳 **डिजिटल ग्राहक खाते (उधारी वही):** उधारी आणि जमा रकमेचा स्वयंचलित हिशोब व १-क्लिक व्हॉट्सॲप / UPI स्मरणपत्र.
+४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
+५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
+
+        # 2. Specific College & Academic Information
+        elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग']):
+            answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
+• **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
+• **पदवी:** B.Tech (Bachelor of Technology)
+• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
+• **महाविद्यालयाचे नाव:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara - AGCE)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+        # 3. Project Guide
+        elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अतार', 'attar', 'atar', 'सर']):
+            answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
+• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
+• **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)"""
+
+        # 4. Developers / Team Members
+        elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
+            answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
+१. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
+३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Co-Developer - Database & Ledger Architecture)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
+
+        # 5. Project Overview, Aim & Features
+        elif any(k in lower_msg for k in ['हेतू', 'वैशिष्ट्ये', 'वैशिष्ट्य', 'उद्दिष्ट', 'उद्दिष्टे', 'फायदे', 'features', 'overview', 'प्रकल्प काय आहे', 'प्रोजेक्ट काय आहे', 'vernaledger काय आहे', 'काम काय']):
+            answer = """🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
+स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
+१. 📸 **स्मार्ट मल्टिमोडल स्कॅनर:** हस्तलिखित मराठी पावत्यांचे ५ AI पिलर्सद्वारे (ViT, Multimodal, TPUs, Attention, Document AI) क्षणार्धात अचूक डिजिटल बिलात रूपांतर.
+२. 🎙️ **स्थानिक व्हॉइस बिलिंग:** मराठी भाषेत बोलून थेट पावती तयार करणे.
+३. 💳 **डिजिटल ग्राहक खाते (उधारी वही):** उधारी आणि जमा रकमेचा स्वयंचलित हिशोब व १-क्लिक व्हॉट्सॲप / UPI स्मरणपत्र.
+४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
+५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
         elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
             if is_hindi:
                 answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
@@ -1691,10 +1751,27 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
 
         assistant_instruction = """You are Verna AI, an intelligent, fast store assistant for VernaLedger AI.
+ACADEMIC & PROJECT FACTS (Provide completely and accurately whenever asked):
+- Project Title: VernaLedger.AI (Merchant Pro v7.5)
+- Degree: B.Tech in Artificial Intelligence & Data Science (AI & DS)
+- College: Arvind Gavali College of Engineering, Satara (AGCE Satara)
+- University: Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+- Academic Year: 2026 - 2027
+- Project Guide: Prof. Kaisar Atar Sir (Department of AI & DS, AGCE Satara)
+- Team Members:
+  1. Sanket Kirdat (Lead Full-Stack AI Developer)
+  2. Sakshi Bhagat (Co-Developer - UI/UX & System Design)
+  3. Vaishnavi Dhawale (Co-Developer - Multilingual Data Pipeline)
+  4. Rushikesh Mulik (Co-Developer - Database & Ledger Architecture)
+- Project Purpose & Features:
+  1. Smart Multimodal Scanner (5 AI Pillars: ViT, Native Multimodal, Cloud TPUs, Context Attention, Document AI Fallback)
+  2. Vernacular Voice Billing (Spoken Marathi POS)
+  3. Digital Customer Khata (Credit ledger with WhatsApp/UPI recovery)
+  4. Verna AI Studio (Sub-second store business advisor)
+  5. Digital Ledger & Excel (.xlsx) Export
 CRITICAL RULES:
-1. Keep replies VERY SHORT, CRISP, and DIRECT (maximum 1 to 2 sentences). NEVER give long essays or unasked lists.
-2. NEVER mention developers, guide, or college unless explicitly asked.
-3. Only give the exact store figures (sales, credit, stock) asked by the user using Live Shop Data."""
+1. For general store queries, keep replies concise, crisp, and direct (1 to 2 sentences) using Live Shop Data.
+2. When asked about college, developers, guide, or project overview, provide complete, polite, and well-structured details."""
 
         if not answer and api_key and genai:
             try:
@@ -1705,7 +1782,7 @@ CRITICAL RULES:
                         model = genai.GenerativeModel(
                             model_name=m,
                             system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
-                            generation_config={"temperature": 0.2, "max_output_tokens": 120}
+                            generation_config={"temperature": 0.2, "max_output_tokens": 700}
                         )
                         res = model.generate_content([db_context, f"[User Query]\n{user_msg}"], request_options={"timeout": 8})
                         if res and res.text:
