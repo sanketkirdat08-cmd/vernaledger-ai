@@ -33,6 +33,13 @@ except ImportError:
     genai = None
 
 try:
+    from google.cloud import vision
+    from google.oauth2 import service_account
+except ImportError:
+    vision = None
+    service_account = None
+
+try:
     import edge_tts
 except ImportError:
     edge_tts = None
@@ -118,9 +125,16 @@ def init_db():
         date TEXT,
         category TEXT,
         grand_total REAL,
-        raw_json TEXT
+        raw_json TEXT,
+        image_hash TEXT
     );
     """)
+    receipt_columns = {
+        row["name"] for row in cursor.execute("PRAGMA table_info(receipts)").fetchall()
+    }
+    if "image_hash" not in receipt_columns:
+        cursor.execute("ALTER TABLE receipts ADD COLUMN image_hash TEXT")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_receipts_image_hash ON receipts(image_hash)")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS customer_khata (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -260,6 +274,29 @@ def get_api_key() -> str:
     except (OSError, ValueError) as exc:
         logger.warning("Could not read local API configuration: %s", exc)
     return get_backup_api_key()
+
+def get_cloud_vision_client():
+    if not vision:
+        return None
+    credentials_json = os.getenv("GOOGLE_CLOUD_CREDENTIALS_JSON", "").strip()
+    if credentials_json:
+        if not service_account:
+            raise RuntimeError("Google Cloud authentication package is not installed.")
+        credentials = service_account.Credentials.from_service_account_info(
+            json.loads(credentials_json)
+        )
+        return vision.ImageAnnotatorClient(credentials=credentials)
+    return vision.ImageAnnotatorClient()
+
+def run_cloud_vision_ocr(contents: bytes) -> str:
+    client = get_cloud_vision_client()
+    if not client:
+        raise RuntimeError("Google Cloud Vision package is not installed.")
+    image = vision.Image(content=contents)
+    response = client.document_text_detection(image=image)
+    if response.error.message:
+        raise RuntimeError(response.error.message)
+    return (response.full_text_annotation.text or "").strip()
 
 # -----------------------------------------------------------------------------
 # PYDANTIC DATA MODELS
@@ -524,14 +561,40 @@ async def process_ocr(file: UploadFile = File(...)):
         ) from exc
 
 async def _execute_ocr(file: UploadFile):
+    contents = await file.read()
+    image_hash = hashlib.sha256(contents).hexdigest()
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id, vendor_name, date, category, grand_total, raw_json "
+        "FROM receipts WHERE image_hash = ? ORDER BY id DESC LIMIT 1",
+        (image_hash,)
+    ).fetchone()
+    conn.close()
+    if existing:
+        try:
+            existing_data = json.loads(existing["raw_json"] or "{}")
+        except json.JSONDecodeError:
+            existing_data = {}
+        existing_data.update({
+            "id": existing["id"],
+            "vendor_name": existing["vendor_name"],
+            "date": existing["date"],
+            "category": existing["category"],
+            "grand_total": existing["grand_total"],
+        })
+        return {
+            "success": True,
+            "data": existing_data,
+            "duplicate": True,
+            "warning": "ही पावती आधीच स्कॅन करून लेजरमध्ये नोंदवली आहे."
+        }
+
     api_key = get_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in Vercel environment variables.")
-    
     if not genai:
         raise HTTPException(status_code=500, detail="Google Generative AI package is not installed.")
 
-    contents = await file.read()
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
         img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
@@ -579,7 +642,7 @@ Return strictly valid JSON only:
   "grand_total": 0.0
 }"""
 
-    models_to_try = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-flash-lite-latest']
+    models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
     response = None
     last_err = None
 
@@ -596,17 +659,46 @@ Return strictly valid JSON only:
 
     today_str = date.today().strftime("%Y-%m-%d")
     if not response:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Gemini Smart Scanner did not return a result: {last_err}"
-        )
-    else:
-        data = clean_json_str(response)
-        if not data or not data.get("items"):
+        try:
+            vision_text = run_cloud_vision_ocr(contents)
+        except Exception as vision_error:
+            logger.error("Cloud Vision fallback failed: %s", vision_error, exc_info=True)
             raise HTTPException(
                 status_code=502,
-                detail="Gemini returned an unreadable result. Please retake the photo with better lighting."
+                detail=f"Gemini and Cloud Vision could not read this image: {last_err}"
+            ) from vision_error
+        if not vision_text:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini and Cloud Vision returned no readable text from this image."
             )
+        fallback_prompt = f"""Convert this Cloud Vision OCR text from a Marathi/Hindi/English retail receipt
+into strict valid JSON. Use only the text provided; do not invent values. Return this exact schema:
+{{"vendor_name":"string","date":"YYYY-MM-DD","category":"General","items":[
+{{"item_name":"string","quantity":"string","rate":0.0,"total_price":0.0}}],"grand_total":0.0}}
+OCR text:
+{vision_text}"""
+        for model_name in models_to_try:
+            try:
+                fallback_model = genai.GenerativeModel(model_name)
+                fallback_result = fallback_model.generate_content(fallback_prompt)
+                if fallback_result and fallback_result.text:
+                    response = fallback_result.text
+                    break
+            except Exception:
+                continue
+        if not response:
+            raise HTTPException(
+                status_code=502,
+                detail="Cloud Vision extracted text, but Gemini could not structure it into a bill."
+            )
+
+    data = clean_json_str(response)
+    if not data or not data.get("items"):
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini returned an unreadable result. Please retake the photo with better lighting."
+        )
 
     # Save to SQLite
     rec_date = data.get("date") or today_str
@@ -615,8 +707,16 @@ Return strictly valid JSON only:
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-        (data.get("vendor_name", "Kirana Store"), rec_date, data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
+        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, image_hash) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            data.get("vendor_name", "Kirana Store"),
+            rec_date,
+            data.get("category", "General"),
+            data.get("grand_total", 0.0),
+            raw_json_str,
+            image_hash,
+        )
     )
     data["id"] = cursor.lastrowid
     # Auto-sync to Customer Khata if invoice mentions credit/udhar
@@ -668,7 +768,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
   "grand_total": 0.0
 }}"""
 
-    models_to_try = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-flash-lite-latest']
+    models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
     res_text = None
     for m in models_to_try:
         try:
@@ -1393,7 +1493,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 [Live Shop Real Data]:
 {db_context}"""
 
-            models_to_try = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-flash-lite-latest']
+            models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(model_name=m)
@@ -1524,7 +1624,7 @@ CRITICAL RULES:
         if not answer and api_key and genai:
             try:
                 genai.configure(api_key=api_key)
-                models_to_try = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-flash-lite-latest']
+                models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
                 for m in models_to_try:
                     try:
                         model = genai.GenerativeModel(

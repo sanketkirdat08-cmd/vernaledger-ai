@@ -159,6 +159,19 @@ Create `.streamlit/secrets.toml` in the project root:
 GEMINI_API_KEY = "your_google_gemini_api_key_here"
 ```
 
+For the optional Smart Scanner fallback, enable the **Cloud Vision API** in the same
+Google Cloud project, create a service account with the `Cloud Vision API User` role,
+and configure Application Default Credentials. Do not commit the service-account JSON.
+
+Windows PowerShell:
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secure\google-cloud-service-account.json"
+```
+
+For serverless environments where a file is not available, provide the minified service
+account JSON as `GOOGLE_CLOUD_CREDENTIALS_JSON`. Gemini remains the primary scanner;
+Cloud Vision is called only when Gemini cannot return a result.
+
 ### 5. Run the Application
 ```bash
 streamlit run app.py

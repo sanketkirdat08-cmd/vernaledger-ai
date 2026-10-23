@@ -1761,26 +1761,30 @@
                 <div class="slide-title-wrap">
                     <div class="slide-badge">12 • Live System Showcase</div>
                     <h2 class="slide-title">Result 1: Smart Multimodal Scanner &amp; POS</h2>
-                    <div class="slide-subtitle">Gemini 2.5 Flash Vision OCR with Real-Time Tabular Itemization &amp; Bill Recalculation</div>
+                    <div class="slide-subtitle">Vision Transformers, Native Multimodal AI, TPUs व Context-Aware NLP द्वारे हस्तलिखित पावत्यांचे अचूक डिजिटल बिलिंग</div>
                 </div>
 
                 <div class="split-layout">
-                    <div class="split-text">
-                        <div class="feature-item">
-                            <div class="feature-title"><span style="color: var(--neon-cyan);">📸</span> Multimodal Vision Capture</div>
-                            <p class="feature-desc">Supports drag-and-drop receipt image upload, file selection, and direct live camera snapshotting with instant client-side preview.</p>
+                    <div class="split-text" style="gap: 8px; max-height: 540px; overflow-y: auto; padding-right: 6px;">
+                        <div class="feature-item" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-cyan);">१.</span> व्हिजन ट्रान्सफॉर्मर्स (Vision Transformers - ViTs)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> पारंपारिक पद्धती फक्त सरळ ओळी वाचू शकत होत्या, पण गुगलचे Vision Transformers प्रतिमेचे लहान तुकड्यांमध्ये (Patches) विभाजन करून त्याचे सूक्ष्म विश्लेषण करतात.<br><strong style="color: var(--neon-green);">फायदा:</strong> वहीच्या पानावर तिरकी, एकमेकांत गुंफलेली किंवा घाईघाईत लिहिलेली अक्षरे व आकडे अगदी अचूकपणे स्कॅन होतात.</p>
                         </div>
-                        <div class="feature-item accent-purple">
-                            <div class="feature-title"><span style="color: var(--neon-purple);">⚡</span> Sub-2s AI Extraction</div>
-                            <p class="feature-desc">Powered by Gemini 2.5 Flash to automatically detect store name, date, item names, quantities, unit prices, and grand totals.</p>
+                        <div class="feature-item accent-purple" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-purple);">२.</span> नेटिव्ह मल्टिमोडल आर्किटेक्चर (Native Multimodal Architecture)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> इमेज (फोटो) आणि टेक्स्ट (मजकूर) हे वेगळे न मानता, मॉडेल त्यांना एकाच वेळी आणि एकाच मज्जातंतू जाळ्यात (Neural Network) समजू शकते.<br><strong style="color: var(--neon-green);">फायदा:</strong> फोटोमधील हस्तलिखिताचे थेट डिजिटल आणि भाषिक स्वरूपात रूपांतर करणे यामुळे शक्य होते.</p>
                         </div>
-                        <div class="feature-item accent-green">
-                            <div class="feature-title"><span style="color: var(--neon-green);">📋</span> Interactive Live POS Grid</div>
-                            <p class="feature-desc">Merchants can add, edit, or delete items on-the-fly with automatic dynamic grand total math updates prior to saving.</p>
+                        <div class="feature-item accent-green" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-green);">३.</span> गुगल टीपीयू आणि क्लाउड इन्फ्रास्ट्रक्चर (Google TPUs &amp; Cloud)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> एवढ्या मोठ्या प्रमाणावर डेटा आणि प्रतिमेचे रिअल-टाइम विश्लेषण करण्यासाठी गुगलचे कस्टम Tensor Processing Units (TPUs).<br><strong style="color: var(--neon-green);">फायदा:</strong> टीपीयू हार्डवेअरमुळे हे मॉडेल अत्यंत वेगवान (Fast) बनते, ज्यामुळे मोबाईल किंवा वेब ॲपमध्ये काही सेकंदांत निकाल मिळतो.</p>
                         </div>
-                        <div class="feature-item">
-                            <div class="feature-title"><span style="color: var(--electric-blue);">💾</span> 1-Click Multi-Channel Commit</div>
-                            <p class="feature-desc">Save directly to SQLite ledger, trigger thermal receipt printing with dynamic UPI QR, or dispatch WhatsApp invoice instantly.</p>
+                        <div class="feature-item accent-blue" style="padding: 10px 14px; border-left: 3px solid var(--electric-blue);">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--electric-blue);">४.</span> कॉन्टेक्स्ट-अवेअर अटेंशन मेकॅनिझम (Context-Aware Attention)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> अस्पष्ट अक्षरे किंवा आकडे (उदा. '१' आणि '७' किंवा '३' आणि '८' मधील फरक) ओळखण्यासाठी LLM चे Attention Mechanism काम करते.<br><strong style="color: var(--neon-green);">फायदा:</strong> मॉडेल फक्त एक अक्षर न पाहता, संपूर्ण वाक्याचा आणि आजूबाजूच्या शब्दांचा संदर्भ (Context) तपासून अचूक शब्द ओळखतो.</p>
+                        </div>
+                        <div class="feature-item" style="padding: 10px 14px; border-left: 3px solid var(--neon-cyan);">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-cyan);">५.</span> क्लाउड व्हिजन आणि डॉक्युमेंट AI (Cloud Vision &amp; Document AI Foundation)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> गुगलच्या व्यावसायिक लेजर, पावत्या (Invoices) आणि कागदपत्रे वाचण्याच्या अनेक वर्षांच्या संशोधनाचा पाया यात समाविष्ट आहे.<br><strong style="color: var(--neon-green);">फायदा:</strong> विविध भाषा (मराठी, हिंदी, इंग्रजी) आणि वेगवेगळ्या लोकांच्या हस्ताक्षरांच्या शैली ओळखण्याची क्षमता यामुळे वाढते.</p>
                         </div>
                     </div>
                     <div class="split-img-box" onclick="openLightbox('live_screenshots/live_1_desktop_pos_scanner.png', 'RESULT 01: SMART MULTIMODAL SCANNER & LIVE POS', 'Live desktop view of VernaLedger.AI featuring multimodal bill dropzone, camera OCR input, and live interactive POS billing table.')">
