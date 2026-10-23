@@ -1730,40 +1730,13 @@ CRITICAL RULES:
     conn.close()
 
     # -------------------------------------------------------------------------
-    # STEP 3: HIGH-FIDELITY NEURAL VOICE SYNTHESIS (EDGE-TTS)
+    # ULTRA-FAST INSTANT TEXT-FIRST RETURN (LIKE GEMINI / CHATGPT)
     # -------------------------------------------------------------------------
-    audio_data = None
-    if req.voice_output and edge_tts and answer:
-        try:
-            detected_lang = detect_msg_language(answer, req.lang or "mr")
-            voice = get_tts_voice(answer, detected_lang)
-            clean_speech = prepare_speech_phonetics(answer, voice)
-            # Optimize speech length to punchy 1-2 sentence voice summary (max 180 chars) for instant audio generation
-            if len(clean_speech) > 180:
-                end_match = re.search(r'([.!?।\n])', clean_speech[60:180])
-                spoken_summary = clean_speech[:60 + end_match.end()].strip() if end_match else clean_speech[:180].strip()
-            else:
-                spoken_summary = clean_speech
-
-            async def _stream_tts():
-                comm = edge_tts.Communicate(spoken_summary, voice, rate="+20%")
-                a_bytes = bytearray()
-                async for chunk in comm.stream():
-                    if chunk["type"] == "audio":
-                        a_bytes.extend(chunk["data"])
-                return f"data:audio/mp3;base64,{base64.b64encode(a_bytes).decode('utf-8')}"
-
-            audio_data = await asyncio.wait_for(_stream_tts(), timeout=2.5)
-        except Exception as e:
-            logger.warning(f"Voice generation skipped/timed out: {e}")
-            audio_data = None
-
     return {
         "success": True,
         "user_transcript": user_transcript,
         "answer": answer,
-        "action_status": action_status,
-        "audio_data": audio_data
+        "action_status": action_status
     }
 
 @app.get("/api/health")

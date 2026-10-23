@@ -2076,9 +2076,6 @@ async function submitNativeVoiceAi(base64Audio, mimeType) {
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
-    const voiceToggleEl = document.getElementById("ai-voice-output-toggle") || document.getElementById("ai-voice-toggle");
-    const voiceOutput = voiceToggleEl ? voiceToggleEl.checked : true;
-
     try {
         const res = await apiCall("/api/rag-chat", {
             method: "POST",
@@ -2088,7 +2085,6 @@ async function submitNativeVoiceAi(base64Audio, mimeType) {
                 audio_data: base64Audio,
                 mime_type: mimeType,
                 lang: state.lang,
-                voice_output: false, // Fast sub-second response without blocking on server-side TTS
                 chat_history: state.chatHistory.slice(-10)
             })
         });
@@ -2107,7 +2103,7 @@ async function submitNativeVoiceAi(base64Audio, mimeType) {
         state.chatHistory.push({ role: "user", parts: [{ text: spokenWords }] });
         state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
 
-        renderAiResponseBubble(aiBubble, data, voiceOutput);
+        renderAiResponseBubble(aiBubble, data);
     } catch (err) {
         aiBubble.innerHTML = `एरर: जेमिनी मल्टिमोडल व्हॉइस प्रोसेस होऊ शकला नाही. कृपया पुन्हा प्रयत्न करा.`;
     } finally {
@@ -2150,9 +2146,6 @@ async function submitAiChat() {
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
-    const voiceToggleEl = document.getElementById("ai-voice-output-toggle") || document.getElementById("ai-voice-toggle");
-    const voiceOutput = voiceToggleEl ? voiceToggleEl.checked : true;
-
     try {
         const res = await apiCall("/api/rag-chat", {
             method: "POST",
@@ -2160,7 +2153,6 @@ async function submitAiChat() {
             body: JSON.stringify({
                 message: msg,
                 lang: state.lang,
-                voice_output: false, // Fast sub-second response without blocking on server-side TTS
                 chat_history: state.chatHistory.slice(-10)
             })
         });
@@ -2171,7 +2163,7 @@ async function submitAiChat() {
         state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
         state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
 
-        renderAiResponseBubble(aiBubble, data, voiceOutput);
+        renderAiResponseBubble(aiBubble, data);
     } catch (e) {
         aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
     } finally {
@@ -2184,45 +2176,16 @@ async function submitAiChat() {
     }
 }
 
-// Common helper to render AI Bubble with minimalist 1-button touch seek player
-function renderAiResponseBubble(aiBubble, data, voiceOutput) {
+// Ultra-fast Gemini-style pure text response bubble
+function renderAiResponseBubble(aiBubble, data) {
     const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>');
 
-    const msgId = 'voice-' + Date.now();
-    const hasAudio = Boolean(data.audio_data);
-
     aiBubble.innerHTML = `
         <div>${formatted}</div>
         ${data.action_status ? `<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ${data.action_status}</div>` : ''}
-        ${hasAudio ? `
-            <div class="simple-voice-player" id="voice-player-${msgId}">
-                <audio id="audio-${msgId}" src="${data.audio_data}" preload="metadata"></audio>
-                <button class="voice-play-btn" id="btn-play-${msgId}" onclick="togglePlayAudio('${msgId}')" title="प्ले / थांबवा">▶</button>
-                <div class="voice-slider-container">
-                    <input type="range" class="voice-seek-slider" id="seek-${msgId}" min="0" max="100" value="0" step="0.1"
-                           oninput="onVoiceSliderInput('${msgId}')" onchange="onVoiceSliderChange('${msgId}')" title="बोटाने पुढे-मागे ओढा">
-                </div>
-                <span class="voice-time" id="time-${msgId}">0:00</span>
-            </div>
-        ` : `
-            <div style="margin-top: 8px;">
-                <button class="btn-pill" style="font-size: 0.72rem; background: rgba(176,38,255,0.15); color: var(--neon-purple); border-color: rgba(176,38,255,0.4);" onclick="speakText('${encodeURIComponent(data.answer)}')">
-                    🔊 पुन्हा ऐका
-                </button>
-            </div>
-        `}
     `;
-
-    if (hasAudio) {
-        attachVoicePlayerListeners(msgId);
-        if (voiceOutput) {
-            togglePlayAudio(msgId);
-        }
-    } else if (voiceOutput) {
-        speakWithBrowserVoice(data.answer || "");
-    }
 }
 
 async function speakText(encoded) {
