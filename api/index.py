@@ -665,7 +665,7 @@ Return strictly valid JSON only:
   "grand_total": 0.0
 }"""
 
-    models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
+    models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
     response = None
     last_err = None
 
@@ -799,7 +799,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 }}"""
 
     genai.configure(api_key=api_key, transport='rest')
-    models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
+    models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
     res_text = None
     for m in models_to_try:
         try:
@@ -1528,7 +1528,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 {db_context}"""
 
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
+            models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
@@ -1640,7 +1640,13 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         lower_msg = user_msg.lower()
 
         # 1. Full Project Dossier (All Information: College, Guide, Team, Features)
-        if any(k in lower_msg for k in ['सर्व माहिती', 'सर्व माहिती दे', 'सर्व माहिती सांगा', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']):
+        is_full_project_query = (
+            any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'about project', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']) or
+            (('प्रकल्प' in lower_msg or 'प्रकल्पा' in lower_msg or 'प्रोजेक्ट' in lower_msg or 'project' in lower_msg or 'vernaledger' in lower_msg) and 
+             any(k in lower_msg for k in ['माहिती', 'सांगा', 'द्या', 'काय आहे', 'नाव', 'बद्दल', 'विषयी', 'विस्तार', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य']))
+        )
+
+        if is_full_project_query:
             answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
@@ -1668,7 +1674,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
         # 2. Specific College & Academic Information
-        elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग']):
+        elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']):
             answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
@@ -1679,7 +1685,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
 
         # 3. Project Guide
-        elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अतार', 'attar', 'atar', 'सर']):
+        elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']):
             answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
 • **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
@@ -1687,7 +1693,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)"""
 
         # 4. Developers / Team Members
-        elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
+        elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
             answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
 १. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
 २. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
@@ -1697,7 +1703,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
 
         # 5. Project Overview, Aim & Features
-        elif any(k in lower_msg for k in ['हेतू', 'वैशिष्ट्ये', 'वैशिष्ट्य', 'उद्दिष्ट', 'उद्दिष्टे', 'फायदे', 'features', 'overview', 'प्रकल्प काय आहे', 'प्रोजेक्ट काय आहे', 'vernaledger काय आहे', 'काम काय']):
+        elif any(k in lower_msg for k in ['फायदे', 'features', 'overview', 'काम काय']):
             answer = """🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
 स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
 १. 📸 **स्मार्ट मल्टिमोडल स्कॅनर:** हस्तलिखित मराठी पावत्यांचे ५ AI पिलर्सद्वारे (ViT, Multimodal, TPUs, Attention, Document AI) क्षणार्धात अचूक डिजिटल बिलात रूपांतर.
@@ -1707,7 +1713,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
         # 6. Technical Architecture: 5 Scanner AI Pillars
-        elif any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स', 'स्कॅनर कसे काम', 'vit']):
+        elif (any(k in lower_msg for k in ['स्कॅनर', 'scanner', 'vit']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '५', '5', 'फिचर्स'])) or any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स']):
             answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
 १. 🔍 **Vision Transformers (ViTs):** पावतीचे लहान व्हिज्युअल पॅचेस (Patches) बनवून तिरपे, घाईत लिहिलेले व अस्पष्ट मराठी हस्तलिखित अचूक वाचते.
 २. 🌐 **Native Multimodal AI:** फोटोचे पिक्सेल आणि भाषा एकाच न्यूरल नेटवर्कद्वारे थेट (End-to-End) समजून घेते.
@@ -1716,7 +1722,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ५. 📄 **Google Cloud Vision & Document AI Fallback:** मुख्य मॉडेलवर अडथळा आल्यास गुगलच्या Document Text Detection API द्वारे पावती अखंड वाचली जाते."""
 
         # 7. Technical Architecture: 4 Chatbot Core Pillars
-        elif any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स', 'चॅटबॉट कसे काम']):
+        elif (any(k in lower_msg for k in ['चॅटबॉट', 'chatbot', 'bot']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '४', '4'])) or any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स']):
             answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
 १. 🌐 **Native Multimodal Architecture:** आवाज आणि मजकूर एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते.
 २. 🎙️ **ASR & Speech-to-Text:** दुकानातील गोंगाट गाळून सातारी, कोल्हापुरी, पुणेरी व ग्रामीण मराठी उच्चार अचूक ओळखते.
@@ -1830,7 +1836,7 @@ BEHAVIOR GUIDELINES:
         if not answer and api_key and genai:
             try:
                 genai.configure(api_key=api_key, transport='rest')
-                models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
+                models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
                 for m in models_to_try:
                     try:
                         model = genai.GenerativeModel(
@@ -1848,7 +1854,7 @@ BEHAVIOR GUIDELINES:
                                 if txt:
                                     prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
                         prompt_parts.append(f"[Current User Query]: {user_msg}")
-                        res = model.generate_content(prompt_parts, request_options={"timeout": 10})
+                        res = model.generate_content(prompt_parts, request_options={"timeout": 5})
                         if res and res.text:
                             answer = res.text.strip()
                             break
@@ -1861,6 +1867,13 @@ BEHAVIOR GUIDELINES:
         if not answer:
             if action_status:
                 answer = action_status
+            elif any(k in lower_msg for k in ['प्रकल्प', 'प्रोजेक्ट', 'project', 'कॉलेज', 'मार्गदर्शक', 'डेव्हलपर', 'माहिती']):
+                answer = """🏛️ **VernaLedger.AI (Merchant Pro v7.5)**:
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)
+• **विभाग:** B.Tech (कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स - AI & DS)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **डेव्हलपर टीम:** संकेत किर्दत (Lead), साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक."""
             else:
                 answer = (
                     f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
