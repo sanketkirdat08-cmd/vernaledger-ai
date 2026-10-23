@@ -1503,7 +1503,7 @@ async def rag_chat(req: RAGChatRequest):
             mime = (req.mime_type or "audio/webm").split(";")[0].strip()
             audio_part = {"mime_type": mime, "data": audio_bytes}
 
-            audio_prompt = f"""You are Verna AI, a quick Kirana store voice assistant.
+            audio_prompt = f"""You are Verna AI, an intelligent retail assistant and academic project advisor.
 The user sent a voice message.
 
 TASKS:
@@ -1511,8 +1511,11 @@ TASKS:
 2. Answer query or handle command:
    - Store query (sales, credit, stock): Answer factually in 1 SHORT sentence using Live Shop Data.
    - Voice action: 'उधारी नोंदव' -> CREDIT, 'जमा नोंदव' -> PAYMENT, 'खर्च नोंदव' -> EXPENSE. Otherwise NONE.
-   - If asked about team/guide/college: State Guide Prof. Kaisar Atar Sir, Lead Sanket Kirdat, AGCE Satara.
-3. RULES: Keep answers very SHORT, CRISP, and TO THE POINT (1-2 sentences max). Respond in the same language as spoken.
+   - If asked about team/developers/guide/college:
+     * Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara)
+     * All 4 Developers: 1. Sanket Kirdat (Lead), 2. Sakshi Bhagat, 3. Vaishnavi Dhawale, 4. Rushikesh Mulik.
+     * College: Arvind Gavali College of Engineering, Satara (AGCE), DBATU University Lonere.
+3. RULES: Be accurate and helpful. If asked about all developers, list all 4 developers. Respond in the same language as spoken.
 
 OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 {{
@@ -1576,78 +1579,80 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             logger.error(f"Native audio processing failed: {e}")
 
     # -------------------------------------------------------------------------
-    # BRANCH B: TEXT QUERY PROCESSING (KEYBOARD / PRE-TRANSCRIBED)
+    # UNIFIED QUERY PROCESSING (APPLIES TO BOTH VOICE TRANSCRIPTS & TEXT INPUT)
     # -------------------------------------------------------------------------
-    if not answer:
-        user_msg = (req.message or user_transcript or "").strip()
-        if not user_msg:
-            user_msg = "दुकान हिशोब माहिती"
+    user_msg = (req.message or user_transcript or "").strip()
+    if not user_msg and not answer:
+        user_msg = "दुकान हिशोब माहिती"
 
-        # Action detection for text
-        if any(kw in user_msg for kw in ["उधारी नोंदव", "उधारी लिही", "उधारी कर", "उधारी झाली", "उधारी दिली", "credit दे"]):
-            try:
-                amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
-                amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-                ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
-                parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
-                cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
-                if amount > 0:
-                    conn.execute(
-                        "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (cust_name, "", amount, "Credit Given", today_str, "", user_msg)
-                    )
-                    conn.commit()
-                    action_status = f"✅ Customer Khata मध्ये {cust_name} साठी ₹{amount:,.2f} उधारी नोंदवली गेली."
-            except Exception as e:
-                action_status = f"उधारी नोंद त्रुटी: {e}"
+    # Always allow fast-path to provide 100% verified complete answers for recognized queries
+    fast_path_answer = None
 
-        elif any(kw in user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "expense add"]):
-            try:
-                amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
-                amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
-                ignored = {"खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला", "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"}
-                parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
-                exp_title = " ".join(p for p in parts if p).strip() or "दुकान खर्च"
-                if amount > 0:
-                    conn.execute(
-                        "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
-                        (exp_title, amount, "दुकान खर्च", today_str, user_msg)
-                    )
-                    conn.commit()
-                    action_status = f"✅ दुकान खर्च नोंद: '{exp_title}' साठी ₹{amount:,.2f} सेव्ह झाले."
-            except Exception as e:
-                action_status = f"खर्च नोंद त्रुटी: {e}"
+    # Action detection for text
+    if any(kw in user_msg for kw in ["उधारी नोंदव", "उधारी लिही", "उधारी कर", "उधारी झाली", "उधारी दिली", "credit दे"]):
+        try:
+            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
+            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+            ignored = {"उधारी", "नोंदव", "नोंदवा", "लिही", "लिहा", "कर", "करा", "झाली", "झाले", "दिली", "नोंद", "सेव्ह", "credit", "दे", "रुपये", "रुपया", "रु", "₹", "ला", "ना", "कडे", "च्याकडे", "ची", "चे", "चा", "कडून"}
+            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+            cust_name = " ".join(p for p in parts if p).strip() or "ग्राहक"
+            if amount > 0:
+                conn.execute(
+                    "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (cust_name, "", amount, "Credit Given", today_str, "", user_msg)
+                )
+                conn.commit()
+                action_status = f"✅ Customer Khata मध्ये {cust_name} साठी ₹{amount:,.2f} उधारी नोंदवली गेली."
+        except Exception as e:
+            action_status = f"उधारी नोंद त्रुटी: {e}"
 
-        query_lang = detect_msg_language(user_msg, req.lang or "mr")
-        is_hindi = (query_lang == "hi" or req.lang == "hi")
-        is_english = (query_lang == "en")
+    elif any(kw in user_msg for kw in ["खर्च नोंदव", "खर्च लिही", "खर्च जोड", "खर्च झाला", "expense add"]):
+        try:
+            amt_matches = re.findall(r"\d+(?:[.,]\d+)?", user_msg)
+            amount = float(amt_matches[0].replace(",", "")) if amt_matches else 0.0
+            ignored = {"खर्च", "नोंदव", "नोंदवा", "लिही", "लिहा", "जोड", "जोडा", "झाला", "झाले", "सेव्ह", "करा", "रुपये", "रुपया", "रु", "₹", "expense", "add"}
+            parts = [re.sub(r"^[.,!?;:]+|[.,!?;:]+$", "", w) for w in user_msg.split() if not re.search(r"\d", w) and w.casefold() not in ignored]
+            exp_title = " ".join(p for p in parts if p).strip() or "दुकान खर्च"
+            if amount > 0:
+                conn.execute(
+                    "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
+                    (exp_title, amount, "दुकान खर्च", today_str, user_msg)
+                )
+                conn.commit()
+                action_status = f"✅ दुकान खर्च नोंद: '{exp_title}' साठी ₹{amount:,.2f} सेव्ह झाले."
+        except Exception as e:
+            action_status = f"खर्च नोंद त्रुटी: {e}"
 
-        if is_hindi:
-            language_instruction = (
-                "The user is speaking or querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी). "
-                "Keep the answer concise, crisp, and factual (1-2 sentences maximum)."
-            )
-        elif is_english:
-            language_instruction = (
-                "The user asked in English. Answer in clear, polite English. Keep the answer concise and factual (1-2 sentences maximum)."
-            )
-        else:
-            language_instruction = (
-                "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
-            )
+    query_lang = detect_msg_language(user_msg, req.lang or "mr")
+    is_hindi = (query_lang == "hi" or req.lang == "hi")
+    is_english = (query_lang == "en")
 
-        # Direct answers for common questions and full academic/developer dossier
-        lower_msg = user_msg.lower()
-
-        # 1. Full Project Dossier (All Information: College, Guide, Team, Features)
-        is_full_project_query = (
-            any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'about project', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']) or
-            (('प्रकल्प' in lower_msg or 'प्रकल्पा' in lower_msg or 'प्रोजेक्ट' in lower_msg or 'project' in lower_msg or 'vernaledger' in lower_msg) and 
-             any(k in lower_msg for k in ['माहिती', 'सांगा', 'द्या', 'काय आहे', 'नाव', 'बद्दल', 'विषयी', 'विस्तार', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य']))
+    if is_hindi:
+        language_instruction = (
+            "The user is speaking or querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी). "
+            "Keep the answer concise, crisp, and factual (1-2 sentences maximum)."
+        )
+    elif is_english:
+        language_instruction = (
+            "The user asked in English. Answer in clear, polite English. Keep the answer concise and factual (1-2 sentences maximum)."
+        )
+    else:
+        language_instruction = (
+            "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
         )
 
-        if is_full_project_query:
-            answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
+    # Direct answers for common questions and full academic/developer dossier
+    lower_msg = user_msg.lower()
+
+    # 1. Full Project Dossier (All Information: College, Guide, Team, Features)
+    is_full_project_query = (
+        any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'about project', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']) or
+        (('प्रकल्प' in lower_msg or 'प्रकल्पा' in lower_msg or 'प्रोजेक्ट' in lower_msg or 'project' in lower_msg or 'vernaledger' in lower_msg) and 
+         any(k in lower_msg for k in ['माहिती', 'सांगा', 'द्या', 'काय आहे', 'नाव', 'बद्दल', 'विषयी', 'विस्तार', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य']))
+    )
+
+    if is_full_project_query:
+        answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
 • **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
@@ -1673,9 +1678,9 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
-        # 2. Specific College & Academic Information
-        elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']):
-            answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
+    # 2. Specific College & Academic Information
+    elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']):
+        answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
 • **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
@@ -1684,17 +1689,17 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
 
-        # 3. Project Guide
-        elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']):
-            answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
+    # 3. Project Guide
+    elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']):
+        answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
 • **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)"""
 
-        # 4. Developers / Team Members
-        elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
-            answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
+    # 4. Developers / Team Members
+    elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
+        answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
 १. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
 २. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
 ३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
@@ -1702,9 +1707,9 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
 
-        # 5. Project Overview, Aim & Features
-        elif any(k in lower_msg for k in ['फायदे', 'features', 'overview', 'काम काय']):
-            answer = """🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
+    # 5. Project Overview, Aim & Features
+    elif any(k in lower_msg for k in ['फायदे', 'features', 'overview', 'काम काय']):
+        answer = """🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
 स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
 १. 📸 **स्मार्ट मल्टिमोडल स्कॅनर:** हस्तलिखित मराठी पावत्यांचे ५ AI पिलर्सद्वारे (ViT, Multimodal, TPUs, Attention, Document AI) क्षणार्धात अचूक डिजिटल बिलात रूपांतर.
 २. 🎙️ **स्थानिक व्हॉइस बिलिंग:** मराठी भाषेत बोलून थेट पावती तयार करणे.
@@ -1712,98 +1717,98 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
-        # 6. Technical Architecture: 5 Scanner AI Pillars
-        elif (any(k in lower_msg for k in ['स्कॅनर', 'scanner', 'vit']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '५', '5', 'फिचर्स'])) or any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स']):
-            answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
+    # 6. Technical Architecture: 5 Scanner AI Pillars
+    elif (any(k in lower_msg for k in ['स्कॅनर', 'scanner', 'vit']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '५', '5', 'फिचर्स'])) or any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स']):
+        answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
 १. 🔍 **Vision Transformers (ViTs):** पावतीचे लहान व्हिज्युअल पॅचेस (Patches) बनवून तिरपे, घाईत लिहिलेले व अस्पष्ट मराठी हस्तलिखित अचूक वाचते.
 २. 🌐 **Native Multimodal AI:** फोटोचे पिक्सेल आणि भाषा एकाच न्यूरल नेटवर्कद्वारे थेट (End-to-End) समजून घेते.
 ३. ⚡ **Google TPU Cloud Acceleration:** गुगलच्या क्लाउडवरील Tensor Processing Units वर मॉडेल चालल्यामुळे अवघ्या १ ते १.२ सेकंदात निकाल मिळतो.
 ४. 🧩 **Context-Aware Attention:** अस्पष्ट अंक (उदा. १ की ७, किंवा ३ की ८) आजूबाजूच्या शब्दांवरून आणि गणिताचा हिशोब (दर × वजन) तपासून आपोआप ओळखते.
 ५. 📄 **Google Cloud Vision & Document AI Fallback:** मुख्य मॉडेलवर अडथळा आल्यास गुगलच्या Document Text Detection API द्वारे पावती अखंड वाचली जाते."""
 
-        # 7. Technical Architecture: 4 Chatbot Core Pillars
-        elif (any(k in lower_msg for k in ['चॅटबॉट', 'chatbot', 'bot']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '४', '4'])) or any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स']):
-            answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
+    # 7. Technical Architecture: 4 Chatbot Core Pillars
+    elif (any(k in lower_msg for k in ['चॅटबॉट', 'chatbot', 'bot']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '४', '4'])) or any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स']):
+        answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
 १. 🌐 **Native Multimodal Architecture:** आवाज आणि मजकूर एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते.
 २. 🎙️ **ASR & Speech-to-Text:** दुकानातील गोंगाट गाळून सातारी, कोल्हापुरी, पुणेरी व ग्रामीण मराठी उच्चार अचूक ओळखते.
 ३. 🧠 **Transformer LLM & Contextual Reasoning:** दुकानाच्या थेट SQLite डेटाबेसमधील हिशोब तपासून १००% अचूक, तात्त्विक व बिनचूक उत्तरे देते (No Hallucination).
 ४. ⚡ **Real-Time Low Latency Engine:** सब-मिलिसेकंद (१०-१५ ms) इन-मेमरी मेमरी ॲक्सेस आणि सब-सेकंद फास्ट जेमिनी जनरेशन."""
-        elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
+    elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
+        if is_hindi:
+            answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
+        elif is_english:
+            answer = 'Hello! I am Verna AI. How can I help you today with your store sales, customer dues, or inventory?'
+        else:
+            answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
+    # Dynamic Customer-Specific Credit Lookup (First priority: specific customer name with cross-script transliteration)
+    if not answer and any(k in lower_msg for k in ['उधारी', 'बाकी', 'येणे', 'खाते', 'credit', 'due', 'कोणाची', 'उधार']):
+        dev_map = {
+            'स': 's', 'श': 'sh', 'ष': 'sh', 'र': 'r', 'म': 'm', 'न': 'n', 'ल': 'l', 'क': 'k', 'ख': 'kh',
+            'ग': 'g', 'घ': 'gh', 'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ट': 't', 'ठ': 'th',
+            'ड': 'd', 'ढ': 'dh', 'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'प': 'p', 'फ': 'ph',
+            'ब': 'b', 'भ': 'bh', 'य': 'y', 'व': 'v', 'ह': 'h', 'आ': 'a', 'ई': 'i', 'ऊ': 'u',
+            'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au', 'ा': 'a', 'ि': 'i', 'ी': 'i', 'ु': 'u',
+            'ू': 'u', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ं': 'n'
+        }
+        roman_msg = ''.join(dev_map.get(c, c) for c in lower_msg)
+        for c_name, c_amt in cust_dues.items():
+            clean_c = re.sub(r'\s+', '', c_name.lower())
+            clean_msg = re.sub(r'\s+', '', lower_msg)
+            if (clean_c and len(clean_c) > 1 and clean_c in clean_msg) or (clean_c and clean_c in roman_msg):
+                answer = f"👤 **{c_name}** यांच्याकडे एकूण **₹{c_amt:,.2f}** बाकी उधारी नोंदवलेली आहे."
+                break
+
+    # Dynamic Item-Specific Inventory Stock Lookup (First priority: specific grocery item)
+    if not answer and any(k in lower_msg for k in ['साठा', 'शिल्लक', 'किती आहे', 'स्टॉक', 'stock', 'बाकी', 'आहे का']):
+        for item in all_inv:
+            raw_name = item['item_name'].lower()
+            clean_i = re.sub(r'\(.*?\)', '', raw_name).strip()
+            words = [w for w in clean_i.split() if len(w) > 2]
+            if (clean_i and clean_i in lower_msg) or any(w in lower_msg for w in words):
+                warn = " (⚠️ **अलर्ट:** साठा संपत आला आहे, नवीन माल मागवा!)" if item['stock_qty'] <= item['alert_limit'] else " (✅ साठा मुबलक आहे)"
+                answer = f"📦 दुकानात **{item['item_name']}** चा एकूण साठा **{item['stock_qty']} {item['unit']}** शिल्लक आहे (विक्री दर: ₹{item['selling_price']:,.2f}).{warn}"
+                break
+
+    if not answer:
+        if any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
             if is_hindi:
-                answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
+                answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
             elif is_english:
-                answer = 'Hello! I am Verna AI. How can I help you today with your store sales, customer dues, or inventory?'
+                answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
             else:
-                answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
-        # Dynamic Customer-Specific Credit Lookup (First priority: specific customer name with cross-script transliteration)
-        if not answer and any(k in lower_msg for k in ['उधारी', 'बाकी', 'येणे', 'खाते', 'credit', 'due', 'कोणाची', 'उधार']):
-            dev_map = {
-                'स': 's', 'श': 'sh', 'ष': 'sh', 'र': 'r', 'म': 'm', 'न': 'n', 'ल': 'l', 'क': 'k', 'ख': 'kh',
-                'ग': 'g', 'घ': 'gh', 'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ट': 't', 'ठ': 'th',
-                'ड': 'd', 'ढ': 'dh', 'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'प': 'p', 'फ': 'ph',
-                'ब': 'b', 'भ': 'bh', 'य': 'y', 'व': 'v', 'ह': 'h', 'आ': 'a', 'ई': 'i', 'ऊ': 'u',
-                'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au', 'ा': 'a', 'ि': 'i', 'ी': 'i', 'ु': 'u',
-                'ू': 'u', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ं': 'n'
-            }
-            roman_msg = ''.join(dev_map.get(c, c) for c in lower_msg)
-            for c_name, c_amt in cust_dues.items():
-                clean_c = re.sub(r'\s+', '', c_name.lower())
-                clean_msg = re.sub(r'\s+', '', lower_msg)
-                if (clean_c and len(clean_c) > 1 and clean_c in clean_msg) or (clean_c and clean_c in roman_msg):
-                    answer = f"👤 **{c_name}** यांच्याकडे एकूण **₹{c_amt:,.2f}** बाकी उधारी नोंदवलेली आहे."
-                    break
+                answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
+        elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
+            dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
+            if is_hindi:
+                answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
+            elif is_english:
+                answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
+            else:
+                answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
+        elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
+            stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
+            if is_hindi:
+                answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
+            elif is_english:
+                answer = f"Low stock items: {stock_text}."
+            else:
+                answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
+        elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
+            if is_hindi:
+                answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
+            elif is_english:
+                answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
+            else:
+                answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
+        elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
+            if is_hindi:
+                answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
+            elif is_english:
+                answer = f"Today's expenses: ₹{today_expenses:,.2f} | Total expenses: ₹{total_expenses:,.2f}."
+            else:
+                answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
 
-        # Dynamic Item-Specific Inventory Stock Lookup (First priority: specific grocery item)
-        if not answer and any(k in lower_msg for k in ['साठा', 'शिल्लक', 'किती आहे', 'स्टॉक', 'stock', 'बाकी', 'आहे का']):
-            for item in all_inv:
-                raw_name = item['item_name'].lower()
-                clean_i = re.sub(r'\(.*?\)', '', raw_name).strip()
-                words = [w for w in clean_i.split() if len(w) > 2]
-                if (clean_i and clean_i in lower_msg) or any(w in lower_msg for w in words):
-                    warn = " (⚠️ **अलर्ट:** साठा संपत आला आहे, नवीन माल मागवा!)" if item['stock_qty'] <= item['alert_limit'] else " (✅ साठा मुबलक आहे)"
-                    answer = f"📦 दुकानात **{item['item_name']}** चा एकूण साठा **{item['stock_qty']} {item['unit']}** शिल्लक आहे (विक्री दर: ₹{item['selling_price']:,.2f}).{warn}"
-                    break
-
-        if not answer:
-            if any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
-                if is_hindi:
-                    answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
-                elif is_english:
-                    answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
-                else:
-                    answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
-            elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
-                dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
-                if is_hindi:
-                    answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
-                elif is_english:
-                    answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
-                else:
-                    answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
-            elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
-                stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
-                if is_hindi:
-                    answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
-                elif is_english:
-                    answer = f"Low stock items: {stock_text}."
-                else:
-                    answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
-            elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
-                if is_hindi:
-                    answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
-                elif is_english:
-                    answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
-                else:
-                    answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
-            elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
-                if is_hindi:
-                    answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
-                elif is_english:
-                    answer = f"Today's expenses: ₹{today_expenses:,.2f} | Total expenses: ₹{total_expenses:,.2f}."
-                else:
-                    answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
-
-        assistant_instruction = """You are Verna AI, the world-class intelligent retail business consultant, operations advisor, and financial intelligence engine for VernaLedger.AI.
+    assistant_instruction = """You are Verna AI, the world-class intelligent retail business consultant, operations advisor, and financial intelligence engine for VernaLedger.AI.
 
 KNOWLEDGE BASE & VERIFIED TRUTHS:
 1. Academic Credentials:
@@ -1833,53 +1838,53 @@ BEHAVIOR GUIDELINES:
 4. Technical & Architecture Questions: Explain the deep AI concepts (ViTs, self-attention, RAG, SQLite ACID WAL) clearly and authoritatively.
 5. Formatting: Use neat Markdown formatting with emojis, bold numbers, and bullet points for outstanding visual presentation."""
 
-        if not answer and api_key and genai:
-            try:
-                genai.configure(api_key=api_key, transport='rest')
-                models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
-                for m in models_to_try:
-                    try:
-                        model = genai.GenerativeModel(
-                            model_name=m,
-                            system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
-                            generation_config={"temperature": 0.2, "max_output_tokens": 800}
-                        )
-                        # Build multi-turn contextual prompt
-                        prompt_parts = [db_context]
-                        if req.chat_history:
-                            for h in req.chat_history[-4:]:
-                                r = h.get("role", "")
-                                p = h.get("parts", [])
-                                txt = p[0].get("text", "") if (isinstance(p, list) and p and isinstance(p[0], dict)) else ""
-                                if txt:
-                                    prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
-                        prompt_parts.append(f"[Current User Query]: {user_msg}")
-                        res = model.generate_content(prompt_parts, request_options={"timeout": 5})
-                        if res and res.text:
-                            answer = res.text.strip()
-                            break
-                    except Exception:
-                        continue
-            except Exception as e:
-                logger.error(f"Text Gemini error: {e}")
+    if not answer and api_key and genai:
+        try:
+            genai.configure(api_key=api_key, transport='rest')
+            models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+            for m in models_to_try:
+                try:
+                    model = genai.GenerativeModel(
+                        model_name=m,
+                        system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
+                        generation_config={"temperature": 0.2, "max_output_tokens": 800}
+                    )
+                    # Build multi-turn contextual prompt
+                    prompt_parts = [db_context]
+                    if req.chat_history:
+                        for h in req.chat_history[-4:]:
+                            r = h.get("role", "")
+                            p = h.get("parts", [])
+                            txt = p[0].get("text", "") if (isinstance(p, list) and p and isinstance(p[0], dict)) else ""
+                            if txt:
+                                prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
+                    prompt_parts.append(f"[Current User Query]: {user_msg}")
+                    res = model.generate_content(prompt_parts, request_options={"timeout": 5})
+                    if res and res.text:
+                        answer = res.text.strip()
+                        break
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.error(f"Text Gemini error: {e}")
 
-        # Fallback if AI call failed
-        if not answer:
-            if action_status:
-                answer = action_status
-            elif any(k in lower_msg for k in ['प्रकल्प', 'प्रोजेक्ट', 'project', 'कॉलेज', 'मार्गदर्शक', 'डेव्हलपर', 'माहिती']):
-                answer = """🏛️ **VernaLedger.AI (Merchant Pro v7.5)**:
+    # Fallback if AI call failed
+    if not answer:
+        if action_status:
+            answer = action_status
+        elif any(k in lower_msg for k in ['प्रकल्प', 'प्रोजेक्ट', 'project', 'कॉलेज', 'मार्गदर्शक', 'डेव्हलपर', 'माहिती']):
+            answer = """🏛️ **VernaLedger.AI (Merchant Pro v7.5)**:
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)
 • **विभाग:** B.Tech (कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स - AI & DS)
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **डेव्हलपर टीम:** संकेत किर्दत (Lead), साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक."""
-            else:
-                answer = (
-                    f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
-                    if is_english else
-                    f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
-                )
+        else:
+            answer = (
+                f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
+                if is_english else
+                f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
+            )
 
     conn.close()
 
