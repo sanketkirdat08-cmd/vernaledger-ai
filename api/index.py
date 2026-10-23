@@ -1898,6 +1898,10 @@ for route in list(app.routes):
         if alias_path:
             app.add_api_route(alias_path, route.endpoint, methods=route.methods)
 
+# Universal chat route aliases
+app.add_api_route('/api/chat', rag_chat, methods=['POST'])
+app.add_api_route('/chat', rag_chat, methods=['POST'])
+
 # -----------------------------------------------------------------------------
 # STATIC FILES SERVING (FOR LOCAL RUN & FALLBACK)
 # -----------------------------------------------------------------------------

@@ -870,7 +870,9 @@ async function submitReceiptOCR() {
         populateBillCard(json.data);
         loadDashboardMetrics();
         loadReceiptsLedger();
-        if (json.warning) {
+        if (json.duplicate) {
+            alert("⚠️ Duplicate Receipt\n" + json.warning);
+        } else if (json.warning) {
             alert("⚠️ " + json.warning);
         } else {
             alert("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!");

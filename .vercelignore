@@ -2,7 +2,6 @@
 app_streamlit_backup.py
 requirements-streamlit.txt
 *.pptx
-VernaLedger_Presentation.html
 create_presentation.py
 backups/
 chat_input_component/

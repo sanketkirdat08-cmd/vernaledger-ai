@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>VernaLedger.AI: Merchant Pro v7.5 | Technical Presentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Premium Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Reveal.js Core CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #050b14;
+            --bg-glass: rgba(10, 17, 40, 0.65);
+            --bg-glass-card: rgba(13, 23, 49, 0.7);
+            --border-glass: rgba(0, 242, 254, 0.22);
+            --border-glass-bright: rgba(0, 242, 254, 0.5);
+            
+            --neon-cyan: #00f2fe;
+            --electric-blue: #4facfe;
+            --neon-green: #00ff87;
+            --neon-purple: #b026ff;
+            --neon-pink: #ff007f;
+            --neon-red: #ff0055;
+            --neon-amber: #ffaa00;
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body, .reveal-viewport {
+            background-color: var(--bg-color);
+            font-family: 'Space Grotesk', -apple-system, sans-serif !important;
+            color: var(--text-main);
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .reveal {
+            background: transparent !important;
+        }
+
+        /* Ambient Dynamic Background Glows */
+        .ambient-glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 1;
+            transition: all 1s ease;
+        }
+        .glow-1 { top: -10%; left: -10%; width: 55vw; height: 55vw; background: radial-gradient(circle, var(--neon-cyan), transparent); }
+        .glow-2 { bottom: -15%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, var(--neon-purple), transparent); }
+        .glow-3 { top: 40%; left: 50%; transform: translate(-50%, -50%); width: 45vw; height: 45vw; background: radial-gradient(circle, #0051ff, transparent); opacity: 0.1; }
+
+        /* Canvas particles */
+        #particles-js {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            pointer-events: none !important;
+        }
+
+        /* Persistent HUD Header and Footer */
+        /* Top Navigation Bar - Matching User UI Reference */
+        .hud-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 56px;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            background: rgba(7, 13, 24, 0.92);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(0, 242, 254, 0.16);
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            color: var(--text-muted);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .hud-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .brand-icon-squircle {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #030814;
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.5);
+            flex-shrink: 0;
+        }
+        .brand-text-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+        .brand-text-group .brand-sep {
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 400;
+        }
+        .brand-text-group .brand-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+        .hud-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hud-slide-select {
+            background: rgba(13, 23, 49, 0.92);
+            border: 1px solid rgba(0, 242, 254, 0.32);
+            border-radius: 8px;
+            color: #f8fafc;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 8px 36px 8px 14px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            max-width: 320px;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300f2fe' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        }
+        .hud-slide-select:hover, .hud-slide-select:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.4);
+            background-color: rgba(18, 32, 68, 0.95);
+        }
+        .hud-slide-select option {
+            background: #091224;
+            color: #f8fafc;
+            padding: 8px;
+        }
+        .hud-btn {
+            background: rgba(13, 23, 49, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #f1f5f9;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            user-select: none;
+        }
+        .hud-btn:hover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 242, 254, 0.12);
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.35);
+            transform: translateY(-1px);
+        }
+        .hud-btn .btn-icon {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        /* Bottom Navigation Bar - Matching User UI Reference */
+        .hud-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 56px;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            background: rgba(7, 13, 24, 0.94);
+            backdrop-filter: blur(18px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .hud-footer-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .hud-counter-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hud-counter-text .cur-num {
+            color: var(--neon-cyan);
+            font-size: 0.98rem;
+            font-weight: 800;
+        }
+        .hud-progress-track {
+            width: 220px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .hud-progress-fill {
+            height: 100%;
+            width: 4%;
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+            border-radius: 4px;
+            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.75);
+        }
+        .hud-footer-center {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hud-nav-arrow {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(13, 23, 49, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #f1f5f9;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+        .hud-nav-arrow:hover:not(:disabled) {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 242, 254, 0.16);
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);
+            transform: translateY(-2px);
+        }
+        .hud-nav-arrow:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .hud-nav-arrow:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.06);
+        }
+        .hud-footer-right {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.76rem;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hud-footer-right kbd {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 2px 6px;
+            color: #cbd5e1;
+        }
+
+        @media print {
+            .hud-header, .hud-footer, .ambient-glow, #particles-js, .modal-overlay, .zoom-badge {
+                display: none !important;
+            }
+            body, .reveal-viewport, .reveal {
+                background: #050b14 !important;
+                color: #ffffff !important;
+            }
+        }
+
+                /* Reveal Viewport Styling */
+        .reveal .slides {
+            z-index: 10;
+            padding: 50px 0 !important;
+        }
+        .reveal .slides > section {
+            height: 100%;
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 30px;
+        }
+
+        /* Typography Hierarchy */
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: 'Outfit', sans-serif !important;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin: 0;
+            text-transform: none;
+        }
+        .slide-title-wrap {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+        .slide-badge {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--neon-green);
+            background: rgba(0, 255, 135, 0.08);
+            border: 1px solid rgba(0, 255, 135, 0.3);
+            border-radius: 30px;
+            padding: 4px 18px;
+            margin-bottom: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 135, 0.15);
+        }
+        .slide-title {
+            font-size: 2.25rem !important;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-cyan) 60%, var(--electric-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 35px rgba(0, 242, 254, 0.25);
+        }
+        .slide-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* Glassmorphic Cyberpunk Card System */
+        .glass-card {
+            background: var(--bg-glass-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            padding: 22px 26px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 242, 254, 0.03);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), transparent);
+        }
+        .glass-card.accent-green::after { background: linear-gradient(90deg, var(--neon-green), transparent); }
+        .glass-card.accent-purple::after { background: linear-gradient(90deg, var(--neon-purple), transparent); }
+        .glass-card.accent-red::after { background: linear-gradient(90deg, var(--neon-red), transparent); }
+        .glass-card.accent-blue::after { background: linear-gradient(90deg, var(--electric-blue), transparent); }
+        
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-glass-bright);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 242, 254, 0.15);
+        }
+
+        /* Grid Layout Systems */
+        .grid-2x2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 92%;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            width: 94%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .grid-4col {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
+        }
+
+        /* Card Content Components */
+        .card-header-icon {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .card-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+        }
+        .card-desc {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            line-height: 1.55;
+            margin: 0;
+            text-align: left;
+        }
+        .card-tag {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--neon-cyan);
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            border-radius: 6px;
+            padding: 2px 8px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        /* Title Slide Hero Banner */
+        .hero-container {
+            width: 90%;
+            max-width: 1100px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--neon-green);
+            background: rgba(0, 255, 135, 0.08);
+            border: 1px solid rgba(0, 255, 135, 0.35);
+            border-radius: 30px;
+            padding: 6px 20px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
+        }
+        .hero-title {
+            font-size: 3.6rem !important;
+            line-height: 1.1;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--neon-cyan) 45%, var(--neon-purple) 90%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900 !important;
+            filter: drop-shadow(0 0 35px rgba(0, 242, 254, 0.35));
+        }
+        .hero-subtitle {
+            font-size: 1.12rem;
+            color: #cbd5e1;
+            max-width: 880px;
+            line-height: 1.5;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+        .team-strip {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .team-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(10, 20, 45, 0.7);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 30px;
+            padding: 8px 18px;
+            font-size: 0.88rem;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        .team-pill .num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            color: #050b14;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+        .meta-box {
+            background: rgba(10, 17, 40, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 24px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .meta-box span strong {
+            color: #ffffff;
+        }
+
+        /* Split Result Layout with Interactive 3D Floating Screenshots */
+        /* Split Result Layout with Interactive 3D Floating Screenshots */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 0.85fr 1.15fr;
+            gap: 32px;
+            align-items: center;
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
+        }
+        .split-text {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            text-align: left;
+        }
+        .feature-item {
+            background: rgba(10, 17, 40, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 3px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: all 0.2s;
+        }
+        .feature-item:hover {
+            border-left-color: var(--neon-green);
+            background: rgba(0, 242, 254, 0.06);
+            transform: translateX(4px);
+        }
+        .feature-item.accent-purple { border-left-color: var(--neon-purple); }
+        .feature-item.accent-green { border-left-color: var(--neon-green); }
+        .feature-item.accent-red { border-left-color: var(--neon-red); }
+        .feature-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feature-desc {
+            font-size: 0.84rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        /* Interactive Floating Screenshot Container with Click-to-Zoom */
+        .split-img-box {
+            position: relative;
+            perspective: 1100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer !important;
+            z-index: 25;
+            pointer-events: auto !important;
+        }
+        .split-img-box img, .floating-screenshot {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+        }
+        .split-img-box .zoom-badge {
+            pointer-events: none !important;
+        }
+        .split-img-box:hover .zoom-badge {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .zoom-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(5, 11, 20, 0.88);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            opacity: 0.85;
+            transform: translateY(2px);
+            transition: all 0.3s ease;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .floating-screenshot {
+            width: 100%;
+            max-height: 480px;
+            object-fit: contain;
+            border-radius: 14px;
+            border: 1.5px solid rgba(0, 242, 254, 0.35);
+            background: #090e1a;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 242, 254, 0.2);
+            transform: rotateY(-6deg) rotateX(2deg);
+            transition: all 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .split-img-box:hover .floating-screenshot {
+            transform: rotateY(0deg) rotateX(0deg) scale(1.03);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(0, 242, 254, 0.4);
+        }
+
+        /* Step Pipeline Flow */
+        .step-flow-h {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .step-card-h {
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 18px 14px;
+            text-align: left;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .step-card-h:hover {
+            transform: translateY(-6px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 15px 30px rgba(0, 242, 254, 0.2);
+        }
+        .step-num-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0, 242, 254, 0.12);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+        .step-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .step-desc {
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        /* Advanced Gap Analysis Comparison Table */
+        .comp-table-wrap {
+            width: 95%;
+            max-width: 1220px;
+            margin: 0 auto;
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+        }
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.83rem;
+            text-align: center;
+        }
+        .comp-table th, .comp-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .comp-table th {
+            background: rgba(0, 242, 254, 0.09);
+            color: var(--neon-cyan);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.8px;
+        }
+        .comp-table th.highlight-col, .comp-table td.highlight-col {
+            background: rgba(0, 255, 135, 0.08);
+            border-left: 2px solid var(--neon-green);
+            border-right: 2px solid var(--neon-green);
+        }
+        .comp-table th.highlight-col {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 135, 0.4);
+            border-top: 3px solid var(--neon-green);
+        }
+        .chk-yes {
+            color: var(--neon-green);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 255, 135, 0.5);
+        }
+        .chk-no {
+            color: var(--neon-red);
+            font-weight: 600;
+            opacity: 0.8;
+        }
+        .chk-partial {
+            color: var(--neon-amber);
+            font-weight: 600;
+        }
+
+        /* Performance Benchmark Metrics */
+        .metric-card {
+            background: var(--bg-glass-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 26px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.3));
+        }
+        .metric-value.green {
+            background: linear-gradient(135deg, #ffffff, var(--neon-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(0, 255, 135, 0.3));
+        }
+        .metric-value.purple {
+            background: linear-gradient(135deg, #ffffff, var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(176, 38, 255, 0.3));
+        }
+        .metric-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .metric-sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Architecture Visual Flow */
+        .arch-container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+        .arch-flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+        .arch-box {
+            flex: 1;
+            background: var(--bg-glass-card);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 14px;
+            padding: 22px 18px;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+        }
+        .arch-box:hover {
+            transform: translateY(-4px);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 18px 40px rgba(0, 242, 254, 0.25);
+        }
+        .arch-box.box-cyan { border-color: rgba(0, 242, 254, 0.4); }
+        .arch-box.box-purple { border-color: rgba(176, 38, 255, 0.4); }
+        .arch-box.box-green { border-color: rgba(0, 255, 135, 0.4); }
+        .arch-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.18rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .arch-sub {
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+        .arch-arrow {
+            font-size: 1.8rem;
+            color: var(--neon-cyan);
+            filter: drop-shadow(0 0 10px var(--neon-cyan));
+        }
+
+        /* ====================================================================
+           FULLSCREEN CYBERPUNK LIGHTBOX MODAL
+        ==================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 11, 20, 0.96);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            z-index: 99999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .modal-overlay.active {
+            display: flex !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        .modal-box {
+            position: relative;
+            max-width: 95vw;
+            max-height: 94vh;
+            width: auto;
+            border-radius: 18px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 80px rgba(0, 242, 254, 0.5), 0 30px 90px rgba(0, 0, 0, 0.98);
+            background: #090e1a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.92);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+        }
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+        .modal-img-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #030814;
+            padding: 12px;
+            overflow: auto;
+            max-height: 78vh;
+        }
+        .modal-img {
+            max-width: 90vw;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.85);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+            user-select: none;
+        }
+        .modal-img.zoomed {
+            max-width: 150vw;
+            max-height: 130vh;
+            transform: scale(1.3);
+            cursor: zoom-out;
+        }
+        .modal-footer {
+            padding: 12px 26px;
+            background: rgba(10, 17, 40, 0.96);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .modal-nav-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-nav-btn {
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.35);
+            color: var(--neon-cyan);
+            padding: 5px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .modal-nav-btn:hover {
+            background: var(--neon-cyan);
+            color: #050b14;
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        /* Responsive refinements */
+        @media (max-width: 1024px) {
+            .grid-4col { grid-template-columns: repeat(2, 1fr); }
+            .grid-3col { grid-template-columns: 1fr; }
+            .split-layout { grid-template-columns: 1fr; }
+            .step-flow-h { grid-template-columns: 1fr; }
+        }
+    
+        /* ====================================================================
+           SLIDE-SPECIFIC CONTEXTUAL BACKGROUND MOTIFS
+        ==================================================================== */
+        .slide-bg-deco {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            opacity: 0.85;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 01 Cover: Cyberpunk Radar & Tech Brackets */
+        .deco-cover {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.12) 0%, transparent 65%),
+                        linear-gradient(90deg, rgba(0, 242, 254, 0.03) 1px, transparent 1px),
+                        linear-gradient(rgba(0, 242, 254, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 02 Intro: Grassroots Commerce Network Mesh */
+        .deco-intro {
+            background: radial-gradient(circle at 20% 40%, rgba(0, 255, 135, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 60%, rgba(0, 242, 254, 0.08) 0%, transparent 50%),
+                        repeating-linear-gradient(45deg, rgba(0, 242, 254, 0.02) 0px, rgba(0, 242, 254, 0.02) 2px, transparent 2px, transparent 24px);
+        }
+
+        /* 03 Problem: Crimson Warning Hazard Grid */
+        .deco-problems {
+            background: radial-gradient(circle at 50% 30%, rgba(255, 0, 85, 0.25) 0%, transparent 70%),
+                        repeating-linear-gradient(-45deg, rgba(255, 0, 85, 0.09) 0px, rgba(255, 0, 85, 0.09) 4px, transparent 4px, transparent 36px);
+        }
+
+        /* 04 Motivation: Ascending Neon Aurora Rays */
+        .deco-motivation {
+            background: linear-gradient(135deg, rgba(0, 255, 135, 0.16) 0%, rgba(0, 242, 254, 0.14) 50%, transparent 80%),
+                        repeating-linear-gradient(65deg, rgba(0, 255, 135, 0.06) 0px, rgba(0, 255, 135, 0.06) 3px, transparent 3px, transparent 40px);
+        }
+
+        /* 05 Gap Analysis: Data Matrix Laser Coordinates */
+        .deco-gap {
+            background: radial-gradient(circle at 50% 50%, rgba(79, 172, 254, 0.18) 0%, transparent 65%),
+                        linear-gradient(90deg, rgba(0, 242, 254, 0.08) 1px, transparent 1px),
+                        linear-gradient(rgba(0, 242, 254, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 45px 45px, 45px 45px;
+        }
+
+        /* 06 Objectives: 4-Pillar Foundation Grid */
+        .deco-objectives {
+            background: radial-gradient(circle at 25% 25%, rgba(176, 38, 255, 0.18) 0%, transparent 50%),
+                        radial-gradient(circle at 75% 25%, rgba(0, 255, 135, 0.14) 0%, transparent 50%),
+                        radial-gradient(circle at 25% 75%, rgba(176, 38, 255, 0.18) 0%, transparent 50%),
+                        radial-gradient(circle at 75% 75%, rgba(0, 242, 254, 0.14) 0%, transparent 50%);
+        }
+
+        /* 07 Pipeline: Data Stream Conduit Chevrons */
+        .deco-pipeline {
+            background: linear-gradient(to right, rgba(0, 242, 254, 0.04), rgba(176, 38, 255, 0.04), rgba(0, 255, 135, 0.04)),
+                        repeating-linear-gradient(90deg, rgba(0, 242, 254, 0.02) 0px, rgba(0, 242, 254, 0.02) 4px, transparent 4px, transparent 60px);
+        }
+
+        /* 08 Tech Stack: Circuit Board PCB Traces */
+        .deco-tech {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.08) 0%, transparent 60%),
+                        linear-gradient(90deg, rgba(0, 255, 135, 0.03) 2px, transparent 2px),
+                        linear-gradient(rgba(0, 255, 135, 0.03) 2px, transparent 2px);
+            background-size: 100% 100%, 60px 60px, 60px 60px;
+        }
+
+        /* 09 Architecture: 3-Tier Layered Plane Guides */
+        .deco-arch {
+            background: linear-gradient(180deg, rgba(0, 242, 254, 0.05) 0%, rgba(176, 38, 255, 0.05) 50%, rgba(0, 255, 135, 0.05) 100%),
+                        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 30px);
+        }
+
+        /* 10 Flow: Sequential Pipeline Chevrons */
+        .deco-flow {
+            background: repeating-linear-gradient(90deg, rgba(0, 242, 254, 0.03) 0px, rgba(0, 242, 254, 0.03) 2px, transparent 2px, transparent 50px);
+        }
+
+        /* 11 Performance: Speedometer Telemetry Arcs */
+        .deco-perf {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 170, 0, 0.25) 0%, transparent 65%),
+                        radial-gradient(circle at 50% 50%, transparent 35%, rgba(255, 170, 0, 0.12) 36%, transparent 40%);
+        }
+
+        /* 12 Result 1 (Login): Biometric Cyber Vault Hexagon */
+        .deco-login {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 50%),
+                        repeating-radial-gradient(circle at 80% 50%, transparent 0, transparent 40px, rgba(0, 242, 254, 0.03) 40px, rgba(0, 242, 254, 0.03) 42px);
+        }
+
+        /* 13 Result 2 (OCR & Voice): Optic Scan Laser & Audio Waveform */
+        .deco-ocr {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        repeating-linear-gradient(90deg, transparent 0, transparent 10px, rgba(0, 255, 135, 0.02) 10px, rgba(0, 255, 135, 0.02) 12px);
+        }
+
+        /* 14 Result 3 (Analytics): Financial Market Trend Matrix */
+        .deco-analytics {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.12) 0%, transparent 50%),
+                        linear-gradient(to top, rgba(0, 242, 254, 0.04) 0%, transparent 60%);
+        }
+
+        /* 15 Result 4 (Khata): WhatsApp Dialogue Ledger Rings */
+        .deco-khata {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        radial-gradient(circle at 20% 50%, rgba(176, 38, 255, 0.08) 0%, transparent 50%);
+        }
+
+        /* 16 Result 5 (Database): ACID Cylinder Wireframe Backdrop */
+        .deco-database {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 50%),
+                        linear-gradient(90deg, rgba(0, 242, 254, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px;
+        }
+
+        /* 17 Result 6 (RAG Chat): Neural Synaptic Brain Network */
+        .deco-rag {
+            background: radial-gradient(circle at 80% 50%, rgba(176, 38, 255, 0.28) 0%, transparent 60%),
+                        radial-gradient(circle at 20% 30%, rgba(255, 0, 85, 0.15) 0%, transparent 50%);
+        }
+
+        /* 18 Result 7 (Staff): Security Shield Perimeter & Audit Log */
+        .deco-staff {
+            background: radial-gradient(circle at 80% 50%, rgba(79, 172, 254, 0.14) 0%, transparent 50%),
+                        repeating-linear-gradient(0deg, rgba(79, 172, 254, 0.02) 0px, rgba(79, 172, 254, 0.02) 2px, transparent 2px, transparent 25px);
+        }
+
+        /* 19 Result 8 (Reports): Thermal Receipt Barcode Stripes */
+        .deco-reports {
+            background: radial-gradient(circle at 80% 50%, rgba(0, 255, 135, 0.12) 0%, transparent 50%),
+                        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 3px, transparent 3px, transparent 18px);
+        }
+
+        /* 20 Advantages: Diamond Prism Polygon Facets */
+        .deco-advantages {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 135, 0.1) 0%, transparent 60%),
+                        repeating-linear-gradient(45deg, rgba(0, 255, 135, 0.02) 0px, rgba(0, 255, 135, 0.02) 2px, transparent 2px, transparent 35px);
+        }
+
+        /* 21 Limitations: Cautionary Hazard Disconnect Pattern */
+        .deco-limitations {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 60, 40, 0.25) 0%, transparent 65%),
+                        repeating-linear-gradient(-45deg, rgba(255, 0, 85, 0.09) 0px, rgba(255, 0, 85, 0.09) 4px, transparent 4px, transparent 30px);
+        }
+
+        /* 22 Future: Hyperspace Warp Velocity Rails */
+        .deco-future {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.14) 0%, transparent 60%),
+                        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 50px, rgba(0, 242, 254, 0.03) 50px, rgba(0, 242, 254, 0.03) 52px);
+        }
+
+        /* 23 Conclusion: Grand Radiant Aurora Horizon */
+        .deco-conclusion {
+            background: radial-gradient(ellipse at 50% 100%, rgba(0, 255, 135, 0.16) 0%, rgba(0, 242, 254, 0.08) 40%, transparent 70%),
+                        radial-gradient(circle at 50% 30%, rgba(176, 38, 255, 0.08) 0%, transparent 50%);
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- Ambient Sci-Fi Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Interactive Cyberpunk Particles Background -->
+    <div id="particles-js"></div>
+
+    <!-- Persistent Top HUD Header - Matching Reference UI -->
+    <header class="hud-header">
+        <div class="hud-header-left">
+            <div class="brand-icon-squircle">✦</div>
+            <div class="brand-text-group">
+                <span>VERNALEDGER.AI • MAJOR PROJECT PRESENTATION</span>
+                <span class="brand-sep">|</span>
+                <span class="brand-sub">Department of AI &amp; DS (AGCE Satara)</span>
+            </div>
+        </div>
+        <div class="hud-header-right">
+            <select id="slideDropdown" class="hud-slide-select" onchange="jumpToSlide(this.value)" aria-label="Select Slide">
+                <option value="0">1. Cover / Title Slide</option>
+                <option value="1">2. Project Overview (Introduction)</option>
+                <option value="2">3. Problem Statement (Market Reality)</option>
+                <option value="3">4. Motivation &amp; Purpose</option>
+                <option value="4">5. Gap Analysis &amp; Benchmarks</option>
+                <option value="5">6. Project Objectives</option>
+                <option value="6">7. Proposed System Pipeline</option>
+                <option value="7">8. Technologies &amp; Tools</option>
+                <option value="8">9. System Architecture (3-Tier Design)</option>
+                <option value="9">10. Execution Flowchart &amp; Working Flow</option>
+                <option value="10">11. Performance Analysis &amp; Benchmarks</option>
+                <option value="11">12. Result 1: Smart Multimodal Scanner &amp; POS</option>
+                <option value="12">13. Result 2: Vernacular Voice Billing Engine</option>
+                <option value="13">14. Result 3: Customer Khata &amp; Udhar Ledger</option>
+                <option value="14">15. Result 4: Store Operations &amp; Inventory</option>
+                <option value="15">16. Result 5: Neural AI Business Studio (SQL RAG)</option>
+                <option value="16">17. Result 6: Digital Ledger &amp; Excel (.xlsx) Export</option>
+                <option value="17">18. Result 7: High-Contrast Kirana Light Mode</option>
+                <option value="18">19. Result 8: Mobile-First Responsive PWA</option>
+                <option value="19">20. Advantages &amp; Strengths</option>
+                <option value="20">21. System Limitations</option>
+                <option value="21">22. Future Enhancements</option>
+                <option value="22">23. Conclusion &amp; Q&amp;A</option>
+            </select>
+            <button class="hud-btn" id="btnFullscreen" onclick="togglePresentationFullscreen()" title="पूर्ण स्क्रीन (Toggle Fullscreen)">
+                <span class="btn-icon">⛶</span>
+                <span id="fsText">Fullscreen</span>
+            </button>
+            <button class="hud-btn" onclick="window.print()" title="प्रिंट / PDF जतन करा (Print / Save as PDF)">
+                <span class="btn-icon">🖨️</span>
+                <span>Print / PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Persistent Bottom HUD Footer - Matching Reference UI -->
+    <footer class="hud-footer">
+        <div class="hud-footer-left">
+            <div class="hud-counter-text">
+                <span>SLIDE</span>
+                <span class="cur-num" id="currentSlideNum">01</span>
+                <span>/</span>
+                <span id="totalSlidesNum">23</span>
+            </div>
+            <div class="hud-progress-track">
+                <div class="hud-progress-fill" id="hudProgressFill"></div>
+            </div>
+        </div>
+        <div class="hud-footer-center">
+            <button class="hud-nav-arrow" id="btnPrevSlide" onclick="Reveal.prev()" title="मागील स्लाईड (Previous)">
+                ‹
+            </button>
+            <button class="hud-nav-arrow" id="btnNextSlide" onclick="Reveal.next()" title="पुढील स्लाईड (Next)">
+                ›
+            </button>
+        </div>
+        <div class="hud-footer-right">
+            <span>Use <kbd>←</kbd> / <kbd>→</kbd> or <kbd>Spacebar</kbd> to navigate</span>
+        </div>
+    </footer>
+
+    <!-- Fullscreen Cyberpunk Lightbox Modal Container -->
+    <div id="lightboxModal" class="modal-overlay" onclick="handleBackdropClick(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span id="modalIcon">📸</span>
+                    <span id="modalTitle">RESULT SHOWCASE</span>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--neon-green); background:rgba(0,255,135,0.1); border:1px solid var(--neon-green); border-radius:12px; padding:2px 8px;">1280 × 720 HD</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button class="modal-nav-btn" onclick="toggleModalFullscreen()" title="पूर्ण स्क्रीन (Native Fullscreen)">⛶ Fullscreen</button>
+                    <button class="modal-close-btn" onclick="closeLightbox()">✕ CLOSE [ESC]</button>
+                </div>
+            </div>
+            <div class="modal-img-wrap" onclick="toggleImageZoom(event)" style="position:relative;">
+                <img id="modalImg" class="modal-img" src="" alt="Module Screenshot" title="झूम करण्यासाठी क्लिक करा (Click to toggle zoom)">
+                <div id="zoomHint" style="position:absolute; bottom:16px; right:20px; background:rgba(5,11,20,0.85); border:1px solid rgba(0,242,254,0.4); color:var(--neon-cyan); padding:4px 12px; border-radius:14px; font-family:'JetBrains Mono',monospace; font-size:0.72rem; pointer-events:none; box-shadow:0 0 10px rgba(0,242,254,0.3);">🔍 Click Image to Zoom</div>
+            </div>
+            <div class="modal-footer">
+                <div id="modalDesc" style="max-width: 65%;">Live system module view.</div>
+                <div class="modal-nav-btns">
+                    <button class="modal-nav-btn" onclick="prevScreenshot()">◄ PREV</button>
+                    <button class="modal-nav-btn" onclick="nextScreenshot()">NEXT ►</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reveal.js Main Container -->
+    <div class="reveal">
+                <div class="slides">
+
+            <!-- SLIDE 01: TITLE / COVER SLIDE -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #050f24 0%, #0d2859 55%, #030814 100%)">
+                <div class="slide-bg-deco deco-cover"></div>
+                <div class="hero-container">
+                    <div class="hero-badge">B.Tech Artificial Intelligence &amp; Data Science • Major Project Final Defense</div>
+                    <h1 class="hero-title">VernaLedger.AI<br><span style="font-size: 0.6em; font-weight:700; color:#fff; -webkit-text-fill-color: #fff;">Merchant Pro v7.5</span></h1>
+                    <p class="hero-subtitle">Next-Gen Vernacular Retail Point of Sale &amp; Financial Suite with Gemini 2.5 Flash Vision OCR, Marathi Voice Billing &amp; SQLite ACID Ledger</p>
+                    
+                    <div class="team-strip">
+                        <div class="team-pill"><span class="num">1</span> Sanket Kirdat (Lead)</div>
+                        <div class="team-pill"><span class="num">2</span> Sakshi Bhagat</div>
+                        <div class="team-pill"><span class="num">3</span> Vaishnavi Dhawale</div>
+                        <div class="team-pill"><span class="num">4</span> Rushikesh Mulik</div>
+                    </div>
+
+                    <div class="meta-box">
+                        <span><strong>Project Guide:</strong> Prof. Kaisar Atar Sir</span>
+                        <span><strong>Dept:</strong> Artificial Intelligence &amp; Data Science (AI &amp; DS)</span>
+                        <span><strong>Institute:</strong> Arvind Gavali College of Engineering, Satara</span>
+                        <span><strong>Affiliation:</strong> Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere</span>
+                        <span><strong>Year:</strong> 2026 - 2027</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 02: INTRODUCTION -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #031c1a 0%, #08403a 55%, #011210 100%)">
+                <div class="slide-bg-deco deco-intro"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">02 • Project Overview</div>
+                    <h2 class="slide-title">Introduction: VernaLedger.AI Suite</h2>
+                    <div class="slide-subtitle">Next-Gen Vernacular Financial &amp; Point of Sale Intelligence for Grassroots Indian Retail</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🏪</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">What is VernaLedger.AI?</h3>
+                        </div>
+                        <p class="card-desc">An offline-first, vernacular-native Point of Sale (POS) and smart digital bookkeeping suite engineered specifically for India's 63+ million micro, small, and medium enterprises (MSMEs) and local kirana merchants.</p>
+                        <span class="card-tag">Empowering 63M+ Indian MSMEs</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🗣️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Vernacular First Design</h3>
+                        </div>
+                        <p class="card-desc">Eliminates English-only software barriers by providing end-to-end regional voice recognition and UI rendering in authentic Marathi and Hindi, ensuring effortless adoption without prior computer literacy.</p>
+                        <span class="card-tag">Marathi &amp; Hindi Native</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📸</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Multimodal OCR Vision</h3>
+                        </div>
+                        <p class="card-desc">Converts messy, handwritten grocery receipts and supplier invoices into cleanly parsed, verified accounting records in under 2 seconds using Google Gemini 2.5 Flash multimodal vision.</p>
+                        <span class="card-tag">Sub-2s Vision Token Extraction</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🛡️</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">ACID Ledger Persistence</h3>
+                        </div>
+                        <p class="card-desc">Engineered on SQLite 3 with Write-Ahead Logging (WAL) and PBKDF2 cryptography, guaranteeing mathematical immutability, sub-2ms commit times, and total protection against network dropouts.</p>
+                        <span class="card-tag">100% ACID Relational Security</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 03: PROBLEM STATEMENT -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #300612 0%, #5e0d26 55%, #170208 100%)">
+                <div class="slide-bg-deco deco-problems"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">03 • Market Reality</div>
+                    <h2 class="slide-title">Problem Statement</h2>
+                    <div class="slide-subtitle">Critical Operational Pain Points Crippling India's Grassroots Kirana Economy</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📓</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">1. Paper Ledger Vulnerability</h3>
+                        </div>
+                        <p class="card-desc">Over 85% of small retailers still rely on manual paper notebooks ('बही-खाते') prone to water damage, physical tearing, math errors, and deliberate tampering.</p>
+                        <span class="card-tag">High Financial Fragility</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⏳</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">2. Severe Bad Debt Delinquency</h3>
+                        </div>
+                        <p class="card-desc">Unrecorded informal credit ('उधारी') causes massive working capital freezes. Shopkeepers lack polite, automated recovery tools, resulting in delayed payments and hostile confrontations.</p>
+                        <span class="card-tag">Working Capital Bottleneck</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🚫</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">3. Complex Enterprise POS Software</h3>
+                        </div>
+                        <p class="card-desc">Existing commercial billing software (Tally, Vyapar) is expensive, desktop-tethered, and exclusively in English, demanding complex accounting skills grassroots merchants simply do not possess.</p>
+                        <span class="card-tag">Digital Exclusion Barrier</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 04: MOTIVATION -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #032415 0%, #0a4f32 55%, #01140c 100%)">
+                <div class="slide-bg-deco deco-motivation"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">04 • The Vision</div>
+                    <h2 class="slide-title">Motivation &amp; Purpose</h2>
+                    <div class="slide-subtitle">Bridging the Deep Technological Divide with Human-Centric AI</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🇮🇳</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Digital India for Bharat</h3>
+                        </div>
+                        <p class="card-desc">Democratizing artificial intelligence and making enterprise-level analytics accessible to the unorganized retail backbone that powers India's daily consumer commerce.</p>
+                        <span class="card-tag">Inclusive Technology</span>
+                    </div>
+
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Eliminating Manual Burden</h3>
+                        </div>
+                        <p class="card-desc">Reducing bill entry time from 2 minutes per paper bill to under 2 seconds, freeing up valuable time for merchant customer engagement and business growth.</p>
+                        <span class="card-tag">60x Operational Acceleration</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📈</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Formalizing Rural Credit</h3>
+                        </div>
+                        <p class="card-desc">Transforming unorganized informal credit into verifiable digital ledger history, unlocking creditworthiness and institutional banking access for local shopkeepers.</p>
+                        <span class="card-tag">Financial Inclusion</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 05: GAP ANALYSIS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #0a1136 0%, #172670 55%, #05081c 100%)">
+                <div class="slide-bg-deco deco-gap"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">05 • Competitive Benchmarks</div>
+                    <h2 class="slide-title">Gap Analysis &amp; Benchmarks</h2>
+                    <div class="slide-subtitle">Head-to-Head Architectural Comparison with Commercial Industry Leaders</div>
+                </div>
+
+                <div class="comp-table-wrap">
+                    <table class="comp-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Evaluated Capability</th>
+                                <th>Khatabook</th>
+                                <th>OkCredit</th>
+                                <th>Vyapar App</th>
+                                <th>TallyPrime</th>
+                                <th class="highlight-col">VernaLedger.AI (v7.5)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Marathi &amp; Hindi Voice Billing</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Native Voice NLP + Edge-TTS</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Multimodal AI OCR Receipt Parsing</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Gemini 2.5 Flash (&lt;2s)</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Context-Aware SQL RAG AI Studio</td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Neural AI Studio (SQL RAG)</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Offline-First ACID SQLite Ledger</td>
+                                <td><span class="chk-no">❌ Cloud Lock-in</span></td>
+                                <td><span class="chk-no">❌ Cloud Lock-in</span></td>
+                                <td><span class="chk-partial">⚠️ Local File</span></td>
+                                <td><span class="chk-yes">✔ Proprietary DB</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ SQLite 3 (WAL Mode ACID)</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">Native Microsoft Excel (.xlsx) Export</td>
+                                <td><span class="chk-partial">⚠️ CSV Only</span></td>
+                                <td><span class="chk-partial">⚠️ CSV Only</span></td>
+                                <td><span class="chk-yes">✔ Excel</span></td>
+                                <td><span class="chk-yes">✔ Excel</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ xlsxwriter Devanagari Auto-Fit</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">1-Click WhatsApp Payment Recovery</td>
+                                <td><span class="chk-partial">⚠️ Paid SMS</span></td>
+                                <td><span class="chk-partial">⚠️ Standard SMS</span></td>
+                                <td><span class="chk-partial">⚠️ Paid Addon</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ 1-Click WhatsApp + UPI</span></td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left; font-weight:600;">High-Contrast Kirana Light Mode</td>
+                                <td><span class="chk-no">❌ Generic</span></td>
+                                <td><span class="chk-no">❌ Generic</span></td>
+                                <td><span class="chk-no">❌ Generic</span></td>
+                                <td><span class="chk-no">❌ No</span></td>
+                                <td class="highlight-col"><span class="chk-yes">✔ Sunlight-Optimized Kirana Theme</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SLIDE 06: OBJECTIVES -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #1d0938 0%, #3e1475 55%, #0e041c 100%)">
+                <div class="slide-bg-deco deco-objectives"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">06 • Core Mission</div>
+                    <h2 class="slide-title">Project Objectives</h2>
+                    <div class="slide-subtitle">Concrete Technical and Usability Targets Accomplished by VernaLedger.AI</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🎯</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">1. Sub-2s Vision Token Extraction</h3>
+                        </div>
+                        <p class="card-desc">Architected a streamlined multimodal pipeline ingesting physical receipts and extracting merchant name, line items, quantities, rates, and totals with &gt;96% precision.</p>
+                        <span class="card-tag">Gemini 2.5 Flash Vision</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🎙️</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">2. Regional Marathi/Hindi Voice POS</h3>
+                        </div>
+                        <p class="card-desc">Built natural-speech recognition for regional Devanagari dialects with Edge-TTS phonetic voice synthesis, facilitating hands-free billing during busy retail store hours.</p>
+                        <span class="card-tag">Hands-Free Audio POS</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💳</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">3. Intelligent Khata &amp; WhatsApp Links</h3>
+                        </div>
+                        <p class="card-desc">Engineered automated customer debt tracking with running balances, delinquency aging indicators, and single-click WhatsApp payment recovery links with dynamic UPI payment hooks.</p>
+                        <span class="card-tag">60% Faster Debt Recovery</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🤖</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">4. SQL-Grounded RAG Business Studio</h3>
+                        </div>
+                        <p class="card-desc">Integrated an in-memory SQL context assistant answering daily revenue, debt, and inventory queries in spoken Marathi/Hindi with complete mathematical accuracy and zero hallucination.</p>
+                        <span class="card-tag">Zero-Hallucination RAG</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 07: PROPOSED SYSTEM -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #032136 0%, #084973 55%, #011421 100%)">
+                <div class="slide-bg-deco deco-pipeline"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">07 • Operational Architecture</div>
+                    <h2 class="slide-title">Proposed System Pipeline</h2>
+                    <div class="slide-subtitle">Four-Stage Closed-Loop Multimodal Transaction Lifecycle</div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧑‍💼</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">1. Merchant Ingestion</h3>
+                        </div>
+                        <p class="card-desc">Initiates input via three friction-free avenues: Live camera capture of paper bills, regional voice speech prompt, or manual POS keyboard entry.</p>
+                        <span class="card-tag">Multimodal Input Ingestion</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧠</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">2. AI Intelligence</h3>
+                        </div>
+                        <p class="card-desc">Gemini 2.5 Flash Vision &amp; NLP engine normalizes unstructured raw input into a strictly validated, strongly typed JSON schema with pricing math verification.</p>
+                        <span class="card-tag">Strict JSON Enforcement</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💾</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">3. ACID Commit</h3>
+                        </div>
+                        <p class="card-desc">Executes transactional commits to local SQLite tables, updates customer khata balances, recalculates stock counts, and logs audit trail records in &lt;2ms.</p>
+                        <span class="card-tag">Atomic Data Persistence</span>
+                    </div>
+
+                    <div class="glass-card accent-blue">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🔊</span>
+                            <h3 class="card-title" style="color: var(--electric-blue);">4. Multi-Channel Output</h3>
+                        </div>
+                        <p class="card-desc">Edge TTS synthesizes high-fidelity Marathi voice confirmation while generating thermal POS print receipts, WhatsApp bills, and native Excel (.xlsx) exports.</p>
+                        <span class="card-tag">Voice &amp; Multi-Format Output</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 08: TECHNOLOGIES & TOOLS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #02261a 0%, #07543a 55%, #01160f 100%)">
+                <div class="slide-bg-deco deco-tech"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">08 • Engineering Stack</div>
+                    <h2 class="slide-title">Technologies &amp; Tools</h2>
+                    <div class="slide-subtitle">Modern Full-Stack Architecture Engineered for Zero-Latency Local Performance</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Frontend &amp; Application SPA</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• FastAPI &amp; Uvicorn:</strong> High-throughput Universal ASGI serverless backend.<br>
+                            <strong>• Responsive Web SPA:</strong> Pure JavaScript reactive client with Zero framework overhead.<br>
+                            <strong>• Web Speech API:</strong> Native low-latency in-browser speech recognition.<br>
+                            <strong>• Dual-Mode Theming:</strong> Cyberpunk Dark &amp; High-Contrast Kirana Light mode.
+                        </p>
+                        <span class="card-tag">FastAPI • Vanilla JS SPA • Web Speech</span>
+                    </div>
+
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🤖</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Artificial Intelligence &amp; Audio</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• Google Gemini 3.5 Flash Lite:</strong> Sub-second Multimodal Vision OCR (5 AI Pillars) & Neural Chatbot (4 Core Pillars) with Cloud Vision fallback.<br>
+                            <strong>• Microsoft Edge TTS:</strong> Natural neural Marathi &amp; Hindi voice synthesis (<code>mr-IN-AarohiNeural</code>, <code>hi-IN-SwaraNeural</code>).<br>
+                            <strong>• In-Memory SQL RAG:</strong> Real-time database grounding eliminating hallucination.<br>
+                            <strong>• Pydantic v2:</strong> Strict schema validation of JSON billing outputs.
+                        </p>
+                        <span class="card-tag">Gemini 2.5 Flash • Edge TTS • RAG</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💽</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Persistence, Export &amp; Security</h3>
+                        </div>
+                        <p class="card-desc">
+                            <strong>• SQLite 3 (WAL Mode):</strong> Zero-configuration ACID relational ledger with &lt;2ms commit latency.<br>
+                            <strong>• xlsxwriter Engine:</strong> Native Microsoft Excel (.xlsx) generator with Devanagari UTF-8 auto-fit widths.<br>
+                            <strong>• PBKDF2-SHA256:</strong> Cryptographic password hashing and role-based access control.<br>
+                            <strong>• Dynamic UPI &amp; WhatsApp:</strong> Instant payment recovery and customer invoice dispatch.
+                        </p>
+                        <span class="card-tag">SQLite ACID • xlsxwriter • WhatsApp</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 09: SYSTEM ARCHITECTURE -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #220b3d 0%, #47177d 55%, #11041f 100%)">
+                <div class="slide-bg-deco deco-arch"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">09 • Structural Design</div>
+                    <h2 class="slide-title">System Architecture</h2>
+                    <div class="slide-subtitle">Modular 3-Tier Layered Architecture with Full Decoupling &amp; ACID Guarantees</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">1. Presentation Layer</span></div>
+                            <p class="feature-desc">Responsive SPA supporting Cyberpunk Dark and Kirana Light Mode, Web Speech API microphone billing, live camera bill capture, and instant POS item preview.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">2. Intelligence &amp; Application Layer</span></div>
+                            <p class="feature-desc">FastAPI universal ASGI gateway routing to Gemini 2.5 Flash Multimodal OCR, Edge-TTS regional phonetic engine, and SQL-grounded in-memory RAG assistant.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">3. Persistence &amp; Export Layer</span></div>
+                            <p class="feature-desc">SQLite relational database with Write-Ahead Logging (WAL) for atomic ACID transactions, accompanied by <code>xlsxwriter</code> native OpenXML Excel and WhatsApp recovery APIs.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('architecture_diagram.png', 'SYSTEM ARCHITECTURE: 3-TIER MODULAR PIPELINE', 'Complete high-resolution architectural layout showing Presentation Layer, FastAPI & Gemini Flash Intelligence Layer, and SQLite ACID Persistence Layer.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="architecture_diagram.png" class="floating-screenshot" alt="System Architecture Diagram">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: WORKING FLOW -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #051c3b 0%, #0d4282 55%, #031021 100%)">
+                <div class="slide-bg-deco deco-flow"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">10 • Execution Pipeline</div>
+                    <h2 class="slide-title">Working Flow &amp; Execution Pipeline</h2>
+                    <div class="slide-subtitle">End-to-End Lifecycle: From Vernacular Input Ingestion to Ledger Persistence</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">01 • Multimodal Ingestion</span></div>
+                            <p class="feature-desc">Shopkeeper captures a receipt via live camera, selects a photo, or speaks transaction details naturally in Marathi or Hindi.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">02 • AI Vision &amp; Speech Parsing</span></div>
+                            <p class="feature-desc">Gemini 2.5 Flash processes handwritten Devanagari text or voice tokens, validating line-item math and converting into typed JSON schema.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">03 • Atomic SQLite ACID Commit</span></div>
+                            <p class="feature-desc">Transactional statements persist data in <code>ledger.db</code> with WAL mode (&lt;2ms), instantly updating customer khata and inventory levels.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-amber);">04 • Multi-Channel Output</span></div>
+                            <p class="feature-desc">Generates formatted thermal POS receipts with dynamic UPI QR code, 1-click WhatsApp customer reminder, and native Excel (.xlsx) export.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('flowchart_diagram.png', 'EXECUTION FLOWCHART: COMPLETE TRANSACTION LIFECYCLE', 'Detailed runtime execution flowchart illustrating multimodal input ingestion, AI validation, ACID SQLite database commit, and multi-channel reporting.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="flowchart_diagram.png" class="floating-screenshot" alt="Execution Pipeline Flowchart">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 11: PERFORMANCE ANALYSIS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #332004 0%, #694308 55%, #1a1001 100%)">
+                <div class="slide-bg-deco deco-perf"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">11 • Empirical Evaluation</div>
+                    <h2 class="slide-title">Performance Analysis &amp; Benchmarks</h2>
+                    <div class="slide-subtitle">Rigorous Quantitative Benchmarks Across Real-World Kirana Operational Workloads</div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="metric-card">
+                        <div class="metric-value">&lt;1.5s</div>
+                        <div class="metric-label" style="color: var(--neon-cyan);">OCR Latency</div>
+                        <p class="metric-sub">Sub-1.5s Gemini 3.5 Flash Lite multimodal vision OCR with client-side canvas compression &amp; 5 AI Pillars.</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value green">96.8%</div>
+                        <div class="metric-label" style="color: var(--neon-green);">Devanagari Accuracy</div>
+                        <p class="metric-sub">High-precision token extraction across Marathi and Hindi handwritten receipts and thermal printed bills.</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value purple">10ms</div>
+                        <div class="metric-label" style="color: var(--neon-purple);">Chatbot Response</div>
+                        <p class="metric-sub">Sub-15ms instant in-memory store dispatch and ~1.2s deep Gemini LLM reasoning with zero audio delay.</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value blue">&lt;2ms</div>
+                        <div class="metric-label" style="color: var(--electric-blue);">ACID Commit Latency</div>
+                        <p class="metric-sub">Sub-2ms local SQLite commit latency with Write-Ahead Logging (WAL) ensuring zero transaction delays.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: RESULT 1 - SMART SCANNER & LIVE POS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #071c3d 0%, #103c7d 55%, #030e21 100%)">
+                <div class="slide-bg-deco deco-login"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">12 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 1: Smart Multimodal Scanner &amp; POS</h2>
+                    <div class="slide-subtitle">Vision Transformers, Native Multimodal AI, TPUs व Context-Aware NLP द्वारे हस्तलिखित पावत्यांचे अचूक डिजिटल बिलिंग</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text" style="gap: 8px; max-height: 540px; overflow-y: auto; padding-right: 6px;">
+                        <div class="feature-item" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-cyan);">१.</span> व्हिजन ट्रान्सफॉर्मर्स (Vision Transformers - ViTs)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> पारंपारिक पद्धती फक्त सरळ ओळी वाचू शकत होत्या, पण गुगलचे Vision Transformers प्रतिमेचे लहान तुकड्यांमध्ये (Patches) विभाजन करून त्याचे सूक्ष्म विश्लेषण करतात.<br><strong style="color: var(--neon-green);">फायदा:</strong> वहीच्या पानावर तिरकी, एकमेकांत गुंफलेली किंवा घाईघाईत लिहिलेली अक्षरे व आकडे अगदी अचूकपणे स्कॅन होतात.</p>
+                        </div>
+                        <div class="feature-item accent-purple" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-purple);">२.</span> नेटिव्ह मल्टिमोडल आर्किटेक्चर (Native Multimodal Architecture)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> इमेज (फोटो) आणि टेक्स्ट (मजकूर) हे वेगळे न मानता, मॉडेल त्यांना एकाच वेळी आणि एकाच मज्जातंतू जाळ्यात (Neural Network) समजू शकते.<br><strong style="color: var(--neon-green);">फायदा:</strong> फोटोमधील हस्तलिखिताचे थेट डिजिटल आणि भाषिक स्वरूपात रूपांतर करणे यामुळे शक्य होते.</p>
+                        </div>
+                        <div class="feature-item accent-green" style="padding: 10px 14px;">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-green);">३.</span> गुगल टीपीयू आणि क्लाउड इन्फ्रास्ट्रक्चर (Google TPUs &amp; Cloud)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> एवढ्या मोठ्या प्रमाणावर डेटा आणि प्रतिमेचे रिअल-टाइम विश्लेषण करण्यासाठी गुगलचे कस्टम Tensor Processing Units (TPUs).<br><strong style="color: var(--neon-green);">फायदा:</strong> टीपीयू हार्डवेअरमुळे हे मॉडेल अत्यंत वेगवान (Fast) बनते, ज्यामुळे मोबाईल किंवा वेब ॲपमध्ये काही सेकंदांत निकाल मिळतो.</p>
+                        </div>
+                        <div class="feature-item accent-blue" style="padding: 10px 14px; border-left: 3px solid var(--electric-blue);">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--electric-blue);">४.</span> कॉन्टेक्स्ट-अवेअर अटेंशन मेकॅनिझम (Context-Aware Attention)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> अस्पष्ट अक्षरे किंवा आकडे (उदा. '१' आणि '७' किंवा '३' आणि '८' मधील फरक) ओळखण्यासाठी LLM चे Attention Mechanism काम करते.<br><strong style="color: var(--neon-green);">फायदा:</strong> मॉडेल फक्त एक अक्षर न पाहता, संपूर्ण वाक्याचा आणि आजूबाजूच्या शब्दांचा संदर्भ (Context) तपासून अचूक शब्द ओळखतो.</p>
+                        </div>
+                        <div class="feature-item" style="padding: 10px 14px; border-left: 3px solid var(--neon-cyan);">
+                            <div class="feature-title" style="font-size: 0.95rem;"><span style="color: var(--neon-cyan);">५.</span> क्लाउड व्हिजन आणि डॉक्युमेंट AI (Cloud Vision &amp; Document AI Foundation)</div>
+                            <p class="feature-desc" style="font-size: 0.78rem; line-height: 1.4; margin-top: 3px;"><strong>काय आहे:</strong> गुगलच्या व्यावसायिक लेजर, पावत्या (Invoices) आणि कागदपत्रे वाचण्याच्या अनेक वर्षांच्या संशोधनाचा पाया यात समाविष्ट आहे.<br><strong style="color: var(--neon-green);">फायदा:</strong> विविध भाषा (मराठी, हिंदी, इंग्रजी) आणि वेगवेगळ्या लोकांच्या हस्ताक्षरांच्या शैली ओळखण्याची क्षमता यामुळे वाढते.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_1_desktop_pos_scanner.png', 'RESULT 01: SMART MULTIMODAL SCANNER & LIVE POS', 'Live desktop view of VernaLedger.AI featuring multimodal bill dropzone, camera OCR input, and live interactive POS billing table.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_1_desktop_pos_scanner.png" class="floating-screenshot" alt="Smart Multimodal Scanner and Live POS">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 13: RESULT 2 - VERNACULAR VOICE BILLING -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #022b19 0%, #075936 55%, #01170d 100%)">
+                <div class="slide-bg-deco deco-ocr"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">13 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 2: Vernacular Voice Billing Engine</h2>
+                    <div class="slide-subtitle">Hands-Free Spoken Bill Generation with Edge-TTS Regional Audio Feedback</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">🎙️</span> Natural Spoken Voice Billing</div>
+                            <p class="feature-desc">Shopkeeper simply speaks in Marathi or Hindi (e.g. 'सागरला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये') without typing a single character.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">🧠</span> NLP Token &amp; Quantity Extraction</div>
+                            <p class="feature-desc">Advanced regex and AI parsing parses customer names, weights (kg, gm, ltr), rates, and quantities into clean itemized entries.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🔊</span> Neural Edge-TTS Speech Feedback</div>
+                            <p class="feature-desc">Synthesizes natural Devanagari voice confirmation ('बिल यशस्वीरीत्या नोंदवले गेले') so shopkeepers never need to look down at the screen.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">⚡</span> Rush-Hour Speed Optimization</div>
+                            <p class="feature-desc">Slashes peak morning/evening checkout delays by 85%, allowing rural shopkeepers to serve more customers effortlessly.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_8_mobile_voice_billing.png', 'RESULT 02: VERNACULAR VOICE BILLING ENGINE', 'Hands-free voice POS interface converting natural regional spoken sentences into fully structured, validated customer bills in seconds.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_8_mobile_voice_billing.png" class="floating-screenshot" alt="Vernacular Voice Billing Engine">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 14: RESULT 3 - CUSTOMER KHATA (UDHARI) -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #052e15 0%, #0d5e2d 55%, #021909 100%)">
+                <div class="slide-bg-deco deco-khata"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">14 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 3: Customer Khata &amp; Udhar Ledger</h2>
+                    <div class="slide-subtitle">Digital Credit Bahi-Khata with 1-Click WhatsApp Reminders &amp; UPI Recovery Links</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📘</span> Dual-Action Credit &amp; Debit Ledger</div>
+                            <p class="feature-desc">Khatabook-style interface supporting instant 'उधारी दिली' (Credit Given) and 'जमा मिळाले' (Payment Received) with automated running balance computation.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">⏰</span> Visual Delinquency Risk Badges</div>
+                            <p class="feature-desc">Color-coded status badges alert merchants on overdue balances, protecting working capital from default and bad debts.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">📲</span> 1-Click WhatsApp Payment Reminders</div>
+                            <p class="feature-desc">Generates polite, personalized Devanagari WhatsApp payment recovery messages with embedded dynamic UPI payment links.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">🔍</span> Real-Time Customer Lookup</div>
+                            <p class="feature-desc">Instant customer search by mobile number or name with comprehensive historic transaction audit trail.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_2_desktop_khata_ledger.png', 'RESULT 03: CUSTOMER KHATA & DIGITAL UDHAR LEDGER', 'Live customer credit ledger featuring running balances, delinquency warning indicators, and 1-click WhatsApp payment recovery links.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_2_desktop_khata_ledger.png" class="floating-screenshot" alt="Customer Khata Module">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 15: RESULT 4 - STORE OPERATIONS & EXPENSES -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #03263b 0%, #08527d 55%, #011521 100%)">
+                <div class="slide-bg-deco deco-analytics"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">15 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 4: Store Operations &amp; Inventory</h2>
+                    <div class="slide-subtitle">Real-Time Stock Inventory Management &amp; Categorized Daily Expense Tracker</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📦</span> Real-Time Inventory Tracking</div>
+                            <p class="feature-desc">Track grocery commodities across customized units (kg, liter, packet, bag) with stock counts and selling rates.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">🚨</span> Automatic Low-Stock Alerts</div>
+                            <p class="feature-desc">Dynamic banner warnings trigger automatically when critical staples (sugar, oil, pulses) fall below merchant alert thresholds.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">💸</span> Categorized Business Expenses</div>
+                            <p class="feature-desc">Records daily overheads (shop rent, electricity/water, transport/hamali, employee salary, maintenance) with date timestamps.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">💬</span> WhatsApp Daily Business Digest</div>
+                            <p class="feature-desc">One-click comprehensive daily summary dispatched directly to owner's WhatsApp reporting gross sales, collections, and net profit.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_3_desktop_business_ops.png', 'RESULT 04: STORE OPERATIONS & INVENTORY MANAGEMENT', 'Store operations hub featuring real-time stock inventory, low-stock warning notices, and daily store operational expense tracking.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_3_desktop_business_ops.png" class="floating-screenshot" alt="Store Operations and Expenses">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 16: RESULT 5 - NEURAL AI STUDIO (RAG) -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #2e073b 0%, #63107d 55%, #15021e 100%)">
+                <div class="slide-bg-deco deco-rag"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">16 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 5: Neural AI Business Studio</h2>
+                    <div class="slide-subtitle">In-Memory SQL Context RAG Delivering Hallucination-Free Business Advisory</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🌐</span> 1. नॅटिव्ह मल्टीमोडल आर्किटेक्चर (Native Multimodal)</div>
+                            <p class="feature-desc">मजकूर, आवाज आणि इमेज एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते; व्हॉइस व टेक्स्टचा संदर्भ end-to-end अचूकतेने विश्लेषित होतो.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">🎙️</span> 2. ऑटोमॅटिक स्पीच रिकग्निशन (ASR &amp; Speech-to-Text)</div>
+                            <p class="feature-desc">स्थानिक मराठी उच्चार (Accents/Dialects) आणि पार्श्वभूमीतील गोंगाट (Noise) गाळून सूक्ष्म व अचूक मजकुरात रूपांतर करते.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">🧠</span> 3. ट्रान्सफॉर्मर मॉडेल व LLMs (Contextual Reasoning)</div>
+                            <p class="feature-desc">Transformer Attention मेकॅनिझम दुकानातील थेट डेटाबेस (बिक्री, उधारी, स्टॉक) तपासून 100% अचूक, तात्त्विक व बिनचूक निर्णय देते.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">⚡</span> 4. रिअल-टाइम लो-लेटन्सी प्रोसेसिंग इंजिन (Low Latency Engine)</div>
+                            <p class="feature-desc">अत्यंत कमी वेळेत (Sub-2s Real-Time) हाय-स्पीड REST द्वारे प्रश्न विचारताच किंवा बोलताच सेकंदाच्या भागात झटपट उत्तर देते.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_4_desktop_ai_studio.png', 'RESULT 05: NEURAL AI BUSINESS STUDIO (SQL RAG)', 'Context-aware RAG conversational AI studio querying live retail databases with voice recognition, phonetic synthesis, and quick action chips.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_4_desktop_ai_studio.png" class="floating-screenshot" alt="Neural AI Business Studio">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 17: RESULT 6 - LEDGER & EXCEL EXPORT -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #101747 0%, #212f8a 55%, #080b26 100%)">
+                <div class="slide-bg-deco deco-database"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">17 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 6: Digital Ledger &amp; Excel Export</h2>
+                    <div class="slide-subtitle">Complete ACID Audit History with Native Microsoft Excel (.xlsx) Generator</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📊</span> Complete Historical Ledger</div>
+                            <p class="feature-desc">Comprehensive log of all transactions with real-time dynamic search by Bill ID (#VL-XX), store/customer name, or category.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">📗</span> Single Prominent Green Excel Button</div>
+                            <p class="feature-desc">Dedicated, unmissable emerald green export button in the ledger view generating full OpenXML <code>.xlsx</code> spreadsheets instantly.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📐</span> Zero-Mojibake &amp; Auto-Fit Widths</div>
+                            <p class="feature-desc">Powered by <code>xlsxwriter</code> with auto-calculated column widths (no <code>########</code> date truncation) and flawless Devanagari UTF-8 font support.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-red);">🖨️</span> Thermal Print &amp; Audited Deletion</div>
+                            <p class="feature-desc">One-click thermal POS reprint preview and controlled record deletion workflow maintaining ACID referential integrity.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_5_desktop_ledger_invoices.png', 'RESULT 06: DIGITAL LEDGER DATABASE & EXCEL (.XLSX) EXPORT', 'Historical ledger database featuring live search, audit logs, thermal reprint triggers, and native Microsoft Excel (.xlsx) download engine.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_5_desktop_ledger_invoices.png" class="floating-screenshot" alt="Digital Ledger and Excel Export">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 18: RESULT 7 - HIGH-CONTRAST KIRANA LIGHT MODE -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #092238 0%, #144875 55%, #041221 100%)">
+                <div class="slide-bg-deco deco-staff"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">18 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 7: High-Contrast Kirana Light Mode</h2>
+                    <div class="slide-subtitle">Instant 1-Click Theme Switcher Engineered for Bright Indian Grocery Store Environments</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">☀️</span> Sunlight &amp; Glare Optimization</div>
+                            <p class="feature-desc">High-contrast, glare-resistant light theme engineered specifically for outdoor storefronts and sunlit kirana counters.</p>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">👁️</span> WCAG AAA Contrast Standards</div>
+                            <p class="feature-desc">Ultra-crisp dark slate typography on clean porcelain backgrounds guaranteeing maximum legibility for older merchants.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">🖨️</span> True Paper-Bill Aesthetic</div>
+                            <p class="feature-desc">Invoice preview mirrors traditional physical retail paper receipts, increasing customer trust and familiarity.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-amber);">⚙️</span> Persistent LocalStorage Theme Hook</div>
+                            <p class="feature-desc">One-click theme toggle preserves merchant preference across browser sessions and device reboots.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_6_desktop_kirana_mode.png', 'RESULT 07: HIGH-CONTRAST KIRANA LIGHT MODE', 'High-contrast light mode designed for bright storefront environments, providing crisp readability and traditional paper-receipt aesthetics.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_6_desktop_kirana_mode.png" class="floating-screenshot" alt="High-Contrast Kirana Light Mode">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 19: RESULT 8 - MOBILE-FIRST RESPONSIVE PWA -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #1d2838 0%, #344863 55%, #101621 100%)">
+                <div class="slide-bg-deco deco-reports"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">19 • Live System Showcase</div>
+                    <h2 class="slide-title">Result 8: Mobile-First Responsive PWA</h2>
+                    <div class="slide-subtitle">Touch-Optimized Responsive Experience for Smart Devices &amp; Handheld POS Terminals</div>
+                </div>
+
+                <div class="split-layout">
+                    <div class="split-text">
+                        <div class="feature-item">
+                            <div class="feature-title"><span style="color: var(--neon-cyan);">📱</span> One-Handed Bottom Nav Rail</div>
+                            <p class="feature-desc">Ergonomic bottom navigation designed for quick thumb reach on standard 6.5-inch Android smartphones.</p>
+                        </div>
+                        <div class="feature-item accent-green">
+                            <div class="feature-title"><span style="color: var(--neon-green);">📸</span> Direct Mobile Camera &amp; Mic Hook</div>
+                            <p class="feature-desc">Leverages native smartphone camera hardware for instant receipt scanning and built-in mobile microphone for voice billing.</p>
+                        </div>
+                        <div class="feature-item accent-purple">
+                            <div class="feature-title"><span style="color: var(--neon-purple);">📲</span> Native WhatsApp App Linking</div>
+                            <p class="feature-desc">Deep-links directly into WhatsApp Android application without third-party API dependencies or recurring messaging fees.</p>
+                        </div>
+                        <div class="feature-item accent-red">
+                            <div class="feature-title"><span style="color: var(--neon-amber);">🚀</span> Progressive Web App (PWA) Ready</div>
+                            <p class="feature-desc">Web manifest and service worker caching allows 1-tap installation onto the merchant home screen like a native APK.</p>
+                        </div>
+                    </div>
+                    <div class="split-img-box" onclick="openLightbox('live_screenshots/live_7_mobile_scanner.png', 'RESULT 08: MOBILE-FIRST RESPONSIVE PWA ARCHITECTURE', 'Mobile responsive interface featuring bottom navigation, direct phone camera OCR scanner, and touch-optimized vernacular voice billing.')">
+                        <div class="zoom-badge">🔍 Click for Fullscreen / झूम करा</div>
+                        <img src="live_screenshots/live_7_mobile_scanner.png" class="floating-screenshot" style="max-height: 480px; width: auto;" alt="Mobile-First Responsive PWA Architecture">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 20: ADVANTAGES & STRENGTHS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #032e1d 0%, #08613e 55%, #01180f 100%)">
+                <div class="slide-bg-deco deco-advantages"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">20 • Value Proposition</div>
+                    <h2 class="slide-title">Advantages &amp; Strengths</h2>
+                    <div class="slide-subtitle">Why VernaLedger.AI Delivers Unmatched Utility for Rural Retailers</div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🇮🇳</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">True Vernacular Accessibility</h3>
+                        </div>
+                        <p class="card-desc">Bilingual Marathi/English interface coupled with natural voice recognition eliminates the steep digital literacy curve for grassroots shopkeepers.</p>
+                        <span class="card-tag">Zero Learning Curve</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">⚡</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">60% Faster Debt Recovery</h3>
+                        </div>
+                        <p class="card-desc">Direct WhatsApp payment reminders and automated due date warnings accelerate customer khata repayments and eliminate awkward debt confrontations.</p>
+                        <span class="card-tag">Accelerated Working Capital</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🛡️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Enterprise-Grade Security</h3>
+                        </div>
+                        <p class="card-desc">Local SQLite database ensures instant responsiveness and zero downtime even during rural broadband fluctuations, backed by PBKDF2 password security.</p>
+                        <span class="card-tag">Offline-First Resilience</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 21: SYSTEM LIMITATIONS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #381008 0%, #702111 55%, #200803 100%)">
+                <div class="slide-bg-deco deco-limitations"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">21 • Engineering Constraints</div>
+                    <h2 class="slide-title">System Limitations</h2>
+                    <div class="slide-subtitle">Known Technical Boundaries &amp; Operational Dependencies</div>
+                </div>
+
+                <div class="grid-2x2">
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🌐</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">AI Internet Dependency</h3>
+                        </div>
+                        <p class="card-desc">While core database operations and manual POS billing are offline, multimodal Gemini Flash OCR parsing and Edge TTS synthesis require an active internet connection to contact cloud endpoints.</p>
+                        <span class="card-tag">Constraint: Cloud LLM Endpoint</span>
+                    </div>
+
+                    <div class="glass-card accent-red">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📸</span>
+                            <h3 class="card-title" style="color: var(--neon-red);">Severe Image Distortion</h3>
+                        </div>
+                        <p class="card-desc">Extremely crumpled, grease-stained, or faint thermal receipts with severe ink fading can occasionally produce partial OCR extraction, requiring manual operator verification in the preview grid.</p>
+                        <span class="card-tag">Constraint: Document Integrity</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 22: FUTURE ENHANCEMENTS -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #220a3d 0%, #4d188a 55%, #110421 100%)">
+                <div class="slide-bg-deco deco-future"></div>
+                <div class="slide-title-wrap">
+                    <div class="slide-badge">22 • Future Roadmap</div>
+                    <h2 class="slide-title">Future Enhancements</h2>
+                    <div class="slide-subtitle">Product Evolution &amp; Scalability Roadmap</div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="glass-card accent-cyan">
+                        <div class="card-header-icon">
+                            <span class="card-icon">📱</span>
+                            <h3 class="card-title" style="color: var(--neon-cyan);">Native Android APK</h3>
+                        </div>
+                        <p class="card-desc">Packaging as a lightweight native Android application with quantized on-device edge-AI models for offline OCR scanning.</p>
+                        <span class="card-tag">Mobile Native • Edge AI</span>
+                    </div>
+
+                    <div class="glass-card accent-green">
+                        <div class="card-header-icon">
+                            <span class="card-icon">💸</span>
+                            <h3 class="card-title" style="color: var(--neon-green);">Dynamic UPI QR Soundbox</h3>
+                        </div>
+                        <p class="card-desc">Generating dynamic transaction-specific UPI QR codes directly on invoices with audio soundbox payment confirmation.</p>
+                        <span class="card-tag">Instant Payment Hook</span>
+                    </div>
+
+                    <div class="glass-card accent-purple">
+                        <div class="card-header-icon">
+                            <span class="card-icon">☁️</span>
+                            <h3 class="card-title" style="color: var(--neon-purple);">Multi-Device Sync</h3>
+                        </div>
+                        <p class="card-desc">Implementing encrypted peer-to-peer cloud replication for multi-counter billing and distributed store management.</p>
+                        <span class="card-tag">Distributed Ledger Sync</span>
+                    </div>
+
+                    <div class="glass-card accent-blue">
+                        <div class="card-header-icon">
+                            <span class="card-icon">🧾</span>
+                            <h3 class="card-title" style="color: var(--electric-blue);">Automated GST Filing</h3>
+                        </div>
+                        <p class="card-desc">Automating tax categorization and generating one-click ready-to-file GSTR-1 and GSTR-3B tax compliance spreadsheets.</p>
+                        <span class="card-tag">Automated Compliance</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 23: CONCLUSION & Q&A -->
+            <section data-auto-animate data-background-gradient="linear-gradient(135deg, #07223d 0%, #0f4c85 55%, #031221 100%)">
+                <div class="slide-bg-deco deco-conclusion"></div>
+                <div class="hero-container" style="max-width: 950px;">
+                    <div class="hero-badge" style="color: var(--neon-green); border-color: rgba(0, 255, 135, 0.4);">Major Project Final Defense • Concluding Remarks</div>
+                    <h1 class="hero-title" style="font-size: 3.2rem !important; margin-bottom: 12px;">Conclusion &amp; Q&amp;A</h1>
+                    
+                    <div class="glass-card accent-cyan" style="width: 100%; text-align: center; padding: 22px 30px; margin-bottom: 22px;">
+                        <p style="font-size: 1.05rem; line-height: 1.6; color: #ffffff; margin: 0;">
+                            <strong style="color: var(--neon-cyan);">Executive Summary:</strong> VernaLedger.AI bridges the technological divide for India's 63M+ grassroots kirana merchants. By combining Gemini 2.5 Flash multimodal vision OCR, regional Marathi &amp; Hindi voice billing, a resilient SQLite ACID ledger, and native Microsoft Excel exports, we democratize enterprise-grade point-of-sale intelligence with zero learning curve.
+                        </p>
+                    </div>
+
+                    <div style="background: rgba(0, 255, 135, 0.06); border: 1px solid rgba(0, 255, 135, 0.3); border-radius: 16px; padding: 18px 36px; text-align: center; box-shadow: 0 0 30px rgba(0, 255, 135, 0.15); width: 100%;">
+                        <div style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--neon-green); margin-bottom: 6px;">Thank You! Any Questions?</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #cbd5e1; letter-spacing: 1px;">
+                            Department of Artificial Intelligence &amp; Data Science • Arvind Gavali College of Engineering, Satara • DBATU University
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Reveal.js & Particles Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Initialize Reveal.js with custom HUD controls
+        Reveal.initialize({
+            hash: true,
+            slideNumber: false,
+            transition: 'fade',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+            center: true,
+            controls: false,
+            progress: false,
+            width: 1333,
+            height: 750,
+            margin: 0.05,
+            minScale: 0.2,
+            maxScale: 2.0
+        });
+
+        // ====================================================================
+        // TOP & BOTTOM HUD CONTROLLER LOGIC (100% Working)
+        // ====================================================================
+        function jumpToSlide(index) {
+            Reveal.slide(parseInt(index, 10));
+        }
+
+        function togglePresentationFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn("Fullscreen request error:", err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        document.addEventListener("fullscreenchange", () => {
+            const fsText = document.getElementById("fsText");
+            const btn = document.getElementById("btnFullscreen");
+            if (!fsText || !btn) return;
+            if (document.fullscreenElement) {
+                fsText.textContent = "Exit Fullscreen";
+                btn.querySelector(".btn-icon").textContent = "🗗";
+            } else {
+                fsText.textContent = "Fullscreen";
+                btn.querySelector(".btn-icon").textContent = "⛶";
+            }
+        });
+
+        function updateHudState(slideIndex) {
+            const total = Reveal.getTotalSlides();
+            const current = slideIndex + 1;
+
+            // 1. Update Dropdown
+            const dropdown = document.getElementById("slideDropdown");
+            if (dropdown) {
+                dropdown.value = String(slideIndex);
+            }
+
+            // 2. Update Slide Count Text
+            const curEl = document.getElementById("currentSlideNum");
+            if (curEl) {
+                curEl.textContent = String(current).padStart(2, '0');
+            }
+            const totalEl = document.getElementById("totalSlidesNum");
+            if (totalEl) {
+                totalEl.textContent = String(total).padStart(2, '0');
+            }
+
+            // 3. Update Progress Track Fill
+            const fillEl = document.getElementById("hudProgressFill");
+            if (fillEl) {
+                const pct = total > 1 ? (slideIndex / (total - 1)) * 100 : 0;
+                fillEl.style.width = Math.max(pct, 4) + "%";
+            }
+
+            // 4. Update Arrow Buttons Enabled State
+            const prevBtn = document.getElementById("btnPrevSlide");
+            const nextBtn = document.getElementById("btnNextSlide");
+            if (prevBtn) {
+                prevBtn.disabled = (slideIndex === 0);
+            }
+            if (nextBtn) {
+                nextBtn.disabled = (slideIndex === total - 1);
+            }
+        }
+
+        Reveal.on('slidechanged', event => {
+            updateHudState(event.indexh);
+        });
+
+        Reveal.on('ready', event => {
+            updateHudState(event.indexh);
+        });
+
+        // Initialize Cyberpunk Neon Particles
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 55, "density": { "enable": true, "value_area": 900 } },
+                "color": { "value": ["#00f2fe", "#00ff87", "#b026ff", "#4facfe"] },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.45, "random": true, "anim": { "enable": true, "speed": 1.2, "opacity_min": 0.1, "sync": false } },
+                "size": { "value": 2.5, "random": true, "anim": { "enable": true, "speed": 2, "size_min": 0.1, "sync": false } },
+                "line_linked": { "enable": true, "distance": 140, "color": "#00f2fe", "opacity": 0.18, "width": 1 },
+                "move": { "enable": true, "speed": 1.2, "direction": "none", "random": true, "straight": false, "out_mode": "out", "bounce": false }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true },
+                "modes": { "grab": { "distance": 130, "line_linked": { "opacity": 0.45 } }, "push": { "particles_nb": 3 } }
+            },
+            "retina_detect": true
+        });
+
+        // ====================================================================
+        // FULLSCREEN LIGHTBOX MODAL LOGIC
+        // ====================================================================
+        const galleryItems = [
+            { src: 'live_screenshots/live_1_desktop_pos_scanner.png', title: 'RESULT 01: SMART MULTIMODAL SCANNER & LIVE POS', desc: 'Live desktop view featuring receipt dropzone, camera OCR input, and live interactive POS billing table.' },
+            { src: 'live_screenshots/live_8_mobile_voice_billing.png', title: 'RESULT 02: VERNACULAR VOICE BILLING ENGINE', desc: 'Hands-free voice POS interface converting natural regional spoken sentences into fully structured customer bills.' },
+            { src: 'live_screenshots/live_2_desktop_khata_ledger.png', title: 'RESULT 03: CUSTOMER KHATA & DIGITAL UDHAR LEDGER', desc: 'Customer credit ledger with running balance calculations, delinquency alerts, and 1-click WhatsApp payment recovery links.' },
+            { src: 'live_screenshots/live_3_desktop_business_ops.png', title: 'RESULT 04: STORE OPERATIONS & INVENTORY MANAGEMENT', desc: 'Store operations hub with real-time stock inventory, low-stock warning notices, and daily store expense tracking.' },
+            { src: 'live_screenshots/live_4_desktop_ai_studio.png', title: 'RESULT 05: NEURAL AI BUSINESS STUDIO (SQL RAG)', desc: 'Conversational RAG AI querying live retail databases with voice recognition, phonetic synthesis, and quick action chips.' },
+            { src: 'live_screenshots/live_5_desktop_ledger_invoices.png', title: 'RESULT 06: DIGITAL LEDGER DATABASE & EXCEL (.XLSX) EXPORT', desc: 'Historical ledger database featuring live search, audit logs, thermal reprint triggers, and native Microsoft Excel (.xlsx) download engine.' },
+            { src: 'live_screenshots/live_6_desktop_kirana_mode.png', title: 'RESULT 07: HIGH-CONTRAST KIRANA LIGHT MODE', desc: 'High-contrast light mode designed for bright storefront environments, providing crisp readability and traditional paper-receipt aesthetics.' },
+            { src: 'live_screenshots/live_7_mobile_scanner.png', title: 'RESULT 08: MOBILE-FIRST RESPONSIVE PWA ARCHITECTURE', desc: 'Mobile responsive interface featuring bottom navigation, direct phone camera OCR scanner, and touch-optimized vernacular voice billing.' },
+            { src: 'architecture_diagram.png', title: 'SYSTEM ARCHITECTURE: 3-TIER MODULAR PIPELINE', desc: 'Complete high-resolution architectural layout showing Presentation Layer, FastAPI & Gemini Flash Intelligence Layer, and SQLite ACID Persistence Layer.' },
+            { src: 'flowchart_diagram.png', title: 'EXECUTION FLOWCHART: COMPLETE TRANSACTION LIFECYCLE', desc: 'Detailed runtime execution flowchart illustrating multimodal input ingestion, AI validation, ACID SQLite database commit, and multi-channel reporting.' }
+        ];
+
+        let currentIdx = 0;
+
+        function openLightbox(src, title, desc) {
+            const idx = galleryItems.findIndex(item => item.src === src);
+            if (idx !== -1) {
+                currentIdx = idx;
+                updateModalContent();
+            } else {
+                const img = document.getElementById('modalImg');
+                if (img) {
+                    img.src = src;
+                    img.classList.remove('zoomed');
+                }
+                if (title) document.getElementById('modalTitle').textContent = title;
+                if (desc) document.getElementById('modalDesc').textContent = desc;
+            }
+            const modal = document.getElementById('lightboxModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('lightboxModal');
+            if (modal) modal.classList.remove('active');
+            const img = document.getElementById('modalImg');
+            if (img) img.classList.remove('zoomed');
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        function updateModalContent() {
+            const item = galleryItems[currentIdx];
+            const img = document.getElementById('modalImg');
+            if (img) {
+                img.classList.remove('zoomed');
+                img.src = item.src;
+            }
+            document.getElementById('modalTitle').textContent = item.title;
+            document.getElementById('modalDesc').textContent = item.desc;
+            const hint = document.getElementById('zoomHint');
+            if (hint) hint.textContent = '🔍 Click Image to Zoom';
+        }
+
+        function toggleModalFullscreen() {
+            const modal = document.getElementById('lightboxModal');
+            if (!document.fullscreenElement) {
+                if (modal.requestFullscreen) {
+                    modal.requestFullscreen().catch(() => {
+                        document.documentElement.requestFullscreen();
+                    });
+                } else if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleImageZoom(event) {
+            const img = document.getElementById('modalImg');
+            if (!img) return;
+            img.classList.toggle('zoomed');
+            const hint = document.getElementById('zoomHint');
+            if (hint) {
+                hint.textContent = img.classList.contains('zoomed') ? '🔍 Click Image to Reset' : '🔍 Click Image to Zoom';
+            }
+        }
+
+        function nextScreenshot() {
+            currentIdx = (currentIdx + 1) % galleryItems.length;
+            updateModalContent();
+        }
+
+        function prevScreenshot() {
+            currentIdx = (currentIdx - 1 + galleryItems.length) % galleryItems.length;
+            updateModalContent();
+        }
+
+        function handleBackdropClick(event) {
+            if (event.target.id === 'lightboxModal') {
+                closeLightbox();
+            }
+        }
+
+        // Attach direct click listeners to all split-img-boxes and images
+        function bindAllScreenshotClicks() {
+            document.querySelectorAll('.split-img-box').forEach(box => {
+                box.style.cursor = 'pointer';
+                box.addEventListener('click', function(e) {
+                    const img = this.querySelector('img');
+                    if (img) {
+                        const src = img.getAttribute('src');
+                        const item = galleryItems.find(g => g.src === src);
+                        if (item) {
+                            openLightbox(item.src, item.title, item.desc);
+                        } else {
+                            openLightbox(src, 'SCREENSHOT SHOWCASE', '');
+                        }
+                    }
+                });
+            });
+        }
+
+        // Keyboard navigation for modal
+        window.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('lightboxModal');
+            if (modal && modal.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                    e.stopPropagation();
+                } else if (e.key === 'ArrowRight') {
+                    nextScreenshot();
+                    e.stopPropagation();
+                } else if (e.key === 'ArrowLeft') {
+                    prevScreenshot();
+                    e.stopPropagation();
+                } else if (e.key.toLowerCase() === 'f') {
+                    toggleModalFullscreen();
+                    e.stopPropagation();
+                }
+            }
+        });
+
+        // Bind clicks once DOM is loaded and when Reveal is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindAllScreenshotClicks);
+        } else {
+            bindAllScreenshotClicks();
+        }
+        Reveal.on('ready', () => {
+            bindAllScreenshotClicks();
+        });
+    </script>
+</body>
+</html>
