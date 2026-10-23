@@ -516,26 +516,12 @@ async def process_ocr(file: UploadFile = File(...)):
         return await _execute_ocr(file)
     except Exception as exc:
         logger.error(f"OCR Process exception: {exc}", exc_info=True)
-        today_str = date.today().strftime("%Y-%m-%d")
-        fallback = {
-            "vendor_name": "किराणा पावती",
-            "date": today_str,
-            "category": "General",
-            "items": [{"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 50.0, "total_price": 50.0}],
-            "grand_total": 50.0,
-            "id": 1
-        }
-        try:
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-                      (fallback["vendor_name"], today_str, "General", 50.0, json.dumps(fallback, ensure_ascii=False)))
-            fallback["id"] = c.lastrowid
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass
-        return {"success": True, "data": fallback, "warning": "AI सर्व्हर तात्पुरता व्यस्त होता, मूळ पावती तयार केली आहे."}
+        if isinstance(exc, HTTPException):
+            raise
+        raise HTTPException(
+            status_code=502,
+            detail="Smart Scanner could not read this image. Please try a clearer photo or try again."
+        ) from exc
 
 async def _execute_ocr(file: UploadFile):
     api_key = get_api_key()
@@ -553,7 +539,21 @@ async def _execute_ocr(file: UploadFile):
         raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
 
     genai.configure(api_key=api_key)
-    prompt = """You are the world's most advanced multilingual document OCR scanner specialized in Indian retail receipts, Marathi/Devanagari handwritten ledger slips, and printed bills.
+    prompt = """You are VernaLedger Smart Scanner, a production-grade multilingual handwriting and receipt reader.
+
+Use Gemini's native multimodal vision pipeline: understand the image and this instruction
+together instead of using a separate text-only OCR pass.
+
+VISION PIPELINE:
+- Inspect visual patches so tilted, connected, rushed, faint, and uneven handwriting is not skipped.
+- Use surrounding words, row labels, units, and arithmetic as context when a character is ambiguous.
+  Carefully distinguish handwritten digits such as 1/7 and 3/8.
+- Support Marathi/Devanagari, Hindi, and English in the same image.
+- Preserve the source meaning and never invent an unreadable line item or amount.
+- TPU and Cloud Vision/Document AI are infrastructure concepts for scalable multimodal processing;
+  base this response only on the pixels supplied in this image.
+
+You are specialized in Indian retail receipts, Marathi/Devanagari handwritten ledger slips, and printed bills.
 
 TASK:
 Examine this image with extreme care and extract all details with 100% precision:
@@ -596,28 +596,17 @@ Return strictly valid JSON only:
 
     today_str = date.today().strftime("%Y-%m-%d")
     if not response:
-        data = {
-            "vendor_name": "महादेव किराणा स्टोअर",
-            "date": today_str,
-            "category": "General",
-            "items": [
-                {"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 50.0, "total_price": 50.0}
-            ],
-            "grand_total": 50.0
-        }
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini Smart Scanner did not return a result: {last_err}"
+        )
     else:
         data = clean_json_str(response)
         if not data or not data.get("items"):
-            # If clean_json_str returned empty items because of unparseable response, ensure valid structure
-            if not data:
-                data = {}
-            if not data.get("vendor_name"):
-                data["vendor_name"] = "महादेव किराणा स्टोअर"
-            data["date"] = data.get("date") or today_str
-            data["category"] = data.get("category") or "General"
-            if not data.get("items"):
-                data["items"] = [{"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 50.0, "total_price": 50.0}]
-                data["grand_total"] = 50.0
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini returned an unreadable result. Please retake the photo with better lighting."
+            )
 
     # Save to SQLite
     rec_date = data.get("date") or today_str

@@ -473,6 +473,51 @@ body::after {
     display: none;
 }
 
+.scanner-engine-panel {
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid rgba(0, 242, 254, 0.28);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.09), rgba(123, 97, 255, 0.08));
+}
+
+.scanner-engine-heading {
+    color: var(--neon-cyan);
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.scanner-engine-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.scanner-engine-grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.scanner-engine-grid div:last-child {
+    grid-column: 1 / -1;
+}
+
+.scanner-engine-grid strong {
+    color: var(--text-white);
+    font-size: 0.72rem;
+}
+
+.scanner-engine-grid span {
+    color: var(--text-slate);
+    font-size: 0.66rem;
+    line-height: 1.35;
+}
+
 @media (max-width: 768px) {
     /* Critical Mobile Shell: Pure Vertical Flow */
     html, body {
@@ -1266,6 +1311,7 @@ body::after {
     #scanner-vision-container, #scanner-voice-container {
         width: 100% !important;
     }
+
     .upload-dropzone {
         padding: 18px 10px !important;
     }
