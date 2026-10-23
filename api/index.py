@@ -286,7 +286,30 @@ def get_cloud_vision_client():
             json.loads(credentials_json)
         )
         return vision.ImageAnnotatorClient(credentials=credentials)
-    return vision.ImageAnnotatorClient()
+
+    # Check local key path fallback (e.g. from Downloads)
+    cred_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+    if not cred_file or not os.path.exists(cred_file):
+        downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+        if os.path.exists(downloads_dir):
+            for fname in os.listdir(downloads_dir):
+                if fname.endswith(".json") and ("weighty-casing" in fname or "vernaledger" in fname):
+                    candidate = os.path.join(downloads_dir, fname)
+                    if os.path.exists(candidate):
+                        cred_file = candidate
+                        break
+
+    if cred_file and os.path.exists(cred_file) and service_account:
+        try:
+            credentials = service_account.Credentials.from_service_account_file(cred_file)
+            return vision.ImageAnnotatorClient(credentials=credentials)
+        except Exception as e:
+            logger.warning("Could not initialize Vision client from file %s: %s", cred_file, e)
+
+    try:
+        return vision.ImageAnnotatorClient()
+    except Exception:
+        return None
 
 def run_cloud_vision_ocr(contents: bytes) -> str:
     client = get_cloud_vision_client()
