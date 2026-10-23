@@ -620,11 +620,11 @@ async def _execute_ocr(file: UploadFile):
 
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
-        img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+        img.thumbnail((1280, 1280), Image.Resampling.BILINEAR)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
 
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key, transport='rest')
     prompt = """You are VernaLedger Smart Scanner, a production-grade multilingual handwriting and receipt reader.
 
 Use Gemini's native multimodal vision pipeline: understand the image and this instruction
@@ -665,18 +665,22 @@ Return strictly valid JSON only:
   "grand_total": 0.0
 }"""
 
-    models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
+    models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
     response = None
     last_err = None
 
     for m in models_to_try:
         try:
-            model = genai.GenerativeModel(m)
-            res = model.generate_content([prompt, img])
+            model = genai.GenerativeModel(
+                m,
+                generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+            )
+            res = model.generate_content([prompt, img], request_options={"timeout": 15})
             if res and res.text:
                 response = res.text
                 break
         except Exception as exc:
+            logger.warning(f"Fast OCR model {m} attempt notice: {exc}")
             last_err = exc
             continue
 
@@ -703,8 +707,11 @@ OCR text:
 {vision_text}"""
         for model_name in models_to_try:
             try:
-                fallback_model = genai.GenerativeModel(model_name)
-                fallback_result = fallback_model.generate_content(fallback_prompt)
+                fallback_model = genai.GenerativeModel(
+                    model_name,
+                    generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+                )
+                fallback_result = fallback_model.generate_content(fallback_prompt, request_options={"timeout": 15})
                 if fallback_result and fallback_result.text:
                     response = fallback_result.text
                     break

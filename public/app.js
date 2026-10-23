@@ -786,8 +786,54 @@ function captureCameraPhoto() {
 }
 
 // -----------------------------------------------------------------------------
-// MULTIMODAL OCR (GEMINI FLASH)
+// MULTIMODAL OCR (GEMINI FLASH & ULTRA-FAST COMPRESSION)
 // -----------------------------------------------------------------------------
+async function compressImageForOCR(file, maxDimension = 1280, quality = 0.82) {
+    return new Promise((resolve) => {
+        if (!file || (file.size && file.size < 350 * 1024)) {
+            resolve(file);
+            return;
+        }
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    const compressed = new File([blob], "receipt_scan.jpg", {
+                        type: "image/jpeg",
+                        lastModified: Date.now()
+                    });
+                    resolve(compressed);
+                }, "image/jpeg", quality);
+            };
+            img.onerror = () => resolve(file);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(file);
+        reader.readAsDataURL(file);
+    });
+}
+
 async function submitReceiptOCR() {
     if (!state.selectedFile) return;
 
@@ -796,10 +842,11 @@ async function submitReceiptOCR() {
     loader.style.display = "block";
     btn.disabled = true;
 
-    const formData = new FormData();
-    formData.append("file", state.selectedFile);
-
     try {
+        const fileToUpload = await compressImageForOCR(state.selectedFile);
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+
         const res = await apiCall("/api/ocr", {
             method: "POST",
             body: formData
