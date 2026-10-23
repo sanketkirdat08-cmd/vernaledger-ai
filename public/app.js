@@ -2076,7 +2076,8 @@ async function submitNativeVoiceAi(base64Audio, mimeType) {
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
-    const voiceOutput = document.getElementById("ai-voice-toggle") ? document.getElementById("ai-voice-toggle").checked : true;
+    const voiceToggleEl = document.getElementById("ai-voice-output-toggle") || document.getElementById("ai-voice-toggle");
+    const voiceOutput = voiceToggleEl ? voiceToggleEl.checked : true;
 
     try {
         const res = await apiCall("/api/rag-chat", {
@@ -2087,7 +2088,7 @@ async function submitNativeVoiceAi(base64Audio, mimeType) {
                 audio_data: base64Audio,
                 mime_type: mimeType,
                 lang: state.lang,
-                voice_output: voiceOutput,
+                voice_output: false, // Fast sub-second response without blocking on server-side TTS
                 chat_history: state.chatHistory.slice(-10)
             })
         });
@@ -2149,7 +2150,8 @@ async function submitAiChat() {
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
-    const voiceOutput = document.getElementById("ai-voice-toggle") ? document.getElementById("ai-voice-toggle").checked : true;
+    const voiceToggleEl = document.getElementById("ai-voice-output-toggle") || document.getElementById("ai-voice-toggle");
+    const voiceOutput = voiceToggleEl ? voiceToggleEl.checked : true;
 
     try {
         const res = await apiCall("/api/rag-chat", {
@@ -2158,7 +2160,7 @@ async function submitAiChat() {
             body: JSON.stringify({
                 message: msg,
                 lang: state.lang,
-                voice_output: voiceOutput,
+                voice_output: false, // Fast sub-second response without blocking on server-side TTS
                 chat_history: state.chatHistory.slice(-10)
             })
         });

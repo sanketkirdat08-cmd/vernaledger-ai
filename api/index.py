@@ -1636,7 +1636,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
             )
 
-        # Direct answers for common questions to eliminate clutter
+        # Direct answers for common questions to eliminate clutter and provide instant sub-second response
         lower_msg = user_msg.lower()
         if any(k in lower_msg for k in ['guide', 'developer', 'creator', 'कोण बनवला', 'मार्गदर्शक', 'विकासक', 'नाव काय', 'team', 'कॉलेज', 'college', 'who made', 'किसने बनाया', 'डेवलपर']):
             if is_hindi:
@@ -1652,6 +1652,43 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 answer = 'Hello! I am Verna AI. How can I help you today with your store sales, customer dues, or inventory?'
             else:
                 answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
+        elif any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
+            if is_hindi:
+                answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
+            elif is_english:
+                answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
+            else:
+                answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
+        elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
+            dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
+            if is_hindi:
+                answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
+            elif is_english:
+                answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
+            else:
+                answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
+        elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
+            stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
+            if is_hindi:
+                answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
+            elif is_english:
+                answer = f"Low stock items: {stock_text}."
+            else:
+                answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
+        elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
+            if is_hindi:
+                answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
+            elif is_english:
+                answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
+            else:
+                answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
+        elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
+            if is_hindi:
+                answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
+            elif is_english:
+                answer = f"Today's expenses: ₹{today_expenses:,.2f} | Total expenses: ₹{total_expenses:,.2f}."
+            else:
+                answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
 
         assistant_instruction = """You are Verna AI, an intelligent, fast store assistant for VernaLedger AI.
 CRITICAL RULES:
@@ -1667,7 +1704,8 @@ CRITICAL RULES:
                     try:
                         model = genai.GenerativeModel(
                             model_name=m,
-                            system_instruction=f"{language_instruction}\n\n{assistant_instruction}"
+                            system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
+                            generation_config={"temperature": 0.2, "max_output_tokens": 120}
                         )
                         res = model.generate_content([db_context, f"[User Query]\n{user_msg}"], request_options={"timeout": 8})
                         if res and res.text:
