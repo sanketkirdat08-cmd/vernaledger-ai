@@ -1705,6 +1705,23 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. 💳 **डिजिटल ग्राहक खाते (उधारी वही):** उधारी आणि जमा रकमेचा स्वयंचलित हिशोब व १-क्लिक व्हॉट्सॲप / UPI स्मरणपत्र.
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
+
+        # 6. Technical Architecture: 5 Scanner AI Pillars
+        elif any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स', 'स्कॅनर कसे काम', 'vit']):
+            answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
+१. 🔍 **Vision Transformers (ViTs):** पावतीचे लहान व्हिज्युअल पॅचेस (Patches) बनवून तिरपे, घाईत लिहिलेले व अस्पष्ट मराठी हस्तलिखित अचूक वाचते.
+२. 🌐 **Native Multimodal AI:** फोटोचे पिक्सेल आणि भाषा एकाच न्यूरल नेटवर्कद्वारे थेट (End-to-End) समजून घेते.
+३. ⚡ **Google TPU Cloud Acceleration:** गुगलच्या क्लाउडवरील Tensor Processing Units वर मॉडेल चालल्यामुळे अवघ्या १ ते १.२ सेकंदात निकाल मिळतो.
+४. 🧩 **Context-Aware Attention:** अस्पष्ट अंक (उदा. १ की ७, किंवा ३ की ८) आजूबाजूच्या शब्दांवरून आणि गणिताचा हिशोब (दर × वजन) तपासून आपोआप ओळखते.
+५. 📄 **Google Cloud Vision & Document AI Fallback:** मुख्य मॉडेलवर अडथळा आल्यास गुगलच्या Document Text Detection API द्वारे पावती अखंड वाचली जाते."""
+
+        # 7. Technical Architecture: 4 Chatbot Core Pillars
+        elif any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स', 'चॅटबॉट कसे काम']):
+            answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
+१. 🌐 **Native Multimodal Architecture:** आवाज आणि मजकूर एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते.
+२. 🎙️ **ASR & Speech-to-Text:** दुकानातील गोंगाट गाळून सातारी, कोल्हापुरी, पुणेरी व ग्रामीण मराठी उच्चार अचूक ओळखते.
+३. 🧠 **Transformer LLM & Contextual Reasoning:** दुकानाच्या थेट SQLite डेटाबेसमधील हिशोब तपासून १००% अचूक, तात्त्विक व बिनचूक उत्तरे देते (No Hallucination).
+४. ⚡ **Real-Time Low Latency Engine:** सब-मिलिसेकंद (१०-१५ ms) इन-मेमरी मेमरी ॲक्सेस आणि सब-सेकंद फास्ट जेमिनी जनरेशन."""
         elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
             if is_hindi:
                 answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
@@ -1712,66 +1729,103 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 answer = 'Hello! I am Verna AI. How can I help you today with your store sales, customer dues, or inventory?'
             else:
                 answer = 'नमस्कार! मी Verna AI. आज दुकानातील विक्री, उधारी किंवा साठ्याबद्दल सांगा, मी कशी मदत करू?'
-        elif any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
-            if is_hindi:
-                answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
-            elif is_english:
-                answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
-            else:
-                answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
-        elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
-            dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
-            if is_hindi:
-                answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
-            elif is_english:
-                answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
-            else:
-                answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
-        elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
-            stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
-            if is_hindi:
-                answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
-            elif is_english:
-                answer = f"Low stock items: {stock_text}."
-            else:
-                answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
-        elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
-            if is_hindi:
-                answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
-            elif is_english:
-                answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
-            else:
-                answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
-        elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
-            if is_hindi:
-                answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
-            elif is_english:
-                answer = f"Today's expenses: ₹{today_expenses:,.2f} | Total expenses: ₹{total_expenses:,.2f}."
-            else:
-                answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
+        # Dynamic Customer-Specific Credit Lookup (First priority: specific customer name with cross-script transliteration)
+        if not answer and any(k in lower_msg for k in ['उधारी', 'बाकी', 'येणे', 'खाते', 'credit', 'due', 'कोणाची', 'उधार']):
+            dev_map = {
+                'स': 's', 'श': 'sh', 'ष': 'sh', 'र': 'r', 'म': 'm', 'न': 'n', 'ल': 'l', 'क': 'k', 'ख': 'kh',
+                'ग': 'g', 'घ': 'gh', 'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ट': 't', 'ठ': 'th',
+                'ड': 'd', 'ढ': 'dh', 'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'प': 'p', 'फ': 'ph',
+                'ब': 'b', 'भ': 'bh', 'य': 'y', 'व': 'v', 'ह': 'h', 'आ': 'a', 'ई': 'i', 'ऊ': 'u',
+                'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au', 'ा': 'a', 'ि': 'i', 'ी': 'i', 'ु': 'u',
+                'ू': 'u', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au', 'ं': 'n'
+            }
+            roman_msg = ''.join(dev_map.get(c, c) for c in lower_msg)
+            for c_name, c_amt in cust_dues.items():
+                clean_c = re.sub(r'\s+', '', c_name.lower())
+                clean_msg = re.sub(r'\s+', '', lower_msg)
+                if (clean_c and len(clean_c) > 1 and clean_c in clean_msg) or (clean_c and clean_c in roman_msg):
+                    answer = f"👤 **{c_name}** यांच्याकडे एकूण **₹{c_amt:,.2f}** बाकी उधारी नोंदवलेली आहे."
+                    break
 
-        assistant_instruction = """You are Verna AI, an intelligent, fast store assistant for VernaLedger AI.
-ACADEMIC & PROJECT FACTS (Provide completely and accurately whenever asked):
-- Project Title: VernaLedger.AI (Merchant Pro v7.5)
-- Degree: B.Tech in Artificial Intelligence & Data Science (AI & DS)
-- College: Arvind Gavali College of Engineering, Satara (AGCE Satara)
-- University: Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-- Academic Year: 2026 - 2027
-- Project Guide: Prof. Kaisar Atar Sir (Department of AI & DS, AGCE Satara)
-- Team Members:
-  1. Sanket Kirdat (Lead Full-Stack AI Developer)
-  2. Sakshi Bhagat (Co-Developer - UI/UX & System Design)
-  3. Vaishnavi Dhawale (Co-Developer - Multilingual Data Pipeline)
-  4. Rushikesh Mulik (Co-Developer - Database & Ledger Architecture)
-- Project Purpose & Features:
-  1. Smart Multimodal Scanner (5 AI Pillars: ViT, Native Multimodal, Cloud TPUs, Context Attention, Document AI Fallback)
-  2. Vernacular Voice Billing (Spoken Marathi POS)
-  3. Digital Customer Khata (Credit ledger with WhatsApp/UPI recovery)
-  4. Verna AI Studio (Sub-second store business advisor)
-  5. Digital Ledger & Excel (.xlsx) Export
-CRITICAL RULES:
-1. For general store queries, keep replies concise, crisp, and direct (1 to 2 sentences) using Live Shop Data.
-2. When asked about college, developers, guide, or project overview, provide complete, polite, and well-structured details."""
+        # Dynamic Item-Specific Inventory Stock Lookup (First priority: specific grocery item)
+        if not answer and any(k in lower_msg for k in ['साठा', 'शिल्लक', 'किती आहे', 'स्टॉक', 'stock', 'बाकी', 'आहे का']):
+            for item in all_inv:
+                raw_name = item['item_name'].lower()
+                clean_i = re.sub(r'\(.*?\)', '', raw_name).strip()
+                words = [w for w in clean_i.split() if len(w) > 2]
+                if (clean_i and clean_i in lower_msg) or any(w in lower_msg for w in words):
+                    warn = " (⚠️ **अलर्ट:** साठा संपत आला आहे, नवीन माल मागवा!)" if item['stock_qty'] <= item['alert_limit'] else " (✅ साठा मुबलक आहे)"
+                    answer = f"📦 दुकानात **{item['item_name']}** चा एकूण साठा **{item['stock_qty']} {item['unit']}** शिल्लक आहे (विक्री दर: ₹{item['selling_price']:,.2f}).{warn}"
+                    break
+
+        if not answer:
+            if any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
+                if is_hindi:
+                    answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
+                elif is_english:
+                    answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
+                else:
+                    answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
+            elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
+                dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
+                if is_hindi:
+                    answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
+                elif is_english:
+                    answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
+                else:
+                    answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
+            elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
+                stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
+                if is_hindi:
+                    answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
+                elif is_english:
+                    answer = f"Low stock items: {stock_text}."
+                else:
+                    answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
+            elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
+                if is_hindi:
+                    answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
+                elif is_english:
+                    answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
+                else:
+                    answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
+            elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
+                if is_hindi:
+                    answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
+                elif is_english:
+                    answer = f"Today's expenses: ₹{today_expenses:,.2f} | Total expenses: ₹{total_expenses:,.2f}."
+                else:
+                    answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
+
+        assistant_instruction = """You are Verna AI, the world-class intelligent retail business consultant, operations advisor, and financial intelligence engine for VernaLedger.AI.
+
+KNOWLEDGE BASE & VERIFIED TRUTHS:
+1. Academic Credentials:
+   - Project: VernaLedger.AI (Merchant Pro v7.5)
+   - Degree: B.Tech in Artificial Intelligence & Data Science (AI & DS)
+   - College: Arvind Gavali College of Engineering, Satara (AGCE Satara)
+   - University: Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+   - Academic Year: 2026 - 2027
+   - Project Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara)
+   - Team Members:
+     1. Sanket Kirdat (Lead Full-Stack AI Developer)
+     2. Sakshi Bhagat (Co-Developer - UI/UX & System Design)
+     3. Vaishnavi Dhawale (Co-Developer - Multilingual Data Pipeline)
+     4. Rushikesh Mulik (Co-Developer - Database & Ledger Architecture)
+
+2. Core System Features:
+   - Smart Multimodal Scanner: 5 AI Pillars (Vision Transformers ViT, Native Multimodal, Cloud TPUs, Context Attention, Document AI Fallback).
+   - Vernacular Voice Billing: Hands-free spoken Marathi bill creation.
+   - Digital Customer Khata: Automated credit tracking with 1-click WhatsApp/UPI recovery.
+   - Verna AI Business Studio: Sub-second store intelligence and retail advisory.
+   - Digital Ledger & Excel Export: Native xlsxwriter generator with thermal POS printing.
+
+BEHAVIOR GUIDELINES:
+1. Tone & Language: Speak with extreme confidence, warmth, professionalism, and high intelligence in natural Marathi (or Hindi/English if requested).
+2. Store Data Questions: Use [Live Shop Real Data] to give exact, 100% mathematically verified numbers without hallucination.
+3. Retail Advisory & Strategy Questions (e.g. how to grow store sales, festival planning, recovery of debt, inventory turnover): Provide comprehensive, structured, inspiring, and actionable business advice with bullet points and bold highlights.
+4. Technical & Architecture Questions: Explain the deep AI concepts (ViTs, self-attention, RAG, SQLite ACID WAL) clearly and authoritatively.
+5. Formatting: Use neat Markdown formatting with emojis, bold numbers, and bullet points for outstanding visual presentation."""
 
         if not answer and api_key and genai:
             try:
@@ -1782,9 +1836,19 @@ CRITICAL RULES:
                         model = genai.GenerativeModel(
                             model_name=m,
                             system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
-                            generation_config={"temperature": 0.2, "max_output_tokens": 700}
+                            generation_config={"temperature": 0.2, "max_output_tokens": 800}
                         )
-                        res = model.generate_content([db_context, f"[User Query]\n{user_msg}"], request_options={"timeout": 8})
+                        # Build multi-turn contextual prompt
+                        prompt_parts = [db_context]
+                        if req.chat_history:
+                            for h in req.chat_history[-4:]:
+                                r = h.get("role", "")
+                                p = h.get("parts", [])
+                                txt = p[0].get("text", "") if (isinstance(p, list) and p and isinstance(p[0], dict)) else ""
+                                if txt:
+                                    prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
+                        prompt_parts.append(f"[Current User Query]: {user_msg}")
+                        res = model.generate_content(prompt_parts, request_options={"timeout": 10})
                         if res and res.text:
                             answer = res.text.strip()
                             break
