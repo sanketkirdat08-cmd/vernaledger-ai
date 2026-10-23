@@ -798,12 +798,16 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
   "grand_total": 0.0
 }}"""
 
-    models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
+    genai.configure(api_key=api_key, transport='rest')
+    models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
     res_text = None
     for m in models_to_try:
         try:
-            model = genai.GenerativeModel(m)
-            res = model.generate_content(prompt)
+            model = genai.GenerativeModel(
+                m,
+                generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+            )
+            res = model.generate_content(prompt, request_options={"timeout": 8})
             if res and res.text:
                 res_text = res.text
                 break
@@ -1523,11 +1527,15 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 [Live Shop Real Data]:
 {db_context}"""
 
-            models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
+            genai.configure(api_key=api_key, transport='rest')
+            models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
-                    model = genai.GenerativeModel(model_name=m)
-                    res = model.generate_content([audio_prompt, audio_part])
+                    model = genai.GenerativeModel(
+                        model_name=m,
+                        generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+                    )
+                    res = model.generate_content([audio_prompt, audio_part], request_options={"timeout": 8})
                     if res and res.text:
                         clean_text = res.text.replace('```json', '').replace('```', '').strip()
                         parsed = json.loads(clean_text)
@@ -1653,15 +1661,15 @@ CRITICAL RULES:
 
         if not answer and api_key and genai:
             try:
-                genai.configure(api_key=api_key)
-                models_to_try = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash']
+                genai.configure(api_key=api_key, transport='rest')
+                models_to_try = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
                 for m in models_to_try:
                     try:
                         model = genai.GenerativeModel(
                             model_name=m,
                             system_instruction=f"{language_instruction}\n\n{assistant_instruction}"
                         )
-                        res = model.generate_content([db_context, f"[User Query]\n{user_msg}"])
+                        res = model.generate_content([db_context, f"[User Query]\n{user_msg}"], request_options={"timeout": 8})
                         if res and res.text:
                             answer = res.text.strip()
                             break
@@ -1699,15 +1707,18 @@ CRITICAL RULES:
             else:
                 spoken_summary = clean_speech
 
-            communicate = edge_tts.Communicate(spoken_summary, voice, rate="+15%")
-            audio_bytes = bytearray()
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    audio_bytes.extend(chunk["data"])
-            b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
-            audio_data = f"data:audio/mp3;base64,{b64_audio}"
+            async def _stream_tts():
+                comm = edge_tts.Communicate(spoken_summary, voice, rate="+20%")
+                a_bytes = bytearray()
+                async for chunk in comm.stream():
+                    if chunk["type"] == "audio":
+                        a_bytes.extend(chunk["data"])
+                return f"data:audio/mp3;base64,{base64.b64encode(a_bytes).decode('utf-8')}"
+
+            audio_data = await asyncio.wait_for(_stream_tts(), timeout=2.5)
         except Exception as e:
-            logger.warning(f"Voice generation error: {e}")
+            logger.warning(f"Voice generation skipped/timed out: {e}")
+            audio_data = None
 
     return {
         "success": True,
