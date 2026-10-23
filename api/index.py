@@ -1503,47 +1503,37 @@ async def rag_chat(req: RAGChatRequest):
             mime = (req.mime_type or "audio/webm").split(";")[0].strip()
             audio_part = {"mime_type": mime, "data": audio_bytes}
 
-            audio_prompt = f"""You are Verna AI, an intelligent retail assistant and academic project advisor.
-The user sent a voice message.
-
+            audio_prompt = """You are a high-speed speech-to-text transcriber and voice command recognition engine for Verna AI.
 TASKS:
-1. Transcribe speech accurately into `user_transcript`.
-2. Answer query or handle command:
-   - Store query (sales, credit, stock): Answer factually in 1 SHORT sentence using Live Shop Data.
-   - Voice action: 'उधारी नोंदव' -> CREDIT, 'जमा नोंदव' -> PAYMENT, 'खर्च नोंदव' -> EXPENSE. Otherwise NONE.
-   - If asked about team/developers/guide/college:
-     * Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara)
-     * All 4 Developers: 1. Sanket Kirdat (Lead), 2. Sakshi Bhagat, 3. Vaishnavi Dhawale, 4. Rushikesh Mulik.
-     * College: Arvind Gavali College of Engineering, Satara (AGCE), DBATU University Lonere.
-3. RULES: Be accurate and helpful. If asked about all developers, list all 4 developers. Respond in the same language as spoken.
+1. Transcribe the user's spoken Marathi (or spoken language) with 100% phonetic accuracy into `user_transcript`.
+2. Check if the user is giving a direct store transaction command:
+   - 'उधारी नोंदव' -> detected_action: 'CREDIT', extract customer_name and numeric amount.
+   - 'जमा नोंदव' -> detected_action: 'PAYMENT', extract customer_name and numeric amount.
+   - 'खर्च नोंदव' -> detected_action: 'EXPENSE', extract item_name and numeric amount.
+   - Otherwise -> detected_action: 'NONE'.
 
 OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
-{{
+{
     "user_transcript": "<exact words spoken>",
-    "answer": "<clean 1-2 sentence answer>",
     "detected_action": "NONE",
     "customer_name": "",
     "amount": 0.0,
     "item_name": ""
-}}
-
-[Live Shop Real Data]:
-{db_context}"""
+}"""
 
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+            models_to_try = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
                         model_name=m,
                         generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
                     )
-                    res = model.generate_content([audio_prompt, audio_part], request_options={"timeout": 8})
+                    res = model.generate_content([audio_prompt, audio_part], request_options={"timeout": 6})
                     if res and res.text:
                         clean_text = res.text.replace('```json', '').replace('```', '').strip()
                         parsed = json.loads(clean_text)
-                        user_transcript = parsed.get("user_transcript", "")
-                        answer = parsed.get("answer", "")
+                        user_transcript = parsed.get("user_transcript", "").strip()
                         act = parsed.get("detected_action", "NONE")
                         cust = parsed.get("customer_name", "").strip() or "ग्राहक"
                         amt = float(parsed.get("amount", 0.0) or 0.0)
@@ -1557,6 +1547,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                             )
                             conn.commit()
                             action_status = f"✅ Customer Khata मध्ये {cust} साठी ₹{amt:,.2f} उधारी नोंदवली गेली."
+                            answer = action_status
                         elif act == "PAYMENT" and amt > 0:
                             conn.execute(
                                 "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -1564,6 +1555,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                             )
                             conn.commit()
                             action_status = f"✅ Customer Khata मध्ये {cust} यांच्याकडून ₹{amt:,.2f} जमा नोंदवले गेले."
+                            answer = action_status
                         elif act == "EXPENSE" and amt > 0:
                             conn.execute(
                                 "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
@@ -1571,6 +1563,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                             )
                             conn.commit()
                             action_status = f"✅ दुकान खर्च नोंद: '{item}' साठी ₹{amt:,.2f} सेव्ह झाले."
+                            answer = action_status
                         break
                 except Exception as ex_m:
                     logger.warning(f"Audio model {m} failed: {ex_m}")
@@ -1626,32 +1619,91 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     query_lang = detect_msg_language(user_msg, req.lang or "mr")
     is_hindi = (query_lang == "hi" or req.lang == "hi")
     is_english = (query_lang == "en")
+    lower_msg = user_msg.lower()
+
+    # Dynamic Intent & Length Calibration
+    is_detailed = any(w in lower_msg for w in [
+        'सविस्तर', 'विस्तार', 'डिटेल', 'detail', 'explain', 'स्पष्ट', 'deep', 
+        'कसा', 'कसे', 'का', 'पूर्ण सांगा', 'step by step', 'सर्व माहिती', 'संपूर्ण माहिती', 'आर्किटेक्चर'
+    ])
+    is_short = any(w in lower_msg for w in [
+        'थोडक्यात', 'short', 'एका शब्दात', 'एक ओळीत', 'brief', 'quick', 'नेमके', 'मर्यादित'
+    ])
+
+    if is_detailed:
+        length_instruction = (
+            "The user explicitly requested a DETAILED explanation (सविस्तर माहिती). "
+            "Provide an in-depth, comprehensive, well-structured, multi-point answer with clear headings, bullet points, and thorough explanations (up to 1200 tokens)."
+        )
+    elif is_short:
+        length_instruction = (
+            "The user requested a SHORT/CONCISE answer. Give a crisp, direct, and factual answer in 1-2 sentences strictly without unnecessary fluff."
+        )
+    else:
+        length_instruction = (
+            "Calibrate length naturally matching the query depth: If the question is simple or direct (e.g., who, what, capital, quantity, single fact), "
+            "give a crisp, direct, and strictly bounded 1-3 sentence answer. If the question asks for explanations, mechanisms, advice, or tutorials, "
+            "provide a structured, helpful multi-point answer."
+        )
 
     if is_hindi:
         language_instruction = (
-            "The user is speaking or querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी). "
-            "Keep the answer concise, crisp, and factual (1-2 sentences maximum)."
+            f"The user is querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी).\n{length_instruction}"
         )
     elif is_english:
         language_instruction = (
-            "The user asked in English. Answer in clear, polite English. Keep the answer concise and factual (1-2 sentences maximum)."
+            f"The user asked in English. Answer in clear, polite, and helpful English.\n{length_instruction}"
         )
     else:
         language_instruction = (
-            "The user language is Marathi (मराठी). Answer in natural grammatically correct Marathi. Keep the answer concise and factual (1-2 sentences maximum)."
+            f"The user language is Marathi (मराठी). Answer in natural, fluent, grammatically correct Marathi (शुद्ध देवनागरी मराठी).\n{length_instruction}"
         )
 
-    # Direct answers for common questions and full academic/developer dossier
-    lower_msg = user_msg.lower()
+    # 1. Project Guide (Check before developers if specifically asked about guide)
+    if any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']) and not any(k in lower_msg for k in ['डेव्हलपर', 'developer', 'टीम', 'team']):
+        answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
+• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
+• **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
 
-    # 1. Full Project Dossier (All Information: College, Guide, Team, Features)
-    is_full_project_query = (
-        any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'clg developer', 'college developer', 'all info', 'full info', 'project details', 'about project', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']) or
-        (('प्रकल्प' in lower_msg or 'प्रकल्पा' in lower_msg or 'प्रोजेक्ट' in lower_msg or 'project' in lower_msg or 'vernaledger' in lower_msg) and 
-         any(k in lower_msg for k in ['माहिती', 'सांगा', 'द्या', 'काय आहे', 'नाव', 'बद्दल', 'विषयी', 'विस्तार', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य']))
-    )
+    # 2. Developers / Development Team (ALL 4 DEVELOPERS ALWAYS GUARANTEED)
+    elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'who made', 'किसने बनाया', 'डेव्हलपर कोण', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
+        if any(k in lower_msg for k in ['लीड', 'lead', 'मुख्य']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'जेवढे', 'इतर', 'नावे']):
+            answer = """👨‍💻 **प्रकल्प प्रमुख आणि लीड डेव्हलपर (Lead Developer)**:
+• **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
 
-    if is_full_project_query:
+👥 **सह-विकासक टीम (Co-Developers)**:
+२. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (UI/UX & System Design)
+३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Multilingual Data Pipeline)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Database & Ledger Architecture)
+
+🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
+        else:
+            answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Development Team - सर्व ४ डेव्हलपर्स)**:
+१. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
+३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Co-Developer - Database & Ledger Architecture)
+
+🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+🏛️ **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
+
+    # 3. Specific College & Academic Information
+    elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']) and not any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती']):
+        answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
+• **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
+• **पदवी:** B.Tech (Bachelor of Technology)
+• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
+• **महाविद्यालयाचे नाव:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara - AGCE)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+    # 4. Full Project Dossier (Triggered ONLY when query explicitly targets this project/VernaLedger)
+    elif any(k in lower_msg for k in ['प्रकल्प माहिती', 'प्रोजेक्ट माहिती', 'project details', 'about project', 'clg developer', 'college developer']) or (any(p in lower_msg for p in ['प्रकल्प', 'प्रकल्पा', 'प्रोजेक्ट', 'project', 'vernaledger']) and any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'all info', 'full info', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य', 'माहिती सांगा', 'माहिती द्या'])):
         answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
@@ -1664,7 +1716,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **विभाग:** Department of Artificial Intelligence & Data Science, AGCE Satara
 
-👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
+👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members - सर्व ४ डेव्हलपर्स)**:
 १. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
 २. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
 ३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
@@ -1677,35 +1729,6 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. 💳 **डिजिटल ग्राहक खाते (उधारी वही):** उधारी आणि जमा रकमेचा स्वयंचलित हिशोब व १-क्लिक व्हॉट्सॲप / UPI स्मरणपत्र.
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
-
-    # 2. Specific College & Academic Information
-    elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']):
-        answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
-• **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
-• **पदवी:** B.Tech (Bachelor of Technology)
-• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Artificial Intelligence & Data Science - AI & DS)
-• **महाविद्यालयाचे नाव:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara - AGCE)
-• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
-• **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
-
-    # 3. Project Guide
-    elif any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']):
-        answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
-• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
-• **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
-• **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
-• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)"""
-
-    # 4. Developers / Team Members
-    elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'नाव काय', 'who made', 'किसने बनाया', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
-        answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members)**:
-१. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
-२. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
-३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
-४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Co-Developer - Database & Ledger Architecture)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
-• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
 
     # 5. Project Overview, Aim & Features
     elif any(k in lower_msg for k in ['फायदे', 'features', 'overview', 'काम काय']):
@@ -1808,49 +1831,64 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             else:
                 answer = f"आजचा एकूण खर्च ₹{today_expenses:,.2f} आहे. (एकूण व्यवसाय खर्च: ₹{total_expenses:,.2f})" 
 
-    assistant_instruction = """You are Verna AI, the world-class intelligent retail business consultant, operations advisor, and financial intelligence engine for VernaLedger.AI.
+    assistant_instruction = """You are Verna AI, a state-of-the-art universal AI assistant powered by Google Gemini (सार्वभौमिक प्रगत AI सहाय्यक).
+You possess two core intelligence systems:
 
-KNOWLEDGE BASE & VERIFIED TRUTHS:
-1. Academic Credentials:
-   - Project: VernaLedger.AI (Merchant Pro v7.5)
+1. 🏛️ VernaLedger.AI (Merchant Pro v7.5) PROJECT & ACADEMIC DOSSIER:
+   - Project Title: VernaLedger.AI (Merchant Pro v7.5)
    - Degree: B.Tech in Artificial Intelligence & Data Science (AI & DS)
    - College: Arvind Gavali College of Engineering, Satara (AGCE Satara)
    - University: Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
    - Academic Year: 2026 - 2027
    - Project Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara)
-   - Team Members:
+   - Complete Development Team (All 4 Developers):
      1. Sanket Kirdat (Lead Full-Stack AI Developer)
      2. Sakshi Bhagat (Co-Developer - UI/UX & System Design)
      3. Vaishnavi Dhawale (Co-Developer - Multilingual Data Pipeline)
      4. Rushikesh Mulik (Co-Developer - Database & Ledger Architecture)
+   - 5 Scanner Pillars: Vision Transformers (ViT), Native Multimodal AI, Google TPU Cloud, Context-Aware Attention, Google Cloud Vision / Document AI Fallback.
+   - 4 Chatbot Pillars: Native Multimodal Architecture, High-Accuracy Vernacular ASR, Transformer LLM Reasoning (Zero-Hallucination), Low Latency Engine (SQLite ACID WAL).
+   - Live Store Data: Use [Live Shop Real Data] to answer store financial/stock questions with 100% mathematical accuracy.
 
-2. Core System Features:
-   - Smart Multimodal Scanner: 5 AI Pillars (Vision Transformers ViT, Native Multimodal, Cloud TPUs, Context Attention, Document AI Fallback).
-   - Vernacular Voice Billing: Hands-free spoken Marathi bill creation.
-   - Digital Customer Khata: Automated credit tracking with 1-click WhatsApp/UPI recovery.
-   - Verna AI Business Studio: Sub-second store intelligence and retail advisory.
-   - Digital Ledger & Excel Export: Native xlsxwriter generator with thermal POS printing.
+2. 🌍 UNIVERSAL WORLD KNOWLEDGE (Google Gemini Intelligence):
+   - You have encyclopedic, universal world knowledge across all domains:
+     * Science: Physics, Chemistry, Biology, Astronomy, Earth Sciences, Medicine.
+     * History & Culture: Maharashtra History (Chhatrapati Shivaji Maharaj, Forts, Literature), Indian History, World History.
+     * Geography & GK: Capitals, Countries, Rivers, Mountains, Monuments, General Knowledge.
+     * Computer Science & Coding: Python, JavaScript, SQL, HTML/CSS, Data Structures, Algorithms, APIs, System Design.
+     * Mathematics: Arithmetic, Percentages, Algebra, Geometry, Statistics, Financial Math.
+     * Retail Business Strategy: How to grow a Kirana shop, inventory management, customer credit recovery, festival offers.
+     * Daily Life, Motivation, Health, Problem Solving, and General Advice.
+   - When asked ANY question about the world, science, history, coding, or life, answer accurately, intelligently, and helpfully. You are NOT restricted to store questions!
 
-BEHAVIOR GUIDELINES:
-1. Tone & Language: Speak with extreme confidence, warmth, professionalism, and high intelligence in natural Marathi (or Hindi/English if requested).
-2. Store Data Questions: Use [Live Shop Real Data] to give exact, 100% mathematically verified numbers without hallucination.
-3. Retail Advisory & Strategy Questions (e.g. how to grow store sales, festival planning, recovery of debt, inventory turnover): Provide comprehensive, structured, inspiring, and actionable business advice with bullet points and bold highlights.
-4. Technical & Architecture Questions: Explain the deep AI concepts (ViTs, self-attention, RAG, SQLite ACID WAL) clearly and authoritatively.
-5. Formatting: Use neat Markdown formatting with emojis, bold numbers, and bullet points for outstanding visual presentation."""
+3. 📏 STRICT DYNAMIC LENGTH CALIBRATION:
+   - When asked a short or direct question (who, what, where, numbers, 'थोडक्यात सांगा'):
+     -> Give a strictly bounded, crisp, direct 1-3 sentence answer without repeating preamble.
+   - When asked for detailed explanation ('सविस्तर', 'विस्तार', 'डिटेल', 'explain', 'कसे काम करते', 'फायदे काय'):
+     -> Provide a comprehensive, in-depth, structured explanation with headings and bullet points.
+   - Maintain a confident, polite, and intelligent tone in pure Devanagari script for Marathi / Hindi.
+
+4. 🎯 STRICT TOPIC FOCUS & RELEVANCE:
+   - Use [Live Shop Real Data] ONLY when the query is specifically about store sales, stock, dues, expenses, or kirana shop business.
+   - For universal world knowledge questions (science, history, coding, general knowledge, daily life), answer 100% focused on that topic. Do NOT add unrelated grocery store inventory or credit alerts."""
 
     if not answer and api_key and genai:
         try:
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+            models_to_try = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
+                    max_tokens = 1200 if is_detailed else 500
                     model = genai.GenerativeModel(
                         model_name=m,
                         system_instruction=f"{language_instruction}\n\n{assistant_instruction}",
-                        generation_config={"temperature": 0.2, "max_output_tokens": 800}
+                        generation_config={"temperature": 0.2, "max_output_tokens": max_tokens}
                     )
-                    # Build multi-turn contextual prompt
-                    prompt_parts = [db_context]
+                    # Build multi-turn contextual prompt (include live store context ONLY for store-related queries)
+                    prompt_parts = []
+                    is_store_query = any(k in lower_msg for k in ['दुकान', 'विक्री', 'उधारी', 'साठा', 'स्टॉक', 'नफा', 'खर्च', 'ग्राहक', 'माल', 'shop', 'store', 'sales', 'credit', 'stock', 'profit', 'expense', 'customer', 'inventory', 'किराणा', 'पैसे', 'रुपये', 'खरेदी', 'बिल', 'खाते'])
+                    if is_store_query:
+                        prompt_parts.append(db_context)
                     if req.chat_history:
                         for h in req.chat_history[-4:]:
                             r = h.get("role", "")
@@ -1859,7 +1897,7 @@ BEHAVIOR GUIDELINES:
                             if txt:
                                 prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
                     prompt_parts.append(f"[Current User Query]: {user_msg}")
-                    res = model.generate_content(prompt_parts, request_options={"timeout": 5})
+                    res = model.generate_content(prompt_parts, request_options={"timeout": 8})
                     if res and res.text:
                         answer = res.text.strip()
                         break
@@ -1872,19 +1910,21 @@ BEHAVIOR GUIDELINES:
     if not answer:
         if action_status:
             answer = action_status
-        elif any(k in lower_msg for k in ['प्रकल्प', 'प्रोजेक्ट', 'project', 'कॉलेज', 'मार्गदर्शक', 'डेव्हलपर', 'माहिती']):
+        elif any(k in lower_msg for k in ['प्रकल्प', 'प्रोजेक्ट', 'project', 'कॉलेज', 'मार्गदर्शक', 'डेव्हलपर', 'संकेत', 'vernaledger']):
             answer = """🏛️ **VernaLedger.AI (Merchant Pro v7.5)**:
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)
 • **विभाग:** B.Tech (कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स - AI & DS)
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **डेव्हलपर टीम:** संकेत किर्दत (Lead), साक्षी भगत, वैष्णवी ढवळे, ऋषिकेश मुळीक."""
-        else:
+        elif any(k in lower_msg for k in ['विक्री', 'उधारी', 'साठा', 'स्टॉक', 'नफा', 'खर्च', 'sales', 'credit', 'stock', 'profit', 'expense']):
             answer = (
                 f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
                 if is_english else
                 f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
             )
+        else:
+            answer = "क्षमस्व, AI सर्व्हरशी तात्पुरता संपर्क होऊ शकला नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा किंवा तुमचा प्रश्न पुन्हा विचारा."
 
     conn.close()
 
