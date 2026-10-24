@@ -991,13 +991,23 @@ async function compressImageForOCR(file, maxDimension = 1280, quality = 0.82) {
     });
 }
 
+let isOcrScanning = false;
+
 async function submitReceiptOCR() {
     if (!state.selectedFile) return;
+    if (isOcrScanning) {
+        console.warn("OCR is already in progress, ignoring duplicate trigger.");
+        return;
+    }
 
     const loader = document.getElementById("scanner-loader");
     const btn = document.getElementById("btn-run-ocr");
-    loader.style.display = "block";
-    btn.disabled = true;
+    const fileInput = document.getElementById("receipt-file-input");
+
+    isOcrScanning = true;
+    if (loader) loader.style.display = "block";
+    if (btn) btn.disabled = true;
+    if (fileInput) fileInput.disabled = true;
 
     try {
         const fileToUpload = await compressImageForOCR(state.selectedFile);
@@ -1025,22 +1035,24 @@ async function submitReceiptOCR() {
         }
 
         populateBillCard(json.data);
-        VernaStorage.addReceipt(json.data);
-        loadDashboardMetrics();
-        loadReceiptsLedger();
+
         if (json.duplicate) {
-            alert("⚠️ Duplicate Receipt\n" + json.warning);
-        } else if (json.warning) {
-            alert("⚠️ " + json.warning);
+            alert("⚠️ दुबार पावती: " + (json.warning || "ही पावती आधीच लेजरमध्ये नोंदवलेली आहे. दुबार नोंद टाळली गेली आहे."));
         } else {
+            VernaStorage.addReceipt(json.data);
             alert("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!");
         }
+
+        loadDashboardMetrics();
+        loadReceiptsLedger();
     } catch (err) {
         console.error("OCR Error:", err);
         alert("OCR एरर: " + err.message);
     } finally {
-        loader.style.display = "none";
-        btn.disabled = false;
+        isOcrScanning = false;
+        if (loader) loader.style.display = "none";
+        if (btn) btn.disabled = false;
+        if (fileInput) fileInput.disabled = false;
     }
 }
 
@@ -2593,9 +2605,14 @@ function applyTheme(theme) {
     }
     const lbl = document.getElementById("theme-label");
     const icon = document.getElementById("theme-icon");
+    const hudLbl = document.getElementById("hud-theme-label");
+    const hudIcon = document.getElementById("hud-theme-icon");
     const mobIcon = document.getElementById("mob-theme-icon");
+
     if (lbl) lbl.innerText = isLight ? "नाईट मोड (Dark)" : "किराणा मोड (Light)";
     if (icon) icon.innerText = isLight ? "🌙" : "☀️";
+    if (hudLbl) hudLbl.innerText = isLight ? "नाईट मोड" : "किराणा मोड";
+    if (hudIcon) hudIcon.innerText = isLight ? "🌙" : "☀️";
     if (mobIcon) mobIcon.innerText = isLight ? "🌙" : "☀️";
 }
 

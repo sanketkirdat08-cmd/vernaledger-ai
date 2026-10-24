@@ -190,48 +190,7 @@ def init_db():
         cursor.execute("INSERT OR IGNORE INTO users VALUES ('admin', ?, 'Admin', '9999999999')", (admin_pass_hash,))
         cursor.execute("INSERT OR IGNORE INTO users VALUES ('sanket', ?, 'Admin', '9999999999')", (admin_pass_hash,))
     
-    # Seed sample inventory if empty
-    cursor.execute("SELECT COUNT(*) FROM shop_inventory")
-    if cursor.fetchone()[0] == 0:
-        sample_inv = [
-            ("साखर (Sugar M-30)", 45.0, "kg", 10.0, 44.0),
-            ("शेंगदाणा तेल (Groundnut Oil)", 12.0, "ltr", 5.0, 165.0),
-            ("गहू (Wheat Lokwan)", 80.0, "kg", 15.0, 38.0),
-            ("चहा पावडर (Society Tea)", 25.0, "pkt", 5.0, 120.0),
-            ("तूर डाळ (Toor Dal Premium)", 30.0, "kg", 8.0, 155.0),
-            ("तांदूळ (Kolam Rice)", 50.0, "kg", 10.0, 62.0),
-            ("सूर्यफूल तेल (Sunflower Oil)", 4.0, "ltr", 5.0, 140.0), # Alert low stock
-            ("साबण (Bathing Soap 4-pack)", 3.0, "pkt", 5.0, 95.0)     # Alert low stock
-        ]
-        cursor.executemany("INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, selling_price) VALUES (?, ?, ?, ?, ?)", sample_inv)
-
-    # Seed sample customer khata if empty
-    cursor.execute("SELECT COUNT(*) FROM customer_khata")
-    if cursor.fetchone()[0] == 0:
-        sample_khata = [
-            ("सागर पाटील (Sagar Patil)", "9876543210", 850.0, "Credit Given", "2026-10-18", "2026-10-25", "किराणा उधारी सामान"),
-            ("सागर पाटील (Sagar Patil)", "9876543210", 300.0, "Payment Received", "2026-10-19", "", "Google Pay द्वारे जमा"),
-            ("रमेश पवार (Ramesh Pawar)", "9822001122", 1200.0, "Credit Given", "2026-10-15", "2026-10-22", "महिना किराणा उधारी")
-        ]
-        cursor.executemany("INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)", sample_khata)
-
-    # Seed sample receipt if empty
-    cursor.execute("SELECT COUNT(*) FROM receipts")
-    if cursor.fetchone()[0] == 0:
-        rec_data = {
-            "vendor_name": "महादेव किराणा स्टोअर",
-            "date": "2026-10-20",
-            "category": "General",
-            "items": [
-                {"item_name": "साखर", "quantity": "2 kg", "rate": 44.0, "total_price": 88.0},
-                {"item_name": "शेंगदाणा तेल", "quantity": "1 ltr", "rate": 165.0, "total_price": 165.0}
-            ],
-            "grand_total": 253.0
-        }
-        cursor.execute(
-            "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
-            (rec_data["vendor_name"], rec_data["date"], rec_data["category"], rec_data["grand_total"], json.dumps(rec_data, ensure_ascii=False))
-        )
+    # Database starts clean. Only user-entered or scanned data is persisted.
     
     conn.commit()
     conn.close()
@@ -736,20 +695,55 @@ OCR text:
             detail="Gemini returned an unreadable result. Please retake the photo with better lighting."
         )
 
-    # Save to SQLite
+    # Multi-Layer Semantic Duplicate Receipt Detection
+    v_name = (data.get("vendor_name") or "Kirana Store").strip()
+    g_total = float(data.get("grand_total") or 0.0)
     rec_date = data.get("date") or today_str
     raw_json_str = json.dumps(data, ensure_ascii=False)
 
     conn = get_db()
     cursor = conn.cursor()
+
+    # Check if this exact receipt already exists (same date and same grand total within tolerance, or same vendor & amount)
+    existing_receipt = cursor.execute(
+        "SELECT id, vendor_name, date, category, grand_total, raw_json FROM receipts "
+        "WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND (LOWER(vendor_name) = LOWER(?) OR vendor_name = '')) "
+        "OR (ABS(grand_total - ?) < 0.01 AND LOWER(vendor_name) = LOWER(?) AND grand_total > 0) "
+        "ORDER BY id DESC LIMIT 1",
+        (rec_date, g_total, v_name, g_total, v_name)
+    ).fetchone()
+
+    if existing_receipt:
+        ex_id = existing_receipt["id"]
+        try:
+            ex_data = json.loads(existing_receipt["raw_json"] or "{}")
+        except Exception:
+            ex_data = {}
+        ex_data.update({
+            "id": ex_id,
+            "vendor_name": existing_receipt["vendor_name"],
+            "date": existing_receipt["date"],
+            "category": existing_receipt["category"],
+            "grand_total": existing_receipt["grand_total"]
+        })
+        conn.close()
+        logger.info(f"Duplicate receipt blocked. Matches existing receipt #{ex_id}.")
+        return {
+            "success": True,
+            "data": ex_data,
+            "duplicate": True,
+            "warning": f"ही पावती ({v_name}, रक्कम: ₹{g_total:,.2f}) आधीच लेजरमध्ये (पावती #{ex_id}) नोंदवलेली आहे. दुबार नोंद टाळली गेली आहे."
+        }
+
+    # If not duplicate, insert new unique receipt
     cursor.execute(
         "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, image_hash) "
         "VALUES (?, ?, ?, ?, ?, ?)",
         (
-            data.get("vendor_name", "Kirana Store"),
+            v_name,
             rec_date,
             data.get("category", "General"),
-            data.get("grand_total", 0.0),
+            g_total,
             raw_json_str,
             image_hash,
         )

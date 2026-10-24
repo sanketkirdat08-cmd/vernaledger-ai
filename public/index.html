@@ -161,9 +161,21 @@
                     VernaLedger AI • AGCE Satara
                 </div>
 
-                <button class="btn-pill" id="theme-toggle-btn" onclick="toggleTheme()" style="margin-bottom: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700;">
-                    <span id="theme-icon">☀️</span> <span id="theme-label">किराणा मोड (Light)</span>
-                </button>
+                <!-- Compact Sleek Developers Badge in Sidebar Footer -->
+                <div class="developer-team-badge" style="background: linear-gradient(135deg, rgba(0, 242, 254, 0.08), rgba(176, 38, 255, 0.08)); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 10px; padding: 7px 9px; margin-bottom: 10px; font-size: 0.72rem; line-height: 1.4; text-align: left;">
+                    <div style="font-weight: 800; color: var(--neon-cyan); display: flex; align-items: center; gap: 5px; margin-bottom: 3px; font-size: 0.73rem;">
+                        <span>👥</span> <span>प्रकल्प डेव्हलपर्स (AI & DS):</span>
+                    </div>
+                    <div style="color: var(--text-white); font-weight: 600; font-size: 0.69rem; line-height: 1.35;">
+                        १. संकेत किर्दत (Lead Dev)<br>
+                        २. साक्षी भगत<br>
+                        ३. वैष्णवी ढवळे<br>
+                        ४. ऋषिकेश मुळीक
+                    </div>
+                    <div style="color: var(--neon-green); font-size: 0.64rem; margin-top: 4px; font-weight: 600; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 3px;">
+                        🎓 गाईड: प्रा. कैसर अतार सर (AGCE)
+                    </div>
+                </div>
                 <div class="user-pill" style="margin-bottom: 0;">
                     <div>
                         <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-white);" id="sidebar-user-name">admin</div>
@@ -181,7 +193,10 @@
                 <div class="view-title-group">
                     <h2 id="hud-title">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
-                <div class="hud-controls">
+                <div class="hud-controls" style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
+                        <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label">किराणा मोड</span>
+                    </button>
                     <select class="language-select" id="hud-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
                         <option value="mr">🌐 मराठी</option>
                         <option value="en">🌐 English</option>
@@ -864,7 +879,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=33.0"></script>
+    <script src="app.js?v=34.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL
