@@ -529,7 +529,7 @@ def clean_json_str(text: str) -> dict:
 
     data["grand_total"] = gt_val if (gt_val > 0.0 and abs(gt_val - calc_grand) < 1.0) else (calc_grand if calc_grand > 0 else gt_val)
     if not data.get("vendor_name"):
-        data["vendor_name"] = "महादेव किराणा स्टोअर"
+        data["vendor_name"] = "किराणा पावती"
     if not data.get("date"):
         data["date"] = date.today().strftime("%Y-%m-%d")
     data["category"] = data.get("category") or "General"
@@ -779,7 +779,7 @@ Spoken Text: "{req.transcript}"
 RULES:
 1. Party / Customer / Vendor Name:
    - Identify if a person/customer name is spoken (e.g. 'कैलास अतार', 'ढवळे', 'मुळीक', 'गवळी', 'सागर', 'रमेश', 'सुरेश', 'पाटील', 'सोनवणे').
-   - If a customer name is spoken, set vendor_name to that customer name. If no name is spoken, use "महादेव किराणा स्टोअर".
+   - If a customer name is spoken, set vendor_name to that customer name. If no name is spoken, use "किराणा खरेदी".
 2. Extract all line items:
    - item_name: Clean item name in Marathi Devanagari (e.g. 'साखर', 'शेंगदाणा तेल', 'गहू', 'चहा पावडर', 'साबण').
    - quantity: Quantity with unit (e.g. '2 किलो', '1 लिटर', '500 gm', '2 नग').
@@ -831,7 +831,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
     data["id"] = cursor.lastrowid
     # Auto-sync to Customer Khata if spoken text mentions credit/udhar
     if any(k in req.transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
-        cust = data.get("vendor_name", "").replace("महादेव किराणा स्टोअर", "").strip() or "ग्राहक"
+        cust = data.get("vendor_name", "").replace("महादेव किराणा स्टोअर", "").replace("किराणा पावती", "").strip() or "ग्राहक"
         cursor.execute(
             "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (cust, "", data["grand_total"], "Credit Given", today_str, "", f"व्हॉइस बिल #{data['id']}")

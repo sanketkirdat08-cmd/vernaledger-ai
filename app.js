@@ -732,6 +732,7 @@ function showApp() {
 
     // Initialize High-Contrast Theme (किराणा मोड)
     initTheme();
+    resetBillCard();
 
     loadReceiptsLedger();
     loadKhataData();
@@ -1166,9 +1167,31 @@ async function submitVoiceBilling() {
 // -----------------------------------------------------------------------------
 // LIVE EDITABLE BILL CENTER
 // -----------------------------------------------------------------------------
+function resetBillCard() {
+    state.currentBill = null;
+    const vendorEl = document.getElementById("bill-vendor-name");
+    const dateEl = document.getElementById("bill-date");
+    const tbody = document.getElementById("bill-items-tbody");
+    const totalEl = document.getElementById("bill-grand-total");
+    const badge = document.getElementById("bill-badge-status");
+
+    if (vendorEl) vendorEl.value = "";
+    if (dateEl) {
+        dateEl.value = new Date().toISOString().split("T")[0];
+    }
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-slate); padding: 24px 10px; font-size: 0.82rem;">📸 पावती स्कॅन करा किंवा 🎙️ व्हॉइस बोला — वस्तू व हिशोब येथे आपोआप दिसेल.</td></tr>`;
+    }
+    if (totalEl) totalEl.innerText = "₹0.00";
+    if (badge) {
+        badge.innerText = "READY";
+        badge.className = "user-role-badge badge-admin";
+    }
+}
+
 function populateBillCard(data) {
     state.currentBill = data;
-    document.getElementById("bill-vendor-name").value = data.vendor_name || "महादेव किराणा स्टोअर";
+    document.getElementById("bill-vendor-name").value = data.vendor_name || "";
     if (data.date && data.date.includes("-")) {
         document.getElementById("bill-date").value = data.date;
     }
@@ -1181,8 +1204,6 @@ function populateBillCard(data) {
             const displayName = formatLocalizedName(item.item_name || "", state.lang);
             appendBillRow(displayName, item.quantity || "1", item.rate || 0, item.total_price || 0);
         });
-    } else {
-        appendBillRow(state.lang === "mr" ? "साखर" : "Sugar", "1 kg", 44, 44);
     }
 
     recalcBillTotal();
@@ -1202,6 +1223,10 @@ function appendBillRow(name = "", qty = "1", rate = 0, total = 0) {
 }
 
 function addBillRow() {
+    const tbody = document.getElementById("bill-items-tbody");
+    if (tbody && tbody.querySelector("td[colspan]")) {
+        tbody.innerHTML = "";
+    }
     appendBillRow("", "1", 0, 0);
 }
 
@@ -1294,6 +1319,7 @@ async function saveCurrentBillToLedger() {
         loadDashboardMetrics();
         loadReceiptsLedger();
         alert("✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!");
+        resetBillCard();
     } catch (e) {
         alert("एरर: " + e.message);
     }
@@ -1463,7 +1489,7 @@ function renderKhataCards(customers) {
 
         const safePhone = (c.phone || "").replace(/\D/g, "");
         const waMsg = encodeURIComponent(
-            `🙏 *महादेव किराणा स्टोअर*\n` +
+            `🙏 *${(bill.vendor_name || 'किराणा पावती').trim()}*\n` +
             `नमस्कार ${c.name} जी!\n` +
             `आपल्या खात्यावर दुकानाचे एकूण *₹${c.balance.toFixed(2)}* उधारीचे येणे बाकी आहे.\n\n` +
             `💳 कृपया खालील UPI लिंकवरून GooglePay / PhonePe द्वारे पेमेंट करावे:\n` +

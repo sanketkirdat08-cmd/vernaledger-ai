@@ -294,7 +294,7 @@
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_vendor">दुकान / विक्रेत्याचे नाव</label>
-                                <input type="text" id="bill-vendor-name" class="input-cyber" value="महादेव किराणा स्टोअर">
+                                <input type="text" id="bill-vendor-name" class="input-cyber" placeholder="दुकान / विक्रेत्याचे नाव" value="">
                             </div>
                             <div>
                                 <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_date">तारीख</label>
@@ -315,20 +315,10 @@
                                     </tr>
                                 </thead>
                                 <tbody id="bill-items-tbody">
-                                    <!-- Dynamic Rows -->
                                     <tr>
-                                        <td><input type="text" class="input-cyber item-name" value="साखर (Sugar)"></td>
-                                        <td><input type="text" class="input-cyber item-qty" value="2 kg" oninput="recalcBillTotal()"></td>
-                                        <td><input type="number" class="input-cyber item-rate" value="44.0" oninput="recalcBillTotal()"></td>
-                                        <td class="item-total" style="font-weight: 700; color: var(--neon-cyan);">88.00</td>
-                                        <td><button onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">✕</button></td>
-                                    </tr>
-                                    <tr>
-                                        <td><input type="text" class="input-cyber item-name" value="शेंगदाणा तेल"></td>
-                                        <td><input type="text" class="input-cyber item-qty" value="1 ltr" oninput="recalcBillTotal()"></td>
-                                        <td><input type="number" class="input-cyber item-rate" value="165.0" oninput="recalcBillTotal()"></td>
-                                        <td class="item-total" style="font-weight: 700; color: var(--neon-cyan);">165.00</td>
-                                        <td><button onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer;">✕</button></td>
+                                        <td colspan="5" style="text-align: center; color: var(--text-slate); padding: 24px 10px; font-size: 0.82rem;">
+                                            📸 पावती स्कॅन करा किंवा 🎙️ व्हॉइस बोला — वस्तू व हिशोब येथे आपोआप दिसेल.
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -340,7 +330,7 @@
                             </button>
                             <div style="text-align: right;">
                                 <span style="font-size: 0.8rem; color: var(--text-slate);" data-i18n="lbl_grand_total">एकूण रक्कम:</span>
-                                <span style="font-size: 1.45rem; font-weight: 800; color: var(--neon-green); margin-left: 8px;" id="bill-grand-total">₹253.00</span>
+                                <span style="font-size: 1.45rem; font-weight: 800; color: var(--neon-green); margin-left: 8px;" id="bill-grand-total">₹0.00</span>
                             </div>
                         </div>
 
@@ -712,7 +702,7 @@
             </div>
             <div class="modal-body" style="text-align: center;">
                 <div id="thermal-print-target" class="thermal-receipt">
-                    <div class="center" style="font-size: 1.15rem; font-weight: 900; margin-bottom: 2px;" id="receipt-shop-name">महादेव किराणा स्टोअर</div>
+                    <div class="center" style="font-size: 1.15rem; font-weight: 900; margin-bottom: 2px;" id="receipt-shop-name">किराणा पावती</div>
                     <div class="center" style="font-size: 0.72rem; color: #4b5563;" id="receipt-shop-addr">मेन रोड, मार्केट यार्ड, सातारा | Ph: 9876543210</div>
                     <div class="center" style="font-size: 0.7rem; color: #4b5563;">GSTIN: 27AAAAA0000A1Z5</div>
                     <hr>
@@ -879,7 +869,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=34.0"></script>
+    <script src="app.js?v=35.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL
