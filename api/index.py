@@ -852,30 +852,36 @@ SUPPORTED_LANGUAGES = {
 }
 
 def detect_msg_language(text: str, requested: str = "mr") -> str:
-    """Detect whether user query is in Marathi or English based on actual text first, fallback to requested."""
+    """Detect whether user query is in Marathi, Hindi, or English based on actual text, fallback to requested."""
     clean = (text or "").strip()
     if not clean:
         return requested if requested in ["mr", "en", "hi"] else "mr"
 
     lower_clean = clean.lower()
-    if any(em in lower_clean for em in ["english madhe", "english mande", "in english", "speak in english", "answer in english", "इंग्रजीत", "इंग्लिश मध्ये"]):
+    # Explicit language override requests take highest precedence
+    if any(em in lower_clean for em in ["english madhe", "english mande", "in english", "speak in english", "answer in english", "reply in english", "इंग्रजीत", "इंग्लिश मध्ये"]):
         return "en"
-    if any(mm in lower_clean for mm in ["marathi madhe", "marathi mande", "in marathi", "मराठीत", "मराठी मध्ये"]):
+    if any(mm in lower_clean for mm in ["marathi madhe", "marathi mande", "in marathi", "speak in marathi", "answer in marathi", "मराठीत", "मराठी मध्ये"]):
         return "mr"
-    if any(hm in lower_clean for hm in ["hindi me", "hindi madhe", "in hindi", "हिंदी में", "हिन्दी मध्ये"]):
+    if any(hm in lower_clean for hm in ["hindi me", "hindi madhe", "in hindi", "speak in hindi", "answer in hindi", "हिंदी में", "हिन्दी मध्ये"]):
         return "hi"
 
-    devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
+    devanagari_count = len(re.findall(r"[ऀ-ॿ]", clean))
     latin_count = len(re.findall(r"[A-Za-z]", clean))
 
     if devanagari_count >= 2:
         return "hi" if requested == "hi" else "mr"
 
+    # If user selected Marathi (or Hindi) in UI, stay in that language unless explicitly requested in English
+    # This ensures Romanized Marathi (e.g. 'mulik', 'kirdat', 'project baddal mahiti sanga') answers in Marathi
+    if requested in ["mr", "hi"]:
+        return requested
+
     marathi_markers = [
         "ahe", "aahe", "nahi", "nahiy", "sanga", "kiti", "kay", "udhari", "kharch",
         "vikri", "satha", "pavti", "hishob", "konakade", "koni", "namaskar",
         "dili", "dile", "ghetle", "zale", "jhale", "kar", "kara", "lihi", "dya",
-        "साखर", "तेल", "गहू", "तांदूळ", "चहा", "साबण", "दुकान", "बाकी"
+        "baddal", "vishayi", "mahiti", "साखर", "तेल", "गहू", "तांदूळ", "चहा", "साबण", "दुकान", "बाकी"
     ]
     if any(m in lower_clean for m in marathi_markers):
         return "mr"
@@ -1659,19 +1665,135 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             f"The user language is Marathi (मराठी). Answer in natural, fluent, grammatically correct Marathi (शुद्ध देवनागरी मराठी).\n{length_instruction}"
         )
 
-    # 1. Project Guide (Check before developers if specifically asked about guide)
-    if any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'सर कोण']) and not any(k in lower_msg for k in ['डेव्हलपर', 'developer', 'टीम', 'team']):
-        answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
+    # -------------------------------------------------------------------------
+    # SMART FAST PATH & KNOWLEDGE ROUTING (100% ACCURATE & INSTANT)
+    # -------------------------------------------------------------------------
+
+    # A. Specific Individual Developer & Guide Checks (Surnames & Names in Roman / Devanagari)
+    is_mulik = any(k in lower_msg for k in ['mulik', 'मुळीक', 'rushikesh', 'ऋषिकेश'])
+    is_bhagat = any(k in lower_msg for k in ['bhagat', 'भगत', 'sakshi', 'साक्षी'])
+    is_dhawale = any(k in lower_msg for k in ['dhawale', 'ढवळे', 'vaishnavi', 'वैष्णवी'])
+    is_atar = any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'कैसर', 'kaisar', 'सर कोण']) and not any(k in lower_msg for k in ['डेव्हलपर', 'developer', 'टीम', 'team'])
+    
+    # Check if user specifically asked for Sanket Kirdat individually vs whole team
+    is_kirdat_individual = (any(k in lower_msg for k in ['kirdat', 'किर्दत', 'sanket kirdat', 'संकेत किर्दत']) or any(k in lower_msg for k in ['sanket', 'संकेत'])) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची'])
+
+    # Query asking about all/multiple developers or general developer query
+    is_all_devs_query = any(k in lower_msg for k in [
+        'developer', 'developers', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 
+        'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 
+        'who made', 'किसने बनाया', 'डेव्हलपर कोण', 'सगळे डेव्हलपर', 'सर्व डेव्हलपर',
+        'team members', 'सगळ्यांची नावे', 'नावे सांगा', 'जेवढे डेव्हलपर'
+    ])
+
+    if is_mulik and not is_all_devs_query:
+        if is_english:
+            answer = """👨‍💻 **Rushikesh Mulik**:
+• **Role:** Co-Developer (Database & Ledger Architecture)
+• **Key Contributions:** SQLite ACID Database Architecture, Customer Ledger (उधारी वही), Real-Time Transaction Engine, and Balance Sheet Management.
+• **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guide:** Prof. Kaisar Atar Sir"""
+        else:
+            answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
+• **भूमिका:** सह-विकासक (Co-Developer - Database & Ledger Architecture)
+• **महत्त्वाचे योगदान:** SQLite ACID डेटाबेस आर्किटेक्चर, ग्राहक खाते (उधारी वही), रिअल-टाइम लेजर व्यवस्थापन आणि बॅलन्स शीट इंजिन.
+• **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+    elif is_bhagat and not is_all_devs_query:
+        if is_english:
+            answer = """👩‍💻 **Sakshi Bhagat**:
+• **Role:** Co-Developer (UI/UX & System Design)
+• **Key Contributions:** Responsive Cyberpunk Business Studio UI/UX, Dynamic Theme Engine, Accessibility, and Voice-to-UI Interaction Design.
+• **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guide:** Prof. Kaisar Atar Sir"""
+        else:
+            answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
+• **भूमिका:** सह-विकासक (Co-Developer - UI/UX & System Design)
+• **महत्त्वाचे योगदान:** सायबरपंक बिझनेस स्टुडिओ UI/UX डिझाईन, रिस्पॉन्सिव्ह मोबाईल/डेस्कटॉप इंटरफेस आणि व्हॉईस-टू-UI इंटरअॅक्शन डिझाईन.
+• **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+    elif is_dhawale and not is_all_devs_query:
+        if is_english:
+            answer = """👩‍💻 **Vaishnavi Dhawale**:
+• **Role:** Co-Developer (Multilingual Data Pipeline)
+• **Key Contributions:** Multilingual Marathi/Hindi/English NLP, Regional ASR Dialect Datasets, Vernacular Voice Pipeline, and Audio Transcription Processing.
+• **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guide:** Prof. Kaisar Atar Sir"""
+        else:
+            answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhawale)**:
+• **भूमिका:** सह-विकासक (Co-Developer - Multilingual Data Pipeline)
+• **महत्त्वाचे योगदान:** बहुभाषिक (मराठी/इंग्रजी/हिंदी) NLP डेटा पाईपलाईन, प्रादेशिक (सातारी/पुणेरी/कोल्हापुरी) ASR उच्चार डेटासेट आणि ऑडिओ प्रोसेसिंग.
+• **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+    elif is_kirdat_individual and not is_all_devs_query:
+        if is_english:
+            answer = """👨‍💻 **Sanket Kirdat**:
+• **Role:** Lead Full-Stack AI Developer & Project Head
+• **Key Contributions:** Complete VernaLedger.AI Architecture, Multimodal AI Engine (ViT & Document AI), Vernacular Marathi Voice Billing, and Full-Stack Platform.
+• **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guide:** Prof. Kaisar Atar Sir"""
+        else:
+            answer = """👨‍💻 **संकेत किर्दत (Sanket Kirdat)**:
+• **भूमिका:** प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
+• **महत्त्वाचे योगदान:** संपूर्ण VernaLedger.AI सिस्टीम आर्किटेक्चर, मल्टिमोडल AI स्कॅनर, अस्खलित मराठी व्हॉईस बिलिंग आणि फुल-स्टॅक प्लॅटफॉर्म विकसक.
+• **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+
+    elif is_atar:
+        if is_english:
+            answer = """🎓 **Prof. Kaisar Atar Sir (Project Guide)**:
+• **Designation:** Project Guide & Faculty Member
+• **Department:** Department of Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guided:** VernaLedger.AI (Merchant Pro v7.5)"""
+        else:
+            answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
 • **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 • **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
-• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
+• **मार्गदर्शित प्रकल्प:** VernaLedger.AI (Merchant Pro v7.5)"""
 
-    # 2. Developers / Development Team (ALL 4 DEVELOPERS ALWAYS GUARANTEED)
-    elif any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 'who made', 'किसने बनाया', 'डेव्हलपर कोण', 'संकेत', 'साक्षी', 'वैष्णवी', 'ऋषिकेश']):
-        if any(k in lower_msg for k in ['लीड', 'lead', 'मुख्य']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'जेवढे', 'इतर', 'नावे']):
-            answer = """👨‍💻 **प्रकल्प प्रमुख आणि लीड डेव्हलपर (Lead Developer)**:
+    # B. Developers / Development Team (ALL 4 DEVELOPERS ALWAYS GUARANTEED)
+    elif is_all_devs_query or any(k in lower_msg for k in ['developer', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 'creator']):
+        is_lead_only = any(k in lower_msg for k in ['लीड', 'lead', 'मुख्य']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'जेवढे', 'इतर', 'नावे', 'team', 'टीम', 'सगळ्यांची'])
+        if is_lead_only:
+            if is_english:
+                answer = """👨‍💻 **Lead Developer**:
+• **Sanket Kirdat** – Lead Full-Stack AI Developer & Project Head
+  *(Architected the core VernaLedger.AI engine, multimodal scanner, voice billing, and end-to-end platform)*
+
+👥 **Co-Developers**:
+२. **Sakshi Bhagat** – Co-Developer (UI/UX & System Design)
+३. **Vaishnavi Dhawale** – Co-Developer (Multilingual Data Pipeline)
+४. **Rushikesh Mulik** – Co-Developer (Database & Ledger Architecture)
+
+🎓 **Project Guide:** Prof. Kaisar Atar Sir
+🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)"""
+            else:
+                answer = """👨‍💻 **प्रकल्प प्रमुख आणि लीड डेव्हलपर (Lead Developer)**:
 • **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
+  *(संपूर्ण VernaLedger.AI आर्किटेक्चर, मल्टिमोडल स्कॅनर, व्हॉईस बिलिंग आणि फुल-स्टॅक प्लॅटफॉर्म विकसक)*
 
 👥 **सह-विकासक टीम (Co-Developers)**:
 २. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (UI/UX & System Design)
@@ -1679,9 +1801,20 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. **ऋषिकेश मुळीक (Rushikesh Mulik)** – सह-विकासक (Database & Ledger Architecture)
 
 🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
-🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE)"""
+🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)"""
         else:
-            answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Development Team - सर्व ४ डेव्हलपर्स)**:
+            if is_english:
+                answer = """👨‍💻 **Project Development Team (All 4 Developers)**:
+1. **Sanket Kirdat** – Lead Full-Stack AI Developer & Project Head
+2. **Sakshi Bhagat** – Co-Developer (UI/UX & System Design)
+3. **Vaishnavi Dhawale** – Co-Developer (Multilingual Data Pipeline)
+4. **Rushikesh Mulik** – Co-Developer (Database & Ledger Architecture)
+
+🎓 **Project Guide:** Prof. Kaisar Atar Sir
+🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+🏛️ **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
+            else:
+                answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Development Team - सर्व ४ डेव्हलपर्स)**:
 १. **संकेत किर्दत (Sanket Kirdat)** – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
 २. **साक्षी भगत (Sakshi Bhagat)** – सह-विकासक (Co-Developer - UI/UX & System Design)
 ३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
@@ -1691,8 +1824,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 🏛️ **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
 
-    # 3. Specific College & Academic Information
-    elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']) and not any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती']):
+    # C. Specific College & Academic Information
+    elif any(k in lower_msg for k in ['कॉलेज', 'college', 'महाविद्यालय', 'विद्यापीठ', 'university', 'dbatu', 'शैक्षणिक', 'department', 'विभाग', 'शाखा', 'पदवी', 'degree']) and not any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'all info', 'full info', 'overview']):
         answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
@@ -1702,8 +1835,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
 • **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
 
-    # 4. Full Project Dossier (Triggered ONLY when query explicitly targets this project/VernaLedger)
-    elif any(k in lower_msg for k in ['प्रकल्प माहिती', 'प्रोजेक्ट माहिती', 'project details', 'about project', 'clg developer', 'college developer']) or (any(p in lower_msg for p in ['प्रकल्प', 'प्रकल्पा', 'प्रोजेक्ट', 'project', 'vernaledger']) and any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'all info', 'full info', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य', 'माहिती सांगा', 'माहिती द्या'])):
+    # D. Full Project Dossier (Triggered for 'project baddal mahiti sanga', 'project chi mahiti sanga', etc.)
+    elif (any(p in lower_msg for p in ['प्रकल्प', 'प्रकल्पा', 'प्रोजेक्ट', 'project', 'vernaledger', 'सॉफ्टवेअर', 'software', 'सिस्टीम', 'system']) and any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'माहिती सांगा', 'माहिती द्या', 'माहिती', 'mahiti', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य', 'baddal', 'vishayi', 'sanga', 'dya', 'काय आहे', 'kay ahe'])) or any(k in lower_msg for k in ['project details', 'about project', 'clg developer', 'college developer', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती']):
         answer = """🏛️ **महाविद्यालय व शैक्षणिक तपशील (College & Academic Info)**:
 • **प्रकल्प शीर्षक:** VernaLedger.AI (Merchant Pro v7.5)
 • **पदवी:** B.Tech (Bachelor of Technology)
@@ -1730,7 +1863,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
-    # 5. Project Overview, Aim & Features
+    # E. Project Overview, Aim & Features
     elif any(k in lower_msg for k in ['फायदे', 'features', 'overview', 'काम काय']):
         answer = """🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
 स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
@@ -1740,7 +1873,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. 🤖 **Verna AI स्टुडिओ (चॅटबॉट):** दुकानातील नफा, विक्री, उधारी आणि साठ्याची माहिती अवघ्या काही मिलिसेकंदांत देणारा व्यवसाय सल्लागार.
 ५. 📊 **एक्सेल एक्सपोर्ट आणि प्रिंटर सपोर्ट:** संपूर्ण हिशोबाची एक-क्लिक Excel (.xlsx) फाईल व थर्मल प्रिंट पावती."""
 
-    # 6. Technical Architecture: 5 Scanner AI Pillars
+    # F. Technical Architecture: 5 Scanner AI Pillars
     elif (any(k in lower_msg for k in ['स्कॅनर', 'scanner', 'vit']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '५', '5', 'फिचर्स'])) or any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स']):
         answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
 १. 🔍 **Vision Transformers (ViTs):** पावतीचे लहान व्हिज्युअल पॅचेस (Patches) बनवून तिरपे, घाईत लिहिलेले व अस्पष्ट मराठी हस्तलिखित अचूक वाचते.
@@ -1749,14 +1882,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. 🧩 **Context-Aware Attention:** अस्पष्ट अंक (उदा. १ की ७, किंवा ३ की ८) आजूबाजूच्या शब्दांवरून आणि गणिताचा हिशोब (दर × वजन) तपासून आपोआप ओळखते.
 ५. 📄 **Google Cloud Vision & Document AI Fallback:** मुख्य मॉडेलवर अडथळा आल्यास गुगलच्या Document Text Detection API द्वारे पावती अखंड वाचली जाते."""
 
-    # 7. Technical Architecture: 4 Chatbot Core Pillars
+    # G. Technical Architecture: 4 Chatbot Core Pillars
     elif (any(k in lower_msg for k in ['चॅटबॉट', 'chatbot', 'bot']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '४', '4'])) or any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स']):
         answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
 १. 🌐 **Native Multimodal Architecture:** आवाज आणि मजकूर एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते.
 २. 🎙️ **ASR & Speech-to-Text:** दुकानातील गोंगाट गाळून सातारी, कोल्हापुरी, पुणेरी व ग्रामीण मराठी उच्चार अचूक ओळखते.
 ३. 🧠 **Transformer LLM & Contextual Reasoning:** दुकानाच्या थेट SQLite डेटाबेसमधील हिशोब तपासून १००% अचूक, तात्त्विक व बिनचूक उत्तरे देते (No Hallucination).
 ४. ⚡ **Real-Time Low Latency Engine:** सब-मिलिसेकंद (१०-१५ ms) इन-मेमरी मेमरी ॲक्सेस आणि सब-सेकंद फास्ट जेमिनी जनरेशन."""
-    elif any(k in lower_msg for k in ['namaskar', 'नमस्कार', 'नमस्ते', 'hello', 'hi', 'हॅलो']):
+
+    # H. Greetings (Strict Regex Word Boundary with word count <= 3 to avoid substring traps)
+    elif bool(re.search(r'\b(namaskar|namaste|hello|hi|hey|हॅलो|नमस्कार|नमस्ते)\b', lower_msg)) and len(lower_msg.split()) <= 3:
         if is_hindi:
             answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
         elif is_english:
@@ -1793,14 +1928,14 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 break
 
     if not answer:
-        if any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री']):
+        if any(k in lower_msg for k in ['आजची विक्री', 'विक्री किती', 'आज किती विक्री', 'today sales', 'todays sales', 'todays revenue', 'आज की बिक्री', 'aajchi vikri', 'aaj chi vikri', 'vikri kiti', 'sales kiti']):
             if is_hindi:
                 answer = f"आज की कुल बिक्री ₹{today_sales:,.2f} है। (कुल दर्ज बिक्री: ₹{total_sales:,.2f})"
             elif is_english:
                 answer = f"Today's total sales: ₹{today_sales:,.2f} | Overall sales recorded: ₹{total_sales:,.2f}."
             else:
                 answer = f"आजची एकूण विक्री ₹{today_sales:,.2f} आहे. (एकूण नोंदवलेली विक्री ₹{total_sales:,.2f})"
-        elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी']):
+        elif any(k in lower_msg for k in ['बाकी उधारी', 'एकूण उधारी', 'उधारी किती', 'उधारी सांगा', 'pending udhar', 'pending credit', 'उधारी कितनी', 'udhari kiti', 'baki udhari', 'ekun udhari']):
             dues_text = ', '.join(khata_summary[:3]) if khata_summary else 'कोणाचीही उधारी बाकी नाही.'
             if is_hindi:
                 answer = f"दुकान की कुल बकाया उधारी ₹{pending_udhar:,.2f} है। मुख्य बकायादार: {dues_text}."
@@ -1808,7 +1943,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 answer = f"Total pending credit: ₹{pending_udhar:,.2f}. Top dues: {dues_text}."
             else:
                 answer = f"बाजारातील एकूण बाकी उधारी ₹{pending_udhar:,.2f} आहे. प्रमुख थकबाकीदार: {dues_text}."
-        elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक']):
+        elif any(k in lower_msg for k in ['कमी साठा', 'साठा संपला', 'साठा किती', 'स्टॉक किती', 'low stock', 'out of stock', 'कम स्टॉक', 'stock kiti', 'kami satha', 'satha kiti']):
             stock_text = ', '.join(low_summary[:3]) if low_summary else 'सर्व वस्तूंचा साठा मुबलक आहे.'
             if is_hindi:
                 answer = f"कम स्टॉक वाली वस्तुएं: {stock_text}."
@@ -1816,14 +1951,14 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
                 answer = f"Low stock items: {stock_text}."
             else:
                 answer = f"कमी साठा असलेल्या वस्तू: {stock_text}."
-        elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा']):
+        elif any(k in lower_msg for k in ['नफा किती', 'निव्वळ नफा', 'net profit', 'net margin', 'मुनाफा', 'nafa kiti']):
             if is_hindi:
                 answer = f"दुकान का शुद्ध लाभ (Net Profit): ₹{net_profit:,.2f} है।"
             elif is_english:
                 answer = f"Estimated Net Profit: ₹{net_profit:,.2f}."
             else:
                 answer = f"दुकानचा अंदाजे निव्वळ नफा (Net Profit): ₹{net_profit:,.2f} आहे."
-        elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना']):
+        elif any(k in lower_msg for k in ['खर्च किती', 'आजचा खर्च', 'एकूण खर्च', 'today expense', 'total expense', 'खर्च कितना', 'kharch kiti', 'aajcha kharch']):
             if is_hindi:
                 answer = f"आज का खर्च ₹{today_expenses:,.2f} है। (कुल दर्ज खर्च: ₹{total_expenses:,.2f})"
             elif is_english:
@@ -1846,6 +1981,8 @@ You possess two core intelligence systems:
      2. Sakshi Bhagat (Co-Developer - UI/UX & System Design)
      3. Vaishnavi Dhawale (Co-Developer - Multilingual Data Pipeline)
      4. Rushikesh Mulik (Co-Developer - Database & Ledger Architecture)
+   - CRITICAL DEVELOPER INSTRUCTION: When asked about developers, team, or who built this project, you MUST ALWAYS explicitly list ALL 4 DEVELOPERS (1. Sanket Kirdat - Lead, 2. Sakshi Bhagat, 3. Vaishnavi Dhawale, 4. Rushikesh Mulik) and Guide Prof. Kaisar Atar Sir (AGCE Satara). Never omit any member.
+   - LANGUAGE INSTRUCTION: When responding in Marathi, write in pure Devanagari Marathi even if the user typed their question using English/Roman alphabet (e.g. 'mulik', 'project baddal sanga').
    - 5 Scanner Pillars: Vision Transformers (ViT), Native Multimodal AI, Google TPU Cloud, Context-Aware Attention, Google Cloud Vision / Document AI Fallback.
    - 4 Chatbot Pillars: Native Multimodal Architecture, High-Accuracy Vernacular ASR, Transformer LLM Reasoning (Zero-Hallucination), Low Latency Engine (SQLite ACID WAL).
    - Live Store Data: Use [Live Shop Real Data] to answer store financial/stock questions with 100% mathematical accuracy.
