@@ -367,6 +367,11 @@ class RAGChatRequest(BaseModel):
     voice_output: Optional[bool] = False
     username: Optional[str] = "admin"
 
+class SyncDataRequest(BaseModel):
+    receipts: Optional[List[Dict[str, Any]]] = None
+    khata: Optional[List[Dict[str, Any]]] = None
+    expenses: Optional[List[Dict[str, Any]]] = None
+
 class NewUserRequest(BaseModel):
     username: str
     password: str
@@ -1432,6 +1437,97 @@ def add_expense(req: ExpenseRequest):
     conn.commit()
     conn.close()
     return {"success": True}
+
+# -----------------------------------------------------------------------------
+# BI-DIRECTIONAL CLIENT-TO-SERVER PERSISTENCE & AUTO-SYNC
+# -----------------------------------------------------------------------------
+@app.post("/api/sync")
+def sync_client_data(req: SyncDataRequest):
+    """Bi-directional auto-sync: restores client's persistent offline bills into serverless SQLite."""
+    conn = get_db()
+    cursor = conn.cursor()
+    restored_receipts = 0
+    restored_khata = 0
+    restored_expenses = 0
+
+    if req.receipts:
+        for r in req.receipts:
+            try:
+                v_name = r.get("vendor_name", "किराणा स्टोअर")
+                r_date = r.get("date", date.today().strftime("%Y-%m-%d"))
+                cat = r.get("category", "General")
+                total = float(r.get("grand_total") or 0.0)
+                raw = r.get("raw_json", {})
+                raw_str = json.dumps(raw, ensure_ascii=False) if isinstance(raw, dict) else str(raw or "{}")
+                h = r.get("image_hash", "")
+                
+                existing = cursor.execute(
+                    "SELECT id FROM receipts WHERE vendor_name = ? AND date = ? AND ABS(grand_total - ?) < 0.01",
+                    (v_name, r_date, total)
+                ).fetchone()
+                if not existing and total > 0:
+                    cursor.execute(
+                        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, image_hash) VALUES (?, ?, ?, ?, ?, ?)",
+                        (v_name, r_date, cat, total, raw_str, h)
+                    )
+                    restored_receipts += 1
+            except Exception as e:
+                logger.warning(f"Sync receipt item skipped: {e}")
+
+    if req.khata:
+        for k in req.khata:
+            try:
+                c_name = (k.get("customer_name") or "").strip()
+                phone = (k.get("phone") or "").strip()
+                amt = float(k.get("amount") or 0.0)
+                tt = k.get("transaction_type", "Credit Given")
+                k_date = k.get("date", date.today().strftime("%Y-%m-%d"))
+                due = k.get("due_date", "")
+                notes = k.get("notes", "")
+                if c_name and amt > 0:
+                    existing = cursor.execute(
+                        "SELECT id FROM customer_khata WHERE customer_name = ? AND date = ? AND ABS(amount - ?) < 0.01 AND transaction_type = ?",
+                        (c_name, k_date, amt, tt)
+                    ).fetchone()
+                    if not existing:
+                        cursor.execute(
+                            "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (c_name, phone, amt, tt, k_date, due, notes)
+                        )
+                        restored_khata += 1
+            except Exception as e:
+                logger.warning(f"Sync khata item skipped: {e}")
+
+    if req.expenses:
+        for ex in req.expenses:
+            try:
+                title = (ex.get("expense_title") or "").strip()
+                amt = float(ex.get("amount") or 0.0)
+                cat = ex.get("category", "दुकान खर्च")
+                e_date = ex.get("date", date.today().strftime("%Y-%m-%d"))
+                notes = ex.get("notes", "")
+                if title and amt > 0:
+                    existing = cursor.execute(
+                        "SELECT id FROM business_expenses WHERE expense_title = ? AND date = ? AND ABS(amount - ?) < 0.01",
+                        (title, e_date, amt)
+                    ).fetchone()
+                    if not existing:
+                        cursor.execute(
+                            "INSERT INTO business_expenses (expense_title, amount, category, date, notes) VALUES (?, ?, ?, ?, ?)",
+                            (title, amt, cat, e_date, notes)
+                        )
+                        restored_expenses += 1
+            except Exception as e:
+                logger.warning(f"Sync expense item skipped: {e}")
+
+    conn.commit()
+    conn.close()
+    return {
+        "success": True,
+        "restored_receipts": restored_receipts,
+        "restored_khata": restored_khata,
+        "restored_expenses": restored_expenses
+    }
 
 # -----------------------------------------------------------------------------
 # NEURAL AI STUDIO (RAG ENGINE QUERY & VOICE ACTION EXECUTOR)

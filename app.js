@@ -25,6 +25,153 @@ const state = {
     chatHistory: []
 };
 
+// -----------------------------------------------------------------------------
+// LOCAL-FIRST PERSISTENT STORAGE & AUTO-SYNC ENGINE (OFFLINE & SERVERLESS PROOF)
+// -----------------------------------------------------------------------------
+const VernaStorage = {
+    KEY_RECEIPTS: "verna_persistent_receipts",
+    KEY_KHATA: "verna_persistent_khata",
+    KEY_EXPENSES: "verna_persistent_expenses",
+
+    get(key) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.warn("VernaStorage get notice:", e);
+            return [];
+        }
+    },
+
+    save(key, items) {
+        try {
+            localStorage.setItem(key, JSON.stringify(items));
+        } catch (e) {
+            console.warn("VernaStorage save notice:", e);
+        }
+    },
+
+    addReceipt(receipt) {
+        if (!receipt) return;
+        const list = this.get(this.KEY_RECEIPTS);
+        const exists = list.some(r => 
+            (r.id && receipt.id && r.id === receipt.id) ||
+            (r.vendor_name === receipt.vendor_name && r.date === receipt.date && Math.abs((Number(r.grand_total) || 0) - (Number(receipt.grand_total) || 0)) < 0.01)
+        );
+        if (!exists) {
+            list.unshift(receipt);
+            this.save(this.KEY_RECEIPTS, list);
+        }
+    },
+
+    removeReceipt(id) {
+        const list = this.get(this.KEY_RECEIPTS).filter(r => r.id !== id);
+        this.save(this.KEY_RECEIPTS, list);
+    },
+
+    mergeReceipts(serverReceipts) {
+        const local = this.get(this.KEY_RECEIPTS);
+        const map = new Map();
+        (serverReceipts || []).forEach(r => {
+            const key = r.id ? String(r.id) : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+            map.set(key, r);
+        });
+        (local || []).forEach(r => {
+            const key = r.id ? String(r.id) : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+            if (!map.has(key)) {
+                map.set(key, r);
+            }
+        });
+        const merged = Array.from(map.values());
+        this.save(this.KEY_RECEIPTS, merged);
+        return merged;
+    },
+
+    addKhata(entry) {
+        if (!entry) return;
+        const list = this.get(this.KEY_KHATA);
+        list.unshift(entry);
+        this.save(this.KEY_KHATA, list);
+    },
+
+    removeKhata(id) {
+        const list = this.get(this.KEY_KHATA).filter(k => k.id !== id);
+        this.save(this.KEY_KHATA, list);
+    },
+
+    mergeKhata(serverTxns) {
+        const local = this.get(this.KEY_KHATA);
+        const map = new Map();
+        (serverTxns || []).forEach(t => {
+            const key = t.id ? String(t.id) : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
+            map.set(key, t);
+        });
+        (local || []).forEach(t => {
+            const key = t.id ? String(t.id) : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
+            if (!map.has(key)) {
+                map.set(key, t);
+            }
+        });
+        const merged = Array.from(map.values());
+        this.save(this.KEY_KHATA, merged);
+        return merged;
+    },
+
+    addExpense(exp) {
+        if (!exp) return;
+        const list = this.get(this.KEY_EXPENSES);
+        list.unshift(exp);
+        this.save(this.KEY_EXPENSES, list);
+    },
+
+    mergeExpenses(serverExps) {
+        const local = this.get(this.KEY_EXPENSES);
+        const map = new Map();
+        (serverExps || []).forEach(e => {
+            const key = e.id ? String(e.id) : `${e.expense_title}_${e.date}_${e.amount}`;
+            map.set(key, e);
+        });
+        (local || []).forEach(e => {
+            const key = e.id ? String(e.id) : `${e.expense_title}_${e.date}_${e.amount}`;
+            if (!map.has(key)) {
+                map.set(key, e);
+            }
+        });
+        const merged = Array.from(map.values());
+        this.save(this.KEY_EXPENSES, merged);
+        return merged;
+    }
+};
+
+let isAutoSyncing = false;
+async function syncLocalDataToServer() {
+    if (isAutoSyncing) return;
+    try {
+        isAutoSyncing = true;
+        const localReceipts = VernaStorage.get(VernaStorage.KEY_RECEIPTS);
+        const localKhata = VernaStorage.get(VernaStorage.KEY_KHATA);
+        const localExpenses = VernaStorage.get(VernaStorage.KEY_EXPENSES);
+
+        if (localReceipts.length === 0 && localKhata.length === 0 && localExpenses.length === 0) {
+            return;
+        }
+
+        await apiCall("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                receipts: localReceipts,
+                khata: localKhata,
+                expenses: localExpenses
+            })
+        });
+    } catch (e) {
+        console.warn("Auto-sync notice:", e);
+    } finally {
+        isAutoSyncing = false;
+    }
+}
+
 const supportedLanguages = [
     { code: "mr", label: "मराठी", speech: "mr-IN", tts: "mr-IN-AarohiNeural" },
     { code: "en", label: "English", speech: "en-IN", tts: "en-IN-NeerjaNeural" },
@@ -659,6 +806,16 @@ async function loadDashboardMetrics() {
         const data = await res.json();
         state.dashboard = data;
 
+        // Ensure total bills and sales reflect all persistent receipts if serverless container was recycled
+        if (state.allReceipts && state.allReceipts.length > 0) {
+            const persistentTotal = state.allReceipts.reduce((acc, r) => acc + (Number(r.grand_total) || 0), 0);
+            if (persistentTotal > (data.total_sales || 0)) {
+                data.total_sales = persistentTotal;
+                data.total_bills = state.allReceipts.length;
+                data.avg_ticket = data.total_sales / data.total_bills;
+            }
+        }
+
         // Populate top KPI cards safely
         const elSales = document.getElementById("kpi-total-sales");
         if (elSales) elSales.innerText = `₹${data.total_sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -868,6 +1025,7 @@ async function submitReceiptOCR() {
         }
 
         populateBillCard(json.data);
+        VernaStorage.addReceipt(json.data);
         loadDashboardMetrics();
         loadReceiptsLedger();
         if (json.duplicate) {
@@ -1114,6 +1272,13 @@ async function saveCurrentBillToLedger() {
 
         if (!res.ok) throw new Error("पावती सेव्ह करता आली नाही.");
 
+        const jsonBill = await res.json().catch(() => ({}));
+        if (jsonBill && jsonBill.data) {
+            VernaStorage.addReceipt(jsonBill.data);
+        } else {
+            VernaStorage.addReceipt(bill);
+        }
+
         loadDashboardMetrics();
         loadReceiptsLedger();
         alert("✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!");
@@ -1196,17 +1361,50 @@ function triggerBrowserPrint() {
 // -----------------------------------------------------------------------------
 async function loadKhataData() {
     try {
-        const res = await apiCall("/api/khata");
-        if (!res.ok) return;
-        const data = await res.json();
-        state.allKhata = data;
+        let serverData = null;
+        try {
+            const res = await apiCall("/api/khata");
+            if (res.ok) {
+                serverData = await res.json();
+            }
+        } catch (netErr) {
+            console.warn("Khata server fetch notice:", netErr);
+        }
 
-        // Update KPIs
-        document.getElementById("khata-kpi-customers").innerText = data.customers.length;
-        document.getElementById("khata-kpi-txns").innerText = data.transactions.length;
+        const serverTxns = (serverData && serverData.transactions) ? serverData.transactions : [];
+        const mergedTxns = VernaStorage.mergeKhata(serverTxns);
 
-        renderKhataCards(data.customers);
-        renderKhataTable(data.transactions);
+        const custMap = {};
+        mergedTxns.forEach(t => {
+            const cName = t.customer_name || "ग्राहक";
+            if (!custMap[cName]) {
+                custMap[cName] = { name: cName, phone: t.phone || "", balance: 0.0, last_txn: t.date };
+            }
+            const amt = Number(t.amount) || 0;
+            if (t.transaction_type === "Credit Given" || (t.transaction_type && t.transaction_type.includes("Credit"))) {
+                custMap[cName].balance += amt;
+            } else {
+                custMap[cName].balance -= amt;
+            }
+        });
+
+        const finalData = {
+            transactions: mergedTxns,
+            customers: Object.values(custMap)
+        };
+        state.allKhata = finalData;
+
+        const custCountEl = document.getElementById("khata-kpi-customers");
+        if (custCountEl) custCountEl.innerText = finalData.customers.length;
+        const txnsCountEl = document.getElementById("khata-kpi-txns");
+        if (txnsCountEl) txnsCountEl.innerText = finalData.transactions.length;
+
+        renderKhataCards(finalData.customers);
+        renderKhataTable(finalData.transactions);
+
+        if (mergedTxns.length > serverTxns.length) {
+            syncLocalDataToServer();
+        }
     } catch (e) {
         console.error("Khata load error:", e);
     }
@@ -1390,6 +1588,11 @@ async function submitAddKhata(e) {
         });
         if (!res.ok) throw new Error("खाते नोंदवता आले नाही.");
 
+        const jsonKhata = await res.json().catch(() => ({}));
+        payload.id = jsonKhata.id || Date.now();
+        payload.date = new Date().toISOString().split("T")[0];
+        VernaStorage.addKhata(payload);
+
         closeModal("modal-add-khata");
         document.getElementById("form-add-khata").reset();
         loadKhataData();
@@ -1403,7 +1606,8 @@ async function submitAddKhata(e) {
 async function deleteKhataEntry(id) {
     if (!confirm("हा व्यवहार कायमचा डिलीट करायचा आहे का?")) return;
     try {
-        await apiCall(`/api/khata/${id}`, { method: "DELETE" });
+        VernaStorage.removeKhata(id);
+        await apiCall(`/api/khata/${id}`, { method: "DELETE" }).catch(() => {});
         loadKhataData();
         loadDashboardMetrics();
     } catch (e) {
@@ -1517,15 +1721,22 @@ async function deleteInventoryItem(id) {
 // Expenses
 async function loadExpensesData() {
     try {
-        const res = await apiCall("/api/expenses");
-        if (!res.ok) return;
-        const data = await res.json();
-        state.allExpenses = data;
+        let serverData = [];
+        try {
+            const res = await apiCall("/api/expenses");
+            if (res.ok) {
+                serverData = await res.json();
+            }
+        } catch (netErr) {
+            console.warn("Expenses server fetch notice:", netErr);
+        }
+        const merged = VernaStorage.mergeExpenses(serverData);
+        state.allExpenses = merged;
 
         const tbody = document.getElementById("expenses-table-tbody");
-        tbody.innerHTML = "";
-
-        data.forEach(exp => {
+        if (tbody) {
+            tbody.innerHTML = "";
+            merged.forEach(exp => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(exp.expense_title)}</td>
@@ -1557,6 +1768,9 @@ async function handleAddExpense(e) {
         });
         if (!res.ok) throw new Error("खर्च नोंदवता आला नाही.");
 
+        payload.date = new Date().toISOString().split("T")[0];
+        VernaStorage.addExpense(payload);
+
         document.getElementById("expense-form").reset();
         loadExpensesData();
         loadDashboardMetrics();
@@ -1580,11 +1794,22 @@ function shareDailyDigestWhatsApp() {
 // -----------------------------------------------------------------------------
 async function loadReceiptsLedger() {
     try {
-        const res = await apiCall("/api/receipts");
-        if (!res.ok) return;
-        const data = await res.json();
-        state.allReceipts = data;
-        renderLedgerTable(data);
+        let serverData = [];
+        try {
+            const res = await apiCall("/api/receipts");
+            if (res.ok) {
+                serverData = await res.json();
+            }
+        } catch (netErr) {
+            console.warn("Server receipts fetch notice:", netErr);
+        }
+        const merged = VernaStorage.mergeReceipts(serverData);
+        state.allReceipts = merged;
+        renderLedgerTable(merged);
+
+        if (merged.length > serverData.length) {
+            syncLocalDataToServer();
+        }
     } catch (e) {
         console.error("Receipts load error:", e);
     }
@@ -1653,7 +1878,8 @@ function viewSavedReceiptThermal(id) {
 async function deleteReceipt(id) {
     if (!confirm(`पावती #${id} लेजरमधून कायमची डिलीट करायची का?`)) return;
     try {
-        await apiCall(`/api/receipts/${id}`, { method: "DELETE" });
+        VernaStorage.removeReceipt(id);
+        await apiCall(`/api/receipts/${id}`, { method: "DELETE" }).catch(() => {});
         loadReceiptsLedger();
         loadDashboardMetrics();
     } catch (e) {
