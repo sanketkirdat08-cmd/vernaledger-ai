@@ -58,27 +58,27 @@
             <p style="font-size: 0.8rem; color: var(--text-slate); margin-top: 4px; font-family: 'JetBrains Mono', monospace;">
                 MERCHANT PRO v7.5 (VERCEL EDITION)
             </p>
-            <p style="font-size: 0.88rem; color: #cbd5e1; margin: 12px 0 20px 0;">
+            <p style="font-size: 0.88rem; color: #cbd5e1; margin: 12px 0 20px 0;" data-i18n="login_subtitle">
                 भारतीय व्यापाऱ्यांसाठी व्हर्नाक्युलर AI डिजिटल लेजर व बिलिंग प्रणाली
             </p>
 
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div style="margin-bottom: 14px; text-align: left;">
-                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;">वापरकर्ता नाव (Username)</label>
+                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;" data-i18n="lbl_username">वापरकर्ता नाव (Username)</label>
                     <input type="text" id="login-username" class="input-cyber" value="admin" required autocomplete="username" autocapitalize="none" autocorrect="off">
                 </div>
                 <div style="margin-bottom: 20px; text-align: left;">
-                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;">पासवर्ड (Password)</label>
+                    <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-slate); text-transform: uppercase;" data-i18n="lbl_password">पासवर्ड (Password)</label>
                     <input type="password" id="login-password" class="input-cyber" value="admin123" required autocomplete="current-password">
                 </div>
 
                 <button type="submit" id="btn-login-submit" class="btn-cyber" style="width: 100%; padding: 12px; font-size: 1rem;">
-                    🚀 सिस्टममध्ये प्रवेश करा (Login)
+                    <span data-i18n="btn_login">🚀 सिस्टममध्ये प्रवेश करा (Login)</span>
                 </button>
             </form>
 
             <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08);">
-                <p style="font-size: 0.74rem; color: var(--text-dim); margin-bottom: 8px;">झटपट डेमो क्रेडेंशियल्स (Quick Access):</p>
+                <p style="font-size: 0.74rem; color: var(--text-dim); margin-bottom: 8px;" data-i18n="login_demo_hint">झटपट डेमो क्रेडेंशियल्स (Quick Access):</p>
                 <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
                     <span class="quick-cred-chip" onclick="fillDemoCreds('admin', 'admin123')">⚡ Master Admin</span>
                     <span class="quick-cred-chip" onclick="fillDemoCreds('sanket', 'admin123')">👤 Sanket (Lead Dev)</span>
@@ -191,11 +191,11 @@
             <!-- Top Action HUD (Desktop) -->
             <div class="top-action-hud">
                 <div class="view-title-group">
-                    <h2 id="hud-title">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
+                    <h2 id="hud-title" data-i18n="hud_title_scanner">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
                 <div class="hud-controls" style="display: flex; align-items: center; gap: 8px;">
                     <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
-                        <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label">किराणा मोड</span>
+                        <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label" data-i18n="theme_kirana_mode">किराणा मोड</span>
                     </button>
                     <select class="language-select" id="hud-language-select" onchange="setLanguage(this.value)" aria-label="Application language">
                         <option value="mr">🌐 मराठी</option>
@@ -285,16 +285,16 @@
                     <div class="glass-card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                             <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
-                                <span>🧾</span> डिजिटल पावती प्रिव्ह्यू
+                                <span>🧾</span> <span data-i18n="card_live_preview">डिजिटल पावती प्रिव्ह्यू</span>
                             </h3>
-                            <span class="user-role-badge badge-admin" id="bill-badge-status">READY</span>
+                            <span class="user-role-badge badge-admin" id="bill-badge-status" data-i18n="receipt_preview_ready">READY</span>
                         </div>
 
                         <!-- Vendor & Date Inputs -->
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_vendor">दुकान / विक्रेत्याचे नाव</label>
-                                <input type="text" id="bill-vendor-name" class="input-cyber" placeholder="दुकान / विक्रेत्याचे नाव" value="">
+                                <input type="text" id="bill-vendor-name" class="input-cyber" placeholder="दुकान / विक्रेत्याचे नाव" data-i18n-ph="ph_vendor" value="">
                             </div>
                             <div>
                                 <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_date">तारीख</label>
@@ -316,7 +316,7 @@
                                 </thead>
                                 <tbody id="bill-items-tbody">
                                     <tr>
-                                        <td colspan="5" style="text-align: center; color: var(--text-slate); padding: 24px 10px; font-size: 0.82rem;">
+                                        <td colspan="5" style="text-align: center; color: var(--text-slate); padding: 24px 10px; font-size: 0.82rem;" data-i18n="empty_bill_placeholder">
                                             📸 पावती स्कॅन करा किंवा 🎙️ व्हॉइस बोला — वस्तू व हिशोब येथे आपोआप दिसेल.
                                         </td>
                                     </tr>
@@ -358,28 +358,28 @@
                 <div class="grid-kpi">
                     <div class="glass-card accent-red">
                         <div class="kpi-title">
-                            <span>एकूण बाकी उधारी</span>
+                            <span data-i18n="kpi_pending_udhar">एकूण बाकी उधारी</span>
                             <span>⏳</span>
                         </div>
                         <div class="kpi-val" style="color: var(--neon-red);" id="khata-kpi-pending">₹0.00</div>
                     </div>
                     <div class="glass-card accent-green">
                         <div class="kpi-title">
-                            <span>जमा झालेली रक्कम</span>
+                            <span data-i18n="kpi_collected_amt">जमा झालेली रक्कम</span>
                             <span>✅</span>
                         </div>
                         <div class="kpi-val" style="color: var(--neon-green);" id="khata-kpi-recovered">₹0.00</div>
                     </div>
                     <div class="glass-card">
                         <div class="kpi-title">
-                            <span>नोंदणीकृत ग्राहक</span>
+                            <span data-i18n="kpi_registered_cust">नोंदणीकृत ग्राहक</span>
                             <span>👥</span>
                         </div>
                         <div class="kpi-val" style="color: var(--neon-cyan);" id="khata-kpi-customers">0</div>
                     </div>
                     <div class="glass-card accent-amber">
                         <div class="kpi-title">
-                            <span>एकूण व्यवहार</span>
+                            <span data-i18n="kpi_total_tx">एकूण व्यवहार</span>
                             <span>📝</span>
                         </div>
                         <div class="kpi-val" style="color: var(--neon-amber);" id="khata-kpi-txns">0</div>
@@ -389,9 +389,9 @@
                 <!-- Customer Khata Controls -->
                 <div class="glass-card" style="margin-bottom: 20px;">
                     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
-                        <input type="text" id="khata-search-input" class="input-cyber" placeholder="🔍 ग्राहकाचे नाव किंवा मोबाईल नंबर शोधा..." style="max-width: 380px;" oninput="filterKhataList()">
+                        <input type="text" id="khata-search-input" class="input-cyber" data-i18n-ph="ph_khata_search" placeholder="🔍 ग्राहकाचे नाव किंवा मोबाईल नंबर शोधा..." style="max-width: 380px;" oninput="filterKhataList()">
                         <button class="btn-cyber success" onclick="openAddKhataModal()">
-                            <span data-i18n="btn_new_customer">+ नवीन खाते</span> / व्यवहार जोडा
+                            <span data-i18n="btn_add_khata_tx">+ नवीन व्यवहार</span>
                         </button>
                     </div>
                 </div>
@@ -403,7 +403,7 @@
 
                 <!-- All Khata Transactions Table -->
                 <div class="glass-card">
-                    <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;">
+                    <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;" data-i18n="title_khata_audit">
                         📜 संपूर्ण खाते व्यवहार इतिहास (Transaction Audit)
                     </h3>
                     <div class="table-responsive">
@@ -411,13 +411,13 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>ग्राहक नाव</th>
-                                    <th>मोबाईल</th>
-                                    <th>प्रकार</th>
-                                    <th>रक्कम (₹)</th>
-                                    <th>तारीख</th>
-                                    <th>देय तारीख</th>
-                                    <th>कृती</th>
+                                    <th data-i18n="th_customer">ग्राहक नाव</th>
+                                    <th data-i18n="th_phone">मोबाईल</th>
+                                    <th data-i18n="th_type">प्रकार</th>
+                                    <th data-i18n="th_amount">रक्कम (₹)</th>
+                                    <th data-i18n="lbl_date">तारीख</th>
+                                    <th data-i18n="th_due_date">देय तारीख</th>
+                                    <th data-i18n="th_action">कृती</th>
                                 </tr>
                             </thead>
                             <tbody id="khata-table-tbody">
@@ -470,7 +470,7 @@
                         <span style="font-size: 1.15rem;">⚠️</span>
                         <div style="line-height: 1.25;">
                             <span style="font-weight: 800; color: var(--text-white); font-size: 0.8rem;" data-i18n="low_stock_notice">कमी साठा अलर्ट:</span>
-                            <span style="font-size: 0.74rem; color: #fca5a5; margin-left: 4px;" id="low-stock-items-text">काही वस्तूंचा साठा संपत आला आहे.</span>
+                            <span style="font-size: 0.74rem; color: #fca5a5; margin-left: 4px;" id="low-stock-items-text" data-i18n="low_stock_banner">काही वस्तूंचा साठा संपत आला आहे.</span>
                         </div>
                     </div>
                     <span class="user-role-badge badge-staff" style="background: var(--neon-red); color: var(--text-white); font-size: 0.65rem; padding: 2px 6px;">ALERT</span>
@@ -492,10 +492,10 @@
                             <table class="cyber-table">
                                 <thead>
                                     <tr>
-                                        <th>वस्तू नाव</th>
-                                        <th>साठा</th>
-                                        <th>किंमत (₹)</th>
-                                        <th>स्थिती</th>
+                                        <th data-i18n="th_inv_item">वस्तू नाव</th>
+                                        <th data-i18n="th_inv_stock">साठा</th>
+                                        <th data-i18n="th_inv_price">किंमत (₹)</th>
+                                        <th data-i18n="th_inv_status">स्थिती</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -512,26 +512,26 @@
                         <div class="glass-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                                 <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
-                                    <span>📉</span> दैनंदिन बिझनेस खर्च (Expenses)
+                                    <span>📉</span> <span data-i18n="title_expenses">दैनंदिन बिझनेस खर्च (Expenses)</span>
                                 </h3>
                                 <span style="font-size: 0.85rem; font-weight: 800; color: var(--neon-red);" id="total-expenses-display">₹0.00</span>
                             </div>
 
                             <form id="expense-form" onsubmit="handleAddExpense(event)" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
                                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-                                    <input type="text" id="expense-title" class="input-cyber" placeholder="खर्चाचे नाव (उदा. लाईट बिल, वाहतूक)" required>
-                                    <input type="number" id="expense-amount" class="input-cyber" placeholder="रक्कम (₹)" required>
+                                    <input type="text" id="expense-title" class="input-cyber" data-i18n-ph="ph_expense_title" placeholder="खर्चाचे नाव (उदा. लाईट बिल, वाहतूक)" required>
+                                    <input type="number" id="expense-amount" class="input-cyber" data-i18n-ph="ph_expense_amount" placeholder="रक्कम (₹)" required>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <select id="expense-category" class="input-cyber">
-                                        <option value="दुकान खर्च">दुकान खर्च (Shop)</option>
-                                        <option value="वाहतूक / हमाली">वाहतूक / हमाली (Transport)</option>
-                                        <option value="लाईट / पाणी">लाईट / पाणी (Utilities)</option>
-                                        <option value="पगार">पगार (Salary)</option>
-                                        <option value="इतर">इतर (Other)</option>
+                                        <option value="दुकान खर्च" data-i18n="opt_expense_shop">दुकान खर्च (Shop)</option>
+                                        <option value="वाहतूक / हमाली" data-i18n="opt_expense_transport">वाहतूक / हमाली (Transport)</option>
+                                        <option value="लाईट / पाणी" data-i18n="opt_expense_utilities">लाईट / पाणी (Utilities)</option>
+                                        <option value="पगार" data-i18n="opt_expense_salary">पगार (Salary)</option>
+                                        <option value="इतर" data-i18n="opt_expense_other">इतर (Other)</option>
                                     </select>
                                     <button type="submit" class="btn-cyber success">
-                                        + नोंद करा
+                                        <span data-i18n="btn_add_expense">+ नोंद करा</span>
                                     </button>
                                 </div>
                             </form>
@@ -540,10 +540,10 @@
                                 <table class="cyber-table">
                                     <thead>
                                         <tr>
-                                            <th>खर्च</th>
-                                            <th>प्रवर्ग</th>
-                                            <th>रक्कम (₹)</th>
-                                            <th>तारीख</th>
+                                            <th data-i18n="th_exp_title">खर्च</th>
+                                            <th data-i18n="th_exp_category">प्रवर्ग</th>
+                                            <th data-i18n="th_exp_amount">रक्कम (₹)</th>
+                                            <th data-i18n="th_exp_date">तारीख</th>
                                         </tr>
                                     </thead>
                                     <tbody id="expenses-table-tbody">
@@ -556,13 +556,13 @@
                         <!-- WhatsApp Business Digest Card -->
                         <div class="glass-card accent-green">
                             <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                                <span>📲</span> दैनिक बिझनेस रिपोर्ट (WhatsApp Digest)
+                                <span>📲</span> <span data-i18n="title_wa_digest">दैनिक बिझनेस रिपोर्ट (WhatsApp Digest)</span>
                             </h3>
-                            <p style="font-size: 0.82rem; color: var(--text-slate); margin-bottom: 14px;">
+                            <p style="font-size: 0.82rem; color: var(--text-slate); margin-bottom: 14px;" data-i18n="desc_wa_digest">
                                 आजचा संपूर्ण विक्री, उधारी वसुली आणि निव्वळ नफ्याचा अहवाल १-क्लिक मध्ये स्वतःच्या किंवा मालकाच्या WhatsApp वर पाठवा.
                             </p>
                             <button class="btn-cyber whatsapp" style="width: 100%;" onclick="shareDailyDigestWhatsApp()">
-                                💬 WhatsApp वर दैनिक रिपोर्ट शेअर करा
+                                <span data-i18n="btn_send_wa_digest">💬 WhatsApp वर दैनिक रिपोर्ट शेअर करा</span>
                             </button>
                         </div>
                     </div>
@@ -575,7 +575,7 @@
             <section id="view-ledger" class="view-section">
                 <div class="glass-card" style="margin-bottom: 20px;">
                     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
-                        <input type="text" id="ledger-search-input" class="input-cyber" placeholder="🔍 पावती क्रमांक, विक्रेता किंवा कॅटेगरी शोधा..." style="max-width: 400px;" oninput="filterLedgerList()">
+                        <input type="text" id="ledger-search-input" class="input-cyber" data-i18n-ph="ph_ledger_search" placeholder="🔍 पावती क्रमांक, विक्रेता किंवा कॅटेगरी शोधा..." style="max-width: 400px;" oninput="filterLedgerList()">
                         <div>
                             <button class="btn-cyber" id="btn-ledger-excel-export" onclick="downloadExcelReport()" style="background: linear-gradient(135deg, #15803d, #16a34a) !important; color: #ffffff !important; border: 2px solid #22c55e !important; font-weight: 800; padding: 9px 20px; font-size: 0.95rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(34, 197, 94, 0.5);">
                                 📗 <span data-i18n="btn_export_excel">Excel (.xlsx) संपूर्ण डेटा डाऊनलोड</span>
@@ -585,19 +585,19 @@
                 </div>
 
                 <div class="glass-card">
-                    <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;">
-                        📚 सुरक्षित डिजिटल लेजर डेटाबेस (SQLite ACID Verified)
+                    <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;" data-i18n="title_ledger_table">
+                        📜 सर्व सेव्ह केलेल्या पावत्या (Ledger Audit Table)
                     </h3>
                     <div class="table-responsive">
                         <table class="cyber-table">
                             <thead>
                                 <tr>
-                                    <th>पावती क्र.</th>
-                                    <th>विक्रेता / ग्राहक</th>
-                                    <th>तारीख</th>
-                                    <th>प्रवर्ग</th>
-                                    <th>एकूण रक्कम (₹)</th>
-                                    <th>कृती</th>
+                                    <th data-i18n="th_rec_id">पावती क्र.</th>
+                                    <th data-i18n="th_rec_vendor">विक्रेता / ग्राहक</th>
+                                    <th data-i18n="th_rec_date">तारीख</th>
+                                    <th data-i18n="th_exp_category">प्रवर्ग</th>
+                                    <th data-i18n="th_rec_total">एकूण रक्कम (₹)</th>
+                                    <th data-i18n="th_rec_action">कृती</th>
                                 </tr>
                             </thead>
                             <tbody id="ledger-table-tbody">
@@ -622,7 +622,7 @@
                             <span>🤖</span> Verna AI
                         </h3>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <button class="btn-pill btn-logout" onclick="clearAiChat()" title="संभाषण स्वच्छ करा" style="padding: 5px 12px;">
+                            <button class="btn-pill btn-logout" onclick="clearAiChat()" data-i18n="btn_clear_chat" title="संभाषण स्वच्छ करा" style="padding: 5px 12px;">
                                 🗑️ Clear
                             </button>
                         </div>
@@ -630,32 +630,32 @@
 
                     <!-- Clean Quick Action Chips -->
                     <div class="prompt-chips" style="margin-bottom: 12px; padding: 2px 0;">
-                        <span class="chip" onclick="askAiPrompt('आजची विक्री किती आहे?')">📊 आजची विक्री</span>
-                        <span class="chip" onclick="askAiPrompt('एकूण बाकी उधारी किती आहे?')">👥 बाकी उधारी</span>
-                        <span class="chip" onclick="askAiPrompt('कमी साठा असलेल्या वस्तू कोणत्या आहेत?')">🚨 कमी साठा</span>
+                        <span class="chip" onclick="askAiPrompt('आजची विक्री किती आहे?')" data-i18n="chip_today_sales">📊 आजची विक्री</span>
+                        <span class="chip" onclick="askAiPrompt('एकूण बाकी उधारी किती आहे?')" data-i18n="chip_pending_credit">👥 बाकी उधारी</span>
+                        <span class="chip" onclick="askAiPrompt('कमी साठा असलेल्या वस्तू कोणत्या आहेत?')" data-i18n="chip_low_stock">🚨 कमी साठा</span>
                     </div>
 
                     <!-- Scrollable Messages Container -->
                     <div class="chat-container">
                         <div class="chat-history" id="ai-chat-history">
-                            <div class="chat-bubble chat-ai">
+                            <div class="chat-bubble chat-ai" data-i18n="ai_greeting">
                                 नमस्कार! मी <strong>Verna AI</strong>. दुकानातील विक्री, उधारी किंवा साठ्याबद्दल विचारा किंवा माईक दाबून बोला.
                             </div>
                         </div>
 
                         <!-- Real-time Voice Listening Indicator -->
-                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-bottom: 6px;">
+                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-bottom: 6px;" data-i18n="rag_voice_status_text">
                             🎙️ मी ऐकत आहे... प्रश्न विचारा किंवा उधारी बोला...
                         </div>
 
                         <!-- Pinned Docked Voice & Text Chat Bar -->
                         <div class="rag-chat-bar">
-                            <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" title="माईक द्वारे मराठीत बोला">
+                            <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" data-i18n-title="title_rag_mic" title="माईक द्वारे बोला">
                                 🎙️
                             </button>
                             <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" data-i18n-ph="ph_ai_input" onkeypress="if(event.key==='Enter') submitAiChat()">
                             <button class="rag-send-btn" onclick="submitAiChat()" id="btn-ai-send" title="पाठवा">
-                                <span>पाठवा</span> 🚀
+                                <span data-i18n="btn_send">पाठवा</span> 🚀
                             </button>
                         </div>
                     </div>
@@ -734,7 +734,7 @@
                         </div>
                         <div style="font-size: 0.65rem; color: #4b5563; margin-top: 2px;" data-i18n="receipt_upi_text">स्कॅन करून UPI द्वारे पैसे भरा</div>
                     </div>
-                    <div class="center" style="font-size: 0.72rem; font-weight: 700; margin-top: 4px;" data-i18n="receipt_greeting">
+                    <div class="center" style="font-size: 0.72rem; font-weight: 700; margin-top: 4px;" data-i18n="receipt_footer_thanks">
                         🙏 पुन्हा भेट द्या! धन्यवाद! 🙏
                     </div>
                     <div class="center" style="font-size: 0.60rem; color: #6b7280; margin-top: 2px;">
@@ -758,42 +758,42 @@
     <div id="modal-add-khata" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">💳 नवीन खाते व्यवहार नोंदवा</div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);" data-i18n="modal_khata_title">💳 नवीन खाते व्यवहार नोंदवा</div>
                 <button onclick="closeModal('modal-add-khata')" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body">
                 <form id="form-add-khata" onsubmit="submitAddKhata(event)" style="display: flex; flex-direction: column; gap: 12px;">
                     <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">ग्राहकाचे नाव (Customer Name)</label>
-                        <input type="text" id="khata-input-name" class="input-cyber" required placeholder="उदा. सागर पाटील">
+                        <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_cust_name">ग्राहकाचे नाव (Customer Name)</label>
+                        <input type="text" id="khata-input-name" class="input-cyber" required data-i18n-ph="ph_cust_name" placeholder="उदा. सागर पाटील">
                     </div>
                     <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">मोबाईल नंबर (WhatsApp)</label>
-                        <input type="tel" id="khata-input-phone" class="input-cyber" required placeholder="उदा. 9876543210" pattern="[0-9]{10}">
+                        <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_mobile">मोबाईल नंबर (WhatsApp)</label>
+                        <input type="tel" id="khata-input-phone" class="input-cyber" required data-i18n-ph="ph_mobile" placeholder="उदा. 9876543210" pattern="[0-9]{10}">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">व्यवहार प्रकार</label>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_tx_type">व्यवहार प्रकार</label>
                             <select id="khata-input-type" class="input-cyber">
-                                <option value="Credit Given">उधारी दिली (Credit Given)</option>
-                                <option value="Payment Received">पैसे जमा केले (Payment)</option>
+                                <option value="Credit Given" data-i18n="opt_credit_given">उधारी दिली (Credit Given)</option>
+                                <option value="Payment Received" data-i18n="opt_payment_received">पैसे जमा केले (Payment)</option>
                             </select>
                         </div>
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">रक्कम (₹)</label>
-                            <input type="number" id="khata-input-amount" class="input-cyber" required placeholder="उदा. 500" step="0.5">
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_amount">रक्कम (₹)</label>
+                            <input type="number" id="khata-input-amount" class="input-cyber" required data-i18n-ph="ph_amount" placeholder="उदा. 500" step="0.5">
                         </div>
                     </div>
                     <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">परतफेडीची देय तारीख (Due Date)</label>
+                        <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_due_date">परतफेडीची देय तारीख (Due Date)</label>
                         <input type="date" id="khata-input-due" class="input-cyber">
                     </div>
                     <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">नोंद / तपशील (Notes)</label>
-                        <input type="text" id="khata-input-notes" class="input-cyber" placeholder="उदा. किराणा सामान उधारी">
+                        <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_notes">नोंद / तपशील (Notes)</label>
+                        <input type="text" id="khata-input-notes" class="input-cyber" data-i18n-ph="ph_notes" placeholder="उदा. किराणा सामान उधारी">
                     </div>
                     <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
-                        💾 व्यवहार सेव्ह करा
+                        <span data-i18n="btn_save_tx">💾 व्यवहार सेव्ह करा</span>
                     </button>
                 </form>
             </div>
@@ -804,22 +804,22 @@
     <div id="modal-add-inventory" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">📦 नवीन वस्तू / माल जोडा</div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);" data-i18n="modal_stock_title">📦 नवीन वस्तू / माल जोडा</div>
                 <button onclick="closeModal('modal-add-inventory')" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body">
                 <form id="form-add-inventory" onsubmit="submitAddInventory(event)" style="display: flex; flex-direction: column; gap: 12px;">
                     <div>
-                        <label style="font-size: 0.75rem; color: var(--text-slate);">वस्तूचे नाव (Item Name)</label>
-                        <input type="text" id="inv-input-name" class="input-cyber" required placeholder="उदा. साखर (Sugar M-30)">
+                        <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_inv_item_name">वस्तूचे नाव (Item Name)</label>
+                        <input type="text" id="inv-input-name" class="input-cyber" required data-i18n-ph="ph_inv_item_name" placeholder="उदा. साखर (Sugar M-30)">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">उपलब्ध साठा (Stock Qty)</label>
-                            <input type="number" id="inv-input-qty" class="input-cyber" required placeholder="उदा. 50" step="0.5">
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_inv_stock_qty">उपलब्ध साठा (Stock Qty)</label>
+                            <input type="number" id="inv-input-qty" class="input-cyber" required data-i18n-ph="ph_inv_stock_qty" placeholder="उदा. 50" step="0.5">
                         </div>
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">एकक (Unit)</label>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_inv_unit">एकक (Unit)</label>
                             <select id="inv-input-unit" class="input-cyber">
                                 <option value="kg">kg (किलो)</option>
                                 <option value="pcs">pcs (नग)</option>
@@ -831,16 +831,16 @@
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">विक्री किंमत (₹)</label>
-                            <input type="number" id="inv-input-price" class="input-cyber" required placeholder="उदा. 45" step="0.5">
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_inv_price">विक्री किंमत (₹)</label>
+                            <input type="number" id="inv-input-price" class="input-cyber" required data-i18n-ph="ph_inv_price" placeholder="उदा. 45" step="0.5">
                         </div>
                         <div>
-                            <label style="font-size: 0.75rem; color: var(--text-slate);">कमी साठा मर्यादा (Alert Limit)</label>
+                            <label style="font-size: 0.75rem; color: var(--text-slate);" data-i18n="lbl_inv_alert_limit">कमी साठा मर्यादा (Alert Limit)</label>
                             <input type="number" id="inv-input-limit" class="input-cyber" value="5" step="1">
                         </div>
                     </div>
                     <button type="submit" class="btn-cyber success" style="width: 100%; margin-top: 6px;">
-                        💾 साठा नोंदवा
+                        <span data-i18n="btn_save_stock">💾 साठा नोंदवा</span>
                     </button>
                 </form>
             </div>
@@ -851,7 +851,7 @@
     <div id="modal-camera" class="modal-overlay">
         <div class="modal-box" style="max-width: 480px;">
             <div class="modal-header">
-                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);">📷 पावतीचा फोटो काढा</div>
+                <div style="font-weight: 800; font-size: 1rem; color: var(--text-white);" data-i18n="modal_camera_title">📷 पावतीचा फोटो काढा</div>
                 <button onclick="closeCameraModal()" style="background: none; border: none; color: var(--text-white); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
@@ -859,7 +859,7 @@
                 <canvas id="camera-canvas" style="display: none;"></canvas>
                 <div style="display: flex; gap: 10px; margin-top: 14px;">
                     <button class="btn-cyber success" style="flex: 1;" onclick="captureCameraPhoto()">
-                        📸 फोटो क्लिक करा
+                        <span data-i18n="btn_snap_photo">📸 फोटो क्लिक करा</span>
                     </button>
                     <button class="btn-pill btn-logout" onclick="closeCameraModal()">
                         रद्द करा
@@ -869,7 +869,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=35.0"></script>
 
     <!-- =====================================================================
          WHATSAPP BILL SHARE MODAL
@@ -878,25 +877,26 @@
         <div class="modal-card">
             <div class="modal-header">
                 <h3 style="color: #25D366; display: flex; align-items: center; gap: 8px;">
-                    <span>📲</span> WhatsApp वर पावती पाठवा
+                    <span>📲</span> <span data-i18n="modal_wa_title">WhatsApp वर पावती पाठवा</span>
                 </h3>
                 <button class="modal-close" onclick="closeModal('modal-whatsapp-share')">✕</button>
             </div>
-            <p style="font-size: 0.85rem; color: var(--text-slate); margin-bottom: 14px;">
+            <p style="font-size: 0.85rem; color: var(--text-slate); margin-bottom: 14px;" data-i18n="desc_wa_share">
                 ग्राहकाचा १० अंकी WhatsApp नंबर टाका. बिलाचा संपूर्ण तपशील आणि UPI पेमेंट लिंक थेट त्यांच्या WhatsApp वर उघडेल:
             </p>
             <div style="margin-bottom: 16px;">
-                <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-white);">ग्राहकाचा WhatsApp मोबाईल नंबर:</label>
-                <input type="tel" id="wa-share-phone" class="input-cyber" placeholder="उदा. 9822001122" maxlength="10" style="font-size: 1.1rem; letter-spacing: 1px;">
+                <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-white);" data-i18n="lbl_wa_phone">ग्राहकाचा WhatsApp मोबाईल नंबर:</label>
+                <input type="tel" id="wa-share-phone" class="input-cyber" data-i18n-ph="ph_wa_phone" placeholder="उदा. 9822001122" maxlength="10" style="font-size: 1.1rem; letter-spacing: 1px;">
             </div>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-cyber" style="flex: 1;" onclick="closeModal('modal-whatsapp-share')">रद्द करा</button>
+                <button class="btn-cyber" style="flex: 1;" onclick="closeModal('modal-whatsapp-share')" data-i18n="btn_cancel">रद्द करा</button>
                 <button class="btn-whatsapp-share" style="flex: 2;" onclick="confirmSendWhatsAppBill()">
-                    🚀 WhatsApp वर पाठवा
+                    <span data-i18n="btn_send_wa">🚀 WhatsApp वर पाठवा</span>
                 </button>
             </div>
         </div>
     </div>
 
+    <script src="app.js?v=36.0"></script>
 </body>
 </html>
