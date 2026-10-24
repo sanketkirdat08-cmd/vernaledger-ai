@@ -253,3 +253,4 @@ with open('public/app.js', 'w', encoding='utf-8') as f:
     f.write(js_code)
 
 print("Saved app.js and public/app.js successfully.")
+

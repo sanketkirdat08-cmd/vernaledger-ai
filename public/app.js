@@ -902,15 +902,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const billDateInput = document.getElementById("bill-date");
     if (billDateInput) billDateInput.value = today;
 
-    // Check stored user session
+    // Check stored user session with resilient parsing
     const savedUser = localStorage.getItem("verna_user");
+    let hasSession = false;
     if (savedUser) {
         try {
-            state.user = JSON.parse(savedUser);
-            showApp();
+            const parsed = JSON.parse(savedUser);
+            if (parsed && typeof parsed === "object") {
+                state.user = parsed;
+                if (!state.user.username) state.user.username = "admin";
+                if (!state.user.role) state.user.role = "Admin";
+                hasSession = true;
+            } else if (typeof parsed === "string") {
+                state.user = { username: parsed, role: "Admin" };
+                hasSession = true;
+            }
         } catch (e) {
+            console.warn("Invalid session format:", e);
             localStorage.removeItem("verna_user");
-            showLogin();
+        }
+    }
+
+    if (hasSession) {
+        try {
+            showApp();
+        } catch (err) {
+            console.error("showApp startup error:", err);
+            // Ensure UI stays on main app container, do NOT wipe user session!
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("app-container").style.display = "flex";
         }
     } else {
         showLogin();
@@ -996,29 +1016,39 @@ function showLogin() {
 }
 
 function showApp() {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("app-container").style.display = "flex";
+    const loginScreen = document.getElementById("login-screen");
+    const appContainer = document.getElementById("app-container");
+    if (loginScreen) loginScreen.style.display = "none";
+    if (appContainer) appContainer.style.display = "flex";
 
-    // Set user profile indicators
-    document.getElementById("sidebar-user-name").innerText = state.user.username;
-    document.getElementById("sidebar-user-role").innerText = `Role: ${state.user.role}`;
+    // Set user profile indicators safely
+    if (!state.user || typeof state.user !== "object") {
+        state.user = { username: "admin", role: "Admin" };
+    }
+    const username = state.user.username || "admin";
+    const role = state.user.role || "Admin";
+
+    const nameEl = document.getElementById("sidebar-user-name");
+    if (nameEl) nameEl.innerText = username;
+
+    const roleEl = document.getElementById("sidebar-user-role");
+    if (roleEl) roleEl.innerText = `Role: ${role}`;
+
     const badge = document.getElementById("sidebar-role-badge");
-    badge.innerText = state.user.role.toUpperCase();
+    if (badge) {
+        badge.innerText = String(role).toUpperCase();
+        badge.className = "user-role-badge badge-admin";
+    }
 
-    badge.className = "user-role-badge badge-admin";
-
-    // Load initial data
-    loadDashboardMetrics();
-
-    // Initialize High-Contrast Theme (किराणा मोड)
-    initTheme();
-    resetBillCard();
-
-    loadReceiptsLedger();
-    loadKhataData();
-    loadInventoryData();
-    loadExpensesData();
-    recalcBillTotal();
+    // Load initial data safely
+    try { loadDashboardMetrics(); } catch (e) { console.warn("Metrics load notice:", e); }
+    try { initTheme(); } catch (e) { console.warn("Theme init notice:", e); }
+    try { resetBillCard(); } catch (e) { console.warn("Reset bill card notice:", e); }
+    try { loadReceiptsLedger(); } catch (e) { console.warn("Ledger load notice:", e); }
+    try { loadKhataData(); } catch (e) { console.warn("Khata load notice:", e); }
+    try { loadInventoryData(); } catch (e) { console.warn("Inventory load notice:", e); }
+    try { loadExpensesData(); } catch (e) { console.warn("Expenses load notice:", e); }
+    try { recalcBillTotal(); } catch (e) { console.warn("Recalc bill notice:", e); }
 
     // Restore saved view on refresh or URL hash
     const hash = window.location.hash.replace("#", "").trim();
@@ -1527,8 +1557,12 @@ function recalcBillTotal() {
     let grandTotal = 0;
 
     rows.forEach(row => {
-        const qtyStr = row.querySelector(".item-qty").value;
-        const rateVal = row.querySelector(".item-rate").value;
+        const qtyEl = row.querySelector(".item-qty");
+        const rateEl = row.querySelector(".item-rate");
+        if (!qtyEl || !rateEl) return; // Skip placeholder or informational rows safely
+
+        const qtyStr = qtyEl.value;
+        const rateVal = rateEl.value;
         const qtyNum = parseDevanagariNum(qtyStr) || 1;
         const rate = parseDevanagariNum(rateVal) || 0;
         const total = qtyNum * rate;
@@ -1544,17 +1578,25 @@ function recalcBillTotal() {
 }
 
 function getCurrentBillData() {
-    const vendor = document.getElementById("bill-vendor-name").value.trim() || "किराणा स्टोअर";
-    const dateVal = document.getElementById("bill-date").value || new Date().toISOString().split("T")[0];
+    const vendorEl = document.getElementById("bill-vendor-name");
+    const vendor = vendorEl ? (vendorEl.value.trim() || "किराणा स्टोअर") : "किराणा स्टोअर";
+    const dateEl = document.getElementById("bill-date");
+    const dateVal = dateEl ? (dateEl.value || new Date().toISOString().split("T")[0]) : new Date().toISOString().split("T")[0];
     const rows = document.querySelectorAll("#bill-items-tbody tr");
     const items = [];
     let grandTotal = 0;
 
     rows.forEach(row => {
-        const name = row.querySelector(".item-name").value.trim();
-        const qty = row.querySelector(".item-qty").value.trim();
-        const rate = parseFloat(row.querySelector(".item-rate").value) || 0;
-        const total = parseFloat(row.querySelector(".item-total").innerText) || 0;
+        const nameEl = row.querySelector(".item-name");
+        const qtyEl = row.querySelector(".item-qty");
+        const rateEl = row.querySelector(".item-rate");
+        const totalCell = row.querySelector(".item-total");
+        if (!nameEl || !qtyEl || !rateEl) return; // Skip placeholder row safely
+
+        const name = nameEl.value.trim();
+        const qty = qtyEl.value.trim();
+        const rate = parseFloat(rateEl.value) || 0;
+        const total = totalCell ? (parseFloat(totalCell.innerText) || 0) : (rate * 1);
         if (name) {
             items.push({ item_name: name, quantity: qty, rate: rate, total_price: total });
             grandTotal += total;

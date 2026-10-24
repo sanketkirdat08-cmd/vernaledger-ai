@@ -13,3 +13,4 @@ with open('public/app.js', 'w', encoding='utf-8') as f:
     f.write(text)
 
 print('Updated receipt-shop-name fallback in app.js and public/app.js')
+

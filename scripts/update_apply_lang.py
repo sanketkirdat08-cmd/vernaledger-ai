@@ -232,3 +232,4 @@ with open('public/app.js', 'w', encoding='utf-8') as f:
     f.write(code_norm)
 
 print("Saved updated app.js and public/app.js.")
+

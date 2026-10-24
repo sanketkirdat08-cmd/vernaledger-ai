@@ -24,3 +24,4 @@ for idx, line in enumerate(lines, start=1):
 print(f"Found {len(untranslated_lines)} lines with Devanagari text missing data-i18n:")
 for idx, text in untranslated_lines:
     print(f"Line {idx:3d}: {text[:100]}")
+
