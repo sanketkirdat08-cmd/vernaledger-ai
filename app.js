@@ -1745,7 +1745,8 @@ async function loadExpensesData() {
                 <td style="font-size: 0.78rem;">${exp.date}</td>
             `;
             tbody.appendChild(tr);
-        });
+            });
+        }
     } catch (e) {
         console.error("Expenses load error:", e);
     }
