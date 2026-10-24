@@ -1643,6 +1643,7 @@
                             <h3 class="card-title" style="color: var(--neon-purple);">Persistence, Export &amp; Security</h3>
                         </div>
                         <p class="card-desc">
+                            <strong>• Hybrid Local-First Sync (VernaStorage &amp; /api/sync):</strong> Client-side zero-loss persistence with bi-directional auto-sync to eliminate serverless cold-start data loss.<br>
                             <strong>• SQLite 3 (WAL Mode):</strong> Zero-configuration ACID relational ledger with &lt;2ms commit latency.<br>
                             <strong>• xlsxwriter Engine:</strong> Native Microsoft Excel (.xlsx) generator with Devanagari UTF-8 auto-fit widths.<br>
                             <strong>• PBKDF2-SHA256:</strong> Cryptographic password hashing and role-based access control.<br>
@@ -1674,7 +1675,7 @@
                         </div>
                         <div class="feature-item accent-green">
                             <div class="feature-title"><span style="color: var(--neon-green);">3. Persistence &amp; Export Layer</span></div>
-                            <p class="feature-desc">SQLite relational database with Write-Ahead Logging (WAL) for atomic ACID transactions, accompanied by <code>xlsxwriter</code> native OpenXML Excel and WhatsApp recovery APIs.</p>
+                            <p class="feature-desc">Hybrid Local-First persistence engine (<code>VernaStorage</code>) paired with SQLite ACID relational database (WAL mode) and <code>/api/sync</code> auto-sync, eliminating serverless cold-start data loss with native Excel exports.</p>
                         </div>
                     </div>
                     <div class="split-img-box" onclick="openLightbox('architecture_diagram.png', 'SYSTEM ARCHITECTURE: 3-TIER MODULAR PIPELINE', 'Complete high-resolution architectural layout showing Presentation Layer, FastAPI & Gemini Flash Intelligence Layer, and SQLite ACID Persistence Layer.')">

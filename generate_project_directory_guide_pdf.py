@@ -260,9 +260,9 @@ HTML_CONTENT = """<!DOCTYPE html>
           <td>पावतीचे OCR स्कॅनिंग, ASR स्पीच-टू-टेक्स्ट, Verna AI RAG चॅटबॉट, डायनॅमिक लांबी नियंत्रण, आणि व्यवसाय नफा-तोटा विश्लेषण.</td>
         </tr>
         <tr>
-          <td><span class="pill pill-purple">Tier 3: Ledger</span><br/><b>डेटाबेस इंजिन</b></td>
-          <td>SQLite 3 (ACID Compliant, WAL Mode), In-Memory Caching, Native XlsxWriter Engine, WhatsApp/UPI Deeplinks</td>
-          <td>ग्राहक उधारी वही (Customer Khata), दैनंदिन विक्री नोंदी, साठा (Inventory), सुरक्षित व्यवहार इतिहास आणि १-क्लिक Excel एक्सपोर्ट.</td>
+          <td><span class="pill pill-purple">Tier 3: Ledger</span><br/><b>हायब्रिड लेजर</b></td>
+          <td>SQLite 3 (ACID WAL), VernaStorage (लोकल-फर्स्ट झिरो-डेटा लॉस इंजिन), /api/sync ऑटो-रिहायड्रेशन, Native XlsxWriter Engine</td>
+          <td>ग्राहक उधारी वही, दैनंदिन विक्री नोंदी, साठा (Inventory), सर्व्हरलेस कोल्ड-स्टार्ट डेटा संरक्षण आणि १-क्लिक Excel एक्सपोर्ट.</td>
         </tr>
       </tbody>
     </table>
@@ -475,6 +475,24 @@ HTML_CONTENT = """<!DOCTYPE html>
           <td><b>साठा व्यवस्थापन:</b> किराणा वस्तूंचा साठा, विक्री दर आणि कमी साठा (Low stock) अलर्ट व्यवस्थापन.</td>
         </tr>
         <tr>
+          <td><span class="pill pill-green">POST</span></td>
+          <td><code>/api/sync</code></td>
+          <td><code>{ receipts, customers, expenses }</code></td>
+          <td><b>लोकल-फर्स्ट ऑटो-सिंक:</b> ब्राउझरमधील डेटा सर्व्हरलेस SQLite <code>/tmp/ledger.db</code> मध्ये आपोआप रि-हायड्रेट व सिंक करतो.</td>
+        </tr>
+        <tr>
+          <td><span class="pill pill-green">POST</span></td>
+          <td><code>/api/sync</code></td>
+          <td><code>{ receipts, customers, expenses }</code></td>
+          <td><b>लोकल-फर्स्ट ऑटो-सिंक:</b> ब्राउझरमधील डेटा सर्व्हरलेस SQLite <code>/tmp/ledger.db</code> मध्ये आपोआप रि-हायड्रेट व सिंक करतो.</td>
+        </tr>
+        <tr>
+          <td><span class="pill pill-green">POST</span></td>
+          <td><code>/api/sync</code></td>
+          <td><code>{ receipts, customers, expenses }</code></td>
+          <td><b>लोकल-फर्स्ट ऑटो-सिंक:</b> ब्राउझरमधील डेटा सर्व्हरलेस SQLite <code>/tmp/ledger.db</code> मध्ये आपोआप रि-हायड्रेट व सिंक करतो.</td>
+        </tr>
+        <tr>
           <td><span class="pill pill-purple">GET</span></td>
           <td><code>/api/export-excel</code></td>
           <td><i>None (Direct Download)</i></td>
@@ -545,7 +563,8 @@ def generate_pdf():
         browser = p.chromium.launch(executable_path=edge_path, headless=True)
         page = browser.new_page()
         page.goto(f"file:///{temp_html.replace(os.sep, '/')}")
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_timeout(1000)
         page.pdf(
             path=output_pdf,
             format="A4",

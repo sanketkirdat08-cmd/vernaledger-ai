@@ -13,6 +13,7 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 
 # Output File Path
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_PPTX = r"C:\Users\mahan\OneDrive\Desktop\VERNALEDGER_AI_MERCHANT_PRO_PRESENTATION.pptx"
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
@@ -560,7 +561,7 @@ def create_deck():
         tb_f = slide.shapes.add_textbox(Inches(0.8), Inches(6.95), Inches(9.0), Inches(0.4))
         tf_f = tb_f.text_frame
         p_f = tf_f.paragraphs[0]
-        p_f.text = "Team VernaLedger • Dept. of Computer Engineering • AGCOE Satara • DBATU University"
+        p_f.text = "Team VernaLedger • Dept. of AI & DS • AGCE Satara • DBATU University"
         p_f.font.name = FONT_MONO
         p_f.font.size = Pt(8.5)
         p_f.font.color.rgb = COLOR_SLATE
@@ -644,7 +645,7 @@ def create_deck():
     names = [
         "1. Sanket Kirdat",
         "2. Sakshi Bhagat",
-        "3. Vaishnavi Dhavale",
+        "3. Vaishnavi Dhawale",
         "4. Rushikesh Mulik"
     ]
     p_names = tf.add_paragraph()
@@ -656,7 +657,7 @@ def create_deck():
     p_names.alignment = PP_ALIGN.CENTER
 
     p_sub = tf.add_paragraph()
-    p_sub.text = "B.Tech Final Year • Department of Computer Engineering"
+    p_sub.text = "B.Tech Final Year • Department of Artificial Intelligence & Data Science (AI & DS)"
     p_sub.font.name = FONT_BODY
     p_sub.font.size = Pt(11)
     p_sub.font.color.rgb = COLOR_SLATE
@@ -671,7 +672,7 @@ def create_deck():
     tf_i = inst_box.text_frame
     tf_i.margin_top = Inches(0.15)
     p = tf_i.paragraphs[0]
-    p.text = "Arvind Gavali College of Engineering, Satara (AGCOE)"
+    p.text = "Arvind Gavali College of Engineering, Satara (AGCE Satara)"
     p.font.name = FONT_TITLE
     p.font.size = Pt(13)
     p.font.bold = True
@@ -968,9 +969,9 @@ def create_deck():
     add_hud_footer(s8, 8)
 
     techs = [
-        ("🐍 Frontend & Logic", "• Python 3.10+: Core processing runtime\n• Streamlit Framework: Dynamic reactive UI\n• Custom React Components: Mic audio recording\n• CSS3 Cyberpunk Theme: Dark glassmorphic design system", "Python • Streamlit • React", COLOR_GREEN),
-        ("🤖 AI & Audio Engines", "• Google Gemini Flash: Multimodal OCR & NLP\n• Microsoft Edge TTS: Neural Marathi voice synthesis\n• Streamlit Mic Recorder: Real-time audio stream\n• RAG Engine: Dynamic database context injection", "Gemini Flash • Edge TTS • RAG", COLOR_CYAN),
-        ("💽 Database & Analytics", "• SQLite3 (WAL Mode): ACID transaction storage\n• PBKDF2-SHA256: Cryptographic password hashing\n• Pandas & Plotly: Real-time business intelligence\n• ReportLab: Localized Marathi PDF & invoice generation", "SQLite • PBKDF2 • Plotly", COLOR_PURPLE)
+        ("⚡ Frontend & Logic", "• FastAPI Serverless Python Backend\n• Cyberpunk HTML5/ES6+ SPA Interface\n• Web Speech API + Native Audio Recording\n• VernaStorage: Hybrid Local-First Engine", "FastAPI • Vanilla JS • VernaStorage", COLOR_GREEN),
+        ("🧠 AI Architecture Pillars", "• 5 Multimodal Scanner Pillars (ViT, TPU Cloud, Attention, Doc AI)\n• 4 Chatbot Core Pillars (Vernacular ASR, LLM Reasoning, ACID WAL)\n• Gemini 3.1 Flash-Lite Intelligence\n• Edge TTS Neural Marathi Synthesis", "5 Scanner & 4 Chatbot Pillars", COLOR_CYAN),
+        ("🛡️ Database & Auto-Sync", "• SQLite 3 (ACID Compliant, WAL Mode)\n• Bi-Directional /api/sync Cloud Auto-Sync\n• Zero Serverless Cold-Start Data Loss\n• Native Excel (.xlsx) & Thermal Print", "SQLite WAL • Cloud Auto-Sync", COLOR_PURPLE)
     ]
     for i, (title, desc, tag, col) in enumerate(techs):
         x = Inches(0.8) + i * Inches(4.0)
@@ -1509,7 +1510,7 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     p_names = tf_qa.add_paragraph()
-    p_names.text = "Project Team: Sanket Kirdat • Sakshi Bhagat • Vaishnavi Dhavale • Rushikesh Mulik"
+    p_names.text = "Project Team: Sanket Kirdat • Sakshi Bhagat • Vaishnavi Dhawale • Rushikesh Mulik"
     p_names.font.name = FONT_BODY
     p_names.font.size = Pt(12)
     p_names.font.bold = True
@@ -1517,15 +1518,30 @@ def create_deck():
     p_names.alignment = PP_ALIGN.CENTER
 
     p_coll = tf_qa.add_paragraph()
-    p_coll.text = "Department of Computer Engineering • Arvind Gavali College of Engineering, Satara • DBATU University"
+    p_coll.text = "Department of Artificial Intelligence & Data Science (AI & DS) • Arvind Gavali College of Engineering, Satara • DBATU University"
     p_coll.font.name = FONT_MONO
     p_coll.font.size = Pt(9.5)
     p_coll.font.color.rgb = COLOR_CYAN
     p_coll.alignment = PP_ALIGN.CENTER
 
-    # Save Presentation
-    prs.save(OUTPUT_PPTX)
-    print(f"Presentation successfully created at: {OUTPUT_PPTX}")
+    # Save Presentation to both Workspace Root and Desktop
+    repo_output = os.path.join(ROOT_DIR, "VERNALEDGER_AI_MERCHANT_PRO_PRESENTATION.pptx")
+    prs.save(repo_output)
+    print(f"SUCCESS: Saved presentation to workspace: {repo_output}")
+
+    saved_desktop = False
+    try:
+        prs.save(OUTPUT_PPTX)
+        print(f"SUCCESS: Saved presentation to desktop: {OUTPUT_PPTX}")
+        saved_desktop = True
+    except PermissionError:
+        alt_desktop = os.path.join(r"C:\Users\mahan\OneDrive\Desktop", "VERNALEDGER_AI_MERCHANT_PRO_PRESENTATION_UPDATED.pptx")
+        try:
+            prs.save(alt_desktop)
+            print(f"NOTE: Original desktop PPTX was open/locked in PowerPoint. Saved updated copy to: {alt_desktop}")
+            saved_desktop = True
+        except Exception as ex_alt:
+            print(f"Could not save to desktop: {ex_alt}")
 
 if __name__ == "__main__":
     create_deck()

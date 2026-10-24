@@ -1773,14 +1773,15 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     is_atar = any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'कैसर', 'kaisar', 'सर कोण']) and not any(k in lower_msg for k in ['डेव्हलपर', 'developer', 'टीम', 'team'])
     
     # Check if user specifically asked for Sanket Kirdat individually vs whole team
-    is_kirdat_individual = (any(k in lower_msg for k in ['kirdat', 'किर्दत', 'sanket kirdat', 'संकेत किर्दत']) or any(k in lower_msg for k in ['sanket', 'संकेत'])) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची'])
+    is_kirdat_individual = (any(k in lower_msg for k in ['kirdat', 'किर्दत', 'sanket kirdat', 'संकेत किर्दत']) or any(k in lower_msg for k in ['sanket', 'संकेत'])) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची'])
 
     # Query asking about all/multiple developers or general developer query
     is_all_devs_query = any(k in lower_msg for k in [
-        'developer', 'developers', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'विद्यार्थी', 
-        'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 
-        'who made', 'किसने बनाया', 'डेव्हलपर कोण', 'सगळे डेव्हलपर', 'सर्व डेव्हलपर',
-        'team members', 'सगळ्यांची नावे', 'नावे सांगा', 'जेवढे डेव्हलपर'
+        'developer', 'developers', 'विकासक', 'team', 'टीम', 'डेव्हलपर', 'डेवलपर', 'डेव्हलपर्स', 'डेवलपर्स',
+        'विद्यार्थी', 'creator', 'कोण बनवला', 'कोणी बनवला', 'कोणी तयार केला', 'कोण तयार केला', 
+        'who made', 'किसने बनाया', 'डेव्हलपर कोण', 'डेवलपर कोण', 'सगळे डेव्हलपर', 'सर्व डेव्हलपर',
+        'team members', 'सगळ्यांची नावे', 'नावे सांगा', 'जेवढे डेव्हलपर', 'टीम ची नावे', 'टीमची नावे',
+        'team chi nave', 'developer team', 'dev team', 'प्रोजेक्ट टीम', 'प्रकल्प टीम', 'संपूर्ण प्रोजेक्ट'
     ])
 
     if is_mulik and not is_all_devs_query:
@@ -1988,7 +1989,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ४. ⚡ **Real-Time Low Latency Engine:** सब-मिलिसेकंद (१०-१५ ms) इन-मेमरी मेमरी ॲक्सेस आणि सब-सेकंद फास्ट जेमिनी जनरेशन."""
 
     # H. Greetings (Strict Regex Word Boundary with word count <= 3 to avoid substring traps)
-    elif bool(re.search(r'\b(namaskar|namaste|hello|hi|hey|हॅलो|नमस्कार|नमस्ते)\b', lower_msg)) and len(lower_msg.split()) <= 3:
+    elif bool(re.search(r'(namaskar|namaste|hello|hi|hey|हॅलो|नमस्कार|नमस्ते)', lower_msg)) and len(lower_msg.split()) <= 3 and not any(k in lower_msg for k in ['mahiti', 'माहिती', 'project', 'प्रकल्प', 'प्रोजेक्ट', 'team', 'टीम', 'sanga', 'सांगा', 'udhari', 'vikri', 'satha', 'stock', 'developer', 'डेव्हलपर', 'डेवलपर']):
         if is_hindi:
             answer = 'नमस्ते! मैं Verna AI हूँ। आज दुकान की बिक्री, उधारी या स्टॉक के बारे में बताइए, मैं किस प्रकार सहायता कर सकता हूँ?'
         elif is_english:
