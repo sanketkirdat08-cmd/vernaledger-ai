@@ -79,3 +79,4 @@ def update_synopsis_docx():
 
 update_report_docx()
 update_synopsis_docx()
+

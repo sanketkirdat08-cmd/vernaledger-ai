@@ -26,3 +26,4 @@ for tf in target_files:
         print(f"Updated {tf}")
 
 print("index.html files updated successfully!")
+

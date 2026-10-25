@@ -69,6 +69,16 @@ const VernaStorage = {
         this.save(this.KEY_RECEIPTS, list);
     },
 
+    removeReceipts(ids) {
+        const idSet = new Set((ids || []).map(Number));
+        const list = this.get(this.KEY_RECEIPTS).filter(r => !idSet.has(Number(r.id)));
+        this.save(this.KEY_RECEIPTS, list);
+    },
+
+    clearAllReceipts() {
+        this.save(this.KEY_RECEIPTS, []);
+    },
+
     mergeReceipts(serverReceipts) {
         const local = this.get(this.KEY_RECEIPTS);
         const map = new Map();
@@ -210,6 +220,16 @@ const i18n = {
         btn_camera: "📷 लाईव्ह कॅमेराने फोटो काढा",
         btn_camera_capture: "📷 लाईव्ह कॅमेराने फोटो काढा",
         btn_cancel: "रद्द करा",
+        btn_delete_selected: "निवडलेल्या डिलीट करा",
+        btn_clear_all_ledger: "⚠️ सर्व रिकामे करा",
+        lbl_selected_receipts: "निवडलेल्या:",
+        lbl_total_receipts: "एकूण पावत्या:",
+        confirm_bulk_delete: "तुम्हाला निवडलेल्या {n} पावत्या लेजरमधून कायमच्या डिलीट करायच्या आहेत का?",
+        confirm_clear_all: "⚠️ सावधान! तुम्हाला लेजरमधील सर्व पावत्या कायमच्या डिलीट करायच्या आहेत का? ही कृती पूर्ववत करता येणार नाही!",
+        msg_bulk_delete_success: "✅ निवडलेल्या {n} पावत्या यशस्वीरीत्या डिलीट केल्या!",
+        msg_clear_all_success: "✅ सर्व पावत्या लेजरमधून यशस्वीरीत्या डिलीट केल्या!",
+        no_receipts_selected: "कृपया आधी किमान एक पावती निवडा!",
+        empty_ledger: "कोणतीही पावती उपलब्ध नाही.",
         btn_clear_chat: "🗑️ Clear",
         btn_close: "बंद करा",
         btn_export_csv: "📑 CSV",
@@ -433,6 +453,16 @@ const i18n = {
         btn_camera: "📷 Capture with Live Camera",
         btn_camera_capture: "📷 Capture via Live Camera",
         btn_cancel: "Cancel",
+        btn_delete_selected: "Delete Selected",
+        btn_clear_all_ledger: "⚠️ Clear All",
+        lbl_selected_receipts: "Selected:",
+        lbl_total_receipts: "Total Receipts:",
+        confirm_bulk_delete: "Are you sure you want to permanently delete {n} selected receipts from the ledger?",
+        confirm_clear_all: "⚠️ Warning! Are you sure you want to delete ALL receipts from the ledger? This action cannot be undone!",
+        msg_bulk_delete_success: "✅ Successfully deleted {n} selected receipts!",
+        msg_clear_all_success: "✅ Successfully cleared all receipts from ledger!",
+        no_receipts_selected: "Please select at least one receipt first!",
+        empty_ledger: "No receipts available in ledger.",
         btn_clear_chat: "🗑️ Clear",
         btn_close: "Close",
         btn_export_csv: "📑 CSV",
@@ -656,6 +686,16 @@ const i18n = {
         btn_camera: "📷 लाइव कैमरे से फोटो लें",
         btn_camera_capture: "📷 लाइव कैमरे से फोटो लें",
         btn_cancel: "रद्द करें",
+        btn_delete_selected: "चुनी गई डिलीट करें",
+        btn_clear_all_ledger: "⚠️ सब डिलीट करें",
+        lbl_selected_receipts: "चुनी गई:",
+        lbl_total_receipts: "कुल रसीदें:",
+        confirm_bulk_delete: "क्या आप चुनी गई {n} रसीदें लेजर से स्थायी रूप से हटाना चाहते हैं?",
+        confirm_clear_all: "⚠️ चेतावनी! क्या आप लेजर से सभी रसीदें स्थायी रूप से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती!",
+        msg_bulk_delete_success: "✅ चुनी गई {n} रसीदें सफलतापूर्वक डिलीट कर दी गईं!",
+        msg_clear_all_success: "✅ सभी रसीदें लेजर से सफलतापूर्वक हटा दी गईं!",
+        no_receipts_selected: "कृपया पहले कम से कम एक रसीद चुनें!",
+        empty_ledger: "लेजर में कोई रसीद उपलब्ध नहीं है।",
         btn_clear_chat: "🗑️ साफ़ करें",
         btn_close: "बंद करें",
         btn_export_csv: "📑 CSV",
@@ -2181,8 +2221,19 @@ function renderLedgerTable(receipts) {
     const tbody = document.getElementById("ledger-table-tbody");
     tbody.innerHTML = "";
 
+    const totalCountEl = document.getElementById("ledger-total-count");
+    if (totalCountEl) totalCountEl.innerText = (receipts ? receipts.length : 0);
+
+    const selectAllCheckbox = document.getElementById("ledger-select-all");
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+    updateSelectedReceiptsUI();
+
     if (!receipts || receipts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 24px;">कोणतीही पावती उपलब्ध नाही.</td></tr>`;
+        const dict = i18n[state.lang] || i18n.mr;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">${dict.empty_ledger || "कोणतीही पावती उपलब्ध नाही."}</td></tr>`;
         return;
     }
 
@@ -2190,7 +2241,11 @@ function renderLedgerTable(receipts) {
         const isMr = state.lang === 'mr';
         const displayName = formatLocalizedName(r.vendor_name || (isMr ? 'किराणा स्टोअर' : 'Kirana Store'), state.lang);
         const tr = document.createElement("tr");
+        tr.id = `ledger-row-${r.id}`;
         tr.innerHTML = `
+            <td style="text-align: center;">
+                <input type="checkbox" class="cyber-checkbox ledger-row-checkbox" value="${r.id}" onchange="onReceiptCheckboxChange(this, ${r.id})">
+            </td>
             <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--neon-cyan);">#VL-${r.id}</td>
             <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
             <td>${r.date}</td>
@@ -2209,6 +2264,144 @@ function renderLedgerTable(receipts) {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// =============================================================================
+// LEDGER MULTI-SELECT & BULK ACTIONS CONTROLLER
+// =============================================================================
+function getSelectedReceiptIds() {
+    const checkedBoxes = document.querySelectorAll(".ledger-row-checkbox:checked");
+    return Array.from(checkedBoxes).map(cb => Number(cb.value));
+}
+
+function onReceiptCheckboxChange(checkbox, id) {
+    const row = document.getElementById(`ledger-row-${id}`);
+    if (row) {
+        if (checkbox.checked) {
+            row.classList.add("row-selected");
+        } else {
+            row.classList.remove("row-selected");
+        }
+    }
+    updateSelectedReceiptsUI();
+}
+
+function toggleSelectAllReceipts(master) {
+    const isChecked = master.checked;
+    const checkboxes = document.querySelectorAll(".ledger-row-checkbox");
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        const row = document.getElementById(`ledger-row-${cb.value}`);
+        if (row) {
+            if (isChecked) {
+                row.classList.add("row-selected");
+            } else {
+                row.classList.remove("row-selected");
+            }
+        }
+    });
+    updateSelectedReceiptsUI();
+}
+
+function updateSelectedReceiptsUI() {
+    const selected = getSelectedReceiptIds();
+    const count = selected.length;
+    const total = document.querySelectorAll(".ledger-row-checkbox").length;
+
+    const btnBulk = document.getElementById("btn-ledger-bulk-delete");
+    const countSpan = document.getElementById("ledger-selected-count");
+    const numSpan = document.getElementById("ledger-selected-num");
+    const statsPill = document.getElementById("ledger-selected-stats-pill");
+    const master = document.getElementById("ledger-select-all");
+
+    if (countSpan) countSpan.innerText = count;
+    if (numSpan) numSpan.innerText = count;
+
+    if (btnBulk) {
+        btnBulk.style.display = count > 0 ? "inline-flex" : "none";
+    }
+    if (statsPill) {
+        statsPill.style.display = count > 0 ? "inline-block" : "none";
+    }
+    if (master) {
+        master.checked = total > 0 && count === total;
+        master.indeterminate = count > 0 && count < total;
+    }
+}
+
+async function bulkDeleteSelectedReceipts() {
+    const selectedIds = getSelectedReceiptIds();
+    const count = selectedIds.length;
+    const dict = i18n[state.lang] || i18n.mr;
+
+    if (count === 0) {
+        alert(dict.no_receipts_selected || "कृपया आधी किमान एक पावती निवडा!");
+        return;
+    }
+
+    const template = dict.confirm_bulk_delete || "तुम्हाला निवडलेल्या {n} पावत्या लेजरमधून कायमच्या डिलीट करायच्या आहेत का?";
+    const msg = template.replace("{n}", count);
+    if (!confirm(msg)) return;
+
+    try {
+        // 1. Remove from local client persistence
+        VernaStorage.removeReceipts(selectedIds);
+
+        // 2. Call server bulk-delete endpoint
+        await apiCall("/api/receipts/bulk-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receipt_ids: selectedIds })
+        }).catch(async (e) => {
+            console.warn("Bulk delete server notice, falling back to sequential:", e);
+            for (const id of selectedIds) {
+                await apiCall(`/api/receipts/${id}`, { method: "DELETE" }).catch(() => {});
+            }
+        });
+
+        // 3. Reload ledger and metrics
+        await loadReceiptsLedger();
+        loadDashboardMetrics();
+
+        const successTpl = dict.msg_bulk_delete_success || "✅ निवडलेल्या {n} पावत्या यशस्वीरीत्या डिलीट केल्या!";
+        alert(successTpl.replace("{n}", count));
+    } catch (err) {
+        alert("एरर: " + err.message);
+    }
+}
+
+async function clearEntireLedger() {
+    const total = (state.allReceipts || []).length;
+    const dict = i18n[state.lang] || i18n.mr;
+
+    if (total === 0) {
+        alert(dict.empty_ledger || "लेजरमध्ये कोणतीही पावती उपलब्ध नाही.");
+        return;
+    }
+
+    const msg = dict.confirm_clear_all || "⚠️ सावधान! तुम्हाला लेजरमधील सर्व पावत्या कायमच्या डिलीट करायच्या आहेत का? ही कृती पूर्ववत करता येणार नाही!";
+    if (!confirm(msg)) return;
+
+    if (!confirm(`नक्की? लेजरमधील संपूर्ण ${total} पावत्या कायमच्या नष्ट होतील!`)) return;
+
+    try {
+        VernaStorage.clearAllReceipts();
+        await apiCall("/api/receipts/all", { method: "DELETE" }).catch(async () => {
+            const allIds = (state.allReceipts || []).map(r => r.id);
+            await apiCall("/api/receipts/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ receipt_ids: allIds })
+            }).catch(() => {});
+        });
+
+        await loadReceiptsLedger();
+        loadDashboardMetrics();
+
+        alert(dict.msg_clear_all_success || "✅ सर्व पावत्या लेजरमधून यशस्वीरीत्या डिलीट केल्या!");
+    } catch (err) {
+        alert("एरर: " + err.message);
+    }
 }
 
 function filterLedgerList() {

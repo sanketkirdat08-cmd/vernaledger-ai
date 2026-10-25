@@ -38,3 +38,4 @@ for s_idx, slide in enumerate(prs.slides):
                 text = p.text.strip()
                 if any(k in text for k in ["Sanket", "Sakshi", "Vaishnavi", "Rushikesh", "Roll", "PRN"]):
                     print(f"Slide {s_idx + 1}: {text}")
+

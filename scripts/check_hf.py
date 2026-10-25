@@ -7,3 +7,4 @@ for fname in ['VernaLedger_AI_Final_Year_Project_Report.docx', 'VernaLedger_AI_P
         f_text = sec.footer.paragraphs[0].text if sec.footer.paragraphs else ''
         if h_text or f_text:
             print(f'{fname} sec[{s_idx}] header: "{h_text}", footer: "{f_text}"')
+

@@ -331,6 +331,9 @@ class SyncDataRequest(BaseModel):
     khata: Optional[List[Dict[str, Any]]] = None
     expenses: Optional[List[Dict[str, Any]]] = None
 
+class BulkDeleteReceiptsRequest(BaseModel):
+    receipt_ids: List[int]
+
 class NewUserRequest(BaseModel):
     username: str
     password: str
@@ -1324,6 +1327,25 @@ def get_receipts(search: Optional[str] = None):
 def delete_receipt(receipt_id: int):
     conn = get_db()
     conn.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.post("/api/receipts/bulk-delete")
+def bulk_delete_receipts(req: BulkDeleteReceiptsRequest):
+    if not req.receipt_ids:
+        return {"success": True, "deleted_count": 0}
+    conn = get_db()
+    placeholders = ",".join("?" for _ in req.receipt_ids)
+    conn.execute(f"DELETE FROM receipts WHERE id IN ({placeholders})", req.receipt_ids)
+    conn.commit()
+    conn.close()
+    return {"success": True, "deleted_count": len(req.receipt_ids)}
+
+@app.delete("/api/receipts/all")
+def delete_all_receipts():
+    conn = get_db()
+    conn.execute("DELETE FROM receipts")
     conn.commit()
     conn.close()
     return {"success": True}

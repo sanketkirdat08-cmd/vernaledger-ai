@@ -21,3 +21,4 @@ def audit_docx(filename):
 
 audit_docx("VernaLedger_AI_Final_Year_Project_Report.docx")
 audit_docx("VernaLedger_AI_Project_Synopsis.docx")
+

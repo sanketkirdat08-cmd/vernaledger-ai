@@ -19,3 +19,4 @@ for s_idx, slide in enumerate(prs.slides, start=1):
                 if any(w in row_t for w in ["Kirdat", "Bhagat", "Dhawale", "Dhavale", "Mulik", "Roll", "PRN"]):
                     if "Dr. S.S. Mulik" not in row_t:
                         print(f"Slide {s_idx} Table: {row_t}")
+

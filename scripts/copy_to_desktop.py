@@ -23,3 +23,4 @@ for src_name, dst_name in files_to_copy:
             print(f"FAILED to copy {src_name}: {e}")
     else:
         print(f"MISSING: {src}")
+

@@ -20,3 +20,4 @@ def examine_tables(filename):
 
 examine_tables("VernaLedger_AI_Final_Year_Project_Report.docx")
 examine_tables("VernaLedger_AI_Project_Synopsis.docx")
+
