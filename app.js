@@ -238,6 +238,28 @@ const i18n = {
         lbl_selected_khata: "निवडलेले व्यवहार:",
         btn_delete_selected_khata: "🗑️ निवडलेले डिलीट करा",
         btn_clear_all_khata: "⚠️ सर्व रिकामे करा",
+        link_forgot_password: "🔑 पासवर्ड विसरलात?",
+        link_register_account: "✨ नवीन खाते तयार करा",
+        title_forgot_password: "पासवर्ड रीसेट करा (Reset Password)",
+        lbl_forgot_user: "वापरकर्ता नाव (Username) किंवा फोन नंबर",
+        lbl_new_password: "नवीन पासवर्ड (New Password)",
+        btn_submit_reset_password: "✅ पासवर्ड बदला (Set New Password)",
+        title_register_merchant: "नवीन खाते तयार करा (New Merchant Register)",
+        lbl_reg_username: "वापरकर्ता नाव (Username)",
+        lbl_reg_password: "पासवर्ड",
+        lbl_reg_shop_name: "दुकान / व्यवसायाचे नाव",
+        lbl_reg_phone: "मोबाईल नंबर (WhatsApp)",
+        btn_submit_register: "🚀 खाते तयार करा व सुरू करा",
+        lbl_active_shop: "माझे दुकान:",
+        title_shop_profile_settings: "दुकान प्रोफाईल व बिलिंग माहिती (Shop Settings)",
+        sub_shop_profile_settings: "ही माहिती सर्व डिजिटल पावत्या, थर्मल प्रिंट, QR कोड आणि WhatsApp बिलांवर आपोआप दिसेल.",
+        btn_save_shop_info: "💾 माहिती सेव्ह करा",
+        lbl_setting_shop_name: "दुकान / व्यवसायाचे नाव",
+        lbl_setting_owner_name: "मालकाचे नाव",
+        lbl_setting_phone: "मोबाईल / WhatsApp नंबर",
+        lbl_setting_upi: "UPI ID (QR पेमेंटसाठी)",
+        lbl_setting_address: "दुकान पत्ता / ठिकाण",
+        title_modal_shop_settings: "दुकान माहिती बदला (Shop Profile)",
         confirm_bulk_delete_khata: "तुम्हाला निवडलेले {n} खाते व्यवहार कायमचे डिलीट करायचे आहेत का?",
         confirm_clear_all_khata: "⚠️ सावधान! तुम्हाला सर्व खाते व्यवहार कायमचे डिलीट करायचे आहेत का? ही कृती पूर्ववत करता येणार नाही!",
         msg_bulk_delete_khata_success: "✅ निवडलेले {n} व्यवहार यशस्वीरीत्या डिलीट केले!",
@@ -485,6 +507,28 @@ const i18n = {
         lbl_selected_khata: "Selected Transactions:",
         btn_delete_selected_khata: "🗑️ Delete Selected",
         btn_clear_all_khata: "⚠️ Clear All",
+        link_forgot_password: "🔑 Forgot Password?",
+        link_register_account: "✨ Create New Account",
+        title_forgot_password: "Reset Password",
+        lbl_forgot_user: "Username or Mobile Number",
+        lbl_new_password: "New Password",
+        btn_submit_reset_password: "✅ Set New Password",
+        title_register_merchant: "Register New Merchant Account",
+        lbl_reg_username: "Username",
+        lbl_reg_password: "Password",
+        lbl_reg_shop_name: "Shop / Store Name",
+        lbl_reg_phone: "Mobile Number (WhatsApp)",
+        btn_submit_register: "🚀 Register & Get Started",
+        lbl_active_shop: "My Shop:",
+        title_shop_profile_settings: "Shop Profile & Billing Settings",
+        sub_shop_profile_settings: "This information automatically appears on digital bills, thermal receipts, UPI QR codes, and WhatsApp messages.",
+        btn_save_shop_info: "💾 Save Store Info",
+        lbl_setting_shop_name: "Shop / Business Name",
+        lbl_setting_owner_name: "Owner Name",
+        lbl_setting_phone: "Mobile / WhatsApp Number",
+        lbl_setting_upi: "UPI ID (For QR Payments)",
+        lbl_setting_address: "Store Address / Location",
+        title_modal_shop_settings: "Edit Store Profile",
         confirm_bulk_delete_khata: "Are you sure you want to permanently delete {n} selected transactions?",
         confirm_clear_all_khata: "⚠️ Warning! Are you sure you want to delete ALL customer transactions? This action cannot be undone!",
         msg_bulk_delete_khata_success: "✅ Successfully deleted {n} transactions!",
@@ -732,6 +776,28 @@ const i18n = {
         lbl_selected_khata: "चुने गए लेनदेन:",
         btn_delete_selected_khata: "🗑️ चुने गए डिलीट करें",
         btn_clear_all_khata: "⚠️ सब डिलीट करें",
+        link_forgot_password: "🔑 पासवर्ड भूल गए?",
+        link_register_account: "✨ नया खाता बनाएं",
+        title_forgot_password: "पासवर्ड रीसेट करें (Reset Password)",
+        lbl_forgot_user: "उपयोगकर्ता नाम (Username) या फ़ोन नंबर",
+        lbl_new_password: "नया पासवर्ड (New Password)",
+        btn_submit_reset_password: "✅ पासवर्ड बदलें (Set New Password)",
+        title_register_merchant: "नया व्यापारी खाता बनाएं (New Merchant Register)",
+        lbl_reg_username: "उपयोगकर्ता नाम (Username)",
+        lbl_reg_password: "पासवर्ड",
+        lbl_reg_shop_name: "दुकान / व्यापार का नाम",
+        lbl_reg_phone: "मोबाइल नंबर (WhatsApp)",
+        btn_submit_register: "🚀 खाता बनाएं और शुरू करें",
+        lbl_active_shop: "मेरी दुकान:",
+        title_shop_profile_settings: "दुकान प्रोफ़ाइल व बिलिंग जानकारी (Shop Settings)",
+        sub_shop_profile_settings: "यह जानकारी सभी डिजिटल बिलों, थर्मल रसीदों, QR कोड और WhatsApp संदेशों पर दिखाई देगी।",
+        btn_save_shop_info: "💾 जानकारी सुरक्षित करें",
+        lbl_setting_shop_name: "दुकान / व्यापार का नाम",
+        lbl_setting_owner_name: "मालिक का नाम",
+        lbl_setting_phone: "मोबाइल / WhatsApp नंबर",
+        lbl_setting_upi: "UPI ID (QR भुगतान के लिए)",
+        lbl_setting_address: "दुकान का पता",
+        title_modal_shop_settings: "दुकान प्रोफ़ाइल बदलें",
         confirm_bulk_delete_khata: "क्या आप चुने गए {n} लेनदेन स्थायी रूप से हटाना चाहते हैं?",
         confirm_clear_all_khata: "⚠️ चेतावनी! क्या आप सभी लेनदेन स्थायी रूप से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती!",
         msg_bulk_delete_khata_success: "✅ सफलतापूर्वक {n} लेनदेन डिलीट किए गए!",
@@ -3660,3 +3726,219 @@ function stopAudioMsg(msgId) {
     if (time) time.innerText = `0:00 / ${formatAudioTime(audio.duration)}`;
 }
 function seekAudioBar(event, msgId) { /* legacy */ }
+
+
+// -----------------------------------------------------------------------------
+// AUTH ENHANCEMENTS: FORGOT PASSWORD & REGISTER NEW MERCHANT
+// -----------------------------------------------------------------------------
+function openForgotPasswordModal() {
+    const modal = document.getElementById("modal-forgot-password");
+    if (modal) modal.classList.add("active");
+}
+
+async function handleForgotPassword(e) {
+    e.preventDefault();
+    const userVal = document.getElementById("forgot-username").value.trim();
+    const newPass = document.getElementById("forgot-new-password").value.trim();
+    if (!userVal || !newPass) {
+        alert("कृपया वापरकर्ता नाव आणि नवीन पासवर्ड टाका.");
+        return;
+    }
+
+    try {
+        const payload = {
+            username: userVal.includes("@") || isNaN(userVal) ? userVal : "",
+            phone: !isNaN(userVal) ? userVal : "",
+            new_password: newPass
+        };
+        const res = await apiCall("/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || "पासवर्ड रीसेट करता आला नाही.");
+        }
+        alert("✅ पासवर्ड यशस्वीरीत्या बदलला आहे! आता लॉगिन करा.");
+        closeModal("modal-forgot-password");
+        const loginUserInput = document.getElementById("login-username");
+        const loginPassInput = document.getElementById("login-password");
+        if (loginUserInput) loginUserInput.value = data.username || userVal;
+        if (loginPassInput) loginPassInput.value = newPass;
+    } catch (err) {
+        alert("त्रुटी: " + err.message);
+    }
+}
+
+function openRegisterModal() {
+    const modal = document.getElementById("modal-register");
+    if (modal) modal.classList.add("active");
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById("reg-username").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+    const shop_name = document.getElementById("reg-shop-name").value.trim();
+    const phone = document.getElementById("reg-phone").value.trim();
+
+    if (!username || !password || !shop_name) {
+        alert("कृपया सर्व आवश्यक माहिती भरा.");
+        return;
+    }
+
+    try {
+        const payload = { username, password, shop_name, phone, role: "Admin" };
+        const res = await apiCall("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(data.detail || "नोंदणी अयशस्वी झाली.");
+        }
+
+        // Save session
+        state.user = {
+            username: data.username,
+            role: data.role,
+            phone: data.phone,
+            shop_name: data.shop_name
+        };
+        localStorage.setItem("verna_session_user", JSON.stringify(state.user));
+
+        closeModal("modal-register");
+        alert(`✅ स्वागत आहे, ${shop_name}! आपले खाते यशस्वीरित्या तयार झाले आहे.`);
+        transitionToApp();
+        loadShopSettings();
+    } catch (err) {
+        alert("नोंदणी त्रुटी: " + err.message);
+    }
+}
+
+// -----------------------------------------------------------------------------
+// SHOP PROFILE & BILLING SETTINGS MANAGEMENT
+// -----------------------------------------------------------------------------
+state.shopSettings = state.shopSettings || {
+    shop_name: "महादेव किराणा स्टोअर",
+    owner_name: "संकेत किर्दत",
+    phone: "9876543210",
+    upi_id: "merchant@upi",
+    address: "सातारा, महाराष्ट्र"
+};
+
+async function loadShopSettings() {
+    try {
+        const res = await apiCall("/api/shop/settings");
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.shop_name) {
+                state.shopSettings = data;
+                localStorage.setItem("verna_shop_settings", JSON.stringify(data));
+            }
+        }
+    } catch (e) {
+        console.warn("Using cached shop settings:", e);
+        const cached = localStorage.getItem("verna_shop_settings");
+        if (cached) {
+            try { state.shopSettings = JSON.parse(cached); } catch (_) {}
+        }
+    }
+    applyShopSettingsToUI();
+}
+
+function applyShopSettingsToUI() {
+    const s = state.shopSettings;
+    if (!s) return;
+
+    // Sidebar Shop Name
+    const sNameEl = document.getElementById("sidebar-shop-name");
+    if (sNameEl) sNameEl.innerText = s.shop_name || "महादेव किराणा स्टोअर";
+
+    // Operation view inputs
+    const elShopName = document.getElementById("setting-shop-name");
+    const elOwnerName = document.getElementById("setting-owner-name");
+    const elPhone = document.getElementById("setting-phone");
+    const elUpi = document.getElementById("setting-upi");
+    const elAddr = document.getElementById("setting-address");
+
+    if (elShopName) elShopName.value = s.shop_name || "";
+    if (elOwnerName) elOwnerName.value = s.owner_name || "";
+    if (elPhone) elPhone.value = s.phone || "";
+    if (elUpi) elUpi.value = s.upi_id || "";
+    if (elAddr) elAddr.value = s.address || "";
+
+    // Default vendor name in Digital Receipt Preview if empty
+    const billVendor = document.getElementById("bill-vendor-name");
+    if (billVendor && (!billVendor.value || billVendor.value === "किराणा स्टोअर" || billVendor.value === "Kirana Store")) {
+        billVendor.value = s.shop_name || "महादेव किराणा स्टोअर";
+    }
+}
+
+function openShopSettingsModal() {
+    const s = state.shopSettings;
+    const mShop = document.getElementById("modal-shop-name");
+    const mOwner = document.getElementById("modal-owner-name");
+    const mPhone = document.getElementById("modal-phone");
+    const mUpi = document.getElementById("modal-upi");
+    const mAddr = document.getElementById("modal-address");
+
+    if (mShop) mShop.value = s.shop_name || "";
+    if (mOwner) mOwner.value = s.owner_name || "";
+    if (mPhone) mPhone.value = s.phone || "";
+    if (mUpi) mUpi.value = s.upi_id || "";
+    if (mAddr) mAddr.value = s.address || "";
+
+    const modal = document.getElementById("modal-shop-settings");
+    if (modal) modal.classList.add("active");
+}
+
+async function saveShopSettingsFromOperations() {
+    const payload = {
+        shop_name: (document.getElementById("setting-shop-name") ? document.getElementById("setting-shop-name").value : "").trim() || "महादेव किराणा स्टोअर",
+        owner_name: (document.getElementById("setting-owner-name") ? document.getElementById("setting-owner-name").value : "").trim() || "संकेत किर्दत",
+        phone: (document.getElementById("setting-phone") ? document.getElementById("setting-phone").value : "").trim() || "9876543210",
+        upi_id: (document.getElementById("setting-upi") ? document.getElementById("setting-upi").value : "").trim() || "merchant@upi",
+        address: (document.getElementById("setting-address") ? document.getElementById("setting-address").value : "").trim() || "सातारा, महाराष्ट्र"
+    };
+
+    await persistShopSettings(payload);
+}
+
+async function handleSaveShopSettingsModal(e) {
+    e.preventDefault();
+    const payload = {
+        shop_name: (document.getElementById("modal-shop-name") ? document.getElementById("modal-shop-name").value : "").trim() || "महादेव किराणा स्टोअर",
+        owner_name: (document.getElementById("modal-owner-name") ? document.getElementById("modal-owner-name").value : "").trim() || "संकेत किर्दत",
+        phone: (document.getElementById("modal-phone") ? document.getElementById("modal-phone").value : "").trim() || "9876543210",
+        upi_id: (document.getElementById("modal-upi") ? document.getElementById("modal-upi").value : "").trim() || "merchant@upi",
+        address: (document.getElementById("modal-address") ? document.getElementById("modal-address").value : "").trim() || "सातारा, महाराष्ट्र"
+    };
+
+    await persistShopSettings(payload);
+    closeModal("modal-shop-settings");
+}
+
+async function persistShopSettings(payload) {
+    try {
+        const res = await apiCall("/api/shop/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("सर्व्हर सेव्ह अयशस्वी.");
+        const json = await res.json();
+        state.shopSettings = json.data || payload;
+    } catch (e) {
+        console.warn("Persisting shop settings locally:", e);
+        state.shopSettings = payload;
+    }
+
+    localStorage.setItem("verna_shop_settings", JSON.stringify(state.shopSettings));
+    applyShopSettingsToUI();
+    alert(`✅ दुकान माहिती यशस्वीरित्या सेव्ह झाली!
+दुकान: ${state.shopSettings.shop_name}
+मालक: ${state.shopSettings.owner_name}`);
+}

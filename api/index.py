@@ -352,6 +352,25 @@ class NewUserRequest(BaseModel):
     role: str = "Staff"
     phone: str = ""
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    shop_name: Optional[str] = "महादेव किराणा स्टोअर"
+    phone: Optional[str] = ""
+    role: Optional[str] = "Admin"
+
+class ForgotPasswordRequest(BaseModel):
+    username: Optional[str] = ""
+    phone: Optional[str] = ""
+    new_password: str
+
+class ShopSettingsRequest(BaseModel):
+    shop_name: Optional[str] = "महादेव किराणा स्टोअर"
+    owner_name: Optional[str] = "संकेत किर्दत"
+    phone: Optional[str] = "9876543210"
+    upi_id: Optional[str] = "merchant@upi"
+    address: Optional[str] = "सातारा, महाराष्ट्र"
+
 # -----------------------------------------------------------------------------
 # AUTH & USER ENDPOINTS
 # -----------------------------------------------------------------------------
@@ -387,12 +406,124 @@ def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="वापरकर्ता नाव किंवा पासवर्ड चुकीचा आहे.")
 
     log_activity(clean_user, "User Logged In")
+    # Fetch shop name
+    conn = get_db()
+    s_row = conn.execute("SELECT value FROM shop_settings WHERE key = 'shop_name'").fetchone()
+    conn.close()
+    s_name = s_row[0] if s_row else "महादेव किराणा स्टोअर"
     return {
         "success": True,
         "username": clean_user,
         "role": user["role"],
-        "phone": user["phone"]
+        "phone": user["phone"],
+        "shop_name": s_name
     }
+
+@app.post("/api/auth/register")
+@app.post("/api/register")
+def register_user(req: RegisterRequest):
+    clean_user = (req.username or "").strip().lower()
+    clean_pass = (req.password or "").strip()
+    if not clean_user or not clean_pass:
+        raise HTTPException(status_code=400, detail="वापरकर्ता नाव आणि पासवर्ड आवश्यक आहे.")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    exists = cursor.execute("SELECT username FROM users WHERE LOWER(username) = ?", (clean_user,)).fetchone()
+    if exists:
+        conn.close()
+        raise HTTPException(status_code=400, detail="हे वापरकर्ता नाव आधीच वापरात आहे. कृपया दुसरे नाव निवडा.")
+    
+    p_hash = hash_password_secure(clean_pass)
+    cursor.execute(
+        "INSERT INTO users (username, password_hash, role, phone) VALUES (?, ?, ?, ?)",
+        (clean_user, p_hash, req.role or "Admin", (req.phone or "").strip())
+    )
+    
+    # Save shop name
+    if req.shop_name:
+        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES ('shop_name', ?)", (req.shop_name.strip(),))
+    if req.phone:
+        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES ('phone', ?)", (req.phone.strip(),))
+        
+    conn.commit()
+    conn.close()
+    log_activity(clean_user, f"New user registered: {clean_user}")
+    return {
+        "success": True,
+        "username": clean_user,
+        "role": req.role or "Admin",
+        "phone": req.phone or "",
+        "shop_name": req.shop_name or "महादेव किराणा स्टोअर"
+    }
+
+@app.post("/api/auth/forgot-password")
+@app.post("/api/forgot-password")
+def forgot_password(req: ForgotPasswordRequest):
+    clean_user = (req.username or "").strip().lower()
+    clean_phone = (req.phone or "").strip()
+    new_pass = (req.new_password or "").strip()
+    if not new_pass:
+        raise HTTPException(status_code=400, detail="नवीन पासवर्ड आवश्यक आहे.")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    user = None
+    if clean_user:
+        user = cursor.execute("SELECT username, phone FROM users WHERE LOWER(username) = ?", (clean_user,)).fetchone()
+    elif clean_phone:
+        user = cursor.execute("SELECT username, phone FROM users WHERE phone = ?", (clean_phone,)).fetchone()
+    
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="खाते सापडले नाही. कृपया अचूक वापरकर्ता नाव किंवा फोन नंबर तपासा.")
+    
+    p_hash = hash_password_secure(new_pass)
+    cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (p_hash, user["username"]))
+    conn.commit()
+    conn.close()
+    log_activity(user["username"], "Password reset successfully")
+    return {
+        "success": True,
+        "message": "पासवर्ड यशस्वीरीत्या बदलला आहे! आता नवीन पासवर्डने लॉगिन करा.",
+        "username": user["username"]
+    }
+
+@app.get("/api/shop/settings")
+@app.get("/api/shop-settings")
+def get_shop_settings():
+    conn = get_db()
+    rows = conn.execute("SELECT key, value FROM shop_settings").fetchall()
+    conn.close()
+    settings = {
+        "shop_name": "महादेव किराणा स्टोअर",
+        "owner_name": "संकेत किर्दत",
+        "phone": "9876543210",
+        "upi_id": "merchant@upi",
+        "address": "सातारा, महाराष्ट्र"
+    }
+    for r in rows:
+        settings[r["key"]] = r["value"]
+    return settings
+
+@app.post("/api/shop/settings")
+@app.post("/api/shop-settings")
+def save_shop_settings(req: ShopSettingsRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    data = {
+        "shop_name": req.shop_name.strip() if req.shop_name else "महादेव किराणा स्टोअर",
+        "owner_name": req.owner_name.strip() if req.owner_name else "संकेत किर्दत",
+        "phone": req.phone.strip() if req.phone else "9876543210",
+        "upi_id": req.upi_id.strip() if req.upi_id else "merchant@upi",
+        "address": req.address.strip() if req.address else "सातारा, महाराष्ट्र"
+    }
+    for k, v in data.items():
+        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (k, v))
+    conn.commit()
+    conn.close()
+    log_activity("admin", f"Updated shop settings: {data['shop_name']}")
+    return {"success": True, "data": data}
 
 # Staff & Audit Logs removed per clean merchant architecture
 
@@ -1677,7 +1808,21 @@ async def rag_chat(req: RAGChatRequest):
     rec_summary = [f"{r['vendor_name'] or 'ग्राहक'}: ₹{r['grand_total']:,.2f}" for r in recent_receipts]
     exp_summary = [f"{e['expense_title']}: ₹{e['amount']:,.2f}" for e in recent_expenses]
 
+    # Fetch shop settings
+    shop_cfg_rows = conn.execute("SELECT key, value FROM shop_settings").fetchall()
+    shop_dict = {r["key"]: r["value"] for r in shop_cfg_rows}
+    current_shop_name = shop_dict.get("shop_name", "महादेव किराणा स्टोअर")
+    current_owner_name = shop_dict.get("owner_name", "संकेत किर्दत")
+    current_shop_phone = shop_dict.get("phone", "9876543210")
+    current_shop_upi = shop_dict.get("upi_id", "merchant@upi")
+
     db_context = f"""
+    [दुकान प्रोफाईल (Store Profile)]:
+    - दुकान/व्यवसायाचे नाव: {current_shop_name}
+    - मालक: {current_owner_name}
+    - संपर्क: {current_shop_phone}
+    - UPI ID: {current_shop_upi}
+
     [लाइव्ह दुकानाची खरी आकडेवारी (Live Shop Real Data)]:
     - आजची विक्री: ₹{today_sales:,.2f}
     - एकूण नोंदवलेली विक्री: ₹{total_sales:,.2f} ({bill_count} पावत्या)
@@ -1870,6 +2015,39 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     # SMART FAST PATH & KNOWLEDGE ROUTING (100% ACCURATE & INSTANT)
     # -------------------------------------------------------------------------
 
+    # Check if query asks for shop name or owner name
+    if any(k in lower_msg for k in ['दुकान नाव', 'दुकानाचे नाव', 'दुकानदार', 'shop name', 'dukanache nav', 'dukana che nav', 'dukan nav', 'मालक', 'owner', 'माझे दुकान', 'दुकान काय आहे']):
+        conn_s = get_db()
+        s_rows = conn_s.execute("SELECT key, value FROM shop_settings").fetchall()
+        conn_s.close()
+        s_data = {r["key"]: r["value"] for r in s_rows}
+        s_name = s_data.get("shop_name", "महादेव किराणा स्टोअर")
+        s_own = s_data.get("owner_name", "संकेत किर्दत")
+        s_ph = s_data.get("phone", "9876543210")
+        s_upi = s_data.get("upi_id", "merchant@upi")
+        s_addr = s_data.get("address", "सातारा, महाराष्ट्र")
+        if is_english:
+            answer = f"""🏬 **Store Profile & Details**:
+• **Shop Name:** {s_name}
+• **Owner / Merchant:** {s_own}
+• **Contact / WhatsApp:** {s_ph}
+• **UPI ID for Payments:** {s_upi}
+• **Address:** {s_addr}"""
+        elif is_hindi:
+            answer = f"""🏬 **दुकान की जानकारी (Store Details)**:
+• **दुकान का नाम:** {s_name}
+• **दुकानदार / मालिक:** {s_own}
+• **फ़ोन / WhatsApp:** {s_ph}
+• **UPI ID:** {s_upi}
+• **पता:** {s_addr}"""
+        else:
+            answer = f"""🏬 **आपल्या दुकानाची माहिती (Store Profile)**:
+• **दुकान / व्यवसायाचे नाव:** {s_name}
+• **मालकाचे नाव:** {s_own}
+• **संपर्क / WhatsApp:** {s_ph}
+• **UPI ID (पेमेंटसाठी):** {s_upi}
+• **दुकान पत्ता:** {s_addr}"""
+
     # A. Specific Individual Developer & Guide Checks (Surnames & Names in Roman / Devanagari)
     is_mulik = any(k in lower_msg for k in ['mulik', 'मुळीक', 'rushikesh', 'ऋषिकेश'])
     is_bhagat = any(k in lower_msg for k in ['bhagat', 'भगत', 'sakshi', 'साक्षी'])
@@ -2024,9 +2202,9 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             else:
                 answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Development Team - सर्व ४ डेव्हलपर्स)**:
 १. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
-२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – सह-विकासक (Co-Developer - UI/UX & System Design)
-३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
-४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – सह-विकासक (Co-Developer - Database & Ledger Architecture)
+२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – फ्रंटएंड व UI डेव्हलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
 
 🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
@@ -2111,9 +2289,9 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 
 👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members - सर्व ४ डेव्हलपर्स)**:
 १. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
-२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – सह-विकासक (Co-Developer - UI/UX & System Design)
-३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** (Roll: 4056 | PRN: 24065451263504) – सह-विकासक (Co-Developer - Multilingual Data Pipeline)
-४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – सह-विकासक (Co-Developer - Database & Ledger Architecture)
+२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – फ्रंटएंड व UI डेव्हलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
 
 🎯 **प्रकल्पाचा मुख्य हेतू व वैशिष्ट्ये (Project Overview)**:
 स्थानिक किराणा दुकानदार, व्यापारी आणि MSMEs साठी मराठी भाषेत थेट काम करणारी नेक्स्ट-जनरेशन AI बिलिंग आणि फायनान्शियल सिस्टीम:
