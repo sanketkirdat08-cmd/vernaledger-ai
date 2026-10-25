@@ -8,3 +8,4 @@ for path in ["index.html", os.path.join("public", "index.html")]:
         with open(path, "w", encoding="utf-8") as f:
             f.write(c)
         print(f"Bumped version in {path}")
+

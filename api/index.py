@@ -1805,8 +1805,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👨‍💻 **Rushikesh Mulik**:
 • **Roll No:** 4004
 • **PRN No:** 23065451263005
-• **Role:** Co-Developer (Database & Ledger Architecture)
-• **Key Contributions:** SQLite ACID Database Architecture, Customer Ledger (उधारी वही), Real-Time Transaction Engine, and Balance Sheet Management.
+• **Role:** Backend & Database Developer
+• **Key Responsibilities:** SQLite Database Management, Customer Khata Ledger, Transaction Audit Trail, and Excel Export Reports.
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
@@ -1815,8 +1815,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
 • **रोल नंबर (Roll No):** 4004
 • **पीआरएन नंबर (PRN No):** 23065451263005
-• **भूमिका:** सह-विकासक (Co-Developer - Database & Ledger Architecture)
-• **महत्त्वाचे योगदान:** SQLite ACID डेटाबेस आर्किटेक्चर, ग्राहक खाते (उधारी वही), रिअल-टाइम लेजर व्यवस्थापन आणि बॅलन्स शीट इंजिन.
+• **भूमिका (Role):** बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
+• **मुख्य काम:** SQLite डेटाबेस व्यवस्थापन, ग्राहक उधारी खाते, व्यवहार लेजर आणि एक्सेल डेटा रिपोर्ट.
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
@@ -1827,8 +1827,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👩‍💻 **Sakshi Bhagat**:
 • **Roll No:** 4054
 • **PRN No:** 24065451263502
-• **Role:** Co-Developer (UI/UX & System Design)
-• **Key Contributions:** Responsive Cyberpunk Business Studio UI/UX, Dynamic Theme Engine, Accessibility, and Voice-to-UI Interaction Design.
+• **Role:** Frontend & UI Developer
+• **Key Responsibilities:** Responsive User Interface (UI), Mobile & Desktop Layouts, Day/Night Theme Modes, and User Experience (UX).
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
@@ -1837,8 +1837,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
 • **रोल नंबर (Roll No):** 4054
 • **पीआरएन नंबर (PRN No):** 24065451263502
-• **भूमिका:** सह-विकासक (Co-Developer - UI/UX & System Design)
-• **महत्त्वाचे योगदान:** सायबरपंक बिझनेस स्टुडिओ UI/UX डिझाईन, रिस्पॉन्सिव्ह मोबाईल/डेस्कटॉप इंटरफेस आणि व्हॉईस-टू-UI इंटरअॅक्शन डिझाईन.
+• **भूमिका (Role):** फ्रंटएंड व UI डेव्हलपर (Frontend & UI Developer)
+• **मुख्य काम:** युझर इंटरफेस (UI) डिझाईन, मोबाईल व लॅपटॉप स्क्रीन्स, डे/नाईट थीम आणि सोपी वापरकर्ता प्रणाली.
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
@@ -1849,8 +1849,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👩‍💻 **Vaishnavi Dhavale**:
 • **Roll No:** 4056
 • **PRN No:** 24065451263504
-• **Role:** Co-Developer (Multilingual Data Pipeline)
-• **Key Contributions:** Multilingual Marathi/Hindi/English NLP, Regional ASR Dialect Datasets, Vernacular Voice Pipeline, and Audio Transcription Processing.
+• **Role:** Voice Billing & AI Developer
+• **Key Responsibilities:** Vernacular Marathi Voice Billing, Speech Recognition (ASR), Multilingual Audio Processing, and Audio Feedback.
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
@@ -1859,8 +1859,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhavale)**:
 • **रोल नंबर (Roll No):** 4056
 • **पीआरएन नंबर (PRN No):** 24065451263504
-• **भूमिका:** सह-विकासक (Co-Developer - Multilingual Data Pipeline)
-• **महत्त्वाचे योगदान:** बहुभाषिक (मराठी/इंग्रजी/हिंदी) NLP डेटा पाईपलाईन, प्रादेशिक (सातारी/पुणेरी/कोल्हापुरी) ASR उच्चार डेटासेट आणि ऑडिओ प्रोसेसिंग.
+• **भूमिका (Role):** व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
+• **मुख्य काम:** अस्खलित मराठी व्हॉइस बिलिंग, आवाज ओळखणे (Speech Recognition), बहुभाषिक ऑडिओ आणि व्हॉइस फीडबॅक.
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
@@ -1905,36 +1905,30 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         is_lead_only = any(k in lower_msg for k in ['लीड', 'lead', 'मुख्य']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'जेवढे', 'इतर', 'नावे', 'team', 'टीम', 'सगळ्यांची'])
         if is_lead_only:
             if is_english:
-                answer = """👨‍💻 **Lead Developer**:
-• **Sanket Kirdat** [Roll: 4060 | PRN: 24065451263508] – Lead Full-Stack AI Developer & Project Head
-  *(Architected the core VernaLedger.AI engine, multimodal scanner, voice billing, and end-to-end platform)*
-
-👥 **Co-Developers**:
-२. **Sakshi Bhagat** [Roll: 4054 | PRN: 24065451263502] – Co-Developer (UI/UX & System Design)
-३. **Vaishnavi Dhavale** [Roll: 4056 | PRN: 24065451263504] – Co-Developer (Multilingual Data Pipeline)
-४. **Rushikesh Mulik** [Roll: 4004 | PRN: 23065451263005] – Co-Developer (Database & Ledger Architecture)
+                answer = """👨‍💻 **Project Development Team**:
+1. **Sanket Kirdat** [Roll: 4060 | PRN: 24065451263508] – Team Leader & AI Developer
+2. **Sakshi Bhagat** [Roll: 4054 | PRN: 24065451263502] – Frontend & UI Developer
+3. **Vaishnavi Dhavale** [Roll: 4056 | PRN: 24065451263504] – Voice Billing & AI Developer
+4. **Rushikesh Mulik** [Roll: 4004 | PRN: 23065451263005] – Backend & Database Developer
 
 🎓 **Project Guide:** Prof. Kaisar Atar Sir
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)"""
             else:
-                answer = """👨‍💻 **प्रकल्प प्रमुख आणि लीड डेव्हलपर (Lead Developer)**:
-• **संकेत किर्दत (Sanket Kirdat)** [रोल: 4060 | PRN: 24065451263508] – प्रकल्प प्रमुख आणि मुख्य विकसक (Lead Full-Stack AI Developer)
-  *(संपूर्ण VernaLedger.AI आर्किटेक्चर, मल्टिमोडल स्कॅनर, व्हॉईस बिलिंग आणि फुल-स्टॅक प्लॅटफॉर्म विकसक)*
-
-👥 **सह-विकासक टीम (Co-Developers)**:
-२. **साक्षी भगत (Sakshi Bhagat)** [रोल: 4054 | PRN: 24065451263502] – सह-विकासक (UI/UX & System Design)
-३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** [रोल: 4056 | PRN: 24065451263504] – सह-विकासक (Multilingual Data Pipeline)
-४. **ऋषिकेश मुळीक (Rushikesh Mulik)** [रोल: 4004 | PRN: 23065451263005] – सह-विकासक (Database & Ledger Architecture)
+                answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team)**:
+१. **संकेत किर्दत (Sanket Kirdat)** [रोल: 4060 | PRN: 24065451263508] – टीम लीडर व AI डेव्हलपर (Team Leader & AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** [रोल: 4054 | PRN: 24065451263502] – फ्रंटएंड व UI डेव्हलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** [रोल: 4056 | PRN: 24065451263504] – व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** [रोल: 4004 | PRN: 23065451263005] – बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
 
 🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
 🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)"""
         else:
             if is_english:
                 answer = """👨‍💻 **Project Development Team (All 4 Developers)**:
-1. **Sanket Kirdat** (Roll: 4060 | PRN: 24065451263508) – Lead Full-Stack AI Developer & Project Head
-2. **Sakshi Bhagat** (Roll: 4054 | PRN: 24065451263502) – Co-Developer (UI/UX & System Design)
-3. **Vaishnavi Dhavale** (Roll: 4056 | PRN: 24065451263504) – Co-Developer (Multilingual Data Pipeline)
-4. **Rushikesh Mulik** (Roll: 4004 | PRN: 23065451263005) – Co-Developer (Database & Ledger Architecture)
+1. **Sanket Kirdat** (Roll: 4060 | PRN: 24065451263508) – Team Leader & AI Developer
+2. **Sakshi Bhagat** (Roll: 4054 | PRN: 24065451263502) – Frontend & UI Developer
+3. **Vaishnavi Dhavale** (Roll: 4056 | PRN: 24065451263504) – Voice Billing & AI Developer
+4. **Rushikesh Mulik** (Roll: 4004 | PRN: 23065451263005) – Backend & Database Developer
 
 🎓 **Project Guide:** Prof. Kaisar Atar Sir
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
@@ -1976,10 +1970,10 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Faculty Guide:** Prof. Kaisar Atar Sir (Department of AI & DS, AGCE Satara)
 
 👨‍💻 **Project Development Team (All 4 Developers)**:
-1. **Sanket Kirdat** (Roll: 4060 | PRN: 24065451263508) – Lead Full-Stack AI Developer & Project Head
-2. **Sakshi Bhagat** (Roll: 4054 | PRN: 24065451263502) – Co-Developer (UI/UX & System Design)
-3. **Vaishnavi Dhavale** (Roll: 4056 | PRN: 24065451263504) – Co-Developer (Multilingual Data Pipeline)
-4. **Rushikesh Mulik** (Roll: 4004 | PRN: 23065451263005) – Co-Developer (Database & Ledger Architecture)
+1. **Sanket Kirdat** (Roll: 4060 | PRN: 24065451263508) – Team Leader & AI Developer
+2. **Sakshi Bhagat** (Roll: 4054 | PRN: 24065451263502) – Frontend & UI Developer
+3. **Vaishnavi Dhavale** (Roll: 4056 | PRN: 24065451263504) – Voice Billing & AI Developer
+4. **Rushikesh Mulik** (Roll: 4004 | PRN: 23065451263005) – Backend & Database Developer
 
 🎯 **Key Highlights & Core Capabilities**:
 A next-generation AI-powered billing & digital ledger platform built for retail merchants and MSMEs:
@@ -2002,10 +1996,10 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 • **विभाग:** Department of AI & DS, AGCE Satara
 
 👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम (सभी 4 डेवलपर्स)**:
-१. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – प्रोजेक्ट हेड और मुख्य डेवलपर (Lead Full-Stack AI Developer)
-२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – सह-डेवलपर (UI/UX & System Design)
-३. **वैष्णवी ढवळे (Vaishnavi Dhawale)** (Roll: 4056 | PRN: 24065451263504) – सह-डेवलपर (Multilingual Data Pipeline)
-४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – सह-डेवलपर (Database & Ledger Architecture)
+१. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – टीम लीडर व AI डेवलपर (Team Leader & AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – फ्रंटएंड व UI डेवलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
 
 🎯 **प्रोजेक्ट के मुख्य उद्देश्य व विशेषताएं**:
 भारतीय किराना दुकानदारों और व्यापारियों के लिए स्थानीय भाषा में काम करने वाला AI बिलिंग और डिजिटल लेजर सिस्टम:

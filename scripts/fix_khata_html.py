@@ -66,3 +66,4 @@ def update_html(filepath):
 
 update_html("index.html")
 update_html(os.path.join("public", "index.html"))
+

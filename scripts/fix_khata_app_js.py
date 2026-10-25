@@ -209,3 +209,4 @@ def fix_app_js(filepath):
 
 fix_app_js("app.js")
 fix_app_js(os.path.join("public", "app.js"))
+

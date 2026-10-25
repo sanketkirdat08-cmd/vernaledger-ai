@@ -643,7 +643,7 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     p_names1 = tf.add_paragraph()
-    p_names1.text = "1. Sanket Kirdat (Roll: 4060 | PRN: 24065451263508)   •   2. Sakshi Bhagat (Roll: 4054 | PRN: 24065451263502)"
+    p_names1.text = "1. Sanket Kirdat (Team Leader & AI Dev | Roll: 4060)   •   2. Sakshi Bhagat (Frontend & UI Dev | Roll: 4054)"
     p_names1.font.name = FONT_BODY
     p_names1.font.size = Pt(11)
     p_names1.font.bold = True
@@ -651,7 +651,7 @@ def create_deck():
     p_names1.alignment = PP_ALIGN.CENTER
 
     p_names2 = tf.add_paragraph()
-    p_names2.text = "3. Vaishnavi Dhavale (Roll: 4056 | PRN: 24065451263504)   •   4. Rushikesh Mulik (Roll: 4004 | PRN: 23065451263005)"
+    p_names2.text = "3. Vaishnavi Dhavale (Voice Billing & AI Dev | Roll: 4056)   •   4. Rushikesh Mulik (Backend & Database | Roll: 4004)"
     p_names2.font.name = FONT_BODY
     p_names2.font.size = Pt(11)
     p_names2.font.bold = True
@@ -1512,7 +1512,7 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     p_names = tf_qa.add_paragraph()
-    p_names.text = "Project Team: Sanket Kirdat (Roll: 4060 | PRN: 24065451263508) • Sakshi Bhagat (Roll: 4054 | PRN: 24065451263502)\nVaishnavi Dhavale (Roll: 4056 | PRN: 24065451263504) • Rushikesh Mulik (Roll: 4004 | PRN: 23065451263005)"
+    p_names.text = "Project Team: Sanket Kirdat (Team Leader & AI Developer) • Sakshi Bhagat (Frontend & UI Developer)\nVaishnavi Dhavale (Voice Billing & AI Developer) • Rushikesh Mulik (Backend & Database Developer)"
     p_names.font.name = FONT_BODY
     p_names.font.size = Pt(12)
     p_names.font.bold = True
