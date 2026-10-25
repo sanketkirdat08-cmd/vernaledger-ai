@@ -224,6 +224,13 @@ const i18n = {
         btn_clear_all_ledger: "⚠️ सर्व रिकामे करा",
         lbl_selected_receipts: "निवडलेल्या:",
         lbl_total_receipts: "एकूण पावत्या:",
+        lbl_filter_cust: "फिल्टर:",
+        filter_all_cust: "सर्व ग्राहक",
+        filter_pending_cust: "उधारी बाकी",
+        filter_cleared_cust: "हिशोब क्लिअर",
+        empty_khata_cust: "कोणतेही उधारी खाते सापडले नाही. नवीन खाते जोडा.",
+        empty_khata_txns: "कोणताही खाते व्यवहार उपलब्ध नाही.",
+        no_filtered_cust: "या फिल्टरमध्ये कोणतेही ग्राहक सापडले नाहीत.",
         confirm_bulk_delete: "तुम्हाला निवडलेल्या {n} पावत्या लेजरमधून कायमच्या डिलीट करायच्या आहेत का?",
         confirm_clear_all: "⚠️ सावधान! तुम्हाला लेजरमधील सर्व पावत्या कायमच्या डिलीट करायच्या आहेत का? ही कृती पूर्ववत करता येणार नाही!",
         msg_bulk_delete_success: "✅ निवडलेल्या {n} पावत्या यशस्वीरीत्या डिलीट केल्या!",
@@ -457,6 +464,13 @@ const i18n = {
         btn_clear_all_ledger: "⚠️ Clear All",
         lbl_selected_receipts: "Selected:",
         lbl_total_receipts: "Total Receipts:",
+        lbl_filter_cust: "Filter:",
+        filter_all_cust: "All Customers",
+        filter_pending_cust: "Credit Due",
+        filter_cleared_cust: "Cleared",
+        empty_khata_cust: "No customer khata found. Add a new customer account.",
+        empty_khata_txns: "No transactions found in ledger.",
+        no_filtered_cust: "No customers found in this filter.",
         confirm_bulk_delete: "Are you sure you want to permanently delete {n} selected receipts from the ledger?",
         confirm_clear_all: "⚠️ Warning! Are you sure you want to delete ALL receipts from the ledger? This action cannot be undone!",
         msg_bulk_delete_success: "✅ Successfully deleted {n} selected receipts!",
@@ -690,6 +704,13 @@ const i18n = {
         btn_clear_all_ledger: "⚠️ सब डिलीट करें",
         lbl_selected_receipts: "चुनी गई:",
         lbl_total_receipts: "कुल रसीदें:",
+        lbl_filter_cust: "फ़िल्टर:",
+        filter_all_cust: "सभी ग्राहक",
+        filter_pending_cust: "उधारी बकाया",
+        filter_cleared_cust: "हिसाब क्लीयर",
+        empty_khata_cust: "कोई खाता नहीं मिला। नया खाता जोड़ें।",
+        empty_khata_txns: "कोई खाता लेनदेन उपलब्ध नहीं है।",
+        no_filtered_cust: "इस फ़िल्टर में कोई ग्राहक नहीं मिला।",
         confirm_bulk_delete: "क्या आप चुनी गई {n} रसीदें लेजर से स्थायी रूप से हटाना चाहते हैं?",
         confirm_clear_all: "⚠️ चेतावनी! क्या आप लेजर से सभी रसीदें स्थायी रूप से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती!",
         msg_bulk_delete_success: "✅ चुनी गई {n} रसीदें सफलतापूर्वक डिलीट कर दी गईं!",
@@ -1110,9 +1131,17 @@ function updateHudText() {
     const titleKey = `hud_${view}_title`;
     const subKey = `hud_${view}_sub`;
 
+    const titleMap = {
+        scanner: dict.hud_scanner_title || (state.lang === "en" ? "⚡ Smart Multimodal Scanner & Voice Billing" : (state.lang === "hi" ? "⚡ स्मार्ट मल्टीमॉडल स्कैनर व वॉइस बिलिंग" : "⚡ स्मार्ट मल्टीमॉडेल स्कॅनर व व्हॉइस बिलिंग")),
+        khata: dict.hud_khata_title || (state.lang === "en" ? "💳 Customer Khata & Digital Credit Ledger" : (state.lang === "hi" ? "💳 ग्राहक खाता व डिजिटल उधारी बही" : "💳 ग्राहक खाते व डिजिटल उधारी वही")),
+        business: dict.hud_business_title || (state.lang === "en" ? "🏬 Store Operations & Inventory" : (state.lang === "hi" ? "🏬 स्टोर ऑपरेशन्स व स्टॉक" : "🏬 स्टोअर ऑपरेशन्स, माल साठा व खर्च")),
+        ledger: dict.hud_ledger_title || (state.lang === "en" ? "📊 Resilient Digital Ledger" : (state.lang === "hi" ? "📊 सुरक्षित डिजिटल लेजर डेटाबेस" : "📊 सुरक्षित डिजिटल लेजर डेटाबेस")),
+        ai: dict.hud_ai_title || (state.lang === "en" ? "🤖 Verna AI Business Studio" : (state.lang === "hi" ? "🤖 Verna AI बिजनेस स्टूडियो" : "🤖 VernaLedger AI बिझनेस स्टुडिओ"))
+    };
+
     const titleEl = document.getElementById("hud-title");
     const subEl = document.getElementById("hud-subtitle");
-    if (titleEl && dict[titleKey]) titleEl.innerText = dict[titleKey];
+    if (titleEl) titleEl.innerText = titleMap[view] || dict[titleKey] || "VernaLedger.AI";
     if (subEl && dict[subKey]) subEl.innerText = dict[subKey];
 }
 
@@ -1800,8 +1829,16 @@ async function loadKhataData() {
         const txnsCountEl = document.getElementById("khata-kpi-txns");
         if (txnsCountEl) txnsCountEl.innerText = finalData.transactions.length;
 
-        renderKhataCards(finalData.customers);
-        renderKhataTable(finalData.transactions);
+        try {
+            renderKhataCards(finalData.customers);
+        } catch (errCards) {
+            console.error("Error in renderKhataCards:", errCards);
+        }
+        try {
+            renderKhataTable(finalData.transactions);
+        } catch (errTable) {
+            console.error("Error in renderKhataTable:", errTable);
+        }
 
         if (mergedTxns.length > serverTxns.length) {
             syncLocalDataToServer();
@@ -1851,12 +1888,13 @@ function renderKhataCards(customers) {
         card.className = `glass-card ${isDebt ? 'accent-red' : 'accent-green'}`;
 
         const safePhone = (c.phone || "").replace(/\D/g, "");
+        const shopTitle = (state.user && state.user.shop_name) || (state.lang === 'mr' ? 'किराणा स्टोअर' : (state.lang === 'hi' ? 'किराना स्टोर' : 'Kirana Store'));
         const waMsg = encodeURIComponent(
-            `🙏 *${(bill.vendor_name || 'किराणा पावती').trim()}*\n` +
+            `🙏 *${shopTitle.trim()}*\n` +
             `नमस्कार ${c.name} जी!\n` +
             `आपल्या खात्यावर दुकानाचे एकूण *₹${c.balance.toFixed(2)}* उधारीचे येणे बाकी आहे.\n\n` +
             `💳 कृपया खालील UPI लिंकवरून GooglePay / PhonePe द्वारे पेमेंट करावे:\n` +
-            `upi://pay?pa=merchant@upi&pn=KiranaStore&am=${c.balance.toFixed(2)}&cu=INR\n\n` +
+            `upi://pay?pa=merchant@upi&pn=${encodeURIComponent(shopTitle)}&am=${c.balance.toFixed(2)}&cu=INR\n\n` +
             `लवकरात लवकर भरणा करून सहकार्य करावे. धन्यवाद!`
         );
         const waLink = `https://wa.me/91${safePhone}?text=${waMsg}`;
@@ -1914,7 +1952,14 @@ function renderKhataCards(customers) {
 
 function renderKhataTable(transactions) {
     const tbody = document.getElementById("khata-table-tbody");
+    if (!tbody) return;
     tbody.innerHTML = "";
+
+    if (!transactions || transactions.length === 0) {
+        const dict = i18n[state.lang] || i18n.mr;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 24px;">${dict.empty_khata_txns || "कोणताही खाते व्यवहार उपलब्ध नाही."}</td></tr>`;
+        return;
+    }
 
     transactions.forEach(t => {
         const isCredit = t.transaction_type === "Credit Given";
@@ -1946,6 +1991,7 @@ function renderKhataTable(transactions) {
 }
 
 function filterKhataList() {
+    if (!state.allKhata || !state.allKhata.customers) return;
     const query = document.getElementById("khata-search-input").value.toLowerCase();
     const filteredCust = state.allKhata.customers.filter(c => 
         c.name.toLowerCase().includes(query) || (c.phone && c.phone.includes(query))
@@ -3163,14 +3209,16 @@ function applyTheme(theme) {
     } else {
         document.body.classList.remove("light-theme");
     }
-    const dict = i18n[state.lang] || i18n.mr;
     const hudLbl = document.getElementById("hud-theme-label");
     const hudIcon = document.getElementById("hud-theme-icon");
     const mobIcon = document.getElementById("mob-theme-icon");
 
-    const labelText = isLight 
-        ? (dict.theme_night_mode || (state.lang === "en" ? "Night Mode" : "नाईट मोड"))
-        : (dict.theme_kirana_mode || (state.lang === "en" ? "Day Mode" : (state.lang === "hi" ? "किराना मोड" : "किराणा मोड")));
+    let labelText = "";
+    if (isLight) {
+        labelText = state.lang === "en" ? "Night Mode" : (state.lang === "hi" ? "नाइट मोड" : "नाईट मोड");
+    } else {
+        labelText = state.lang === "en" ? "Day Mode" : (state.lang === "hi" ? "किराना मोड" : "किराणा मोड");
+    }
 
     if (hudLbl) hudLbl.innerText = labelText;
     if (hudIcon) hudIcon.innerText = isLight ? "🌙" : "☀️";

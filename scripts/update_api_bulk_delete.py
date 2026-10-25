@@ -58,3 +58,4 @@ with open("api/index.py", "w", encoding="utf-8") as f:
     f.write(content)
 
 print("api/index.py updated successfully with bulk delete endpoints!")
+

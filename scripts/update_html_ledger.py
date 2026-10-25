@@ -104,3 +104,4 @@ for path in ["index.html", os.path.join("public", "index.html")]:
         print(f"Updated {path}")
 
 print("HTML ledger views updated!")
+

@@ -311,3 +311,4 @@ async function clearEntireLedger() {
 
 update_app_js("app.js")
 update_app_js(os.path.join("public", "app.js"))
+

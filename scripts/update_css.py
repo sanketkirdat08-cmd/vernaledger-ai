@@ -59,3 +59,4 @@ for path in ["style.css", os.path.join("public", "style.css")]:
             print(f"Appended styles to {path}")
 
 print("CSS updated!")
+
