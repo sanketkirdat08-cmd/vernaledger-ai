@@ -1207,7 +1207,7 @@ async def generate_tts(req: TTSRequest):
                         b.extend(chunk["data"])
                 return b
 
-            audio_bytes = await asyncio.wait_for(_fetch_edge(), timeout=1.8)
+            audio_bytes = await asyncio.wait_for(_fetch_edge(), timeout=6.0)
             if audio_bytes:
                 b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
                 return {"success": True, "audio_data": f"data:audio/mp3;base64,{b64_audio}"}

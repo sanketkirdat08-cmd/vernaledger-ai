@@ -2849,8 +2849,14 @@ let currentPlayingAudio = null;
 let isAiProcessing = false;
 let currentAudioPlayToken = 0;
 
+let currentAiAudio = null;
+let currentAiAudioBtn = null;
+let aiAudioRequestId = 0;
+
 function stopCurrentAudio() {
     currentAudioPlayToken++; // Invalidate any in-flight TTS calls
+    aiAudioRequestId++; // Invalidate in-flight AI TTS calls
+
     if (currentPlayingAudio) {
         try {
             currentPlayingAudio.pause();
@@ -2859,6 +2865,24 @@ function stopCurrentAudio() {
         } catch (e) {}
         currentPlayingAudio = null;
     }
+
+    if (currentAiAudio) {
+        try {
+            currentAiAudio.pause();
+            currentAiAudio.currentTime = 0;
+            currentAiAudio.src = "";
+        } catch (e) {}
+        currentAiAudio = null;
+    }
+
+    if (currentAiAudioBtn) {
+        try {
+            currentAiAudioBtn.classList.remove("playing", "loading");
+            currentAiAudioBtn.innerHTML = `🔊 <span>ऐका</span>`;
+        } catch (e) {}
+        currentAiAudioBtn = null;
+    }
+
     if (window.speechSynthesis) {
         try {
             window.speechSynthesis.cancel();
@@ -3602,40 +3626,25 @@ function renderAiResponseBubble(aiBubble, data) {
     `;
 }
 
-let currentAiAudio = null;
-let currentAiAudioBtn = null;
-
 async function speakAiBubbleText(btn) {
-    // If clicked while already playing on this button -> Stop playback!
-    if (currentAiAudio && currentAiAudioBtn === btn) {
-        currentAiAudio.pause();
-        currentAiAudio.currentTime = 0;
-        currentAiAudio = null;
-        currentAiAudioBtn = null;
-        btn.innerHTML = `🔊 <span>ऐका</span>`;
+    // 1. If currently playing or loading on this button -> STOP IMMEDIATELY!
+    if (currentAiAudioBtn === btn) {
+        stopCurrentAudio();
         return;
     }
 
-    // Stop any existing audio playback
-    if (currentAiAudio) {
-        currentAiAudio.pause();
-        currentAiAudio = null;
-    }
-    if (currentAiAudioBtn) {
-        currentAiAudioBtn.innerHTML = `🔊 <span>ऐका</span>`;
-        currentAiAudioBtn = null;
-    }
-    if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-    }
+    // 2. Stop any existing audio everywhere in the app
+    stopCurrentAudio();
 
     const rawEncoded = btn.getAttribute("data-speech");
     if (!rawEncoded) return;
     const text = decodeURIComponent(rawEncoded);
     if (!text) return;
 
-    btn.innerHTML = `⏳ <span>लोड होत आहे...</span>`;
+    const myRequestId = ++aiAudioRequestId;
     currentAiAudioBtn = btn;
+    btn.classList.add("loading");
+    btn.innerHTML = `⏳ <span>लोड होत आहे...</span>`;
 
     try {
         const res = await apiCall("/api/tts", {
@@ -3644,38 +3653,46 @@ async function speakAiBubbleText(btn) {
             body: JSON.stringify({ text: text })
         });
 
+        // If stopped by user during network fetch, cancel!
+        if (myRequestId !== aiAudioRequestId) return;
+
         const data = await res.json();
+        if (myRequestId !== aiAudioRequestId) return;
+
         if (data && data.audio_data) {
             const audio = new Audio(data.audio_data);
             currentAiAudio = audio;
+            btn.classList.remove("loading");
+            btn.classList.add("playing");
             btn.innerHTML = `⏹️ <span>थांबा</span>`;
 
             audio.onended = () => {
-                btn.innerHTML = `🔊 <span>ऐका</span>`;
-                currentAiAudio = null;
-                currentAiAudioBtn = null;
+                if (currentAiAudioBtn === btn) {
+                    btn.classList.remove("playing", "loading");
+                    btn.innerHTML = `🔊 <span>ऐका</span>`;
+                    currentAiAudio = null;
+                    currentAiAudioBtn = null;
+                }
             };
 
             audio.onerror = () => {
-                btn.innerHTML = `🔊 <span>ऐका</span>`;
-                currentAiAudio = null;
-                currentAiAudioBtn = null;
-                speakWithBrowserVoiceClean(text);
+                console.warn("Audio playback error, resetting.");
+                if (currentAiAudioBtn === btn) {
+                    stopCurrentAudio();
+                }
             };
 
             await audio.play();
             return;
         }
     } catch (e) {
-        console.warn("Server TTS notice, falling back to browser voice:", e);
+        console.warn("Server TTS notice:", e);
     }
 
-    // High quality client speech fallback with language matching
-    btn.innerHTML = `🔊 <span>बोलत आहे...</span>`;
-    speakWithBrowserVoiceClean(text, () => {
-        btn.innerHTML = `🔊 <span>ऐका</span>`;
-        currentAiAudioBtn = null;
-    });
+    // If request cancelled or server failed, reset cleanly without robotic English voice
+    if (currentAiAudioBtn === btn) {
+        stopCurrentAudio();
+    }
 }
 
 function speakWithBrowserVoiceClean(text, onEnd) {
