@@ -3605,7 +3605,6 @@ function convertMarkdownToSpeechScript(md) {
 function renderAiResponseBubble(aiBubble, data) {
     const rawAnswer = data.answer || "माफ करा, उत्तर मिळू शकले नाही.";
     const formattedHtml = formatAiMarkdown(rawAnswer);
-    const speechScript = convertMarkdownToSpeechScript(rawAnswer);
 
     aiBubble.innerHTML = `
         <div class="ai-bubble-content">${formattedHtml}</div>
@@ -3615,9 +3614,6 @@ function renderAiResponseBubble(aiBubble, data) {
                 <span>✨</span> <span>Verna AI Enterprise Pro</span>
             </span>
             <div style="display: flex; gap: 6px;">
-                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${safeEncodeURIComponent(speechScript)}" title="उत्तर ऐका">
-                    🔊 <span>ऐका</span>
-                </button>
                 <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${safeEncodeURIComponent(rawAnswer)}" title="उत्तर कॉपी करा">
                     📋 <span>कॉपी</span>
                 </button>
@@ -3627,72 +3623,7 @@ function renderAiResponseBubble(aiBubble, data) {
 }
 
 async function speakAiBubbleText(btn) {
-    // 1. If currently playing or loading on this button -> STOP IMMEDIATELY!
-    if (currentAiAudioBtn === btn) {
-        stopCurrentAudio();
-        return;
-    }
-
-    // 2. Stop any existing audio everywhere in the app
     stopCurrentAudio();
-
-    const rawEncoded = btn.getAttribute("data-speech");
-    if (!rawEncoded) return;
-    const text = decodeURIComponent(rawEncoded);
-    if (!text) return;
-
-    const myRequestId = ++aiAudioRequestId;
-    currentAiAudioBtn = btn;
-    btn.classList.add("loading");
-    btn.innerHTML = `⏳ <span>लोड होत आहे...</span>`;
-
-    try {
-        const res = await apiCall("/api/tts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: text })
-        });
-
-        // If stopped by user during network fetch, cancel!
-        if (myRequestId !== aiAudioRequestId) return;
-
-        const data = await res.json();
-        if (myRequestId !== aiAudioRequestId) return;
-
-        if (data && data.audio_data) {
-            const audio = new Audio(data.audio_data);
-            currentAiAudio = audio;
-            btn.classList.remove("loading");
-            btn.classList.add("playing");
-            btn.innerHTML = `⏹️ <span>थांबा</span>`;
-
-            audio.onended = () => {
-                if (currentAiAudioBtn === btn) {
-                    btn.classList.remove("playing", "loading");
-                    btn.innerHTML = `🔊 <span>ऐका</span>`;
-                    currentAiAudio = null;
-                    currentAiAudioBtn = null;
-                }
-            };
-
-            audio.onerror = () => {
-                console.warn("Audio playback error, resetting.");
-                if (currentAiAudioBtn === btn) {
-                    stopCurrentAudio();
-                }
-            };
-
-            await audio.play();
-            return;
-        }
-    } catch (e) {
-        console.warn("Server TTS notice:", e);
-    }
-
-    // If request cancelled or server failed, reset cleanly without robotic English voice
-    if (currentAiAudioBtn === btn) {
-        stopCurrentAudio();
-    }
 }
 
 function speakWithBrowserVoiceClean(text, onEnd) {
