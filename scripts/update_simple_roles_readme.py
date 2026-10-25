@@ -19,3 +19,4 @@ with open("README.md", "w", encoding="utf-8") as f:
     f.write(c)
 
 print("README.md updated with simple roles!")
+

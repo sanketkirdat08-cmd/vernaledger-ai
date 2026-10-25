@@ -32,3 +32,4 @@ def update_docx_roles(filename):
 
 update_docx_roles("VernaLedger_AI_Final_Year_Project_Report.docx")
 update_docx_roles("VernaLedger_AI_Project_Synopsis.docx")
+

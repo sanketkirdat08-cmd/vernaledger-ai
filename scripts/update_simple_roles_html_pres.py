@@ -26,3 +26,4 @@ for f in files:
         print(f"Updated {f}")
 
 print("HTML presentations updated with simple roles!")
+

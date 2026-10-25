@@ -33,3 +33,4 @@ with open("create_presentation.py", "w", encoding="utf-8") as f:
     f.write(c)
 
 print("create_presentation.py updated with simple roles!")
+
