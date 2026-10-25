@@ -1054,6 +1054,8 @@ def prepare_speech_phonetics(audio_text: str, tts_voice: str = "mr-IN-AarohiNeur
     lines = audio_text.split('\n')
     speech_lines = []
     in_table = False
+    headers = []
+    table_type = "general"
     for line in lines:
         s = line.strip()
         if s.startswith('|') and s.endswith('|'):
@@ -1062,23 +1064,41 @@ def prepare_speech_phonetics(audio_text: str, tts_voice: str = "mr-IN-AarohiNeur
                 in_table = True
                 continue
             if not in_table:
+                headers = [re.sub(r'[*#_`\(\)]', '', cell).strip() for cell in cells]
+                h_str = " ".join(headers).lower()
+                if any(w in h_str for w in ['विद्यार्थ्या', 'नाव', 'रोल', 'भूमिका', 'role', 'team', 'prn']):
+                    table_type = "team"
+                elif any(w in h_str for w in ['vernaledger', 'वैशिष्ट्ये', 'फिचर्स', 'feature', 'vs']):
+                    table_type = "comparison"
+                elif any(w in h_str for w in ['साठा', 'वस्तू', 'स्टॉक', 'stock', 'item']):
+                    table_type = "stock"
+                elif any(w in h_str for w in ['घटक', 'metric', 'नफा', 'रक्कम', 'financial']):
+                    table_type = "financial"
+                else:
+                    table_type = "general"
                 in_table = True
             else:
-                clean_cells = [re.sub(r'[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', cell).strip() for cell in cells]
-                if len(clean_cells) >= 3:
+                clean_cells = [re.sub(r'[\U00010000-\U0010ffff\u200d\ufe0f\ufe0e*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', cell).strip() for cell in cells]
+                if table_type == "team" and len(clean_cells) >= 5:
+                    speech_lines.append(f"{clean_cells[1]}, रोल नंबर {clean_cells[2]}, भूमिका: {clean_cells[4]}.")
+                elif table_type == "comparison" and len(clean_cells) >= 3:
                     if tts_voice.startswith("en-"):
                         speech_lines.append(f"{clean_cells[0]}: In VernaLedger {clean_cells[1]}, whereas in traditional apps {clean_cells[2]}.")
                     elif tts_voice.startswith("hi-"):
                         speech_lines.append(f"{clean_cells[0]}: VernaLedger में {clean_cells[1]}, जबकि अन्य ऐप्स में {clean_cells[2]}.")
                     else:
                         speech_lines.append(f"{clean_cells[0]}: VernaLedger मध्ये {clean_cells[1]}, तर इतर ॲप्स मध्ये {clean_cells[2]}.")
+                elif table_type == "stock" and len(clean_cells) >= 4:
+                    speech_lines.append(f"{clean_cells[1]}: शिल्लक साठा {clean_cells[2]}, दर {clean_cells[3]}.")
+                elif table_type == "financial" and len(clean_cells) >= 3:
+                    speech_lines.append(f"{clean_cells[0]}: {clean_cells[1]}, {clean_cells[2]}.")
                 elif len(clean_cells) == 2:
                     speech_lines.append(f"{clean_cells[0]}: {clean_cells[1]}.")
                 else:
-                    speech_lines.append(", ".join(clean_cells) + ".")
+                    speech_lines.append(", ".join([c for c in clean_cells if c]) + ".")
             continue
         in_table = False
-        clean_s = re.sub(r'[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', s).strip()
+        clean_s = re.sub(r'[\U00010000-\U0010ffff\u200d\ufe0f\ufe0e*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', s).strip()
         clean_s = clean_s.replace('(', ', ').replace(')', ', ').replace('[', ', ').replace(']', ', ')
         if clean_s:
             speech_lines.append(clean_s)

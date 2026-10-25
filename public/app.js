@@ -3326,7 +3326,8 @@ async function submitAiChat() {
 
         renderAiResponseBubble(aiBubble, data);
     } catch (e) {
-        aiBubble.innerHTML = `एरर: सर्व्हरशी संपर्क होऊ शकला नाही.`;
+        console.error("AI CHAT ERROR CAUGHT:", e);
+        aiBubble.innerHTML = `एरर: ${e.message || "सर्व्हरशी संपर्क होऊ शकला नाही."}`;
     } finally {
         isAiProcessing = false;
         if (sendBtn) {
@@ -3488,13 +3489,32 @@ function formatInlineAi(text) {
         .replace(/~~(.*?)~~/g, '<del>$1</del>');
 }
 
-// Natural table-to-speech script converter
+// Safe URI component encoder that never throws URIError on malformed surrogate pairs
+function safeEncodeURIComponent(str) {
+    if (!str) return "";
+    try {
+        const clean = (typeof str === "string" && typeof str.toWellFormed === "function") 
+            ? str.toWellFormed() 
+            : String(str);
+        return encodeURIComponent(clean);
+    } catch (e) {
+        try {
+            const sanitized = String(str).replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+            return encodeURIComponent(sanitized);
+        } catch (e2) {
+            return encodeURIComponent(String(str).replace(/[^\x00-\x7F]/g, ''));
+        }
+    }
+}
+
+// Natural table-to-speech script converter with dynamic table type awareness
 function convertMarkdownToSpeechScript(md) {
     if (!md) return "";
     const lines = md.split('\n');
     const speechLines = [];
     let inTable = false;
     let headers = [];
+    let tableType = "general";
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -3508,15 +3528,34 @@ function convertMarkdownToSpeechScript(md) {
             }
             if (!inTable) {
                 headers = cells.map(c => c.replace(/[*#_`\(\)]/g, '').trim());
+                const hStr = headers.join(' ').toLowerCase();
+                if (/विद्यार्थ्या|नाव|रोल|भूमिका|role|team|prn/.test(hStr)) {
+                    tableType = "team";
+                } else if (/vernaledger|वैशिष्ट्ये|फिचर्स|feature|vs/.test(hStr)) {
+                    tableType = "comparison";
+                } else if (/साठा|वस्तू|स्टॉक|stock|item/.test(hStr)) {
+                    tableType = "stock";
+                } else if (/घटक|metric|नफा|रक्कम|financial/.test(hStr)) {
+                    tableType = "financial";
+                } else {
+                    tableType = "general";
+                }
                 inTable = true;
             } else {
-                const cleanCells = cells.map(c => c.replace(/[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]/g, '').trim());
-                if (cleanCells.length >= 3) {
-                    speechLines.push(`${cleanCells[0]}: VernaLedger मध्ये ${cleanCells[1]}. तर इतर ॲप्स मध्ये ${cleanCells[2]}.`);
+                // Strip emojis safely using Unicode property escapes
+                const cleanCells = cells.map(c => c.replace(/[\p{Extended_Pictographic}\u200D\uFE0F\uFE0E*#_`•]/gu, '').trim());
+                if (tableType === "team" && cleanCells.length >= 5) {
+                    speechLines.push(`${cleanCells[1]}, रोल नंबर ${cleanCells[2]}, भूमिका: ${cleanCells[4]}.`);
+                } else if (tableType === "comparison" && cleanCells.length >= 3) {
+                    speechLines.push(`${cleanCells[0]}: VernaLedger मध्ये ${cleanCells[1]}, तर इतर ॲप्स मध्ये ${cleanCells[2]}.`);
+                } else if (tableType === "stock" && cleanCells.length >= 4) {
+                    speechLines.push(`${cleanCells[1]}: शिल्लक साठा ${cleanCells[2]}, दर ${cleanCells[3]}.`);
+                } else if (tableType === "financial" && cleanCells.length >= 3) {
+                    speechLines.push(`${cleanCells[0]}: ${cleanCells[1]}, ${cleanCells[2]}.`);
                 } else if (cleanCells.length === 2) {
                     speechLines.push(`${cleanCells[0]}: ${cleanCells[1]}.`);
                 } else {
-                    speechLines.push(cleanCells.join(', ') + '.');
+                    speechLines.push(cleanCells.filter(Boolean).join(', ') + '.');
                 }
             }
             continue;
@@ -3527,7 +3566,7 @@ function convertMarkdownToSpeechScript(md) {
             .replace(/^#+\s*/, '')
             .replace(/^[-*•]\s*/, '')
             .replace(/^[0-9]+[\.\)]\s*/, '')
-            .replace(/[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]/g, '')
+            .replace(/[\p{Extended_Pictographic}\u200D\uFE0F\uFE0E*#_`•]/gu, '')
             .replace(/[\(\[\{]/g, ', ')
             .replace(/[\)\]\}]/g, ', ')
             .trim();
@@ -3552,10 +3591,10 @@ function renderAiResponseBubble(aiBubble, data) {
                 <span>✨</span> <span>Verna AI Enterprise Pro</span>
             </span>
             <div style="display: flex; gap: 6px;">
-                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${encodeURIComponent(speechScript)}" title="उत्तर ऐका">
+                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${safeEncodeURIComponent(speechScript)}" title="उत्तर ऐका">
                     🔊 <span>ऐका</span>
                 </button>
-                <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${encodeURIComponent(rawAnswer)}" title="उत्तर कॉपी करा">
+                <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${safeEncodeURIComponent(rawAnswer)}" title="उत्तर कॉपी करा">
                     📋 <span>कॉपी</span>
                 </button>
             </div>
