@@ -3488,17 +3488,61 @@ function formatInlineAi(text) {
         .replace(/~~(.*?)~~/g, '<del>$1</del>');
 }
 
+// Natural table-to-speech script converter
+function convertMarkdownToSpeechScript(md) {
+    if (!md) return "";
+    const lines = md.split('\n');
+    const speechLines = [];
+    let inTable = false;
+    let headers = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        if (line.startsWith('|') && line.endsWith('|')) {
+            const cells = line.slice(1, -1).split('|').map(c => c.trim());
+            if (cells.every(c => /^:?-+:?$/.test(c))) {
+                inTable = true;
+                continue;
+            }
+            if (!inTable) {
+                headers = cells.map(c => c.replace(/[*#_`\(\)]/g, '').trim());
+                inTable = true;
+            } else {
+                const cleanCells = cells.map(c => c.replace(/[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]/g, '').trim());
+                if (cleanCells.length >= 3) {
+                    speechLines.push(`${cleanCells[0]}: VernaLedger मध्ये ${cleanCells[1]}. तर इतर ॲप्स मध्ये ${cleanCells[2]}.`);
+                } else if (cleanCells.length === 2) {
+                    speechLines.push(`${cleanCells[0]}: ${cleanCells[1]}.`);
+                } else {
+                    speechLines.push(cleanCells.join(', ') + '.');
+                }
+            }
+            continue;
+        }
+
+        inTable = false;
+        let clean = line
+            .replace(/^#+\s*/, '')
+            .replace(/^[-*•]\s*/, '')
+            .replace(/^[0-9]+[\.\)]\s*/, '')
+            .replace(/[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]/g, '')
+            .replace(/[\(\[\{]/g, ', ')
+            .replace(/[\)\]\}]/g, ', ')
+            .trim();
+
+        if (clean) speechLines.push(clean);
+    }
+
+    return speechLines.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 // Next-Level Verna AI Rich Response Bubble
 function renderAiResponseBubble(aiBubble, data) {
     const rawAnswer = data.answer || "माफ करा, उत्तर मिळू शकले नाही.";
     const formattedHtml = formatAiMarkdown(rawAnswer);
-
-    // Prepare clean text for TTS voice reading (stripping markdown symbols and raw table rows)
-    const cleanSpeechText = rawAnswer
-        .replace(/\|[^\n]+\|/g, '')
-        .replace(/[*#`_~]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+    const speechScript = convertMarkdownToSpeechScript(rawAnswer);
 
     aiBubble.innerHTML = `
         <div class="ai-bubble-content">${formattedHtml}</div>
@@ -3508,7 +3552,7 @@ function renderAiResponseBubble(aiBubble, data) {
                 <span>✨</span> <span>Verna AI Enterprise Pro</span>
             </span>
             <div style="display: flex; gap: 6px;">
-                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${encodeURIComponent(cleanSpeechText)}" title="उत्तर ऐका">
+                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${encodeURIComponent(speechScript)}" title="उत्तर ऐका">
                     🔊 <span>ऐका</span>
                 </button>
                 <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${encodeURIComponent(rawAnswer)}" title="उत्तर कॉपी करा">
@@ -3519,12 +3563,122 @@ function renderAiResponseBubble(aiBubble, data) {
     `;
 }
 
-function speakAiBubbleText(btn) {
+let currentAiAudio = null;
+let currentAiAudioBtn = null;
+
+async function speakAiBubbleText(btn) {
+    // If clicked while already playing on this button -> Stop playback!
+    if (currentAiAudio && currentAiAudioBtn === btn) {
+        currentAiAudio.pause();
+        currentAiAudio.currentTime = 0;
+        currentAiAudio = null;
+        currentAiAudioBtn = null;
+        btn.innerHTML = `🔊 <span>ऐका</span>`;
+        return;
+    }
+
+    // Stop any existing audio playback
+    if (currentAiAudio) {
+        currentAiAudio.pause();
+        currentAiAudio = null;
+    }
+    if (currentAiAudioBtn) {
+        currentAiAudioBtn.innerHTML = `🔊 <span>ऐका</span>`;
+        currentAiAudioBtn = null;
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+
     const rawEncoded = btn.getAttribute("data-speech");
     if (!rawEncoded) return;
     const text = decodeURIComponent(rawEncoded);
     if (!text) return;
-    speakWithBrowserVoice(text);
+
+    btn.innerHTML = `⏳ <span>लोड होत आहे...</span>`;
+    currentAiAudioBtn = btn;
+
+    try {
+        const res = await apiCall("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: text })
+        });
+
+        const data = await res.json();
+        if (data && data.audio_data) {
+            const audio = new Audio(data.audio_data);
+            currentAiAudio = audio;
+            btn.innerHTML = `⏹️ <span>थांबा</span>`;
+
+            audio.onended = () => {
+                btn.innerHTML = `🔊 <span>ऐका</span>`;
+                currentAiAudio = null;
+                currentAiAudioBtn = null;
+            };
+
+            audio.onerror = () => {
+                btn.innerHTML = `🔊 <span>ऐका</span>`;
+                currentAiAudio = null;
+                currentAiAudioBtn = null;
+                speakWithBrowserVoiceClean(text);
+            };
+
+            await audio.play();
+            return;
+        }
+    } catch (e) {
+        console.warn("Server TTS notice, falling back to browser voice:", e);
+    }
+
+    // High quality client speech fallback with language matching
+    btn.innerHTML = `🔊 <span>बोलत आहे...</span>`;
+    speakWithBrowserVoiceClean(text, () => {
+        btn.innerHTML = `🔊 <span>ऐका</span>`;
+        currentAiAudioBtn = null;
+    });
+}
+
+function speakWithBrowserVoiceClean(text, onEnd) {
+    if (!window.speechSynthesis) {
+        if (onEnd) onEnd();
+        return;
+    }
+    window.speechSynthesis.cancel();
+
+    const cleanText = text
+        .replace(/[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]/g, '')
+        .replace(/[₹]/g, ' रुपये ')
+        .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+
+    // Detect language: English, Hindi, or Marathi
+    const devanagariCount = (cleanText.match(/[\u0900-\u097f]/g) || []).length;
+    const latinCount = (cleanText.match(/[A-Za-z]/g) || []).length;
+
+    let targetLang = "mr-IN";
+    if (latinCount > devanagariCount * 1.2) {
+        targetLang = "en-IN";
+    } else if (/नमस्ते|हैं|किया|दुकानदार|रुपये|चाहिए|होगा|हूँ/.test(cleanText)) {
+        targetLang = "hi-IN";
+    }
+
+    utterance.lang = targetLang;
+    utterance.rate = 1.0;
+
+    const voices = window.speechSynthesis.getVoices() || [];
+    const matchedVoice = voices.find(v => v.lang === targetLang) ||
+                         voices.find(v => v.lang.startsWith(targetLang.slice(0, 2))) ||
+                         voices.find(v => v.lang.includes("IN") || v.lang.includes("hi") || v.lang.includes("mr"));
+    if (matchedVoice) {
+        utterance.voice = matchedVoice;
+    }
+
+    utterance.onend = () => { if (onEnd) onEnd(); };
+    utterance.onerror = () => { if (onEnd) onEnd(); };
+
+    window.speechSynthesis.speak(utterance);
 }
 
 function copyAiBubbleText(btn) {
@@ -3543,7 +3697,6 @@ function copyAiBubbleText(btn) {
             alert("मजकूर कॉपी करण्यात अडचण आली.");
         });
     } else {
-        // Fallback for older browsers
         const textarea = document.createElement("textarea");
         textarea.value = text;
         document.body.appendChild(textarea);
@@ -3559,7 +3712,7 @@ function copyAiBubbleText(btn) {
     }
 }
 
-async function speakText(encoded) {
+function speakText(encoded) {
     stopCurrentAudio();
     const token = currentAudioPlayToken;
     const raw = decodeURIComponent(encoded);

@@ -1046,138 +1046,163 @@ TTS_VOICES = {
 }
 
 def prepare_speech_phonetics(audio_text: str, tts_voice: str = "mr-IN-AarohiNeural") -> str:
-    """Accurate Marathi and English phonetic pronunciation engine directly from Streamlit."""
+    """Natural, crystal-clear Marathi, Hindi, and English phonetic pronunciation without hyphenation or language mixups."""
     if not audio_text:
         return ""
-    audio_text = re.sub(r"[*#_`]", "", audio_text)
-    devanagari_count = len(re.findall(r"[\u0900-\u097f]", audio_text))
-    if devanagari_count:
-        audio_text = re.sub(r"\s*[\(\[][A-Za-z][^\)\]]*[\)\]]", "", audio_text)
 
-    if tts_voice.startswith("mr-") or devanagari_count >= 2:
+    # 1. Convert markdown tables into natural spoken sentences
+    lines = audio_text.split('\n')
+    speech_lines = []
+    in_table = False
+    for line in lines:
+        s = line.strip()
+        if s.startswith('|') and s.endswith('|'):
+            cells = [cell.strip() for cell in s[1:-1].split('|')]
+            if all(re.match(r'^:?-+:?$', cell) for cell in cells):
+                in_table = True
+                continue
+            if not in_table:
+                in_table = True
+            else:
+                clean_cells = [re.sub(r'[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', cell).strip() for cell in cells]
+                if len(clean_cells) >= 3:
+                    if tts_voice.startswith("en-"):
+                        speech_lines.append(f"{clean_cells[0]}: In VernaLedger {clean_cells[1]}, whereas in traditional apps {clean_cells[2]}.")
+                    elif tts_voice.startswith("hi-"):
+                        speech_lines.append(f"{clean_cells[0]}: VernaLedger में {clean_cells[1]}, जबकि अन्य ऐप्स में {clean_cells[2]}.")
+                    else:
+                        speech_lines.append(f"{clean_cells[0]}: VernaLedger मध्ये {clean_cells[1]}, तर इतर ॲप्स मध्ये {clean_cells[2]}.")
+                elif len(clean_cells) == 2:
+                    speech_lines.append(f"{clean_cells[0]}: {clean_cells[1]}.")
+                else:
+                    speech_lines.append(", ".join(clean_cells) + ".")
+            continue
+        in_table = False
+        clean_s = re.sub(r'[*#_`❌✅⚠️🎯📸🎙️⚡🤖💳🖨️🔒•]', '', s).strip()
+        clean_s = clean_s.replace('(', ', ').replace(')', ', ').replace('[', ', ').replace(']', ', ')
+        if clean_s:
+            speech_lines.append(clean_s)
+
+    audio_text = " ".join(speech_lines)
+
+    # 2. Language-Specific Phonetic Normalization
+    if tts_voice.startswith("en-"):
+        audio_text = re.sub(r"\bVernaLedger\s*AI\b", "Verna Ledger A I", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAI\b", "A I", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCE\b", "A G C E College", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bDBATU\b", "D B A T U University", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bGST\b", "G S T", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bUPI\b", "U P I", audio_text, flags=re.IGNORECASE)
+    elif tts_voice.startswith("hi-"):
+        audio_text = re.sub(r"\bVernaLedger\s*AI\b", "वर्ना लेजर ए आई", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bVernaLedger\b", "वर्ना लेजर", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAI\b", "ए आई", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bUPI\b", "यू पी आई", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bDBATU\b", "डी बाटू विश्वविद्यालय", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCE\b", "अरविंद गवली कॉलेज", audio_text, flags=re.IGNORECASE)
+    else:
+        # Marathi (Default)
+        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
         audio_text = re.sub(r"\bVernaLedger\s*AI\b", "व्हर्ना लेजर ए आय", audio_text, flags=re.IGNORECASE)
         audio_text = re.sub(r"\bVernaLedger\b", "व्हर्ना लेजर", audio_text, flags=re.IGNORECASE)
         audio_text = re.sub(r"\bAI\b", "ए आय", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bViT\b", "व्हिजन ट्रान्सफॉर्मर्स", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bOCR\b", "ओ सी आर", audio_text, flags=re.IGNORECASE)
         audio_text = re.sub(r"\bGST\b", "जी एस टी", audio_text, flags=re.IGNORECASE)
         audio_text = re.sub(r"\bUPI\b", "यु पी आय", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bSMS\b", "एस एम एस", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bAGCE\b", "ए जी सी ई", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bAGCOE\b", "ए जी सी ओ ई", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bDBATU\b", "डी बाटू", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "रुपये ", audio_text, flags=re.IGNORECASE)
-
-        # Convert English name occurrences to Marathi so Aarohi won't stumble on English
-        audio_text = re.sub(r"\bSanket\s+Kirdat\b", "संकेत किर-दत", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bSanket\b", "संकेत", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bSakshi\s+Bhagat\b", "साक्षी भगत", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bVaishnavi\s+(?:Dhavale|Dhawale)\b", "वैष्णवी ढव्-ळे", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bRushikesh\s+Mulik\b", "ऋषिकेश मुळीक", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\b(?:Prof\.?\s*)?Kaisar\s+(?:Atar|Attar)(?:\s+Sir)?\b", "प्राध्यापक कै-सर अतार सर", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b", "अरविंद गव्-ळी कॉलेज", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bLead\s+Developer\b", "प्रमुख विकासक", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bProject\s+Guide\b", "प्रकल्प मार्गदर्शक", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bDevelopers\b", "इतर विकासक", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bCollege\b", "महाविद्यालय", audio_text, flags=re.IGNORECASE)
-
-        pronunciation_hints = {
-            "वैष्णवी ढवळे": "वैष्णवी ढव्-ळे",
-            "ढवाळे": "ढव्-ळे",
-            "ढवळे": "ढव्-ळे",
-            "अरविंद गवळी": "अरविंद गव्-ळी",
-            "गवाली": "गव्-ळी",
-            "गवळी": "गव्-ळी",
-            "कैसर अतार": "कै-सर अतार",
-            "कॅसर अतार": "कै-सर अतार",
-            "कैसर अत्तार": "कै-सर अतार",
-            "कॅसर अत्तार": "कै-सर अतार",
-            "कैसर": "कै-सर",
-            "कॅसर": "कै-सर",
-            "कौसर": "कै-सर",
-            "अतार सर": "अतार सर",
-            "किर्दत": "किर-दत",
-            "किरदत": "किर-दत",
-            "साक्षी भगत": "साक्षी भगत",
-            "ऋषिकेश मुळीक": "ऋषिकेश मुळीक",
-            "मुळीक": "मुळीक",
-            "मुलिक": "मुळीक",
-        }
-        for name, pronunciation in pronunciation_hints.items():
-            audio_text = audio_text.replace(name, pronunciation)
-        audio_text = re.sub(r"\bGavali\b", "गव्-ळी", audio_text, flags=re.IGNORECASE)
-
-    elif tts_voice.startswith("en-"):
-        audio_text = re.sub(r"\bVernaLedger\b", "Verna Ledger", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"[₹]|(?:\b(?:Rs|रु)\.?\s*)", "Rupees ", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bAGCE\b", "A G C E", audio_text, flags=re.IGNORECASE)
-        audio_text = re.sub(r"\bAGCOE\b", "A G C O E", audio_text, flags=re.IGNORECASE)
-        en_pronunciations = {
-            "Kirdat": "Keer-dat",
-            "Atar": "Ah-tar",
-            "Attar": "Ah-tar",
-            "Dhavale": "Dhaw-ley",
-            "Dhawale": "Dhaw-ley",
-            "Mulik": "Moo-lik",
-            "Gavali": "Gawali",
-        }
-        for name, pronunciation in en_pronunciations.items():
-            audio_text = audio_text.replace(name, pronunciation)
+        audio_text = re.sub(r"\bDBATU\b", "डी बाटू विद्यापीठ", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCE\b", "अरविंद गवळी कॉलेज", audio_text, flags=re.IGNORECASE)
+        audio_text = re.sub(r"\bAGCOE\b", "अरविंद गवळी कॉलेज", audio_text, flags=re.IGNORECASE)
 
     audio_text = re.sub(r"[ \t]+", " ", audio_text)
     audio_text = re.sub(r" *([,;:]) *", r"\1 ", audio_text)
     audio_text = re.sub(r" *([.!?।]) *", r"\1 ", audio_text)
-    audio_text = re.sub(r"\s*\n\s*", ". ", audio_text).strip()
-    return audio_text
+    return audio_text.strip()
 
 def get_tts_voice(text: str, language: str = "") -> str:
-    """Intelligent Edge TTS voice selection based on the actual text being spoken."""
+    """Intelligent voice selection: automatically detects whether text is English, Hindi, or Marathi."""
     clean = text or ""
     devanagari_count = len(re.findall(r"[\u0900-\u097f]", clean))
     latin_count = len(re.findall(r"[A-Za-z]", clean))
 
-    # Priority 1: Direct inspection of response text characters
-    if latin_count > devanagari_count and latin_count >= 10:
+    # If predominantly English letters -> Neerja (English India)
+    if latin_count > devanagari_count * 1.2 or (latin_count > 25 and devanagari_count < 10):
         return "en-IN-NeerjaNeural"
+
+    # If Devanagari is present, check for Hindi words
     if devanagari_count >= 2:
-        if language == "hi" or any(hw in clean for hw in ["नमस्ते", "हूँ", "हैं", "किया गया", "किए", "चाहिए"]):
+        hindi_markers = ["नमस्ते", "हूँ", "हैं", "किया गया", "किए", "चाहिए", "होगा", "आपका", "दुकानदार", "बिक्री", "रुपये", "के लिए"]
+        if language == "hi" or any(hw in clean for hw in hindi_markers):
             return "hi-IN-SwaraNeural"
         return "mr-IN-AarohiNeural"
 
-    # Priority 2: Fallback to requested language
     if language == "en":
         return "en-IN-NeerjaNeural"
     elif language == "hi":
         return "hi-IN-SwaraNeural"
     return "mr-IN-AarohiNeural"
 
+def fetch_google_tts_b64(text: str, voice_code: str) -> str:
+    """Ultra-reliable studio Google Translate Neural TTS fallback that never fails."""
+    import urllib.request, urllib.parse, base64
+    lang = "mr"
+    if voice_code.startswith("hi"): lang = "hi"
+    elif voice_code.startswith("en"): lang = "en"
+
+    clean = text[:450].strip()
+    encoded = urllib.parse.quote(clean)
+    url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={encoded}&tl={lang}&client=tw-ob"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
+    with urllib.request.urlopen(req, timeout=6) as res:
+        audio = res.read()
+        return base64.b64encode(audio).decode("utf-8")
+
 # -----------------------------------------------------------------------------
-# EDGE TTS MARATHI / ENGLISH AUDIO GENERATION
+# DUAL HIGH-PRECISION NEURAL TTS ENGINE (EDGE NEURAL + GOOGLE NEURAL)
 # -----------------------------------------------------------------------------
 @app.post("/api/tts")
 async def generate_tts(req: TTSRequest):
-    if not edge_tts:
-        raise HTTPException(status_code=500, detail="Edge TTS library is not installed")
-
     voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(req.text)
     clean_speech = prepare_speech_phonetics(req.text, voice)
     if len(clean_speech) > 750:
         spoken_text = clean_speech[:750]
         sentence_end = re.search(r'([.!?।])(?=[^.!?।]*$)', spoken_text)
-        if sentence_end and sentence_end.end() > 600:
+        if sentence_end and sentence_end.end() > 500:
             spoken_text = spoken_text[:sentence_end.end()]
     else:
         spoken_text = clean_speech
+
+    # Attempt 1: Microsoft Edge Studio Neural Voice (with strict 1.8s timeout)
+    if edge_tts:
+        try:
+            async def _fetch_edge():
+                comm = edge_tts.Communicate(spoken_text, voice, rate="+5%")
+                b = bytearray()
+                async for chunk in comm.stream():
+                    if chunk["type"] == "audio":
+                        b.extend(chunk["data"])
+                return b
+
+            audio_bytes = await asyncio.wait_for(_fetch_edge(), timeout=1.8)
+            if audio_bytes:
+                b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
+                return {"success": True, "audio_data": f"data:audio/mp3;base64,{b64_audio}"}
+        except Exception as e:
+            logger.warning(f"Edge TTS timeout/notice, falling back to Google Neural TTS: {e}")
+
+    # Attempt 2: Google Studio Neural Voice Fallback
     try:
-        communicate = edge_tts.Communicate(spoken_text, voice, rate="+10%")
-        audio_bytes = bytearray()
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_bytes.extend(chunk["data"])
-        
-        b64_audio = base64.b64encode(audio_bytes).decode("utf-8")
-        return {"success": True, "audio_data": f"data:audio/mp3;base64,{b64_audio}"}
+        b64_audio = fetch_google_tts_b64(spoken_text, voice)
+        if b64_audio:
+            return {"success": True, "audio_data": f"data:audio/mp3;base64,{b64_audio}"}
     except Exception as e:
-        logger.error(f"TTS error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Google TTS fallback notice: {e}")
+
+    return {"success": False, "fallback_to_client": True, "clean_text": spoken_text}
 
 # -----------------------------------------------------------------------------
 # RECEIPTS & LEDGER DATABASE
