@@ -740,10 +740,12 @@
                     </div>
 
                     <!-- Clean Quick Action Chips -->
-                    <div class="prompt-chips" style="margin-bottom: 12px; padding: 2px 0;">
+                    <div class="prompt-chips" style="margin-bottom: 12px; padding: 2px 0; display: flex; flex-wrap: wrap; gap: 8px;">
                         <span class="chip" onclick="askAiPrompt('आजची विक्री किती आहे?')" data-i18n="chip_today_sales">📊 आजची विक्री</span>
                         <span class="chip" onclick="askAiPrompt('एकूण बाकी उधारी किती आहे?')" data-i18n="chip_pending_credit">👥 बाकी उधारी</span>
                         <span class="chip" onclick="askAiPrompt('कमी साठा असलेल्या वस्तू कोणत्या आहेत?')" data-i18n="chip_low_stock">🚨 कमी साठा</span>
+                        <span class="chip" onclick="askAiPrompt('इतर ॲप्लिकेशन आणि VernaLedger चा फरक तक्त्यात दाखवा')" style="border-color: rgba(0, 242, 254, 0.45); color: var(--neon-cyan);">⚡ ॲप्स मधील फरक (तक्ता)</span>
+                        <span class="chip" onclick="askAiPrompt('प्रकल्प विकासक आणि मार्गदर्शकांची माहिती तक्त्यात द्या')" style="border-color: rgba(176, 38, 255, 0.45); color: #d8b4fe;">👨‍💻 डेव्हलपर टीम (तक्ता)</span>
                     </div>
 
                     <!-- Scrollable Messages Container -->

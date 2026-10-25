@@ -3337,16 +3337,226 @@ async function submitAiChat() {
     }
 }
 
-// Ultra-fast Gemini-style pure text response bubble
-function renderAiResponseBubble(aiBubble, data) {
-    const formatted = (data.answer || "माफ करा, उत्तर मिळू शकले नाही.")
+// Next-Level Markdown & Table Parser for Verna AI Chatbot
+function formatAiMarkdown(text) {
+    if (!text) return "";
+
+    // 1. Extract and preserve code blocks
+    const codeBlocks = [];
+    let processed = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+        codeBlocks.push(`<pre class="ai-code-block"><code>${escapeHtml(code.trim())}</code></pre>`);
+        return id;
+    });
+
+    // 2. Parse Markdown Tables (| Col 1 | Col 2 | ...)
+    const tableRegex = /((?:^[ \t]*\|[^\n]+\|[ \t]*(?:\n|$))+)/gm;
+    processed = processed.replace(tableRegex, (tableBlock) => {
+        const lines = tableBlock.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+        if (lines.length < 2) return tableBlock;
+
+        const parseRow = (line) => line.slice(1, -1).split('|').map(c => c.trim());
+        const headerCells = parseRow(lines[0]);
+        const separatorLine = lines[1];
+
+        // Ensure row 2 is a valid table separator (e.g. | :--- | :---: | ---: |)
+        const sepCells = parseRow(separatorLine);
+        const isValidSep = sepCells.length > 0 && sepCells.every(c => /^:?-+:?$/.test(c));
+        if (!isValidSep) return tableBlock;
+
+        const aligns = sepCells.map(s => {
+            if (s.startsWith(':') && s.endsWith(':')) return 'center';
+            if (s.endsWith(':')) return 'right';
+            return 'left';
+        });
+
+        let html = '<div class="ai-table-wrapper"><table class="ai-chat-table"><thead><tr>';
+        headerCells.forEach((h, idx) => {
+            const align = aligns[idx] || 'left';
+            html += `<th style="text-align: ${align};">${formatInlineAi(h)}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        for (let i = 2; i < lines.length; i++) {
+            const rowCells = parseRow(lines[i]);
+            html += '<tr>';
+            rowCells.forEach((c, idx) => {
+                const align = aligns[idx] || 'left';
+                html += `<td style="text-align: ${align};">${formatInlineAi(c)}</td>`;
+            });
+            html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+        return html;
+    });
+
+    // 3. Process lines (Headers, Lists, Blockquotes, Paragraphs)
+    const lines = processed.split('\n');
+    let inUl = false;
+    let inOl = false;
+    const output = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        // If line is already part of the table HTML, output directly
+        if (line.includes('<div class="ai-table-wrapper">') || line.includes('</table></div>')) {
+            if (inUl) { output.push('</ul>'); inUl = false; }
+            if (inOl) { output.push('</ol>'); inOl = false; }
+            output.push(line);
+            continue;
+        }
+
+        // Markdown Headers
+        if (line.startsWith('### ')) {
+            if (inUl) { output.push('</ul>'); inUl = false; }
+            if (inOl) { output.push('</ol>'); inOl = false; }
+            output.push(`<h3>${formatInlineAi(line.slice(4))}</h3>`);
+            continue;
+        }
+        if (line.startsWith('## ')) {
+            if (inUl) { output.push('</ul>'); inUl = false; }
+            if (inOl) { output.push('</ol>'); inOl = false; }
+            output.push(`<h2>${formatInlineAi(line.slice(3))}</h2>`);
+            continue;
+        }
+        if (line.startsWith('# ')) {
+            if (inUl) { output.push('</ul>'); inUl = false; }
+            if (inOl) { output.push('</ol>'); inOl = false; }
+            output.push(`<h1>${formatInlineAi(line.slice(2))}</h1>`);
+            continue;
+        }
+
+        // Unordered lists (*, -, •)
+        const ulMatch = line.match(/^[ \t]*[-*•][ \t]+(.*)/);
+        if (ulMatch) {
+            if (inOl) { output.push('</ol>'); inOl = false; }
+            if (!inUl) { output.push('<ul>'); inUl = true; }
+            output.push(`<li>${formatInlineAi(ulMatch[1])}</li>`);
+            continue;
+        }
+
+        // Numbered lists (1. or १. or 1) )
+        const olMatch = line.match(/^[ \t]*([0-9]+|[०-९]+)[\.\)][ \t]+(.*)/);
+        if (olMatch) {
+            if (inUl) { output.push('</ul>'); inUl = false; }
+            if (!inOl) { output.push('<ol>'); inOl = true; }
+            output.push(`<li>${formatInlineAi(olMatch[2])}</li>`);
+            continue;
+        }
+
+        // Close lists if this is not a list item
+        if (inUl) { output.push('</ul>'); inUl = false; }
+        if (inOl) { output.push('</ol>'); inOl = false; }
+
+        // Blockquotes (> )
+        if (line.startsWith('> ')) {
+            output.push(`<blockquote class="ai-blockquote">${formatInlineAi(line.slice(2))}</blockquote>`);
+            continue;
+        }
+
+        // Blank lines
+        if (!line.trim()) {
+            output.push('<div class="ai-line-gap"></div>');
+            continue;
+        }
+
+        // Normal paragraph text
+        output.push(`<div>${formatInlineAi(line)}</div>`);
+    }
+
+    if (inUl) output.push('</ul>');
+    if (inOl) output.push('</ol>');
+
+    let finalHtml = output.join('');
+
+    // Restore preserved code blocks
+    codeBlocks.forEach((block, idx) => {
+        finalHtml = finalHtml.replace(`__CODE_BLOCK_${idx}__`, block);
+    });
+
+    return finalHtml;
+}
+
+function formatInlineAi(text) {
+    if (!text) return "";
+    return text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/~~(.*?)~~/g, '<del>$1</del>');
+}
+
+// Next-Level Verna AI Rich Response Bubble
+function renderAiResponseBubble(aiBubble, data) {
+    const rawAnswer = data.answer || "माफ करा, उत्तर मिळू शकले नाही.";
+    const formattedHtml = formatAiMarkdown(rawAnswer);
+
+    // Prepare clean text for TTS voice reading (stripping markdown symbols and raw table rows)
+    const cleanSpeechText = rawAnswer
+        .replace(/\|[^\n]+\|/g, '')
+        .replace(/[*#`_~]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 
     aiBubble.innerHTML = `
-        <div>${formatted}</div>
-        ${data.action_status ? `<div style="margin-top: 6px; font-size: 0.74rem; color: var(--neon-green); font-weight: 700;">● ${data.action_status}</div>` : ''}
+        <div class="ai-bubble-content">${formattedHtml}</div>
+        ${data.action_status ? `<div style="margin-top: 8px; font-size: 0.78rem; color: var(--neon-green); font-weight: 700; background: rgba(0,255,102,0.08); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(0,255,102,0.25);">⚡ ${data.action_status}</div>` : ''}
+        <div class="ai-bubble-footer">
+            <span style="font-size: 0.72rem; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
+                <span>✨</span> <span>Verna AI Enterprise Pro</span>
+            </span>
+            <div style="display: flex; gap: 6px;">
+                <button class="ai-action-btn-sm" onclick="speakAiBubbleText(this)" data-speech="${encodeURIComponent(cleanSpeechText)}" title="उत्तर ऐका">
+                    🔊 <span>ऐका</span>
+                </button>
+                <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${encodeURIComponent(rawAnswer)}" title="उत्तर कॉपी करा">
+                    📋 <span>कॉपी</span>
+                </button>
+            </div>
+        </div>
     `;
+}
+
+function speakAiBubbleText(btn) {
+    const rawEncoded = btn.getAttribute("data-speech");
+    if (!rawEncoded) return;
+    const text = decodeURIComponent(rawEncoded);
+    if (!text) return;
+    speakWithBrowserVoice(text);
+}
+
+function copyAiBubbleText(btn) {
+    const rawEncoded = btn.getAttribute("data-raw");
+    if (!rawEncoded) return;
+    const text = decodeURIComponent(rawEncoded);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            const span = btn.querySelector("span");
+            if (span) {
+                const original = span.innerText;
+                span.innerText = "कॉपी झाले! ✅";
+                setTimeout(() => { span.innerText = original; }, 2000);
+            }
+        }).catch(() => {
+            alert("मजकूर कॉपी करण्यात अडचण आली.");
+        });
+    } else {
+        // Fallback for older browsers
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        const span = btn.querySelector("span");
+        if (span) {
+            const original = span.innerText;
+            span.innerText = "कॉपी झाले! ✅";
+            setTimeout(() => { span.innerText = original; }, 2000);
+        }
+    }
 }
 
 async function speakText(encoded) {

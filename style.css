@@ -2316,3 +2316,192 @@ body.light-theme .modal-card {
     border: 1px solid #93C5FD !important;
     box-shadow: 0 20px 50px rgba(0,0,0,0.2) !important;
 }
+
+
+/* ==========================================================================
+   NEXT-LEVEL AI CHATBOT RICH FORMATTING & CYBER TABLES
+   ========================================================================== */
+.chat-bubble.chat-ai {
+    max-width: 90% !important;
+    word-break: break-word;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(176, 38, 255, 0.15) !important;
+}
+
+.ai-table-wrapper {
+    width: 100%;
+    margin: 12px 0;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    background: rgba(4, 10, 26, 0.9);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), inset 0 0 15px rgba(0, 242, 254, 0.05);
+}
+
+.ai-chat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    text-align: left;
+    min-width: 520px;
+}
+
+.ai-chat-table th {
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.22), rgba(0, 102, 255, 0.18));
+    color: var(--neon-cyan, #00f2fe);
+    font-weight: 800;
+    padding: 11px 14px;
+    border-bottom: 2px solid rgba(0, 242, 254, 0.45);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.ai-chat-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    color: #e2e8f0;
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+.ai-chat-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.ai-chat-table tbody tr:hover {
+    background: rgba(0, 242, 254, 0.08);
+}
+
+.ai-chat-table td strong {
+    color: #ffffff;
+}
+
+.ai-bubble-content h1, 
+.ai-bubble-content h2, 
+.ai-bubble-content h3 {
+    margin: 12px 0 6px 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--neon-cyan, #00f2fe);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-bubble-content ul, 
+.ai-bubble-content ol {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.ai-bubble-content li {
+    margin-bottom: 5px;
+    line-height: 1.5;
+}
+
+.ai-bubble-content code {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--neon-cyan, #00f2fe);
+}
+
+.ai-code-block {
+    background: rgba(2, 6, 23, 0.85);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.ai-blockquote {
+    border-left: 3px solid var(--neon-cyan);
+    background: rgba(0, 242, 254, 0.05);
+    padding: 6px 12px;
+    margin: 8px 0;
+    border-radius: 0 8px 8px 0;
+    color: var(--text-slate);
+}
+
+.ai-line-gap {
+    height: 8px;
+}
+
+.ai-bubble-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.74rem;
+    color: var(--text-slate);
+}
+
+.ai-action-btn-sm {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--text-white);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-action-btn-sm:hover {
+    background: rgba(0, 242, 254, 0.18);
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+}
+
+/* Light Theme Support */
+body.light-theme .ai-table-wrapper {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+body.light-theme .ai-chat-table th {
+    background: #f1f5f9;
+    color: #0284c7;
+    border-bottom: 2px solid #0284c7;
+}
+
+body.light-theme .ai-chat-table td {
+    color: #1e293b;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+body.light-theme .ai-chat-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+body.light-theme .ai-chat-table tbody tr:hover {
+    background: #e0f2fe;
+}
+
+body.light-theme .ai-bubble-content h1,
+body.light-theme .ai-bubble-content h2,
+body.light-theme .ai-bubble-content h3 {
+    color: #0284c7;
+}
+
+body.light-theme .ai-action-btn-sm {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+body.light-theme .ai-action-btn-sm:hover {
+    background: #e0f2fe;
+    border-color: #0284c7;
+    color: #0284c7;
+}

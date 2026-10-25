@@ -2048,7 +2048,10 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **UPI ID (पेमेंटसाठी):** {s_upi}
 • **दुकान पत्ता:** {s_addr}"""
 
-    # A. Specific Individual Developer & Guide Checks (Surnames & Names in Roman / Devanagari)
+    # -------------------------------------------------------------------------
+    # DEVELOPER & TEAM QUERY DETECTION FLAGS
+    # -------------------------------------------------------------------------
+# A. Specific Individual Developer & Guide Checks (Surnames & Names in Roman / Devanagari)
     is_mulik = any(k in lower_msg for k in ['mulik', 'मुळीक', 'rushikesh', 'ऋषिकेश'])
     is_bhagat = any(k in lower_msg for k in ['bhagat', 'भगत', 'sakshi', 'साक्षी'])
     is_dhawale = any(k in lower_msg for k in ['dhawale', 'ढवळे', 'vaishnavi', 'वैष्णवी'])
@@ -2066,7 +2069,116 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         'team chi nave', 'developer team', 'dev team', 'प्रोजेक्ट टीम', 'प्रकल्प टीम', 'संपूर्ण प्रोजेक्ट'
     ])
 
-    if is_mulik and not is_all_devs_query:
+# -------------------------------------------------------------------------
+    # NEXT-LEVEL ENTERPRISE CAPABILITIES: COMPARISONS & LIVE RICH TABLES
+    # -------------------------------------------------------------------------
+    is_comparison = any(k in lower_msg for k in [
+        'farak', 'फरक', 'tulna', 'तुलना', 'difference', 'comparison', 'vs', 'versus',
+        'इतर ॲप', 'इतर ॲप्लिकेशन', 'itar app', 'itar application', 'traditional app', 'other app',
+        'khatabook', 'vyapar', 'सामान्य ॲप', 'सामान्य ॲप्लिकेशन', 'इतर ॲप्स', 'इतर सॉफ्टवेअर',
+        'other software', 'इतर ॲप्स मध्ये', 'इतर ॲप्स पेक्षा', 'ॲप मधील फरक', 'ॲप्स मधील फरक'
+    ])
+
+    is_table_query = any(t in lower_msg for t in ['table', 'तक्ता', 'तक्त्यात', 'तक्त्यामध्ये', 'chart', 'grid', 'तक्त्या'])
+
+    if is_comparison:
+        if is_english:
+            answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) vs Traditional Billing Applications**:
+
+| Feature / Capability | VernaLedger.AI (Our Application) | Traditional Apps (Vyapar / Khatabook) |
+| :--- | :--- | :--- |
+| 📸 **Multimodal OCR** | **Vision Transformers (ViT) & Document AI:** Instant 1s digitization of handwritten Marathi/English slips. | ❌ Manual typing or primitive English-only printed OCR. |
+| 🎙️ **Vernacular Voice Billing** | **Native Vernacular ASR:** Speak Marathi/Hindi/English commands to generate bills in 5s. | ❌ Voice billing not supported or English-only. |
+| 🌐 **Multilingual Interface** | **Marathi-First Design:** Complete UI, bills, and voice interaction in pure Marathi, Hindi & English. | ⚠️ English-heavy terminology, confusing for rural merchants. |
+| ⚡ **Latency & Engine** | **Google Cloud TPUs & SQLite WAL:** <2ms local ACID commit, instant offline resilience. | ⚠️ Device dependent, sluggish cloud synchronization. |
+| 🤖 **AI Business Advisor** | **Neural RAG Studio:** Instant intelligent queries on stock, profit, sales, and credit recovery. | ❌ Static data dashboards with no conversational advisory. |
+| 💳 **Khata & Debt Recovery** | Automated **1-Click WhatsApp & UPI payment reminder links** with smart balance tracking. | ⚠️ Basic messaging without direct payment integration. |
+| 🖨️ **Hardware Integration** | Seamless **58mm Thermal Receipt Printing (ESC/POS)** & 1-Click **Excel (.xlsx)** audit downloads. | ⚠️ Extra fee or restricted export capabilities. |
+| 🔒 **Data Ownership & Security** | **Zero-Vendor Lock-in:** Merchant holds 100% database sovereignty on local ACID SQLite. | ⚠️ Proprietary cloud lock-in with merchant data vulnerability. |
+
+🏛️ **Academic Dossier (AGCE Satara)**:
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+• **Project Guide:** Prof. Kaisar Atar Sir
+• **Development Team:** 1. Sanket Kirdat (Lead), 2. Sakshi Bhagat, 3. Vaishnavi Dhavale, 4. Rushikesh Mulik."""
+        else:
+            answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) वि. इतर सामान्य ॲप्लिकेशन्स (तुलना तक्ता)**:
+
+| वैशिष्ट्ये (Features) | VernaLedger.AI (आपले ॲप्लिकेशन) | इतर सामान्य ॲप्लिकेशन्स (उदा. Vyapar/Khatabook) |
+| :--- | :--- | :--- |
+| 📸 **स्मार्ट बिल स्कॅनिंग** | **Vision Transformers (ViT) & Multimodal AI:** हस्तलिखित मराठी व इंग्रजी पावत्यांचे १ सेकंदात अचूक बिल. | ❌ केवळ मॅन्युअल डेटा एंट्री किंवा अत्यंत प्राथमिक व मंद OCR. |
+| 🎙️ **स्थानिक व्हॉइस बिलिंग** | **अस्खलित स्थानिक ASR:** अस्खलित मराठी व प्रादेशिक भाषेत बोलून ५ सेकंदात डिजिटल पावती तयार. | ❌ व्हॉइस बिलिंग उपलब्ध नाही किंवा केवळ इंग्रजीपुरते मर्यादित. |
+| 🌐 **भाषा सपोर्ट (मराठी-प्रथम)** | **त्रिभाषिक इंटरफेस:** अस्खलित मराठी, हिंदी आणि इंग्रजीमध्ये एका क्लिकवर झटपट बदल. | ⚠️ प्रामुख्याने इंग्रजी व क्लिष्ट तांत्रिक संज्ञा. |
+| ⚡ **प्रोसेसिंग स्पीड & रिअल-टाइम** | **Google Cloud TPUs & SQLite WAL:** अवघ्या <२ms मध्ये स्थानिक ACID ट्रान्झॅक्शन स्पीड. | ⚠️ स्थानिक डिव्हाइसवर अवलंबून, स्लो आणि वेळखाऊ प्रक्रिया. |
+| 🤖 **AI बिझनेस सल्लागार** | **Neural RAG Chatbot:** नफा, विक्री, उधारी व स्टॉकचे रिअल-टाइम विश्लेषण (Zero-Hallucination). | ❌ साधा डेटा रिपोर्ट, कोणताही संवादात्मक AI सल्लागार नाही. |
+| 💳 **ग्राहक उधारी वही (Khata)** | स्वयंचलित १-क्लिक **WhatsApp व UPI पेमेंट रिकव्हरी** स्मरणपत्रे व पारदर्शक हिशोब. | ⚠️ मर्यादित मेसेजिंग, मॅन्युअल फॉलोअप आवश्यक. |
+| 🖨️ **हार्डवेअर सुसंगतता** | **५८mm थर्मल प्रिंटर (ESC/POS)** व १-क्लिक **Excel (.xlsx) डेटा एक्सपोर्ट**. | ⚠️ अतिरिक्त शुल्क किंवा प्रिंटर सपोर्ट मर्यादित. |
+| 🔒 **डेटा सुरक्षा & स्वातंत्र्य** | **ACID-Compliant SQLite:** संपूर्ण डेटा व्यापाऱ्याच्या नियंत्रणात, सुरक्षित व खाजगी. | ⚠️ क्लाउड व्हेंडर लॉक-इन व डेटा प्रायव्हसी धोके. |
+
+आमचा हा नाविन्यपूर्ण प्रकल्प **अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग (AGCE), सातारा** येथील **प्रा. कैसर अत्तार सर** यांच्या मार्गदर्शनाखाली खालील अंतिम वर्ष B.Tech (AI & DS) टीमने विकसित केला आहे:
+१. **संकेत किर्दत (Lead Full-Stack AI Developer)** [रोल: 4060 | PRN: 24065451263508]
+२. **साक्षी भगत (Frontend & UI Developer)** [रोल: 4054 | PRN: 24065451263502]
+३. **वैष्णवी ढवळे (Voice Billing & AI Developer)** [रोल: 4056 | PRN: 24065451263504]
+४. **ऋषिकेश मुळीक (Backend & Database Developer)** [रोल: 4004 | PRN: 23065451263005]"""
+
+    # B. Specific Table Requests (Team Table, Stock Table, Khata Table, Financial Table)
+    elif is_table_query and (is_all_devs_query or any(k in lower_msg for k in ['developer', 'डेव्हलपर', 'डेवलपर', 'विकासक', 'team', 'टीम', 'विद्यार्थी', 'विद्यार्थ्या', 'creator', 'सदस्य', 'मार्गदर्शक'])):
+        answer = """👨‍💻 **प्रकल्प विकासक व शैक्षणिक तपशील (Development Team Dossier Table)**:
+
+| क्र. | विद्यार्थ्याचे नाव | रोल नंबर | PRN नंबर | प्रकल्पातील भूमिका (Role) |
+| :---: | :--- | :---: | :---: | :--- |
+| १ | **संकेत किर्दत (Sanket Kirdat)** | 4060 | 24065451263508 | **Team Leader & AI Developer** |
+| २ | **साक्षी भगत (Sakshi Bhagat)** | 4054 | 24065451263502 | **Frontend & UI Developer** |
+| ३ | **वैष्णवी ढवळे (Vaishnavi Dhavale)** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
+| ४ | **ऋषिकेश मुळीक (Rushikesh Mulik)** | 4004 | 23065451263005 | **Backend & Database Developer** |
+
+• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Department of AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
+
+    elif is_table_query and any(k in lower_msg for k in ['साठा', 'साठ्या', 'स्टॉक', 'stock', 'माल', 'inventory', 'वस्तू', 'सामान', 'satha', 'sathya']):
+        inv_rows = []
+        for idx, item in enumerate(all_inv[:15], 1):
+            status = "⚠️ कमी साठा" if item['stock_qty'] <= item['alert_limit'] else "✅ मुबलक"
+            inv_rows.append(f"| {idx} | **{item['item_name']}** | {item['stock_qty']} {item['unit']} | ₹{item['selling_price']:,.2f} | ₹{item['cost_price']:,.2f} | {status} |")
+        inv_table = "\n".join(inv_rows) if inv_rows else "| - | कोणताही साठा उपलब्ध नाही | - | - | - | - |"
+        answer = f"""📦 **आपल्या दुकानातील साठा तपशील (Live Inventory Stock Table)**:
+
+| क्र. | वस्तूचे नाव (Item Name) | शिल्लक साठा | विक्री दर (₹) | खरेदी दर (₹) | स्थिती (Status) |
+| :---: | :--- | :---: | :---: | :---: | :---: |
+{inv_table}
+
+💡 *टीप: ज्या वस्तूंचा साठा कमी झाला आहे, त्यांचा नवीन माल त्वरित मागवा.*"""
+
+    elif is_table_query and any(k in lower_msg for k in ['उधारी', 'उधार', 'खाते', 'खात्या', 'khata', 'credit', 'येणे', 'ग्राहक', 'बाकी', 'udhari', 'baki']):
+        khata_rows = []
+        idx = 1
+        for c_name, c_amt in sorted(cust_dues.items(), key=lambda x: x[1], reverse=True)[:15]:
+            khata_rows.append(f"| {idx} | **{c_name}** | ₹{c_amt:,.2f} | 🔴 उधारी बाकी | [व्हॉट्सॲप स्मरणपत्र पाठवा] |")
+            idx += 1
+        khata_table = "\n".join(khata_rows) if khata_rows else "| - | कोणाचीही उधारी बाकी नाही | ₹0.00 | ✅ क्लिअर | - |"
+        answer = f"""💳 **ग्राहक उधारी हिशोब तपशील (Customer Khata Ledger Table)**:
+
+| क्र. | ग्राहक नाव (Customer) | बाकी रक्कम (₹) | स्थिती (Status) | कृती (Action) |
+| :---: | :--- | :---: | :---: | :--- |
+{khata_table}
+
+📊 **एकूण बाकी उधारी:** **₹{pending_udhar:,.2f}**"""
+
+    elif is_table_query and any(k in lower_msg for k in ['नफा', 'विक्री', 'खर्च', 'हिशोब', 'हिशेब', 'profit', 'sales', 'expense', 'ऑडिट', 'audit']):
+        answer = f"""📊 **दुकानाचे सर्वसमावेशक आर्थिक ऑडिट (Financial Summary Table)**:
+
+| आर्थिक घटक (Financial Metric) | रक्कम (₹) | सद्यस्थिती / तपशील (Status) |
+| :--- | :---: | :--- |
+| 📈 **आजची एकूण विक्री (Today's Sales)** | **₹{today_sales:,.2f}** | आज झालेल्या व्यवहारांमधून जमा |
+| 📊 **एकूण नोंदवलेली विक्री (Total Sales)** | **₹{total_sales:,.2f}** | संपूर्ण डेटाबेसमधील एकूण विक्री |
+| 💸 **आजचा व्यवसाय खर्च (Today's Expenses)** | **₹{today_expenses:,.2f}** | आज नोंदवलेले विविध खर्च |
+| 📉 **एकूण व्यवसाय खर्च (Total Expenses)** | **₹{total_expenses:,.2f}** | दुकानाचा आजवरचा एकूण खर्च |
+| ⏳ **बाजारातील बाकी उधारी (Pending Dues)** | **₹{pending_udhar:,.2f}** | ग्राहकांकडून येणे बाकी असलेली रक्कम |
+| 💰 **अंदाजे निव्वळ नफा (Estimated Net Profit)** | **₹{net_profit:,.2f}** | विक्री वजा खर्च (Margin) |"""
+
+    elif is_mulik and not is_all_devs_query:
         if is_english:
             answer = """👨‍💻 **Rushikesh Mulik**:
 • **Roll No:** 4004
@@ -2445,7 +2557,14 @@ You possess two core intelligence systems:
 
 4. 🎯 STRICT TOPIC FOCUS & RELEVANCE:
    - Use [Live Shop Real Data] ONLY when the query is specifically about store sales, stock, dues, expenses, or kirana shop business.
-   - For universal world knowledge questions (science, history, coding, general knowledge, daily life), answer 100% focused on that topic. Do NOT add unrelated grocery store inventory or credit alerts."""
+   - For universal world knowledge questions (science, history, coding, general knowledge, daily life), answer 100% focused on that topic. Do NOT add unrelated grocery store inventory or credit alerts.
+
+5. 📊 STRUCTURED TABLE & FORMATTING MANDATE:
+   - When the user asks for a table, comparison, summary, breakdown, or uses words like 'table', 'तक्ता', 'तक्त्यात', 'फरक', 'तुलना', 'कम्पेअर', 'फरक दाखवा', 'यादी द्या', 'list':
+     ALWAYS formulate the response with a clean, standard GitHub Flavored Markdown table (`| Column 1 | Column 2 | Column 3 |` with `| :--- | :--- | :--- |`).
+   - Fill the table with rich, realistic, well-researched, and accurate data.
+   - Add explanatory context before and after the table.
+   - For all general responses, format headings with ###, key metrics in **bold**, and step-by-step points in numbered or bulleted lists."""
 
     if not answer and api_key and genai:
         try:
