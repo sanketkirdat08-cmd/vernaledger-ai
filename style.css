@@ -2227,3 +2227,46 @@ body.light-theme .cyber-table tr.row-selected td {
         box-shadow: 0 0 0 0 rgba(255, 0, 85, 0);
     }
 }
+
+/* Desktop HUD Developers Badge */
+.hud-developers-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.09), rgba(176, 38, 255, 0.09));
+    border: 1px solid rgba(0, 242, 254, 0.28);
+    border-radius: 20px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-white);
+    margin-right: 4px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.hud-developers-badge:hover {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+}
+.hud-developers-badge .hud-dev-icon {
+    font-size: 0.82rem;
+}
+.hud-developers-badge .hud-dev-college {
+    color: var(--neon-cyan);
+    font-weight: 700;
+    margin-left: 2px;
+}
+body.light-theme .hud-developers-badge {
+    background: #EFF6FF !important;
+    border: 1px solid #93C5FD !important;
+    color: #1E293B !important;
+}
+body.light-theme .hud-developers-badge .hud-dev-college {
+    color: #0284C7 !important;
+}
+
+@media (max-width: 1024px) {
+    .hud-developers-badge {
+        display: none !important;
+    }
+}

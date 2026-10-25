@@ -334,6 +334,18 @@ class SyncDataRequest(BaseModel):
 class BulkDeleteReceiptsRequest(BaseModel):
     receipt_ids: List[int]
 
+class BulkDeleteKhataRequest(BaseModel):
+    entry_ids: List[int]
+
+class ReceiptSaveRequest(BaseModel):
+    id: Optional[int] = None
+    vendor_name: str
+    date: Optional[str] = None
+    category: Optional[str] = "General"
+    items: List[Dict[str, Any]] = []
+    grand_total: float
+    username: Optional[str] = "admin"
+
 class NewUserRequest(BaseModel):
     username: str
     password: str
@@ -1323,6 +1335,63 @@ def get_receipts(search: Optional[str] = None):
         result.append(d)
     return result
 
+@app.post("/api/receipts")
+def save_or_update_receipt(req: ReceiptSaveRequest):
+    conn = get_db()
+    cursor = conn.cursor()
+    today_str = date.today().strftime("%Y-%m-%d")
+    r_date = req.date if (req.date and "-" in req.date) else today_str
+    v_name = req.vendor_name.strip() or "किराणा स्टोअर"
+    raw_json_str = json.dumps({
+        "vendor_name": v_name,
+        "date": r_date,
+        "category": req.category or "General",
+        "items": req.items,
+        "grand_total": req.grand_total
+    }, ensure_ascii=False)
+    
+    # If existing ID is passed, update it
+    if req.id and req.id > 0:
+        cursor.execute(
+            "UPDATE receipts SET vendor_name = ?, date = ?, category = ?, grand_total = ?, raw_json = ? WHERE id = ?",
+            (v_name, r_date, req.category or "General", req.grand_total, raw_json_str, req.id)
+        )
+        conn.commit()
+        receipt_id = req.id
+        action = f"Updated Receipt #{receipt_id}"
+    else:
+        # Check duplicate receipt before inserting
+        dup = cursor.execute(
+            "SELECT id FROM receipts WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND LOWER(vendor_name) = LOWER(?)) ORDER BY id DESC LIMIT 1",
+            (r_date, req.grand_total, v_name)
+        ).fetchone()
+        if dup:
+            receipt_id = dup["id"]
+            action = f"Matched existing Receipt #{receipt_id}"
+        else:
+            cursor.execute(
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                (v_name, r_date, req.category or "General", req.grand_total, raw_json_str)
+            )
+            conn.commit()
+            receipt_id = cursor.lastrowid
+            action = f"Saved new Receipt #{receipt_id}"
+            
+    conn.close()
+    log_activity(req.username or "admin", f"{action} for {v_name} (₹{req.grand_total})")
+    return {
+        "success": True,
+        "id": receipt_id,
+        "data": {
+            "id": receipt_id,
+            "vendor_name": v_name,
+            "date": r_date,
+            "category": req.category or "General",
+            "items": req.items,
+            "grand_total": req.grand_total
+        }
+    }
+
 @app.delete("/api/receipts/{receipt_id}")
 def delete_receipt(receipt_id: int):
     conn = get_db()
@@ -1403,6 +1472,25 @@ def add_khata_entry(req: KhataEntryRequest):
 def delete_khata_entry(entry_id: int):
     conn = get_db()
     conn.execute("DELETE FROM customer_khata WHERE id = ?", (entry_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+@app.post("/api/khata/bulk-delete")
+def bulk_delete_khata(req: BulkDeleteKhataRequest):
+    if not req.entry_ids:
+        return {"success": True, "deleted_count": 0}
+    conn = get_db()
+    placeholders = ",".join("?" for _ in req.entry_ids)
+    conn.execute(f"DELETE FROM customer_khata WHERE id IN ({placeholders})", req.entry_ids)
+    conn.commit()
+    conn.close()
+    return {"success": True, "deleted_count": len(req.entry_ids)}
+
+@app.delete("/api/khata/all")
+def delete_all_khata():
+    conn = get_db()
+    conn.execute("DELETE FROM customer_khata")
     conn.commit()
     conn.close()
     return {"success": True}

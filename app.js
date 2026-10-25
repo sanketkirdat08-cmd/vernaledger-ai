@@ -235,6 +235,13 @@ const i18n = {
         confirm_clear_all: "⚠️ सावधान! तुम्हाला लेजरमधील सर्व पावत्या कायमच्या डिलीट करायच्या आहेत का? ही कृती पूर्ववत करता येणार नाही!",
         msg_bulk_delete_success: "✅ निवडलेल्या {n} पावत्या यशस्वीरीत्या डिलीट केल्या!",
         msg_clear_all_success: "✅ सर्व पावत्या लेजरमधून यशस्वीरीत्या डिलीट केल्या!",
+        lbl_selected_khata: "निवडलेले व्यवहार:",
+        btn_delete_selected_khata: "🗑️ निवडलेले डिलीट करा",
+        btn_clear_all_khata: "⚠️ सर्व रिकामे करा",
+        confirm_bulk_delete_khata: "तुम्हाला निवडलेले {n} खाते व्यवहार कायमचे डिलीट करायचे आहेत का?",
+        confirm_clear_all_khata: "⚠️ सावधान! तुम्हाला सर्व खाते व्यवहार कायमचे डिलीट करायचे आहेत का? ही कृती पूर्ववत करता येणार नाही!",
+        msg_bulk_delete_khata_success: "✅ निवडलेले {n} व्यवहार यशस्वीरीत्या डिलीट केले!",
+        msg_clear_all_khata_success: "✅ सर्व खाते व्यवहार रिकामे केले गेले!",
         no_receipts_selected: "कृपया आधी किमान एक पावती निवडा!",
         empty_ledger: "कोणतीही पावती उपलब्ध नाही.",
         btn_clear_chat: "🗑️ Clear",
@@ -475,6 +482,13 @@ const i18n = {
         confirm_clear_all: "⚠️ Warning! Are you sure you want to delete ALL receipts from the ledger? This action cannot be undone!",
         msg_bulk_delete_success: "✅ Successfully deleted {n} selected receipts!",
         msg_clear_all_success: "✅ Successfully cleared all receipts from ledger!",
+        lbl_selected_khata: "Selected Transactions:",
+        btn_delete_selected_khata: "🗑️ Delete Selected",
+        btn_clear_all_khata: "⚠️ Clear All",
+        confirm_bulk_delete_khata: "Are you sure you want to permanently delete {n} selected transactions?",
+        confirm_clear_all_khata: "⚠️ Warning! Are you sure you want to delete ALL customer transactions? This action cannot be undone!",
+        msg_bulk_delete_khata_success: "✅ Successfully deleted {n} transactions!",
+        msg_clear_all_khata_success: "✅ All transactions cleared successfully!",
         no_receipts_selected: "Please select at least one receipt first!",
         empty_ledger: "No receipts available in ledger.",
         btn_clear_chat: "🗑️ Clear",
@@ -715,6 +729,13 @@ const i18n = {
         confirm_clear_all: "⚠️ चेतावनी! क्या आप लेजर से सभी रसीदें स्थायी रूप से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती!",
         msg_bulk_delete_success: "✅ चुनी गई {n} रसीदें सफलतापूर्वक डिलीट कर दी गईं!",
         msg_clear_all_success: "✅ सभी रसीदें लेजर से सफलतापूर्वक हटा दी गईं!",
+        lbl_selected_khata: "चुने गए लेनदेन:",
+        btn_delete_selected_khata: "🗑️ चुने गए डिलीट करें",
+        btn_clear_all_khata: "⚠️ सब डिलीट करें",
+        confirm_bulk_delete_khata: "क्या आप चुने गए {n} लेनदेन स्थायी रूप से हटाना चाहते हैं?",
+        confirm_clear_all_khata: "⚠️ चेतावनी! क्या आप सभी लेनदेन स्थायी रूप से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती!",
+        msg_bulk_delete_khata_success: "✅ सफलतापूर्वक {n} लेनदेन डिलीट किए गए!",
+        msg_clear_all_khata_success: "✅ सभी लेनदेन सफलतापूर्वक साफ़ कर दिए गए!",
         no_receipts_selected: "कृपया पहले कम से कम एक रसीद चुनें!",
         empty_ledger: "लेजर में कोई रसीद उपलब्ध नहीं है।",
         btn_clear_chat: "🗑️ साफ़ करें",
@@ -928,24 +949,96 @@ const i18n = {
     }
 };
 
+// Universal Kirana & Grocery Multilingual Item Dictionary
+const KIRANA_ITEMS_DICT = {
+    "साखर": { mr: "साखर", en: "Sugar", hi: "चीनी" },
+    "sugar": { mr: "साखर", en: "Sugar", hi: "चीनी" },
+    "चीनी": { mr: "साखर", en: "Sugar", hi: "चीनी" },
+    "शेंगदाणा तेल": { mr: "शेंगदाणा तेल", en: "Peanut Oil", hi: "मूंगफली तेल" },
+    "peanut oil": { mr: "शेंगदाणा तेल", en: "Peanut Oil", hi: "मूंगफली तेल" },
+    "मूंगफली तेल": { mr: "शेंगदाणा तेल", en: "Peanut Oil", hi: "मूंगफली तेल" },
+    "तेल": { mr: "तेल", en: "Cooking Oil", hi: "तेल" },
+    "oil": { mr: "तेल", en: "Cooking Oil", hi: "तेल" },
+    "गहू": { mr: "गहू", en: "Wheat", hi: "गेहूं" },
+    "wheat": { mr: "गहू", en: "Wheat", hi: "गेहूं" },
+    "गेहूं": { mr: "गहू", en: "Wheat", hi: "गेहूं" },
+    "तांदूळ": { mr: "तांदूळ", en: "Rice", hi: "चावल" },
+    "तांदुळ": { mr: "तांदूळ", en: "Rice", hi: "चावल" },
+    "rice": { mr: "तांदूळ", en: "Rice", hi: "चावल" },
+    "चावल": { mr: "तांदूळ", en: "Rice", hi: "चावल" },
+    "तूर डाळ": { mr: "तूर डाळ", en: "Toor Dal", hi: "अरहर दाल" },
+    "toor dal": { mr: "तूर डाळ", en: "Toor Dal", hi: "अरहर दाल" },
+    "डाळ": { mr: "डाळ", en: "Dal / Pulses", hi: "दाल" },
+    "dal": { mr: "डाळ", en: "Dal / Pulses", hi: "दाल" },
+    "चहा": { mr: "चहा पावडर", en: "Tea Powder", hi: "चाय पत्ती" },
+    "चहा पावडर": { mr: "चहा पावडर", en: "Tea Powder", hi: "चाय पत्ती" },
+    "tea": { mr: "चहा पावडर", en: "Tea Powder", hi: "चाय पत्ती" },
+    "साबण": { mr: "साबण", en: "Soap", hi: "साबुन" },
+    "soap": { mr: "साबण", en: "Soap", hi: "साबुन" },
+    "दूध": { mr: "दूध", en: "Milk", hi: "दूध" },
+    "milk": { mr: "दूध", en: "Milk", hi: "दूध" },
+    "तूप": { mr: "तूप", en: "Ghee", hi: "घी" },
+    "ghee": { mr: "तूप", en: "Ghee", hi: "घी" },
+    "मीठ": { mr: "मीठ", en: "Salt", hi: "नमक" },
+    "salt": { mr: "मीठ", en: "Salt", hi: "नमक" },
+    "हळद": { mr: "हळद", en: "Turmeric", hi: "हल्दी" },
+    "turmeric": { mr: "हळद", en: "Turmeric", hi: "हल्दी" },
+    "मिरची": { mr: "मिरची", en: "Chili", hi: "मिर्च" },
+    "chili": { mr: "मिरची", en: "Chili", hi: "मिर्च" },
+    "कांदा": { mr: "कांदा", en: "Onion", hi: "प्याज" },
+    "onion": { mr: "कांदा", en: "Onion", hi: "प्याज" },
+    "बटाटा": { mr: "बटाटा", en: "Potato", hi: "आलू" },
+    "potato": { mr: "बटाटा", en: "Potato", hi: "आलू" },
+    "बिस्कीट": { mr: "बिस्कीट", en: "Biscuits", hi: "बिस्कुट" },
+    "biscuit": { mr: "बिस्कीट", en: "Biscuits", hi: "बिस्कुट" },
+    "महादेव किराणा स्टोअर": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
+    "mahadev kirana store": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
+    "महादेव किराना स्टोर": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
+    "किराणा स्टोअर": { mr: "किराणा स्टोअर", en: "Kirana Store", hi: "किराना स्टोर" },
+    "kirana store": { mr: "किराणा स्टोअर", en: "Kirana Store", hi: "किराना स्टोर" },
+    "किराना स्टोर": { mr: "किराणा स्टोअर", en: "Kirana Store", hi: "किराना स्टोर" }
+};
+
 // Helper: Show item and customer names strictly ONCE in the active language
 function formatLocalizedName(name, lang = state.lang) {
     if (!name) return "";
     name = String(name).trim();
-    // Check format: "Marathi (English)" e.g. "साखर (Sugar M-30)" or "सागर पाटील (Sagar Patil)"
+
+    // 1. Check direct match in grocery dictionary
+    const lower = name.toLowerCase();
+    if (KIRANA_ITEMS_DICT[lower]) {
+        return KIRANA_ITEMS_DICT[lower][lang] || KIRANA_ITEMS_DICT[lower].mr || name;
+    }
+    if (KIRANA_ITEMS_DICT[name]) {
+        return KIRANA_ITEMS_DICT[name][lang] || KIRANA_ITEMS_DICT[name].mr || name;
+    }
+
+    // 2. Check format: "Marathi (English)" e.g. "साखर (Sugar M-30)" or "सागर पाटील (Sagar Patil)"
     const parenMatch = name.match(/^([^(]+)\s*\(([^)]+)\)$/);
     if (parenMatch) {
         const mrPart = parenMatch[1].trim();
         const enPart = parenMatch[2].trim();
-        return lang === "en" ? enPart : mrPart;
+        if (lang === "en") return enPart;
+        if (lang === "hi") {
+            const lk = mrPart.toLowerCase();
+            return (KIRANA_ITEMS_DICT[lk] && KIRANA_ITEMS_DICT[lk].hi) ? KIRANA_ITEMS_DICT[lk].hi : mrPart;
+        }
+        return mrPart;
     }
-    // Check format: "Marathi / English"
+
+    // 3. Check format: "Marathi / English"
     const slashMatch = name.match(/^([^/]+)\s*\/\s*(.+)$/);
     if (slashMatch) {
         const mrPart = slashMatch[1].trim();
         const enPart = slashMatch[2].trim();
-        return lang === "en" ? enPart : mrPart;
+        if (lang === "en") return enPart;
+        if (lang === "hi") {
+            const lk = mrPart.toLowerCase();
+            return (KIRANA_ITEMS_DICT[lk] && KIRANA_ITEMS_DICT[lk].hi) ? KIRANA_ITEMS_DICT[lk].hi : mrPart;
+        }
+        return mrPart;
     }
+
     return name;
 }
 
@@ -1414,6 +1507,8 @@ async function submitReceiptOCR() {
             throw new Error(json.detail || json.error || "OCR स्कॅनिंग अयशस्वी झाले.");
         }
 
+        state.currentBillId = json.data.id || null;
+        state.currentBill = json.data;
         populateBillCard(json.data);
 
         if (json.duplicate) {
@@ -1684,36 +1779,53 @@ function getCurrentBillData() {
 async function saveCurrentBillToLedger() {
     const bill = getCurrentBillData();
     if (bill.items.length === 0) {
-        alert("कृपया पावतीमध्ये किमान एक वस्तू टाका.");
+        const dict = i18n[state.lang] || i18n.mr;
+        alert(dict.alert_no_items || "कृपया पावतीमध्ये किमान एक वस्तू टाका.");
         return;
     }
 
     try {
-        // Send as a manual voice-like bill or ledger insert
-        const res = await apiCall("/api/voice-billing", {
+        const payload = {
+            id: state.currentBillId || (state.currentBill && state.currentBill.id ? state.currentBill.id : null),
+            vendor_name: bill.vendor_name || "किराणा स्टोअर",
+            date: bill.date || new Date().toISOString().split("T")[0],
+            category: (state.currentBill && state.currentBill.category) ? state.currentBill.category : "General",
+            items: bill.items,
+            grand_total: bill.grand_total,
+            username: state.user ? state.user.username : "admin"
+        };
+
+        const res = await apiCall("/api/receipts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                transcript: `${bill.vendor_name} येथे ${bill.items.map(i => `${i.quantity} ${i.item_name} ${i.rate} रुपये`).join(', ')}`,
-                username: state.user ? state.user.username : "admin"
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!res.ok) throw new Error("पावती सेव्ह करता आली नाही.");
 
-        const jsonBill = await res.json().catch(() => ({}));
-        if (jsonBill && jsonBill.data) {
-            VernaStorage.addReceipt(jsonBill.data);
-        } else {
-            VernaStorage.addReceipt(bill);
-        }
+        const jsonRes = await res.json().catch(() => ({}));
+        const savedData = (jsonRes && jsonRes.data) ? jsonRes.data : { ...payload, id: jsonRes.id || Date.now() };
+
+        VernaStorage.addReceipt(savedData);
+        state.currentBillId = null;
+        state.currentBill = null;
 
         loadDashboardMetrics();
         loadReceiptsLedger();
-        alert("✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!");
+        
+        const dict = i18n[state.lang] || i18n.mr;
+        alert(dict.msg_receipt_saved || "✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!");
         resetBillCard();
     } catch (e) {
-        alert("एरर: " + e.message);
+        console.error("Save bill error:", e);
+        // Offline-first fallback
+        VernaStorage.addReceipt({ ...bill, id: Date.now() });
+        state.currentBillId = null;
+        state.currentBill = null;
+        loadDashboardMetrics();
+        loadReceiptsLedger();
+        alert("✅ पावती ऑफलाइन लेजरमध्ये सेव्ह झाली!");
+        resetBillCard();
     }
 }
 
@@ -1950,6 +2062,8 @@ function renderKhataCards(customers) {
     });
 }
 
+state.selectedKhataIds = state.selectedKhataIds || new Set();
+
 function renderKhataTable(transactions) {
     const tbody = document.getElementById("khata-table-tbody");
     if (!tbody) return;
@@ -1957,17 +2071,30 @@ function renderKhataTable(transactions) {
 
     if (!transactions || transactions.length === 0) {
         const dict = i18n[state.lang] || i18n.mr;
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 24px;">${dict.empty_khata_txns || "कोणताही खाते व्यवहार उपलब्ध नाही."}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-dim); padding: 24px;">${dict.empty_khata_txns || "कोणताही खाते व्यवहार उपलब्ध नाही."}</td></tr>`;
+        updateKhataBulkActionBar(0, 0);
         return;
+    }
+
+    const allTxnIds = new Set(transactions.map(t => Number(t.id)));
+    // Prune selections that no longer exist
+    for (const sid of Array.from(state.selectedKhataIds)) {
+        if (!allTxnIds.has(sid)) state.selectedKhataIds.delete(sid);
     }
 
     transactions.forEach(t => {
         const isCredit = t.transaction_type === "Credit Given";
-        const isMr = state.lang === "mr";
         const displayName = formatLocalizedName(t.customer_name, state.lang);
         const tr = document.createElement("tr");
+        const tid = Number(t.id);
+        const isSelected = state.selectedKhataIds.has(tid);
+        if (isSelected) tr.classList.add("row-selected");
+
         tr.innerHTML = `
-            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">#${t.id}</td>
+            <td style="text-align: center; width: 36px;">
+                <input type="checkbox" class="khata-row-cb" data-id="${tid}" ${isSelected ? 'checked' : ''} onchange="toggleKhataRowSelect(${tid}, this.checked)">
+            </td>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">#${tid}</td>
             <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
             <td style="color: var(--text-slate);">${escapeHtml(t.phone)}</td>
             <td>
@@ -1981,13 +2108,113 @@ function renderKhataTable(transactions) {
             <td>${t.date}</td>
             <td style="color: var(--neon-amber);">${t.due_date || '-'}</td>
             <td>
-                <button onclick="deleteKhataEntry(${t.id})" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1rem;" title="डीलीट करा">
+                <button onclick="deleteKhataEntry(${tid})" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1rem;" title="डीलीट करा">
                     🗑️
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+
+    updateKhataBulkActionBar(state.selectedKhataIds.size, transactions.length);
+}
+
+function toggleSelectAllKhata(isChecked) {
+    if (!state.allKhata || !state.allKhata.transactions) return;
+    const searchVal = (document.getElementById("khata-search-input") ? document.getElementById("khata-search-input").value : "").toLowerCase();
+    const visibleTxns = state.allKhata.transactions.filter(t => 
+        !searchVal || t.customer_name.toLowerCase().includes(searchVal) || (t.phone && t.phone.includes(searchVal))
+    );
+
+    if (isChecked) {
+        visibleTxns.forEach(t => state.selectedKhataIds.add(Number(t.id)));
+    } else {
+        visibleTxns.forEach(t => state.selectedKhataIds.delete(Number(t.id)));
+    }
+    renderKhataTable(visibleTxns);
+}
+
+function toggleKhataRowSelect(id, isChecked) {
+    id = Number(id);
+    if (isChecked) {
+        state.selectedKhataIds.add(id);
+    } else {
+        state.selectedKhataIds.delete(id);
+    }
+    const searchVal = (document.getElementById("khata-search-input") ? document.getElementById("khata-search-input").value : "").toLowerCase();
+    const visibleTxns = state.allKhata.transactions.filter(t => 
+        !searchVal || t.customer_name.toLowerCase().includes(searchVal) || (t.phone && t.phone.includes(searchVal))
+    );
+    renderKhataTable(visibleTxns);
+}
+
+function updateKhataBulkActionBar(selectedCount, totalCount) {
+    const bar = document.getElementById("khata-bulk-actions-bar");
+    const countEl = document.getElementById("khata-selected-count");
+    const totalEl = document.getElementById("khata-total-count");
+    const allCb = document.getElementById("khata-select-all-cb");
+
+    if (countEl) countEl.innerText = selectedCount;
+    if (totalEl) totalEl.innerText = totalCount;
+    if (allCb) allCb.checked = (totalCount > 0 && selectedCount === totalCount);
+
+    if (bar) {
+        if (selectedCount > 0) {
+            bar.style.display = "flex";
+        } else {
+            bar.style.display = "none";
+        }
+    }
+}
+
+async function bulkDeleteSelectedKhata() {
+    if (!state.selectedKhataIds || state.selectedKhataIds.size === 0) return;
+    const count = state.selectedKhataIds.size;
+    const dict = i18n[state.lang] || i18n.mr;
+    const confirmMsg = (dict.confirm_bulk_delete_khata || "तुम्हाला निवडलेले {n} खाते व्यवहार कायमचे डिलीट करायचे आहेत का?").replace("{n}", count);
+    if (!confirm(confirmMsg)) return;
+
+    const idsToDelete = Array.from(state.selectedKhataIds);
+    try {
+        await apiCall("/api/khata/bulk-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entry_ids: idsToDelete })
+        });
+    } catch (e) {
+        console.warn("Server bulk delete notice:", e);
+    }
+
+    // Sync localStorage
+    if (typeof VernaStorage !== "undefined") {
+        const stored = VernaStorage.getKhata();
+        const updated = stored.filter(t => !idsToDelete.includes(Number(t.id)));
+        VernaStorage.saveKhata(updated);
+    }
+
+    state.selectedKhataIds.clear();
+    await loadKhataData();
+    alert((dict.msg_bulk_delete_khata_success || "✅ निवडलेले {n} व्यवहार यशस्वीरीत्या डिलीट केले!").replace("{n}", count));
+}
+
+async function clearEntireKhata() {
+    const dict = i18n[state.lang] || i18n.mr;
+    const confirmMsg = dict.confirm_clear_all_khata || "⚠️ सावधान! तुम्हाला सर्व खाते व्यवहार कायमचे डिलीट करायचे आहेत का? ही कृती पूर्ववत करता येणार नाही!";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        await apiCall("/api/khata/all", { method: "DELETE" });
+    } catch (e) {
+        console.warn("Server clear all notice:", e);
+    }
+
+    if (typeof VernaStorage !== "undefined") {
+        VernaStorage.saveKhata([]);
+    }
+
+    state.selectedKhataIds.clear();
+    await loadKhataData();
+    alert(dict.msg_clear_all_khata_success || "✅ सर्व खाते व्यवहार रिकामे केले गेले!");
 }
 
 function filterKhataList() {
@@ -3156,9 +3383,18 @@ function applyLanguage() {
     if (state.allReceipts && state.allReceipts.length > 0) {
         renderLedgerTable(state.allReceipts);
     }
-    if (state.currentBill && state.currentBill.items && state.currentBill.items.length > 0) {
-        renderBillItems();
+    
+    // In-place live translation of Digital Receipt Preview inputs
+    const vendorInput = document.getElementById("bill-vendor-name");
+    if (vendorInput && vendorInput.value) {
+        vendorInput.value = formatLocalizedName(vendorInput.value, state.lang);
     }
+    document.querySelectorAll("#bill-items-tbody tr").forEach(row => {
+        const nameInput = row.querySelector(".item-name");
+        if (nameInput && nameInput.value) {
+            nameInput.value = formatLocalizedName(nameInput.value, state.lang);
+        }
+    });
 }
 
 function escapeHtml(text) {

@@ -41,3 +41,4 @@ with open("generate_project_directory_guide_pdf.py", "w", encoding="utf-8") as f
     f.write(c)
 
 print("generate_project_directory_guide_pdf.py updated with detailed role explanations!")
+

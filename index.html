@@ -194,6 +194,10 @@
                     <h2 id="hud-title" data-i18n="hud_title_scanner">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
                 <div class="hud-controls" style="display: flex; align-items: center; gap: 8px;">
+                    <div class="hud-developers-badge" title="Project Developers &amp; Leadership (AI &amp; DS, AGCE)">
+                        <span class="hud-dev-icon">👥</span>
+                        <span class="hud-dev-text">Sanket K. (Lead) • Sakshi B. • Vaishnavi D. • Rushikesh M. <span class="hud-dev-college">AGCE</span></span>
+                    </div>
                     <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
                         <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label" data-i18n="theme_kirana_mode">किराणा मोड</span>
                     </button>
@@ -415,13 +419,34 @@
 
                 <!-- All Khata Transactions Table -->
                 <div class="glass-card">
-                    <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 14px;" data-i18n="title_khata_audit">
-                        📜 संपूर्ण खाते व्यवहार इतिहास (Transaction Audit)
-                    </h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); margin-bottom: 0;" data-i18n="title_khata_audit">
+                            📜 संपूर्ण खाते व्यवहार इतिहास (Transaction Audit)
+                        </h3>
+                    </div>
+
+                    <!-- Khata Bulk Actions Bar -->
+                    <div id="khata-bulk-actions-bar" style="display: none; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 10px 14px; background: rgba(255, 0, 85, 0.08); border: 1px solid rgba(255, 0, 85, 0.25); border-radius: 10px;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-white);">
+                            <span data-i18n="lbl_selected_khata">निवडलेले व्यवहार:</span> <span id="khata-selected-count" style="color: var(--neon-cyan); font-weight: 800;">0</span> / <span id="khata-total-count">0</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-pill" onclick="bulkDeleteSelectedKhata()" style="background: rgba(255, 0, 85, 0.2); color: var(--neon-red); border: 1px solid var(--neon-red); font-size: 0.78rem; font-weight: 700; padding: 6px 14px;" data-i18n="btn_delete_selected_khata">
+                                🗑️ निवडलेले डिलीट करा
+                            </button>
+                            <button class="btn-pill" onclick="clearEntireKhata()" style="background: rgba(255,255,255,0.06); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.12); font-size: 0.78rem; font-weight: 600; padding: 6px 12px;" data-i18n="btn_clear_all_khata">
+                                ⚠️ सर्व रिकामे करा
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="cyber-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 36px; text-align: center;">
+                                        <input type="checkbox" id="khata-select-all-cb" onchange="toggleSelectAllKhata(this.checked)" title="सर्व निवडा">
+                                    </th>
                                     <th>ID</th>
                                     <th data-i18n="th_customer">ग्राहक नाव</th>
                                     <th data-i18n="th_phone">मोबाईल</th>
