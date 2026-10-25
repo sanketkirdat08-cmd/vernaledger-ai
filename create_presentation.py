@@ -626,7 +626,7 @@ def create_deck():
     p2.font.color.rgb = COLOR_WHITE
     p2.alignment = PP_ALIGN.CENTER
 
-    t_box = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.8), Inches(3.2), Inches(9.733), Inches(1.8))
+    t_box = s1.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.2), Inches(3.1), Inches(10.933), Inches(2.2))
     t_box.fill.solid()
     t_box.fill.fore_color.rgb = COLOR_CARD
     t_box.line.color.rgb = COLOR_CYAN
@@ -642,19 +642,21 @@ def create_deck():
     p.font.color.rgb = COLOR_GREEN
     p.alignment = PP_ALIGN.CENTER
 
-    names = [
-        "1. Sanket Kirdat",
-        "2. Sakshi Bhagat",
-        "3. Vaishnavi Dhawale",
-        "4. Rushikesh Mulik"
-    ]
-    p_names = tf.add_paragraph()
-    p_names.text = "       •  ".join(names)
-    p_names.font.name = FONT_BODY
-    p_names.font.size = Pt(13)
-    p_names.font.bold = True
-    p_names.font.color.rgb = COLOR_WHITE
-    p_names.alignment = PP_ALIGN.CENTER
+    p_names1 = tf.add_paragraph()
+    p_names1.text = "1. Sanket Kirdat (Roll: 4060 | PRN: 24065451263508)   •   2. Sakshi Bhagat (Roll: 4054 | PRN: 24065451263502)"
+    p_names1.font.name = FONT_BODY
+    p_names1.font.size = Pt(11)
+    p_names1.font.bold = True
+    p_names1.font.color.rgb = COLOR_WHITE
+    p_names1.alignment = PP_ALIGN.CENTER
+
+    p_names2 = tf.add_paragraph()
+    p_names2.text = "3. Vaishnavi Dhavale (Roll: 4056 | PRN: 24065451263504)   •   4. Rushikesh Mulik (Roll: 4004 | PRN: 23065451263005)"
+    p_names2.font.name = FONT_BODY
+    p_names2.font.size = Pt(11)
+    p_names2.font.bold = True
+    p_names2.font.color.rgb = COLOR_WHITE
+    p_names2.alignment = PP_ALIGN.CENTER
 
     p_sub = tf.add_paragraph()
     p_sub.text = "B.Tech Final Year • Department of Artificial Intelligence & Data Science (AI & DS)"
@@ -1493,7 +1495,7 @@ def create_deck():
     p_d.font.size = Pt(11.5)
     p_d.font.color.rgb = COLOR_WHITE
 
-    qa_box = s23.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(2.5), Inches(4.5), Inches(8.333), Inches(1.8))
+    qa_box = s23.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(4.3), Inches(10.333), Inches(2.2))
     qa_box.fill.solid()
     qa_box.fill.fore_color.rgb = RGBColor(10, 25, 45)
     qa_box.line.color.rgb = COLOR_GREEN
@@ -1510,7 +1512,7 @@ def create_deck():
     p.alignment = PP_ALIGN.CENTER
 
     p_names = tf_qa.add_paragraph()
-    p_names.text = "Project Team: Sanket Kirdat • Sakshi Bhagat • Vaishnavi Dhawale • Rushikesh Mulik"
+    p_names.text = "Project Team: Sanket Kirdat (Roll: 4060 | PRN: 24065451263508) • Sakshi Bhagat (Roll: 4054 | PRN: 24065451263502)\nVaishnavi Dhavale (Roll: 4056 | PRN: 24065451263504) • Rushikesh Mulik (Roll: 4004 | PRN: 23065451263005)"
     p_names.font.name = FONT_BODY
     p_names.font.size = Pt(12)
     p_names.font.bold = True

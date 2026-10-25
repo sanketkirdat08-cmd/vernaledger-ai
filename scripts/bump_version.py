@@ -10,3 +10,4 @@ with open('public/index.html', 'w', encoding='utf-8') as f:
     f.write(text)
 
 print("Bumped version to v=37.0")
+
