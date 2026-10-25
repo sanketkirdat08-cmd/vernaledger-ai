@@ -2166,7 +2166,10 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         inv_rows = []
         for idx, item in enumerate(all_inv[:15], 1):
             status = "⚠️ कमी साठा" if item['stock_qty'] <= item['alert_limit'] else "✅ मुबलक"
-            inv_rows.append(f"| {idx} | **{item['item_name']}** | {item['stock_qty']} {item['unit']} | ₹{item['selling_price']:,.2f} | ₹{item['cost_price']:,.2f} | {status} |")
+            s_price = float(item.get('selling_price') or 0.0)
+            c_price = float(item.get('cost_price') or (s_price * 0.85))
+            u_unit = item.get('unit', 'pcs')
+            inv_rows.append(f"| {idx} | **{item['item_name']}** | {item['stock_qty']} {u_unit} | ₹{s_price:,.2f} | ₹{c_price:,.2f} | {status} |")
         inv_table = "\n".join(inv_rows) if inv_rows else "| - | कोणताही साठा उपलब्ध नाही | - | - | - | - |"
         answer = f"""📦 **आपल्या दुकानातील साठा तपशील (Live Inventory Stock Table)**:
 

@@ -3712,7 +3712,7 @@ function copyAiBubbleText(btn) {
     }
 }
 
-function speakText(encoded) {
+async function speakText(encoded) {
     stopCurrentAudio();
     const token = currentAudioPlayToken;
     const raw = decodeURIComponent(encoded);
