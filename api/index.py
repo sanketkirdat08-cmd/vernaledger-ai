@@ -1167,26 +1167,56 @@ def get_tts_voice(text: str, language: str = "") -> str:
     return "mr-IN-AarohiNeural"
 
 def fetch_google_tts_b64(text: str, voice_code: str) -> str:
-    """Ultra-reliable studio Google Translate Neural TTS fallback that never fails."""
+    """Ultra-reliable studio Google Translate Neural TTS fallback with chunking that never fails."""
     import urllib.request, urllib.parse, base64
     lang = "mr"
     if voice_code.startswith("hi"): lang = "hi"
     elif voice_code.startswith("en"): lang = "en"
 
-    clean = text[:450].strip()
-    encoded = urllib.parse.quote(clean)
-    url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={encoded}&tl={lang}&client=tw-ob"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
-    with urllib.request.urlopen(req, timeout=6) as res:
-        audio = res.read()
-        return base64.b64encode(audio).decode("utf-8")
+    # Split into chunks under 170 chars along words
+    words = text.split()
+    chunks = []
+    curr = []
+    curr_len = 0
+    for w in words:
+        if curr_len + len(w) + 1 > 165:
+            if curr:
+                chunks.append(" ".join(curr))
+            curr = [w]
+            curr_len = len(w)
+        else:
+            curr.append(w)
+            curr_len += len(w) + 1
+    if curr:
+        chunks.append(" ".join(curr))
+
+    combined_audio = bytearray()
+    for chunk in chunks[:5]:
+        encoded = urllib.parse.quote(chunk.strip())
+        url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={encoded}&tl={lang}&client=tw-ob"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"})
+        try:
+            with urllib.request.urlopen(req, timeout=4) as res:
+                combined_audio.extend(res.read())
+        except Exception as ex:
+            logger.warning(f"Google TTS chunk notice: {ex}")
+            continue
+
+    if combined_audio:
+        return base64.b64encode(combined_audio).decode("utf-8")
+    return ""
 
 # -----------------------------------------------------------------------------
 # DUAL HIGH-PRECISION NEURAL TTS ENGINE (EDGE NEURAL + GOOGLE NEURAL)
 # -----------------------------------------------------------------------------
 @app.post("/api/tts")
 async def generate_tts(req: TTSRequest):
-    voice = req.voice if req.voice in TTS_VOICES.values() else get_tts_voice(req.text)
+    if req.voice in TTS_VOICES.values():
+        voice = req.voice
+    elif req.voice in TTS_VOICES:
+        voice = TTS_VOICES[req.voice]
+    else:
+        voice = get_tts_voice(req.text)
     clean_speech = prepare_speech_phonetics(req.text, voice)
     if len(clean_speech) > 750:
         spoken_text = clean_speech[:750]
