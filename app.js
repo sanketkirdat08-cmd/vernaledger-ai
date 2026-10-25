@@ -134,6 +134,30 @@ const VernaStorage = {
         this.save(this.KEY_EXPENSES, list);
     },
 
+    getReceipts() {
+        return this.get(this.KEY_RECEIPTS);
+    },
+
+    saveReceipts(items) {
+        this.save(this.KEY_RECEIPTS, items);
+    },
+
+    getKhata() {
+        return this.get(this.KEY_KHATA);
+    },
+
+    saveKhata(items) {
+        this.save(this.KEY_KHATA, items);
+    },
+
+    getExpenses() {
+        return this.get(this.KEY_EXPENSES);
+    },
+
+    saveExpenses(items) {
+        this.save(this.KEY_EXPENSES, items);
+    },
+
     mergeExpenses(serverExps) {
         const local = this.get(this.KEY_EXPENSES);
         const map = new Map();
@@ -2967,6 +2991,23 @@ function speakWithBrowserVoice(text) {
     window.speechSynthesis.speak(utterance);
 }
 
+function initRagSpeech() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    try {
+        if (!ragSpeechRecognition) {
+            ragSpeechRecognition = new SpeechRecognition();
+            ragSpeechRecognition.continuous = false;
+            ragSpeechRecognition.interimResults = true;
+            ragSpeechRecognition.lang = (state && state.lang === "en") ? "en-IN" : "mr-IN";
+            ragSpeechRecognition.onerror = () => stopRagVoice();
+            ragSpeechRecognition.onend = () => stopRagVoice();
+        }
+    } catch (e) {
+        console.warn("RAG speech init notice:", e);
+    }
+}
+
 let ragSpeechRecognition = null;
 let isRagListening = false;
 let ragAutoSubmitTimer = null;
@@ -3807,11 +3848,11 @@ async function handleRegister(e) {
             phone: data.phone,
             shop_name: data.shop_name
         };
-        localStorage.setItem("verna_session_user", JSON.stringify(state.user));
+        localStorage.setItem("verna_user", JSON.stringify(state.user));
 
         closeModal("modal-register");
         alert(`✅ स्वागत आहे, ${shop_name}! आपले खाते यशस्वीरित्या तयार झाले आहे.`);
-        transitionToApp();
+        showApp();
         loadShopSettings();
     } catch (err) {
         alert("नोंदणी त्रुटी: " + err.message);

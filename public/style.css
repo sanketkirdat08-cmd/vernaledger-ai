@@ -824,7 +824,7 @@ body::after {
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(2, 6, 23, 0.85);
     backdrop-filter: blur(16px);
-    z-index: 100000;
+    z-index: 10000000;
     display: none;
     align-items: center;
     justify-content: center;
@@ -2269,4 +2269,50 @@ body.light-theme .hud-developers-badge .hud-dev-college {
     .hud-developers-badge {
         display: none !important;
     }
+}
+
+
+/* Universal 100% Working Modal CSS */
+.modal-overlay,
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(2, 6, 23, 0.88) !important;
+    backdrop-filter: blur(16px) !important;
+    z-index: 10000000 !important;
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+}
+
+.modal-overlay.active,
+.modal.active {
+    display: flex !important;
+}
+
+.modal-box,
+.modal-content,
+.modal-card {
+    background: #0A1128 !important;
+    border: 1px solid var(--neon-cyan) !important;
+    border-radius: 18px !important;
+    width: 100% !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(0, 242, 254, 0.25) !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 22px !important;
+    box-sizing: border-box !important;
+}
+
+body.light-theme .modal-box,
+body.light-theme .modal-content,
+body.light-theme .modal-card {
+    background: #FFFFFF !important;
+    border: 1px solid #93C5FD !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2) !important;
 }
