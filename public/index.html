@@ -143,7 +143,7 @@
                 <div class="shop-badge-container" onclick="openShopSettingsModal()" style="margin: 10px 14px 4px 14px; padding: 7px 10px; background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.22); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s;" title="दुकान नाव बदला (Click to Edit Shop Profile)">
                     <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
                         <span style="font-size: 0.65rem; color: var(--text-slate); display: block; font-weight: 600;" data-i18n="lbl_active_shop">माझे दुकान:</span>
-                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-white);" id="sidebar-shop-name">महादेव किराणा स्टोअर</span>
+                        <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-white);" id="sidebar-shop-name">SK Store</span>
                     </div>
                     <span style="font-size: 0.85rem; color: var(--neon-cyan); margin-left: 6px;">✏️</span>
                 </div>
@@ -501,23 +501,23 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
                         <div>
                             <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_setting_shop_name">दुकान / व्यवसायाचे नाव</label>
-                            <input type="text" id="setting-shop-name" class="input-cyber" placeholder="उदा. महादेव किराणा स्टोअर" value="महादेव किराणा स्टोअर">
+                            <input type="text" id="setting-shop-name" class="input-cyber" placeholder="उदा. SK Store / आपले दुकान" value="">
                         </div>
                         <div>
                             <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_setting_owner_name">मालकाचे नाव</label>
-                            <input type="text" id="setting-owner-name" class="input-cyber" placeholder="उदा. संकेत किर्दत" value="संकेत किर्दत">
+                            <input type="text" id="setting-owner-name" class="input-cyber" placeholder="उदा. संकेत किर्दत" value="">
                         </div>
                         <div>
                             <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_setting_phone">मोबाईल / WhatsApp नंबर</label>
-                            <input type="text" id="setting-phone" class="input-cyber" placeholder="उदा. 9876543210" value="9876543210">
+                            <input type="text" id="setting-phone" class="input-cyber" placeholder="उदा. 9876543210" value="">
                         </div>
                         <div>
                             <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_setting_upi">UPI ID (QR पेमेंटसाठी)</label>
-                            <input type="text" id="setting-upi" class="input-cyber" placeholder="उदा. merchant@upi" value="merchant@upi">
+                            <input type="text" id="setting-upi" class="input-cyber" placeholder="उदा. merchant@upi" value="">
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-size: 0.72rem; color: var(--text-slate); font-weight: 700;" data-i18n="lbl_setting_address">दुकान पत्ता / ठिकाण</label>
-                            <input type="text" id="setting-address" class="input-cyber" placeholder="उदा. सातारा, महाराष्ट्र" value="सातारा, महाराष्ट्र">
+                            <input type="text" id="setting-address" class="input-cyber" placeholder="उदा. सातारा, महाराष्ट्र" value="">
                         </div>
                     </div>
                 </div>
@@ -1088,7 +1088,7 @@
             <form onsubmit="handleSaveShopSettingsModal(event)">
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 0.74rem; font-weight: 700; color: var(--text-slate);" data-i18n="lbl_setting_shop_name">दुकान / व्यवसायाचे नाव</label>
-                    <input type="text" id="modal-shop-name" class="input-cyber" required>
+                    <input type="text" id="modal-shop-name" class="input-cyber" placeholder="उदा. SK Store" required>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                     <div>

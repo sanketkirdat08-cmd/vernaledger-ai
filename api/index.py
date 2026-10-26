@@ -183,6 +183,17 @@ def init_db():
     );
     """)
     
+    # Seed default Shop Settings if empty
+    cursor.execute("SELECT COUNT(*) FROM shop_settings")
+    if cursor.fetchone()[0] == 0:
+        cursor.executemany("INSERT OR IGNORE INTO shop_settings (key, value) VALUES (?, ?)", [
+            ("shop_name", "SK Store"),
+            ("owner_name", "संकेत किर्दत"),
+            ("phone", "9876543210"),
+            ("upi_id", "merchant@upi"),
+            ("address", "सातारा, महाराष्ट्र")
+        ])
+
     # Seed default Admin account if empty
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -330,6 +341,7 @@ class SyncDataRequest(BaseModel):
     receipts: Optional[List[Dict[str, Any]]] = None
     khata: Optional[List[Dict[str, Any]]] = None
     expenses: Optional[List[Dict[str, Any]]] = None
+    shop_settings: Optional[Dict[str, Any]] = None
 
 class BulkDeleteReceiptsRequest(BaseModel):
     receipt_ids: List[int]
@@ -355,7 +367,7 @@ class NewUserRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    shop_name: Optional[str] = "महादेव किराणा स्टोअर"
+    shop_name: Optional[str] = "SK Store"
     phone: Optional[str] = ""
     role: Optional[str] = "Admin"
 
@@ -365,7 +377,7 @@ class ForgotPasswordRequest(BaseModel):
     new_password: str
 
 class ShopSettingsRequest(BaseModel):
-    shop_name: Optional[str] = "महादेव किराणा स्टोअर"
+    shop_name: Optional[str] = "SK Store"
     owner_name: Optional[str] = "संकेत किर्दत"
     phone: Optional[str] = "9876543210"
     upi_id: Optional[str] = "merchant@upi"
@@ -410,7 +422,7 @@ def login(req: LoginRequest):
     conn = get_db()
     s_row = conn.execute("SELECT value FROM shop_settings WHERE key = 'shop_name'").fetchone()
     conn.close()
-    s_name = s_row[0] if s_row else "महादेव किराणा स्टोअर"
+    s_name = s_row[0] if s_row else "SK Store"
     return {
         "success": True,
         "username": clean_user,
@@ -454,7 +466,7 @@ def register_user(req: RegisterRequest):
         "username": clean_user,
         "role": req.role or "Admin",
         "phone": req.phone or "",
-        "shop_name": req.shop_name or "महादेव किराणा स्टोअर"
+        "shop_name": req.shop_name or "SK Store"
     }
 
 @app.post("/api/auth/forgot-password")
@@ -496,7 +508,7 @@ def get_shop_settings():
     rows = conn.execute("SELECT key, value FROM shop_settings").fetchall()
     conn.close()
     settings = {
-        "shop_name": "महादेव किराणा स्टोअर",
+        "shop_name": "SK Store",
         "owner_name": "संकेत किर्दत",
         "phone": "9876543210",
         "upi_id": "merchant@upi",
@@ -512,7 +524,7 @@ def save_shop_settings(req: ShopSettingsRequest):
     conn = get_db()
     cursor = conn.cursor()
     data = {
-        "shop_name": req.shop_name.strip() if req.shop_name else "महादेव किराणा स्टोअर",
+        "shop_name": req.shop_name.strip() if req.shop_name else "SK Store",
         "owner_name": req.owner_name.strip() if req.owner_name else "संकेत किर्दत",
         "phone": req.phone.strip() if req.phone else "9876543210",
         "upi_id": req.upi_id.strip() if req.upi_id else "merchant@upi",
@@ -1872,6 +1884,14 @@ def sync_client_data(req: SyncDataRequest):
             except Exception as e:
                 logger.warning(f"Sync expense item skipped: {e}")
 
+    if req.shop_settings and isinstance(req.shop_settings, dict):
+        try:
+            for k, v in req.shop_settings.items():
+                if v and str(v).strip():
+                    cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (str(k), str(v).strip()))
+        except Exception as e:
+            logger.warning(f"Sync shop settings skipped: {e}")
+
     conn.commit()
     conn.close()
     return {
@@ -1927,7 +1947,7 @@ async def rag_chat(req: RAGChatRequest):
     # Fetch shop settings
     shop_cfg_rows = conn.execute("SELECT key, value FROM shop_settings").fetchall()
     shop_dict = {r["key"]: r["value"] for r in shop_cfg_rows}
-    current_shop_name = shop_dict.get("shop_name", "महादेव किराणा स्टोअर")
+    current_shop_name = shop_dict.get("shop_name", "SK Store")
     current_owner_name = shop_dict.get("owner_name", "संकेत किर्दत")
     current_shop_phone = shop_dict.get("phone", "9876543210")
     current_shop_upi = shop_dict.get("upi_id", "merchant@upi")
@@ -2138,7 +2158,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         s_rows = conn_s.execute("SELECT key, value FROM shop_settings").fetchall()
         conn_s.close()
         s_data = {r["key"]: r["value"] for r in s_rows}
-        s_name = s_data.get("shop_name", "महादेव किराणा स्टोअर")
+        s_name = s_data.get("shop_name", "SK Store")
         s_own = s_data.get("owner_name", "संकेत किर्दत")
         s_ph = s_data.get("phone", "9876543210")
         s_upi = s_data.get("upi_id", "merchant@upi")

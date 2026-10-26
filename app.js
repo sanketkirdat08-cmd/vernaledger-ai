@@ -185,8 +185,15 @@ async function syncLocalDataToServer() {
         const localReceipts = VernaStorage.get(VernaStorage.KEY_RECEIPTS);
         const localKhata = VernaStorage.get(VernaStorage.KEY_KHATA);
         const localExpenses = VernaStorage.get(VernaStorage.KEY_EXPENSES);
+        let localSettings = state.shopSettings || null;
+        if (!localSettings) {
+            try {
+                const cached = localStorage.getItem("verna_shop_settings");
+                if (cached) localSettings = JSON.parse(cached);
+            } catch (_) {}
+        }
 
-        if (localReceipts.length === 0 && localKhata.length === 0 && localExpenses.length === 0) {
+        if (localReceipts.length === 0 && localKhata.length === 0 && localExpenses.length === 0 && !localSettings) {
             return;
         }
 
@@ -196,7 +203,8 @@ async function syncLocalDataToServer() {
             body: JSON.stringify({
                 receipts: localReceipts,
                 khata: localKhata,
-                expenses: localExpenses
+                expenses: localExpenses,
+                shop_settings: localSettings
             })
         });
     } catch (e) {
@@ -1081,6 +1089,8 @@ const KIRANA_ITEMS_DICT = {
     "potato": { mr: "बटाटा", en: "Potato", hi: "आलू" },
     "बिस्कीट": { mr: "बिस्कीट", en: "Biscuits", hi: "बिस्कुट" },
     "biscuit": { mr: "बिस्कीट", en: "Biscuits", hi: "बिस्कुट" },
+    "sk store": { mr: "SK Store", en: "SK Store", hi: "SK Store" },
+    "sk स्टोअर": { mr: "SK Store", en: "SK Store", hi: "SK Store" },
     "महादेव किराणा स्टोअर": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
     "mahadev kirana store": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
     "महादेव किराना स्टोर": { mr: "महादेव किराणा स्टोअर", en: "Mahadev Kirana Store", hi: "महादेव किराना स्टोर" },
@@ -1184,6 +1194,10 @@ document.addEventListener("DOMContentLoaded", () => {
     initSpeechRecognition();
     initRagSpeech();
     applyLanguage();
+
+    // Load and apply persistent shop settings on startup
+    applyShopSettingsToUI();
+    loadShopSettings();
 });
 
 // -----------------------------------------------------------------------------
@@ -1237,7 +1251,19 @@ async function handleLogin(e) {
         }
 
         state.user = data;
-        localStorage.setItem("verna_user", JSON.stringify(data));
+        try {
+            const cached = localStorage.getItem("verna_shop_settings");
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.shop_name) {
+                    state.user.shop_name = parsed.shop_name;
+                    state.shopSettings = Object.assign({}, state.shopSettings, parsed);
+                }
+            }
+        } catch (_) {}
+        localStorage.setItem("verna_user", JSON.stringify(state.user));
+        applyShopSettingsToUI();
+        loadShopSettings();
         showApp();
     } catch (err) {
         alertBox.innerText = err.message;
@@ -1285,6 +1311,8 @@ function showApp() {
     }
 
     // Load initial data safely
+    try { applyShopSettingsToUI(); } catch (e) {}
+    try { loadShopSettings(); } catch (e) {}
     try { loadDashboardMetrics(); } catch (e) { console.warn("Metrics load notice:", e); }
     try { initTheme(); } catch (e) { console.warn("Theme init notice:", e); }
     try { resetBillCard(); } catch (e) { console.warn("Reset bill card notice:", e); }
@@ -1354,6 +1382,10 @@ function switchView(viewName) {
     document.querySelectorAll(".view-section").forEach(sec => {
         sec.classList.toggle("active", sec.id === `view-${viewName}`);
     });
+
+    if (viewName === "business") {
+        applyShopSettingsToUI();
+    }
 
     // Update HUD titles based on active language
     updateHudText();
@@ -4273,41 +4305,75 @@ async function handleRegister(e) {
 // -----------------------------------------------------------------------------
 // SHOP PROFILE & BILLING SETTINGS MANAGEMENT
 // -----------------------------------------------------------------------------
-state.shopSettings = state.shopSettings || {
-    shop_name: "महादेव किराणा स्टोअर",
-    owner_name: "संकेत किर्दत",
-    phone: "9876543210",
-    upi_id: "merchant@upi",
-    address: "सातारा, महाराष्ट्र"
-};
+state.shopSettings = (function() {
+    try {
+        const cached = localStorage.getItem("verna_shop_settings");
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.shop_name) return parsed;
+        }
+    } catch (_) {}
+    return {
+        shop_name: "SK Store",
+        owner_name: "संकेत किर्दत",
+        phone: "9876543210",
+        upi_id: "merchant@upi",
+        address: "सातारा, महाराष्ट्र"
+    };
+})();
 
 async function loadShopSettings() {
+    // 1. Immediately apply cached local settings to eliminate UI latency or flickering
+    let local = null;
+    try {
+        const cached = localStorage.getItem("verna_shop_settings");
+        if (cached) local = JSON.parse(cached);
+    } catch (_) {}
+    if (local && local.shop_name) {
+        state.shopSettings = Object.assign({}, state.shopSettings, local);
+        applyShopSettingsToUI();
+    }
+
+    // 2. Query server for settings
     try {
         const res = await apiCall("/api/shop/settings");
         if (res.ok) {
             const data = await res.json();
             if (data && data.shop_name) {
-                state.shopSettings = data;
-                localStorage.setItem("verna_shop_settings", JSON.stringify(data));
+                // If user has a local custom name, do NOT let a server default overwrite it!
+                if (local && local.shop_name && local.shop_name !== data.shop_name && (data.shop_name === "महादेव किराणा स्टोअर" || data.shop_name === "SK Store")) {
+                    // Sync user's custom name back to server
+                    apiCall("/api/shop/settings", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(local)
+                    }).catch(() => {});
+                } else {
+                    state.shopSettings = Object.assign({}, state.shopSettings, data);
+                    localStorage.setItem("verna_shop_settings", JSON.stringify(state.shopSettings));
+                }
             }
         }
     } catch (e) {
         console.warn("Using cached shop settings:", e);
-        const cached = localStorage.getItem("verna_shop_settings");
-        if (cached) {
-            try { state.shopSettings = JSON.parse(cached); } catch (_) {}
-        }
     }
     applyShopSettingsToUI();
 }
 
 function applyShopSettingsToUI() {
-    const s = state.shopSettings;
-    if (!s) return;
+    let s = state.shopSettings;
+    if (!s || !s.shop_name) {
+        try {
+            const cached = localStorage.getItem("verna_shop_settings");
+            if (cached) s = JSON.parse(cached);
+        } catch (_) {}
+    }
+    if (!s) s = { shop_name: "SK Store", owner_name: "संकेत किर्दत", phone: "9876543210", upi_id: "merchant@upi", address: "सातारा, महाराष्ट्र" };
+    state.shopSettings = s;
 
     // Sidebar Shop Name
     const sNameEl = document.getElementById("sidebar-shop-name");
-    if (sNameEl) sNameEl.innerText = s.shop_name || "महादेव किराणा स्टोअर";
+    if (sNameEl) sNameEl.innerText = s.shop_name || "SK Store";
 
     // Operation view inputs
     const elShopName = document.getElementById("setting-shop-name");
@@ -4322,15 +4388,15 @@ function applyShopSettingsToUI() {
     if (elUpi) elUpi.value = s.upi_id || "";
     if (elAddr) elAddr.value = s.address || "";
 
-    // Default vendor name in Digital Receipt Preview if empty
+    // Default vendor name in Digital Receipt Preview if empty or default placeholder
     const billVendor = document.getElementById("bill-vendor-name");
-    if (billVendor && (!billVendor.value || billVendor.value === "किराणा स्टोअर" || billVendor.value === "Kirana Store")) {
-        billVendor.value = s.shop_name || "महादेव किराणा स्टोअर";
+    if (billVendor && (!billVendor.value || billVendor.value === "किराणा स्टोअर" || billVendor.value === "Kirana Store" || billVendor.value === "महादेव किराणा स्टोअर")) {
+        billVendor.value = s.shop_name || "SK Store";
     }
 }
 
 function openShopSettingsModal() {
-    const s = state.shopSettings;
+    const s = state.shopSettings || {};
     const mShop = document.getElementById("modal-shop-name");
     const mOwner = document.getElementById("modal-owner-name");
     const mPhone = document.getElementById("modal-phone");
@@ -4348,25 +4414,27 @@ function openShopSettingsModal() {
 }
 
 async function saveShopSettingsFromOperations() {
+    const enteredName = (document.getElementById("setting-shop-name") ? document.getElementById("setting-shop-name").value : "").trim();
     const payload = {
-        shop_name: (document.getElementById("setting-shop-name") ? document.getElementById("setting-shop-name").value : "").trim() || "महादेव किराणा स्टोअर",
-        owner_name: (document.getElementById("setting-owner-name") ? document.getElementById("setting-owner-name").value : "").trim() || "संकेत किर्दत",
-        phone: (document.getElementById("setting-phone") ? document.getElementById("setting-phone").value : "").trim() || "9876543210",
-        upi_id: (document.getElementById("setting-upi") ? document.getElementById("setting-upi").value : "").trim() || "merchant@upi",
-        address: (document.getElementById("setting-address") ? document.getElementById("setting-address").value : "").trim() || "सातारा, महाराष्ट्र"
+        shop_name: enteredName || (state.shopSettings && state.shopSettings.shop_name) || "SK Store",
+        owner_name: (document.getElementById("setting-owner-name") ? document.getElementById("setting-owner-name").value : "").trim() || (state.shopSettings && state.shopSettings.owner_name) || "संकेत किर्दत",
+        phone: (document.getElementById("setting-phone") ? document.getElementById("setting-phone").value : "").trim() || (state.shopSettings && state.shopSettings.phone) || "9876543210",
+        upi_id: (document.getElementById("setting-upi") ? document.getElementById("setting-upi").value : "").trim() || (state.shopSettings && state.shopSettings.upi_id) || "merchant@upi",
+        address: (document.getElementById("setting-address") ? document.getElementById("setting-address").value : "").trim() || (state.shopSettings && state.shopSettings.address) || "सातारा, महाराष्ट्र"
     };
 
     await persistShopSettings(payload);
 }
 
 async function handleSaveShopSettingsModal(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    const enteredName = (document.getElementById("modal-shop-name") ? document.getElementById("modal-shop-name").value : "").trim();
     const payload = {
-        shop_name: (document.getElementById("modal-shop-name") ? document.getElementById("modal-shop-name").value : "").trim() || "महादेव किराणा स्टोअर",
-        owner_name: (document.getElementById("modal-owner-name") ? document.getElementById("modal-owner-name").value : "").trim() || "संकेत किर्दत",
-        phone: (document.getElementById("modal-phone") ? document.getElementById("modal-phone").value : "").trim() || "9876543210",
-        upi_id: (document.getElementById("modal-upi") ? document.getElementById("modal-upi").value : "").trim() || "merchant@upi",
-        address: (document.getElementById("modal-address") ? document.getElementById("modal-address").value : "").trim() || "सातारा, महाराष्ट्र"
+        shop_name: enteredName || (state.shopSettings && state.shopSettings.shop_name) || "SK Store",
+        owner_name: (document.getElementById("modal-owner-name") ? document.getElementById("modal-owner-name").value : "").trim() || (state.shopSettings && state.shopSettings.owner_name) || "संकेत किर्दत",
+        phone: (document.getElementById("modal-phone") ? document.getElementById("modal-phone").value : "").trim() || (state.shopSettings && state.shopSettings.phone) || "9876543210",
+        upi_id: (document.getElementById("modal-upi") ? document.getElementById("modal-upi").value : "").trim() || (state.shopSettings && state.shopSettings.upi_id) || "merchant@upi",
+        address: (document.getElementById("modal-address") ? document.getElementById("modal-address").value : "").trim() || (state.shopSettings && state.shopSettings.address) || "सातारा, महाराष्ट्र"
     };
 
     await persistShopSettings(payload);
@@ -4374,23 +4442,35 @@ async function handleSaveShopSettingsModal(e) {
 }
 
 async function persistShopSettings(payload) {
+    if (!payload.shop_name) payload.shop_name = "SK Store";
+    state.shopSettings = payload;
+    localStorage.setItem("verna_shop_settings", JSON.stringify(payload));
+    
+    // Synchronize user session state as well
+    if (state.user) {
+        state.user.shop_name = payload.shop_name;
+        localStorage.setItem("verna_user", JSON.stringify(state.user));
+    }
+    
+    applyShopSettingsToUI();
+
     try {
         const res = await apiCall("/api/shop/settings", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error("सर्व्हर सेव्ह अयशस्वी.");
-        const json = await res.json();
-        state.shopSettings = json.data || payload;
+        if (res.ok) {
+            const json = await res.json();
+            if (json.data) {
+                state.shopSettings = json.data;
+                localStorage.setItem("verna_shop_settings", JSON.stringify(json.data));
+            }
+        }
     } catch (e) {
         console.warn("Persisting shop settings locally:", e);
-        state.shopSettings = payload;
     }
 
-    localStorage.setItem("verna_shop_settings", JSON.stringify(state.shopSettings));
     applyShopSettingsToUI();
-    alert(`✅ दुकान माहिती यशस्वीरित्या सेव्ह झाली!
-दुकान: ${state.shopSettings.shop_name}
-मालक: ${state.shopSettings.owner_name}`);
+    alert(`✅ दुकान माहिती कायमस्वरूपी सेव्ह झाली!\nदुकान: ${state.shopSettings.shop_name}\nमालक: ${state.shopSettings.owner_name}`);
 }
