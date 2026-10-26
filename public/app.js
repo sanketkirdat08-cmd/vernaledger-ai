@@ -1669,6 +1669,9 @@ function initSpeechRecognition() {
 
 function toggleVoiceRecording() {
     if (!state.speechRecognition) {
+        initSpeechRecognition();
+    }
+    if (!state.speechRecognition) {
         alert("आपल्या ब्राऊझरमध्ये व्हॉइस रेकग्निशन समर्थित नाही. कृपया खाली बॉक्समध्ये स्वतः टाईप करा.");
         return;
     }
@@ -3015,20 +3018,100 @@ function speakWithBrowserVoice(text) {
     window.speechSynthesis.speak(utterance);
 }
 
+function getActiveSpeechLang() {
+    if (state && state.lang === "hi") return "hi-IN";
+    if (state && state.lang === "en") return "en-IN";
+    return "mr-IN";
+}
+
 function initRagSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) return null;
     try {
         if (!ragSpeechRecognition) {
             ragSpeechRecognition = new SpeechRecognition();
-            ragSpeechRecognition.continuous = false;
-            ragSpeechRecognition.interimResults = true;
-            ragSpeechRecognition.lang = (state && state.lang === "en") ? "en-IN" : "mr-IN";
-            ragSpeechRecognition.onerror = () => stopRagVoice();
-            ragSpeechRecognition.onend = () => stopRagVoice();
         }
+        ragSpeechRecognition.continuous = false;
+        ragSpeechRecognition.interimResults = true;
+        ragSpeechRecognition.maxAlternatives = 1;
+        ragSpeechRecognition.lang = getActiveSpeechLang();
+
+        ragSpeechRecognition.onstart = () => {
+            isRagListening = true;
+            const micBtn = document.getElementById("btn-rag-mic");
+            const statusEl = document.getElementById("rag-voice-status");
+            if (micBtn) {
+                micBtn.classList.add("listening");
+                micBtn.innerHTML = "🔴";
+                micBtn.title = "ऐकणे थांबवण्यासाठी क्लिक करा";
+            }
+            if (statusEl) {
+                statusEl.style.display = "block";
+                const lang = state ? state.lang : "mr";
+                if (lang === "en") {
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>Listening... Speak now</strong> (e.g. 'Who created this project?', 'What is today's sale?')`;
+                } else if (lang === "hi") {
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>सुन रहा हूँ... बोलिए</strong> (जैसे 'प्रोजेक्ट किसने बनाया?', 'आज की बिक्री कितनी है?')`;
+                } else {
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>ऐकत आहे... स्पष्ट बोला</strong> (उदा. 'प्रकल्प कोणी बनवला?', 'आजची विक्री किती?')`;
+                }
+            }
+        };
+
+        ragSpeechRecognition.onresult = (event) => {
+            let interimTranscript = "";
+            let finalTranscript = "";
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            const inputEl = document.getElementById("ai-user-input");
+            const spokenText = (finalTranscript || interimTranscript).trim();
+            if (inputEl && spokenText) {
+                inputEl.value = (state && state.lang === "mr") ? autoCorrectMarathiSpeech(spokenText) : spokenText;
+            }
+
+            if (finalTranscript.trim()) {
+                clearTimeout(ragAutoSubmitTimer);
+                ragAutoSubmitTimer = setTimeout(() => {
+                    stopRagVoice();
+                    submitAiChat();
+                }, 800);
+            }
+        };
+
+        ragSpeechRecognition.onerror = (event) => {
+            console.warn("RAG Speech Recognition notice:", event.error);
+            stopRagVoice();
+            if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+                if (typeof showToast === "function") {
+                    showToast("कृपया ब्राऊझर मायक्रोफोन परवानगी (Microphone Permission) Allow करा.", "warning");
+                }
+            }
+        };
+
+        ragSpeechRecognition.onend = () => {
+            const wasListening = isRagListening;
+            stopRagVoice();
+            const inputEl = document.getElementById("ai-user-input");
+            if (wasListening && inputEl && inputEl.value.trim() && !isAiProcessing) {
+                clearTimeout(ragAutoSubmitTimer);
+                ragAutoSubmitTimer = setTimeout(() => {
+                    submitAiChat();
+                }, 300);
+            }
+        };
+
+        return ragSpeechRecognition;
     } catch (e) {
         console.warn("RAG speech init notice:", e);
+        return null;
     }
 }
 
@@ -3041,33 +3124,62 @@ let isRagRecording = false;
 let ragRecordTimer = null;
 let ragRecordSeconds = 0;
 
-// -----------------------------------------------------------------------------
-// NATIVE MULTIMODAL VOICE INTERACTION (GOOGLE GEMINI NATIVE AUDIO STREAM)
-// -----------------------------------------------------------------------------
+// High-speed Native Voice Interaction for Verna AI Studio
 async function toggleRagVoice() {
     if (isAiProcessing) return;
+
+    if (isRagListening) {
+        stopRagVoice();
+        const inputEl = document.getElementById("ai-user-input");
+        if (inputEl && inputEl.value.trim()) {
+            submitAiChat();
+        }
+        return;
+    }
 
     if (isRagRecording) {
         stopRagNativeRecording();
         return;
     }
 
-    // Check if getUserMedia is supported in this browser
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        fallbackWebSpeech();
+    // 1. Primary: Browser Native Web Speech API with Zero Latency & Live Display
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        try {
+            initRagSpeech();
+            if (ragSpeechRecognition) {
+                ragSpeechRecognition.lang = getActiveSpeechLang();
+                ragSpeechRecognition.start();
+                return;
+            }
+        } catch (err) {
+            console.warn("Speech recognition restart notice:", err);
+            stopRagVoice();
+            try {
+                if (ragSpeechRecognition) {
+                    ragSpeechRecognition.lang = getActiveSpeechLang();
+                    ragSpeechRecognition.start();
+                    return;
+                }
+            } catch (e) {}
+        }
+    }
+
+    // 2. Secondary Fallback: MediaRecorder Audio capture (for Firefox / restricted WebSpeech)
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        startRagMediaRecorderFallback();
         return;
     }
 
+    alert("आपल्या ब्राऊझरमध्ये मायक्रोफोन उपलब्ध नाही. कृपया बॉक्समध्ये स्वतः टाईप करा.");
+}
+
+async function startRagMediaRecorderFallback() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-            }
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
 
-        // Determine supported audio container
         let mimeType = 'audio/webm;codecs=opus';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
@@ -3092,59 +3204,47 @@ async function toggleRagVoice() {
             statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे...</strong> (स्पष्ट बोला, पूर्ण झाल्यावर ⏹️ दाबा)`;
         }
 
-        // Live seconds counter
         ragRecordTimer = setInterval(() => {
             ragRecordSeconds++;
             if (statusEl && isRagRecording) {
                 statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे (${ragRecordSeconds}s)...</strong> (थांबवण्यासाठी ⏹️ दाबा)`;
             }
-            if (ragRecordSeconds >= 14) {
+            if (ragRecordSeconds >= 12) {
                 stopRagNativeRecording();
             }
         }, 1000);
 
         ragMediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) {
-                ragAudioChunks.push(e.data);
-            }
+            if (e.data && e.data.size > 0) ragAudioChunks.push(e.data);
         };
 
         ragMediaRecorder.onstop = async () => {
             stream.getTracks().forEach(track => track.stop());
             clearInterval(ragRecordTimer);
-
             if (micBtn) {
                 micBtn.classList.remove("listening");
                 micBtn.innerHTML = "🎙️";
                 micBtn.title = "माईक द्वारे थेट बोला";
             }
-            if (statusEl) {
-                statusEl.style.display = "none";
-            }
-
+            if (statusEl) statusEl.style.display = "none";
             if (ragAudioChunks.length === 0) return;
 
             const finalMime = ragMediaRecorder.mimeType || 'audio/webm';
             const audioBlob = new Blob(ragAudioChunks, { type: finalMime });
+            if (audioBlob.size < 500) return;
 
-            if (audioBlob.size < 500) {
-                console.warn("Audio too small, silence detected.");
-                return;
-            }
-
-            // Convert to Base64 data URL
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
             reader.onloadend = async () => {
-                const base64Data = reader.result;
-                await submitNativeVoiceAi(base64Data, finalMime);
+                await submitNativeVoiceAi(reader.result, finalMime);
             };
         };
 
         ragMediaRecorder.start(250);
     } catch (err) {
-        console.warn("Microphone access error, falling back to Web Speech:", err);
-        fallbackWebSpeech();
+        console.warn("Microphone access error:", err);
+        stopRagVoice();
+        alert("कृपया ब्राऊझर मायक्रोफोन परवानगी (Microphone Permission) Allow करा.");
     }
 }
 
@@ -3156,61 +3256,22 @@ function stopRagNativeRecording() {
     clearInterval(ragRecordTimer);
 }
 
-// Fallback for browsers that block MediaRecorder or microphone
-function fallbackWebSpeech() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        alert("आपल्या ब्राऊझरमध्ये मायक्रोफोन उपलब्ध नाही. कृपया स्वतः खाली टाईप करा.");
-        return;
-    }
-
-    if (!ragSpeechRecognition) {
-        ragSpeechRecognition = new SpeechRecognition();
-        ragSpeechRecognition.continuous = false;
-        ragSpeechRecognition.interimResults = true;
-        ragSpeechRecognition.lang = (state.lang === "en") ? "en-IN" : "mr-IN";
-
-        ragSpeechRecognition.onstart = () => {
-            isRagListening = true;
-            const btn = document.getElementById("btn-rag-mic");
-            if (btn) btn.classList.add("listening");
-            const status = document.getElementById("rag-voice-status");
-            if (status) {
-                status.innerText = "🎙️ ऐकत आहे... बोला...";
-                status.style.display = "block";
-            }
-        };
-
-        ragSpeechRecognition.onresult = (event) => {
-            let finalT = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
-            }
-            if (finalT) {
-                const corrected = autoCorrectMarathiSpeech(finalT.trim());
-                document.getElementById("ai-user-input").value = corrected;
-                stopRagVoice();
-                submitAiChat();
-            }
-        };
-
-        ragSpeechRecognition.onerror = () => stopRagVoice();
-        ragSpeechRecognition.onend = () => stopRagVoice();
-    }
-
-    try {
-        ragSpeechRecognition.start();
-    } catch (e) {
-        stopRagVoice();
-    }
-}
-
 function stopRagVoice() {
     isRagListening = false;
-    const btn = document.getElementById("btn-rag-mic");
-    if (btn) btn.classList.remove("listening");
-    const status = document.getElementById("rag-voice-status");
-    if (status) status.style.display = "none";
+    clearTimeout(ragAutoSubmitTimer);
+    if (ragSpeechRecognition) {
+        try { ragSpeechRecognition.stop(); } catch (e) {}
+    }
+    const micBtn = document.getElementById("btn-rag-mic");
+    const statusEl = document.getElementById("rag-voice-status");
+    if (micBtn) {
+        micBtn.classList.remove("listening");
+        micBtn.innerHTML = "🎙️";
+        micBtn.title = "माईक द्वारे बोला";
+    }
+    if (statusEl) {
+        statusEl.style.display = "none";
+    }
 }
 
 function clearAiChat() {

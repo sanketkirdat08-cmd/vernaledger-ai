@@ -1004,35 +1004,76 @@ def detect_msg_language(text: str, requested: str = "mr") -> str:
         return requested if requested in ["mr", "en", "hi"] else "mr"
 
     lower_clean = clean.lower()
-    # Explicit language override requests take highest precedence
+
+    # 1. Explicit language override requests take highest precedence
     if any(em in lower_clean for em in ["english madhe", "english mande", "in english", "speak in english", "answer in english", "reply in english", "इंग्रजीत", "इंग्लिश मध्ये"]):
         return "en"
     if any(mm in lower_clean for mm in ["marathi madhe", "marathi mande", "in marathi", "speak in marathi", "answer in marathi", "मराठीत", "मराठी मध्ये"]):
         return "mr"
-    if any(hm in lower_clean for hm in ["hindi me", "hindi madhe", "in hindi", "speak in hindi", "answer in hindi", "हिंदी में", "हिन्दी मध्ये"]):
+    if any(hm in lower_clean for hm in ["hindi me", "hindi mein", "hindi madhe", "in hindi", "speak in hindi", "answer in hindi", "हिंदी में", "हिन्दी मध्ये"]):
         return "hi"
 
-    devanagari_count = len(re.findall(r"[ऀ-ॿ]", clean))
-    latin_count = len(re.findall(r"[A-Za-z]", clean))
+    devanagari_chars = re.findall(r"[ऀ-ॿ]", clean)
+    dev_count = len(devanagari_chars)
+    latin_chars = re.findall(r"[A-Za-z]", clean)
+    latin_count = len(latin_chars)
 
-    if devanagari_count >= 2:
-        return "hi" if requested == "hi" else "mr"
+    # 2. Devanagari Script Analysis (Hindi vs Marathi)
+    if dev_count >= 2:
+        hindi_dev_markers = [
+            "है", "हैं", "हूँ", "हूं", "हो", "था", "थी", "थे", "किसने", "किसका", "किसकी", "किसके",
+            "कितना", "कितनी", "कितने", "क्या", "कहाँ", "कहा", "कैसे", "कैसा", "कौन",
+            "बनाया", "बताओ", "बताइए", "दीजिए", "कीजिए", "दुकानदार", "नमस्ते", "धन्यवाद", "बिक्री",
+            "बकाया", "कुल", "वस्तुएं", "सामान", "मुझे", "हमे", "हमें", "आपका", "आपकी", "आपके"
+        ]
+        marathi_dev_markers = [
+            "आहे", "आहेत", "नाही", "नाहीत", "सांगा", "किती", "काय", "कोणी", "कोणाचा", "कोणाची",
+            "कोणाचे", "कसे", "कुठे", "केले", "झाले", "झाली", "झाला", "दिली", "घेतले", "उधारी",
+            "विक्री", "साठा", "पावती", "हिशोब", "नमस्कार", "वस्तू", "वस्तूंची", "शिल्लक", "बाकी"
+        ]
+        h_score = sum(1 for m in hindi_dev_markers if re.search(r"" + re.escape(m) + r"", clean) or m in clean)
+        m_score = sum(1 for m in marathi_dev_markers if re.search(r"" + re.escape(m) + r"", clean) or m in clean)
 
-    # If user selected Marathi (or Hindi) in UI, stay in that language unless explicitly requested in English
-    # This ensures Romanized Marathi (e.g. 'mulik', 'kirdat', 'project baddal mahiti sanga') answers in Marathi
-    if requested in ["mr", "hi"]:
-        return requested
+        if h_score > m_score:
+            return "hi"
+        if m_score > h_score:
+            return "mr"
+        return requested if requested in ["mr", "hi"] else "mr"
 
-    marathi_markers = [
-        "ahe", "aahe", "nahi", "nahiy", "sanga", "kiti", "kay", "udhari", "kharch",
-        "vikri", "satha", "pavti", "hishob", "konakade", "koni", "namaskar",
-        "dili", "dile", "ghetle", "zale", "jhale", "kar", "kara", "lihi", "dya",
-        "baddal", "vishayi", "mahiti", "साखर", "तेल", "गहू", "तांदूळ", "चहा", "साबण", "दुकान", "बाकी"
-    ]
-    if any(m in lower_clean for m in marathi_markers):
+    # 3. Latin / Romanized Script Analysis (English vs Roman Hindi vs Roman Marathi)
+    eng_words = {
+        "who", "what", "where", "when", "why", "how", "is", "are", "was", "were",
+        "the", "this", "that", "these", "those", "project", "developer", "developers",
+        "team", "guide", "college", "sale", "sales", "credit", "stock", "profit", "expense",
+        "inventory", "today", "todays", "show", "tell", "give", "detail", "details",
+        "hello", "hi", "hey", "name", "store", "shop", "khatabook", "vyapar", "difference",
+        "explain", "feature", "features", "architecture", "status", "summary", "about",
+        "all", "members", "list", "check", "system", "please", "can", "you", "made"
+    }
+    roman_hindi_words = {
+        "hai", "hain", "hoon", "kya", "kaun", "kisne", "kiska", "kitna", "kitni", "kitne",
+        "kaise", "kahan", "batao", "bataiye", "banaya", "diya", "liya", "mera", "meri",
+        "apka", "aapka", "namaste", "shukriya", "kripya", "dhanyawad", "bikri", "dukaan"
+    }
+    roman_marathi_words = {
+        "ahe", "aahe", "nahiy", "nahi", "sanga", "kiti", "kay", "koni", "konakade",
+        "kase", "kuthe", "kele", "zale", "jhale", "dili", "dilya", "ghetle", "udhari",
+        "vikri", "satha", "pavti", "hishob", "namaskar", "baddal", "vishayi", "dya",
+        "bagha", "chya", "kadhun", "taka", "kara", "karun", "dukana", "dukan"
+    }
+
+    words = set(re.findall(r"[a-z]+", lower_clean))
+    eng_score = len(words.intersection(eng_words))
+    hi_score = len(words.intersection(roman_hindi_words))
+    mr_score = len(words.intersection(roman_marathi_words))
+
+    if hi_score > eng_score and hi_score > mr_score:
+        return "hi"
+    if mr_score > eng_score and mr_score > hi_score:
         return "mr"
-
-    if latin_count > devanagari_count and latin_count >= 3:
+    if eng_score > hi_score and eng_score > mr_score:
+        return "en"
+    if eng_score > 0 and hi_score == 0 and mr_score == 0:
         return "en"
 
     return requested if requested in ["mr", "en", "hi"] else "mr"
@@ -1949,7 +1990,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 }"""
 
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest']
+            models_to_try = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
@@ -2044,8 +2085,9 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             action_status = f"खर्च नोंद त्रुटी: {e}"
 
     query_lang = detect_msg_language(user_msg, req.lang or "mr")
-    is_hindi = (query_lang == "hi" or req.lang == "hi")
     is_english = (query_lang == "en")
+    is_hindi = (query_lang == "hi")
+    is_marathi = (query_lang == "mr")
     lower_msg = user_msg.lower()
 
     # Dynamic Intent & Length Calibration
@@ -2176,6 +2218,25 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guide:** Prof. Kaisar Atar Sir
 • **Development Team:** 1. Sanket Kirdat (Team Leader & AI Developer), 2. Sakshi Bhagat (Frontend & UI Developer), 3. Vaishnavi Dhavale (Voice Billing & AI Developer), 4. Rushikesh Mulik (Backend & Database Developer)."""
+        elif is_hindi:
+            answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) बनाम अन्य सामान्य ऐप्स (तुलना तालिका)**:
+
+| विशेषताएँ (Features) | VernaLedger.AI (हमारा एप्लिकेशन) | अन्य ऐप्स (जैसे Vyapar/Khatabook) |
+| :--- | :--- | :--- |
+| 📸 **स्मार्ट बिल स्कैनिंग** | **Vision Transformers (ViT) & Multimodal AI:** हस्तलिखित बिलों का १ सेकंड में सटीक डिजिटल बिल। | ❌ केवल मैन्युअल टाइपिंग या धीमा OCR। |
+| 🎙️ **स्थानीय वॉइस बिलिंग** | **अस्खलित देशी ASR:** हिन्दी, मराठी व अंग्रेज़ी में बोलकर ५ सेकंड में बिल तैयार। | ❌ वॉइस बिलिंग उपलब्ध नहीं या केवल अंग्रेज़ी। |
+| 🌐 **त्रिभाषी इंटरफ़ेस** | **मराठी, हिन्दी और अंग्रेज़ी:** एक क्लिक पर भाषा बदलें। | ⚠️ केवल अंग्रेज़ी-प्रधान जटिल शब्द। |
+| ⚡ **स्पीड व प्रोसेसिंग** | **Google Cloud TPUs & SQLite WAL:** <२ms में लोकल ACID ट्रांजैक्शन। | ⚠️ धीमा क्लाउड रिस्पॉन्स। |
+| 🤖 **AI बिजनेस सलाहकार** | **Neural RAG Studio:** दुकान के लाभ, बिक्री, उधारी और स्टॉक का लाइव विश्लेषण। | ❌ साधारण रिपोर्ट, कोई संवादात्मक AI नहीं। |
+| 💳 **ग्राहक खाता (Khata)** | स्वचालित **१-क्लिक WhatsApp व UPI पेमेंट रिमाइंडर** लिंक। | ⚠️ सीमित मैसेजिंग, मैन्युअल फॉलोअप। |
+| 🖨️ **हार्डवेयर सपोर्ट** | **५८mm थर्मल प्रिंटर (ESC/POS)** व **Excel (.xlsx)** एक्सपोर्ट। | ⚠️ अतिरिक्त शुल्क या सीमित प्रिंटर सपोर्ट। |
+| 🔒 **डेटा सुरक्षा & स्वामित्व** | **स्थानीय ACID SQLite:** व्यापारी का अपने डेटा पर १००% नियंत्रण। | ⚠️ थर्ड-पार्टी क्लाउड निर्भरता। |
+
+🏛️ **शैक्षणिक विवरण**:
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Department of AI & DS)
+• **डेवलपमेंट टीम:** १. संकेत किर्दत (Team Leader & AI Developer), २. साक्षी भगत (Frontend & UI Developer), ३. वैष्णवी ढवळे (Voice Billing & AI Developer), ४. ऋषिकेश मुळीक (Backend & Database Developer)."""
         else:
             answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) वि. इतर सामान्य ॲप्लिकेशन्स (तुलना तक्ता)**:
 
@@ -2198,7 +2259,36 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
     # B. Specific Table Requests (Team Table, Stock Table, Khata Table, Financial Table)
     elif is_table_query and (is_all_devs_query or any(k in lower_msg for k in ['developer', 'डेव्हलपर', 'डेवलपर', 'विकासक', 'team', 'टीम', 'विद्यार्थी', 'विद्यार्थ्या', 'creator', 'सदस्य', 'मार्गदर्शक'])):
-        answer = """👨‍💻 **प्रकल्प विकासक व शैक्षणिक तपशील (Development Team Dossier Table)**:
+        if is_english:
+            answer = """👨‍💻 **Project Development Team Dossier Table**:
+
+| No. | Student Name | Roll No | PRN No | Role in Project |
+| :---: | :--- | :---: | :---: | :--- |
+| 1 | **Sanket Kirdat** | 4060 | 24065451263508 | **Team Leader & AI Developer** |
+| 2 | **Sakshi Bhagat** | 4054 | 24065451263502 | **Frontend & UI Developer** |
+| 3 | **Vaishnavi Dhavale** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
+| 4 | **Rushikesh Mulik** | 4004 | 23065451263005 | **Backend & Database Developer** |
+
+• **Project Guide:** Prof. Kaisar Atar Sir
+• **Department:** Department of Artificial Intelligence & Data Science (AI & DS)
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
+        elif is_hindi:
+            answer = """👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम तालिका (Development Team Table)**:
+
+| क्र. | छात्र का नाम | रोल नं. | PRN नं. | प्रोजेक्ट में भूमिका (Role) |
+| :---: | :--- | :---: | :---: | :--- |
+| १ | **संकेत किर्दत (Sanket Kirdat)** | 4060 | 24065451263508 | **Team Leader & AI Developer** |
+| २ | **साक्षी भगत (Sakshi Bhagat)** | 4054 | 24065451263502 | **Frontend & UI Developer** |
+| ३ | **वैष्णवी ढवळे (Vaishnavi Dhavale)** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
+| ४ | **ऋषिकेश मुळीक (Rushikesh Mulik)** | 4004 | 23065451263005 | **Backend & Database Developer** |
+
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **विभाग:** कृत्रिम बुद्धिमत्ता और डेटा साइंस (Department of AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)"""
+        else:
+            answer = """👨‍💻 **प्रकल्प विकासक व शैक्षणिक तपशील (Development Team Dossier Table)**:
 
 | क्र. | विद्यार्थ्याचे नाव | रोल नंबर | PRN नंबर | प्रकल्पातील भूमिका (Role) |
 | :---: | :--- | :---: | :---: | :--- |
@@ -2215,13 +2305,38 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     elif is_table_query and any(k in lower_msg for k in ['साठा', 'साठ्या', 'स्टॉक', 'stock', 'माल', 'inventory', 'वस्तू', 'सामान', 'satha', 'sathya']):
         inv_rows = []
         for idx, item in enumerate(all_inv[:15], 1):
-            status = "⚠️ कमी साठा" if item['stock_qty'] <= item['alert_limit'] else "✅ मुबलक"
+            if is_english:
+                status = "⚠️ Low Stock" if item['stock_qty'] <= item['alert_limit'] else "✅ In Stock"
+            elif is_hindi:
+                status = "⚠️ कम स्टॉक" if item['stock_qty'] <= item['alert_limit'] else "✅ पर्याप्त"
+            else:
+                status = "⚠️ कमी साठा" if item['stock_qty'] <= item['alert_limit'] else "✅ मुबलक"
             s_price = float(item.get('selling_price') or 0.0)
             c_price = float(item.get('cost_price') or (s_price * 0.85))
             u_unit = item.get('unit', 'pcs')
             inv_rows.append(f"| {idx} | **{item['item_name']}** | {item['stock_qty']} {u_unit} | ₹{s_price:,.2f} | ₹{c_price:,.2f} | {status} |")
-        inv_table = "\n".join(inv_rows) if inv_rows else "| - | कोणताही साठा उपलब्ध नाही | - | - | - | - |"
-        answer = f"""📦 **आपल्या दुकानातील साठा तपशील (Live Inventory Stock Table)**:
+        
+        if is_english:
+            inv_table = "\n".join(inv_rows) if inv_rows else "| - | No stock available | - | - | - | - |"
+            answer = f"""📦 **Live Inventory Stock Table**:
+
+| No. | Item Name | Available Stock | Selling Rate (₹) | Cost Rate (₹) | Status |
+| :---: | :--- | :---: | :---: | :---: | :---: |
+{inv_table}
+
+💡 *Tip: Reorder low stock items promptly to prevent store outages.*"""
+        elif is_hindi:
+            inv_table = "\n".join(inv_rows) if inv_rows else "| - | कोई स्टॉक उपलब्ध नहीं है | - | - | - | - |"
+            answer = f"""📦 **दुकान की स्टॉक सूची (Live Inventory Stock Table)**:
+
+| क्र. | वस्तु का नाम (Item Name) | उपलब्ध स्टॉक | बिक्री मूल्य (₹) | खरीद मूल्य (₹) | स्थिति (Status) |
+| :---: | :--- | :---: | :---: | :---: | :---: |
+{inv_table}
+
+💡 *सुझाव: जिस सामान का स्टॉक कम है, उसे तुरंत नया मंगवाएं।*"""
+        else:
+            inv_table = "\n".join(inv_rows) if inv_rows else "| - | कोणताही साठा उपलब्ध नाही | - | - | - | - |"
+            answer = f"""📦 **आपल्या दुकानातील साठा तपशील (Live Inventory Stock Table)**:
 
 | क्र. | वस्तूचे नाव (Item Name) | शिल्लक साठा | विक्री दर (₹) | खरेदी दर (₹) | स्थिती (Status) |
 | :---: | :--- | :---: | :---: | :---: | :---: |
@@ -2233,10 +2348,35 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
         khata_rows = []
         idx = 1
         for c_name, c_amt in sorted(cust_dues.items(), key=lambda x: x[1], reverse=True)[:15]:
-            khata_rows.append(f"| {idx} | **{c_name}** | ₹{c_amt:,.2f} | 🔴 उधारी बाकी | [व्हॉट्सॲप स्मरणपत्र पाठवा] |")
+            if is_english:
+                khata_rows.append(f"| {idx} | **{c_name}** | ₹{c_amt:,.2f} | 🔴 Due Pending | Send WhatsApp Reminder |")
+            elif is_hindi:
+                khata_rows.append(f"| {idx} | **{c_name}** | ₹{c_amt:,.2f} | 🔴 उधारी बकाया | WhatsApp रिमाइंडर भेजें |")
+            else:
+                khata_rows.append(f"| {idx} | **{c_name}** | ₹{c_amt:,.2f} | 🔴 उधारी बाकी | [व्हॉट्सॲप स्मरणपत्र पाठवा] |")
             idx += 1
-        khata_table = "\n".join(khata_rows) if khata_rows else "| - | कोणाचीही उधारी बाकी नाही | ₹0.00 | ✅ क्लिअर | - |"
-        answer = f"""💳 **ग्राहक उधारी हिशोब तपशील (Customer Khata Ledger Table)**:
+        
+        if is_english:
+            khata_table = "\n".join(khata_rows) if khata_rows else "| - | No pending dues recorded | ₹0.00 | ✅ Clear | - |"
+            answer = f"""💳 **Customer Khata Ledger Table**:
+
+| No. | Customer Name | Pending Dues (₹) | Status | Action |
+| :---: | :--- | :---: | :---: | :--- |
+{khata_table}
+
+📊 **Total Outstanding Credit:** **₹{pending_udhar:,.2f}**"""
+        elif is_hindi:
+            khata_table = "\n".join(khata_rows) if khata_rows else "| - | किसी ग्राहक की उधारी बकाया नहीं है | ₹0.00 | ✅ चुकता | - |"
+            answer = f"""💳 **ग्राहक उधारी बहीखाता विवरण (Customer Khata Ledger Table)**:
+
+| क्र. | ग्राहक का नाम (Customer) | बकाया राशि (₹) | स्थिति (Status) | कार्रवाई |
+| :---: | :--- | :---: | :---: | :--- |
+{khata_table}
+
+📊 **कुल बकाया उधारी:** **₹{pending_udhar:,.2f}**"""
+        else:
+            khata_table = "\n".join(khata_rows) if khata_rows else "| - | कोणाचीही उधारी बाकी नाही | ₹0.00 | ✅ क्लिअर | - |"
+            answer = f"""💳 **ग्राहक उधारी हिशोब तपशील (Customer Khata Ledger Table)**:
 
 | क्र. | ग्राहक नाव (Customer) | बाकी रक्कम (₹) | स्थिती (Status) | कृती (Action) |
 | :---: | :--- | :---: | :---: | :--- |
@@ -2244,8 +2384,31 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
 📊 **एकूण बाकी उधारी:** **₹{pending_udhar:,.2f}**"""
 
-    elif is_table_query and any(k in lower_msg for k in ['नफा', 'विक्री', 'खर्च', 'हिशोब', 'हिशेब', 'profit', 'sales', 'expense', 'ऑडिट', 'audit']):
-        answer = f"""📊 **दुकानाचे सर्वसमावेशक आर्थिक ऑडिट (Financial Summary Table)**:
+    elif is_table_query and any(k in lower_msg for k in ['नफा', 'विक्री', 'खर्च', 'हिशोब', 'हिशेब', 'profit', 'sales', 'expense', 'ऑडिट', 'audit', 'munafa']):
+        if is_english:
+            answer = f"""📊 **Comprehensive Financial Summary Table**:
+
+| Financial Metric | Amount (₹) | Status / Details |
+| :--- | :---: | :--- |
+| 📈 **Today's Total Sales** | **₹{today_sales:,.2f}** | Real-time POS receipts |
+| 📊 **Total Lifetime Sales** | **₹{total_sales:,.2f}** | Total database volume |
+| 💸 **Today's Operating Expenses** | **₹{today_expenses:,.2f}** | Today's recorded expenses |
+| 📉 **Total Business Expenses** | **₹{total_expenses:,.2f}** | Lifetime expenses |
+| ⏳ **Pending Market Credit (Dues)** | **₹{pending_udhar:,.2f}** | Total recoverable dues |
+| 💰 **Estimated Net Profit** | **₹{net_profit:,.2f}** | Total Sales minus Total Expenses |"""
+        elif is_hindi:
+            answer = f"""📊 **दुकान का संपूर्ण वित्तीय विवरण (Financial Summary Table)**:
+
+| वित्तीय घटक (Financial Metric) | राशि (₹) | स्थिति / विवरण (Status) |
+| :--- | :---: | :--- |
+| 📈 **आज की कुल बिक्री (Today's Sales)** | **₹{today_sales:,.2f}** | आज की रसीदें |
+| 📊 **कुल दर्ज बिक्री (Total Sales)** | **₹{total_sales:,.2f}** | अब तक की कुल बिक्री |
+| 💸 **आज का व्यापार खर्च (Today's Expenses)** | **₹{today_expenses:,.2f}** | आज के दैनिक खर्च |
+| 📉 **कुल व्यापार खर्च (Total Expenses)** | **₹{total_expenses:,.2f}** | दर्ज किए गए समस्त खर्च |
+| ⏳ **मार्केट की बकाया उधारी (Pending Dues)** | **₹{pending_udhar:,.2f}** | ग्राहकों से वसूली योग्य |
+| 💰 **अनुमानित शुद्ध लाभ (Estimated Net Profit)** | **₹{net_profit:,.2f}** | कुल बिक्री घटाकर खर्च |"""
+        else:
+            answer = f"""📊 **दुकानाचे सर्वसमावेशक आर्थिक ऑडिट (Financial Summary Table)**:
 
 | आर्थिक घटक (Financial Metric) | रक्कम (₹) | सद्यस्थिती / तपशील (Status) |
 | :--- | :---: | :--- |
@@ -2267,6 +2430,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guide:** Prof. Kaisar Atar Sir"""
+        elif is_hindi:
+            answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
+• **रोल नंबर (Roll No):** 4004
+• **पीआरएन नंबर (PRN No):** 23065451263005
+• **भूमिका (Role):** बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
+• **मुख्य जिम्मेदारियाँ:** SQLite डेटाबेस प्रबंधन, ग्राहक खाता (उधारी बही), ऑडिट लॉग और एक्सेल रिपोर्ट एक्सपोर्ट।
+• **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
         else:
             answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
 • **रोल नंबर (Roll No):** 4004
@@ -2289,6 +2462,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guide:** Prof. Kaisar Atar Sir"""
+        elif is_hindi:
+            answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
+• **रोल नंबर (Roll No):** 4054
+• **पीआरएन नंबर (PRN No):** 24065451263502
+• **भूमिका (Role):** फ्रंटएंड व UI डेवलपर (Frontend & UI Developer)
+• **मुख्य जिम्मेदारियाँ:** यूजर इंटरफेस (UI) डिजाइन, मोबाइल व डेस्कटॉप स्क्रीन, डे/नाइट थीम और UX।
+• **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
         else:
             answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
 • **रोल नंबर (Roll No):** 4054
@@ -2311,6 +2494,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guide:** Prof. Kaisar Atar Sir"""
+        elif is_hindi:
+            answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhavale)**:
+• **रोल नंबर (Roll No):** 4056
+• **पीआरएन नंबर (PRN No):** 24065451263504
+• **भूमिका (Role):** वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
+• **मुख्य जिम्मेदारियाँ:** स्थानीय वॉइस बिलिंग, ध्वनि पहचान (Speech Recognition), बहुभाषी ऑडियो और वॉइस फीडबैक।
+• **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
         else:
             answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhavale)**:
 • **रोल नंबर (Roll No):** 4056
@@ -2333,6 +2526,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guide:** Prof. Kaisar Atar Sir"""
+        elif is_hindi:
+            answer = """👨‍💻 **संकेत किर्दत (Sanket Kirdat)**:
+• **रोल नंबर (Roll No):** 4060
+• **पीआरएन नंबर (PRN No):** 24065451263508
+• **भूमिका (Role):** टीम लीडर व AI डेवलपर (Team Leader & AI Developer)
+• **मुख्य जिम्मेदारियाँ:** AI विजन स्कैनर, रसीद OCR पहचान, सम्पूर्ण सिस्टम इंटीग्रेशन और टीम लीडरशिप।
+• **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
         else:
             answer = """👨‍💻 **संकेत किर्दत (Sanket Kirdat)**:
 • **रोल नंबर (Roll No):** 4060
@@ -2352,6 +2555,14 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
 • **Project Guided:** VernaLedger.AI (Merchant Pro v7.5)"""
+        elif is_hindi:
+            answer = """🎓 **प्रोजेक्ट मार्गदर्शक (Project Guide)**:
+• **मार्गदर्शक प्राध्यापक:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **पद:** प्रोजेक्ट गाइड व फैकल्टी
+• **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
+• **मार्गदर्शित प्रोजेक्ट:** VernaLedger.AI (Merchant Pro v7.5)"""
         else:
             answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
 • **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
@@ -2373,6 +2584,15 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
 🎓 **Project Guide:** Prof. Kaisar Atar Sir
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)"""
+            elif is_hindi:
+                answer = """👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम (Project Team)**:
+१. **संकेत किर्दत (Sanket Kirdat)** [रोल: 4060 | PRN: 24065451263508] – टीम लीडर व AI डेवलपर (Team Leader & AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** [रोल: 4054 | PRN: 24065451263502] – फ्रंटएंड व UI डेवलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** [रोल: 4056 | PRN: 24065451263504] – वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** [रोल: 4004 | PRN: 23065451263005] – बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
+
+🎓 **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🏛️ **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)"""
             else:
                 answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team)**:
 १. **संकेत किर्दत (Sanket Kirdat)** [रोल: 4060 | PRN: 24065451263508] – टीम लीडर व AI डेव्हलपर (Team Leader & AI Developer)
@@ -2393,6 +2613,16 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 🎓 **Project Guide:** Prof. Kaisar Atar Sir
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 🏛️ **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
+            elif is_hindi:
+                answer = """👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम (सभी 4 डेवलपर्स)**:
+१. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – टीम लीडर व AI डेवलपर (Team Leader & AI Developer)
+२. **साक्षी भगत (Sakshi Bhagat)** (Roll: 4054 | PRN: 24065451263502) – फ्रंटएंड व UI डेवलपर (Frontend & UI Developer)
+३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
+४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
+
+🎓 **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🏛️ **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+🏛️ **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)"""
             else:
                 answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Development Team - सर्व ४ डेव्हलपर्स)**:
 १. **संकेत किर्दत (Sanket Kirdat)** (Roll: 4060 | PRN: 24065451263508) – टीम लीडर व AI डेव्हलपर (Team Leader & AI Developer)
@@ -2507,7 +2737,22 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 
     # F. Technical Architecture: 5 Scanner AI Pillars
     elif (any(k in lower_msg for k in ['स्कॅनर', 'scanner', 'vit']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '५', '5', 'फिचर्स'])) or any(k in lower_msg for k in ['स्कॅनरचे तंत्रज्ञान', 'स्कॅनरचे 5 तंत्रज्ञान', 'स्कॅनरचे ५ तंत्रज्ञान', '5 तंत्रज्ञान', '५ तंत्रज्ञान', 'स्कॅनर पिलर्स']):
-        answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
+        if is_english:
+            answer = """📸 **Smart Scanner's 5 Core AI Architecture Pillars**:
+1. 🔍 **Vision Transformers (ViTs):** Decomposes receipts into visual patches to accurately read skewed, fast-written, and blurred Marathi/English slips.
+2. 🌐 **Native Multimodal AI:** Integrates pixels and language representation within a single unified neural pipeline.
+3. ⚡ **Google TPU Cloud Acceleration:** Sub-second (1.0s - 1.2s) inference latency powered by Google Cloud TPUs.
+4. 🧩 **Context-Aware Attention:** Automatically disambiguates confused digits based on price × quantity cross-checking.
+5. 📄 **Google Cloud Vision & Document AI Fallback:** Seamless secondary inference engine guaranteeing zero downtime."""
+        elif is_hindi:
+            answer = """📸 **स्मार्ट स्कैनर के ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
+१. 🔍 **Vision Transformers (ViTs):** पावती के विजुअल पैच बनाकर तिरछी, जल्दी में लिखी गई और धुंधली लिखावट को सटीक रूप से पढ़ता है।
+२. 🌐 **Native Multimodal AI:** इमेज के पिक्सल और भाषा को एक ही न्यूरल नेटवर्क द्वारा सीधे समझता है।
+३. ⚡ **Google TPU Cloud Acceleration:** १ से १.२ सेकंड में तुरंत रिजल्ट देने वाली क्लाउड TPU स्पीड।
+४. 🧩 **Context-Aware Attention:** अस्पष्ट अंकों को दर × मात्रा के गणितीय हिसाब से स्वतः पहचानता है।
+५. 📄 **Google Cloud Vision & Document AI Fallback:** मुख्य मॉडल पर किसी रुकावट के समय स्वतः बैकअप इंजन।"""
+        else:
+            answer = """📸 **स्मार्ट स्कॅनरचे ५ मुख्य AI आर्किटेक्चर पिलर्स (5 AI Foundation Pillars)**:
 १. 🔍 **Vision Transformers (ViTs):** पावतीचे लहान व्हिज्युअल पॅचेस (Patches) बनवून तिरपे, घाईत लिहिलेले व अस्पष्ट मराठी हस्तलिखित अचूक वाचते.
 २. 🌐 **Native Multimodal AI:** फोटोचे पिक्सेल आणि भाषा एकाच न्यूरल नेटवर्कद्वारे थेट (End-to-End) समजून घेते.
 ३. ⚡ **Google TPU Cloud Acceleration:** गुगलच्या क्लाउडवरील Tensor Processing Units वर मॉडेल चालल्यामुळे अवघ्या १ ते १.२ सेकंदात निकाल मिळतो.
@@ -2516,7 +2761,20 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 
     # G. Technical Architecture: 4 Chatbot Core Pillars
     elif (any(k in lower_msg for k in ['चॅटबॉट', 'chatbot', 'bot']) and any(k in lower_msg for k in ['तंत्रज्ञान', 'पिलर्स', 'pillars', 'technology', 'कसे काम', 'कसा काम', 'working', 'ai', '४', '4'])) or any(k in lower_msg for k in ['चॅटबॉटचे तंत्रज्ञान', 'चॅटबॉटचे 4 तंत्रज्ञान', 'चॅटबॉटचे ४ तंत्रज्ञान', 'चॅटबॉट पिलर्स']):
-        answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
+        if is_english:
+            answer = """🤖 **Verna AI Chatbot's 4 Core Technology Pillars**:
+1. 🌐 **Native Multimodal Architecture:** Seamlessly processes audio speech and text within a single neural pipeline.
+2. 🎙️ **Vernacular ASR:** Noise-resilient speech recognition tuned for Marathi, Hindi, and Indian English accents.
+3. 🧠 **Transformer LLM & Contextual Reasoning:** Direct database ground truth querying ensuring mathematically 100% verified, hallucination-free answers.
+4. ⚡ **Real-Time Low Latency Engine:** Sub-millisecond local SQLite ACID WAL transactions."""
+        elif is_hindi:
+            answer = """🤖 **Verna AI चैटबॉट के ४ मुख्य तकनीक पिलर्स (4 Chatbot Architectural Pillars)**:
+१. 🌐 **Native Multimodal Architecture:** आवाज और टेक्स्ट को एक ही न्यूरल नेटवर्क द्वारा आसानी से समझता है।
+२. 🎙️ **Vernacular ASR:** शोरगुल वाले वातावरण में भी हिंदी, मराठी और अंग्रेजी की सटीक पहचान।
+३. 🧠 **Transformer LLM & Contextual Reasoning:** सीधे SQLite डेटाबेस से जांचकर १००% सटीक और बिना किसी गलत जानकारी (Zero-Hallucination) के उत्तर।
+४. ⚡ **Real-Time Low Latency Engine:** सब-मिलीसेकंड लोकल डेटाबेस स्पीड और तुरंत उत्तर।"""
+        else:
+            answer = """🤖 **Verna AI चॅटबॉटचे ४ मुख्य तंत्रज्ञान पिलर्स (4 Chatbot Architectural Pillars)**:
 १. 🌐 **Native Multimodal Architecture:** आवाज आणि मजकूर एकाच न्यूरल नेटवर्कद्वारे अखंडपणे समजून घेते.
 २. 🎙️ **ASR & Speech-to-Text:** दुकानातील गोंगाट गाळून सातारी, कोल्हापुरी, पुणेरी व ग्रामीण मराठी उच्चार अचूक ओळखते.
 ३. 🧠 **Transformer LLM & Contextual Reasoning:** दुकानाच्या थेट SQLite डेटाबेसमधील हिशोब तपासून १००% अचूक, तात्त्विक व बिनचूक उत्तरे देते (No Hallucination).
@@ -2656,7 +2914,7 @@ You possess two core intelligence systems:
     if not answer and api_key and genai:
         try:
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest']
+            models_to_try = ['gemini-3.8-flash', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
                     max_tokens = 1200 if is_detailed else 500
@@ -2678,7 +2936,7 @@ You possess two core intelligence systems:
                             if txt:
                                 prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
                     prompt_parts.append(f"[Current User Query]: {user_msg}")
-                    res = model.generate_content(prompt_parts, request_options={"timeout": 8})
+                    res = model.generate_content(prompt_parts, request_options={"timeout": 4})
                     if res and res.text:
                         answer = res.text.strip()
                         break
@@ -2702,14 +2960,35 @@ You possess two core intelligence systems:
   २. साक्षी भगत (Frontend & UI Developer) [रोल: 4054 | PRN: 24065451263502]
   ३. वैष्णवी ढवळे (Voice Billing & AI Developer) [रोल: 4056 | PRN: 24065451263504]
   ४. ऋषिकेश मुळीक (Backend & Database Developer) [रोल: 4004 | PRN: 23065451263005]"""
-        elif any(k in lower_msg for k in ['विक्री', 'उधारी', 'साठा', 'स्टॉक', 'नफा', 'खर्च', 'sales', 'credit', 'stock', 'profit', 'expense']):
-            answer = (
-                f"Today's sales: ₹{today_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f}."
-                if is_english else
-                f"आजची विक्री: ₹{today_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f}."
-            )
+        elif any(k in lower_msg for k in ['विक्री', 'उधारी', 'साठा', 'स्टॉक', 'नफा', 'खर्च', 'sales', 'credit', 'stock', 'profit', 'expense', 'bikri', 'munafa', 'kharcha']):
+            if is_english:
+                answer = f"📊 **Store Summary**: Today's sales: ₹{today_sales:,.2f} | Total sales: ₹{total_sales:,.2f} | Pending credit: ₹{pending_udhar:,.2f} | Net Profit: ₹{net_profit:,.2f}."
+            elif is_hindi:
+                answer = f"📊 **दुकान का विवरण**: आज की बिक्री: ₹{today_sales:,.2f} | कुल बिक्री: ₹{total_sales:,.2f} | बकाया उधारी: ₹{pending_udhar:,.2f} | शुद्ध लाभ: ₹{net_profit:,.2f}."
+            else:
+                answer = f"📊 **दुकान हिशोब माहिती**: आजची विक्री: ₹{today_sales:,.2f} | एकूण विक्री: ₹{total_sales:,.2f} | बाकी उधारी: ₹{pending_udhar:,.2f} | निव्वळ नफा: ₹{net_profit:,.2f}."
         else:
-            answer = "क्षमस्व, AI सर्व्हरशी तात्पुरता संपर्क होऊ शकला नाही. कृपया थोड्या वेळाने पुन्हा प्रयत्न करा किंवा तुमचा प्रश्न पुन्हा विचारा."
+            if is_english:
+                answer = f"""🤖 **Verna AI Universal Business Assistant**:
+I am here to assist you in English, Marathi, or Hindi!
+• 💰 **Today's Sales:** ₹{today_sales:,.2f}
+• 🔴 **Pending Credit:** ₹{pending_udhar:,.2f}
+• 📦 **Low Stock Items:** {len(low_stock)} items
+You can ask any questions regarding sales, inventory, dues, developers, or project features!"""
+            elif is_hindi:
+                answer = f"""🤖 **Verna AI व्यावसायिक सहायक**:
+मैं हिंदी, मराठी और अंग्रेजी तीनों भाषाओं में आपकी सहायता के लिए तैयार हूँ!
+• 💰 **आज की बिक्री:** ₹{today_sales:,.2f}
+• 🔴 **बकाया उधारी:** ₹{pending_udhar:,.2f}
+• 📦 **कम स्टॉक वाली वस्तुएं:** {len(low_stock)} वस्तुएं
+आप दुकान की बिक्री, उधारी, स्टॉक, डेवलपर्स या प्रोजेक्ट से संबंधित कोई भी सवाल पूछ सकते हैं!"""
+            else:
+                answer = f"""🤖 **Verna AI व्यवसाय सल्लागार**:
+मी मराठी, हिंदी किंवा इंग्रजी तिन्ही भाषांमध्ये आपल्या मदतीसाठी सदैव तयार आहे!
+• 💰 **आजची विक्री:** ₹{today_sales:,.2f}
+• 🔴 **बाकी उधारी:** ₹{pending_udhar:,.2f}
+• 📦 **कमी साठा वस्तू:** {len(low_stock)} वस्तू
+आपण दुकानातील विक्री, उधारी, साठा, डेव्हलपर्स किंवा प्रकल्पाबद्दल कोणताही प्रश्न विचारू शकता!"""
 
     conn.close()
 
