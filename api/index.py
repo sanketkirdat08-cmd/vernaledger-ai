@@ -1598,7 +1598,10 @@ def export_receipts_excel():
         }
     )
 
+@app.get("/api/export/csv")
 @app.get("/api/receipts/export-csv")
+@app.get("/export/csv")
+@app.get("/receipts/export-csv")
 def export_receipts_csv():
     conn = get_db()
     rows = conn.execute("SELECT * FROM receipts ORDER BY id DESC").fetchall()

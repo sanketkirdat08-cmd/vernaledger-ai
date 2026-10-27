@@ -23,6 +23,14 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/export/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/receipts/(.*)",
+      "destination": "/api/index.py"
     }
   ],
   "functions": {
