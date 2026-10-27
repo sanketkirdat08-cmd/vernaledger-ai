@@ -780,7 +780,8 @@ def clean_json_str(text: str) -> dict:
     data["grand_total"] = gt_val if (gt_val > 0.0 and abs(gt_val - calc_grand) < 1.0) else (calc_grand if calc_grand > 0 else gt_val)
     if not data.get("vendor_name"):
         data["vendor_name"] = "किराणा पावती"
-    if not data.get("date"):
+    d_str = str(data.get("date") or "").strip()
+    if not d_str or any(yr in d_str for yr in ["2020", "2021", "2022", "2023", "2024"]):
         data["date"] = date.today().strftime("%Y-%m-%d")
     data["category"] = data.get("category") or "General"
     return data
@@ -847,7 +848,7 @@ async def _execute_ocr(file: UploadFile):
 
 Extract all details from this handwritten slip with extreme accuracy:
 1. vendor_name: Shop or merchant name written at the top in Marathi (e.g. "सोनल किराणा", "महादेव किराणा"). Pay close attention to Marathi handwriting letters (स, म, न, ल).
-2. date: Date if written on slip (YYYY-MM-DD or DD/MM/YYYY), else return today's date formatted as YYYY-MM-DD.
+2. date: Date if clearly written on slip. If missing, return today's exact date formatted as YYYY-MM-DD.
 3. items: Array of objects for EACH line item written on the slip:
    - item_name: Name of grocery/item in Marathi (e.g. "गहू", "तेल", "साखर", "तांदूळ").
    - quantity: Quantity string with unit exactly as written (e.g. "10 किलो", "5 ltr", "1 kg", "2 नग").
@@ -1041,7 +1042,13 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 }}"""
 
     genai.configure(api_key=api_key, transport='rest')
-    models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
+    models_to_try = [
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.8-flash',
+        'gemini-flash-latest'
+    ]
     res_text = None
     for m in models_to_try:
         try:
@@ -1049,7 +1056,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
                 m,
                 generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
             )
-            res = model.generate_content(prompt, request_options={"timeout": 8})
+            res = model.generate_content(prompt, request_options={"timeout": 25})
             if res and res.text:
                 res_text = res.text
                 break
@@ -2094,14 +2101,20 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 }"""
 
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
+            models_to_try = [
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.8-flash',
+        'gemini-flash-latest'
+    ]
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
                         model_name=m,
                         generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
                     )
-                    res = model.generate_content([audio_prompt, audio_part], request_options={"timeout": 6})
+                    res = model.generate_content([audio_prompt, audio_part], request_options={"timeout": 20})
                     if res and res.text:
                         clean_text = res.text.replace('```json', '').replace('```', '').strip()
                         parsed = json.loads(clean_text)
@@ -2294,11 +2307,13 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 # -------------------------------------------------------------------------
     # NEXT-LEVEL ENTERPRISE CAPABILITIES: COMPARISONS & LIVE RICH TABLES
     # -------------------------------------------------------------------------
-    is_comparison = any(k in lower_msg for k in [
+    is_app_keyword = any(k in lower_msg for k in [
+        'app', 'ॲप', 'अ‍ॅप', 'application', 'ॲप्लिकेशन', 'सॉफ्टवेअर', 'software',
+        'vernaledger', 'khatabook', 'खाताबुक', 'vyapar', 'व्यापार', 'पारंपारिक'
+    ])
+    is_comparison = is_app_keyword and any(k in lower_msg for k in [
         'farak', 'फरक', 'tulna', 'तुलना', 'difference', 'comparison', 'vs', 'versus',
-        'इतर ॲप', 'इतर ॲप्लिकेशन', 'itar app', 'itar application', 'traditional app', 'other app',
-        'khatabook', 'vyapar', 'सामान्य ॲप', 'सामान्य ॲप्लिकेशन', 'इतर ॲप्स', 'इतर सॉफ्टवेअर',
-        'other software', 'इतर ॲप्स मध्ये', 'इतर ॲप्स पेक्षा', 'ॲप मधील फरक', 'ॲप्स मधील फरक'
+        'इतर ॲप', 'traditional app', 'other app', 'सामान्य ॲप', 'इतर ॲप्स', 'ॲप मधील फरक'
     ])
 
     is_table_query = any(t in lower_msg for t in ['table', 'तक्ता', 'तक्त्यात', 'तक्त्यामध्ये', 'chart', 'grid', 'तक्त्या'])
@@ -3042,7 +3057,13 @@ You possess two core intelligence systems:
     if not answer and api_key and genai:
         try:
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
+            models_to_try = [
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.8-flash',
+        'gemini-flash-latest'
+    ]
             for m in models_to_try:
                 try:
                     max_tokens = 1200 if is_detailed else 500
@@ -3064,7 +3085,7 @@ You possess two core intelligence systems:
                             if txt:
                                 prompt_parts.append(f"[{'User' if r == 'user' else 'Verna AI'}]: {txt}")
                     prompt_parts.append(f"[Current User Query]: {user_msg}")
-                    res = model.generate_content(prompt_parts, request_options={"timeout": 4})
+                    res = model.generate_content(prompt_parts, request_options={"timeout": 25})
                     if res and res.text:
                         answer = res.text.strip()
                         break
