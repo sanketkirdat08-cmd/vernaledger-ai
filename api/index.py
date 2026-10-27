@@ -25,7 +25,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 try:
     import google.generativeai as genai
@@ -228,22 +228,71 @@ def get_backup_api_key() -> str:
     except Exception:
         return ""
 
-def get_api_key() -> str:
-    key = os.getenv("GEMINI_API_KEY", "").strip()
-    if key and not key.startswith("PASTE_YOUR_"):
-        return key
+OCR_MODELS = [
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-flash-latest',
+    'gemini-1.5-pro'
+]
+
+def get_api_keys_pool() -> List[str]:
+    """Retrieve unique API keys from environment, secrets, shop settings, and fallbacks."""
+    keys = []
+    # 1. Check GEMINI_API_KEYS (comma, space, or newline separated)
+    raw_env = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
+    for k in re.split(r'[,;\s]+', raw_env):
+        k = k.strip()
+        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+            keys.append(k)
+
+    # 2. Check numbered keys GEMINI_API_KEY_1..5
+    for i in range(1, 6):
+        k = os.getenv(f"GEMINI_API_KEY_{i}", "").strip()
+        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+            keys.append(k)
+
+    # 3. Check Streamlit secrets.toml
     secrets_path = os.path.join(ROOT_DIR, ".streamlit", "secrets.toml")
-    try:
-        if os.path.exists(secrets_path):
+    if os.path.exists(secrets_path):
+        try:
             import tomllib
-            with open(secrets_path, "rb") as secrets_file:
-                secrets = tomllib.load(secrets_file)
-            key = str(secrets.get("GEMINI_API_KEY", "")).strip()
-            if key and not key.startswith("PASTE_YOUR_"):
-                return key
-    except (OSError, ValueError) as exc:
-        logger.warning("Could not read local API configuration: %s", exc)
-    return get_backup_api_key()
+            with open(secrets_path, "rb") as sf:
+                sec = tomllib.load(sf)
+                for kname in ["GEMINI_API_KEY", "GEMINI_API_KEYS", "BACKUP_GEMINI_KEY"]:
+                    val = str(sec.get(kname, "")).strip()
+                    for k in re.split(r'[,;\s]+', val):
+                        k = k.strip()
+                        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+                            keys.append(k)
+        except Exception:
+            pass
+
+    # 4. Check shop_settings database table for merchant custom key
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT value FROM shop_settings WHERE key = 'gemini_api_key'").fetchone()
+        conn.close()
+        if row and row["value"]:
+            cust_k = str(row["value"]).strip()
+            if cust_k and cust_k not in keys:
+                keys.insert(0, cust_k)
+    except Exception:
+        pass
+
+    # 5. Backup built-in key
+    backup = get_backup_api_key()
+    if backup and backup not in keys:
+        keys.append(backup)
+
+    return keys
+
+def get_api_key() -> str:
+    pool = get_api_keys_pool()
+    return pool[0] if pool else ""
+
 
 def get_cloud_vision_client():
     if not vision:
@@ -606,6 +655,48 @@ def normalize_devanagari_digits(text: str) -> str:
     devanagari_map = str.maketrans('०१२३४५६७८९', '0123456789')
     return str(text).translate(devanagari_map)
 
+def parse_receipt_text_locally(text: str, today_str: str) -> dict:
+    if not text:
+        return {}
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    items = []
+    total_val = 0.0
+    vendor = "किराणा पावती"
+
+    for idx, l in enumerate(lines):
+        if idx == 0 and len(l) < 30 and not any(ch.isdigit() for ch in l):
+            vendor = l
+            continue
+
+        digits = re.findall(r'[\d.]+', normalize_devanagari_digits(l))
+        if digits:
+            try:
+                amt = float(digits[-1].replace(',', ''))
+                item_name = re.sub(r'[\d.]+', '', l).strip()
+                if not item_name:
+                    item_name = f"आयटम #{len(items)+1}"
+                if amt > 0 and len(item_name) > 1:
+                    items.append({
+                        "item_name": item_name[:35],
+                        "quantity": "1 नग",
+                        "rate": amt,
+                        "total_price": amt
+                    })
+                    total_val += amt
+            except Exception:
+                pass
+
+    if not items:
+        return {}
+
+    return {
+        "vendor_name": vendor,
+        "date": today_str,
+        "category": "General",
+        "items": items,
+        "grand_total": round(total_val, 2)
+    }
+
 def clean_json_str(text: str) -> dict:
     if not text:
         return {}
@@ -743,11 +834,15 @@ async def _execute_ocr(file: UploadFile):
 
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
-        img.thumbnail((1280, 1280), Image.Resampling.BILINEAR)
+        # Optimal 1280 max dimension for speed and precision
+        img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+        # Apply gentle contrast and sharpness boost for faint handwriting on Indian Kirana slips
+        enh_c = ImageEnhance.Contrast(img)
+        img = enh_c.enhance(1.15)
+        enh_s = ImageEnhance.Sharpness(img)
+        img = enh_s.enhance(1.20)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
-
-    genai.configure(api_key=api_key, transport='rest')
     prompt = """You are VernaLedger Smart Scanner, a production-grade multilingual handwriting and receipt reader.
 
 Use Gemini's native multimodal vision pipeline: understand the image and this instruction
@@ -788,65 +883,74 @@ Return strictly valid JSON only:
   "grand_total": 0.0
 }"""
 
-    models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+    api_keys = get_api_keys_pool()
     response = None
     last_err = None
+    today_str = date.today().strftime("%Y-%m-%d")
 
-    for m in models_to_try:
+    # Multi-Key & Multi-Model Cascade: automatically bypasses 429 quota exhaustion
+    for key in api_keys:
         try:
-            model = genai.GenerativeModel(
-                m,
-                generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
-            )
-            res = model.generate_content([prompt, img], request_options={"timeout": 15})
-            if res and res.text:
-                response = res.text
-                break
-        except Exception as exc:
-            logger.warning(f"Fast OCR model {m} attempt notice: {exc}")
-            last_err = exc
+            genai.configure(api_key=key, transport='rest')
+        except Exception as cfg_err:
+            logger.warning(f"Key config notice: {cfg_err}")
             continue
 
-    today_str = date.today().strftime("%Y-%m-%d")
+        for m in OCR_MODELS:
+            try:
+                model = genai.GenerativeModel(
+                    m,
+                    generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+                )
+                res = model.generate_content([prompt, img], request_options={"timeout": 8})
+                if res and res.text:
+                    response = res.text
+                    break
+            except Exception as exc:
+                err_str = str(exc)
+                logger.warning(f"Fast OCR model {m} notice: {err_str[:120]}")
+                last_err = exc
+                continue
+        if response:
+            break
+
+    # Cloud Vision Fallback with Local Heuristic Parsing
     if not response:
         try:
             vision_text = run_cloud_vision_ocr(contents)
-        except Exception as vision_error:
-            logger.error("Cloud Vision fallback failed: %s", vision_error, exc_info=True)
-            raise HTTPException(
-                status_code=502,
-                detail=f"Gemini and Cloud Vision could not read this image: {last_err}"
-            ) from vision_error
-        if not vision_text:
-            raise HTTPException(
-                status_code=502,
-                detail="Gemini and Cloud Vision returned no readable text from this image."
-            )
-        fallback_prompt = f"""Convert this Cloud Vision OCR text from a Marathi/Hindi/English retail receipt
-into strict valid JSON. Use only the text provided; do not invent values. Return this exact schema:
-{{"vendor_name":"string","date":"YYYY-MM-DD","category":"General","items":[
-{{"item_name":"string","quantity":"string","rate":0.0,"total_price":0.0}}],"grand_total":0.0}}
-OCR text:
-{vision_text}"""
-        for model_name in models_to_try:
-            try:
-                fallback_model = genai.GenerativeModel(
-                    model_name,
-                    generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
-                )
-                fallback_result = fallback_model.generate_content(fallback_prompt, request_options={"timeout": 15})
-                if fallback_result and fallback_result.text:
-                    response = fallback_result.text
-                    break
-            except Exception:
-                continue
-        if not response:
-            raise HTTPException(
-                status_code=502,
-                detail="Cloud Vision extracted text, but Gemini could not structure it into a bill."
-            )
+            if vision_text:
+                local_parsed = parse_receipt_text_locally(vision_text, today_str)
+                if local_parsed and local_parsed.get("items"):
+                    data = local_parsed
+                    response = "LOCAL_VISION"
+        except Exception as v_err:
+            logger.warning(f"Cloud Vision fallback notice: {v_err}")
 
-    data = clean_json_str(response)
+    # Graceful Rate Limit Handling: Never crash with raw 502 dialog!
+    if not response:
+        is_quota = any(w in str(last_err).lower() for w in ["429", "quota", "resourceexhausted", "limit", "exceeded"])
+        warn_msg = (
+            "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा किंवा खालील पावती भरा."
+            if is_quota else
+            "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात फोटो काढून पुन्हा प्रयत्न करा."
+        )
+        return {
+            "success": False,
+            "rate_limited": is_quota,
+            "warning": warn_msg,
+            "data": {
+                "vendor_name": "किराणा पावती",
+                "date": today_str,
+                "category": "General",
+                "items": [
+                    {"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 0.0, "total_price": 0.0}
+                ],
+                "grand_total": 0.0
+            }
+        }
+
+    if response != "LOCAL_VISION":
+        data = clean_json_str(response)
     if not data or not data.get("items"):
         raise HTTPException(
             status_code=502,
@@ -957,7 +1061,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 }}"""
 
     genai.configure(api_key=api_key, transport='rest')
-    models_to_try = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+    models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
     res_text = None
     for m in models_to_try:
         try:
@@ -2010,7 +2114,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 }"""
 
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite']
+            models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
@@ -2958,7 +3062,7 @@ You possess two core intelligence systems:
     if not answer and api_key and genai:
         try:
             genai.configure(api_key=api_key, transport='rest')
-            models_to_try = ['gemini-3.8-flash', 'gemini-flash-latest']
+            models_to_try = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash-8b', 'gemini-flash-latest']
             for m in models_to_try:
                 try:
                     max_tokens = 1200 if is_detailed else 500

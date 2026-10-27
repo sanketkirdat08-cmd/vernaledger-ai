@@ -1204,6 +1204,70 @@ document.addEventListener("DOMContentLoaded", () => {
 // AUTHENTICATION
 // -----------------------------------------------------------------------------
 // Universal API Fetcher with automatic prefix fallback (/api/* <-> /*)
+// -----------------------------------------------------------------------------
+// CYBERPUNK TOAST NOTIFICATION ENGINE (REPLACES BLOCKING MODAL ALERTS)
+// -----------------------------------------------------------------------------
+function showToast(message, type = "info", duration = 3500) {
+    try {
+        let container = document.getElementById("verna-toast-container");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "verna-toast-container";
+            container.style.cssText = "position:fixed;top:20px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;max-width:min(92vw,420px);pointer-events:none;";
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement("div");
+        toast.style.cssText = "pointer-events:auto;background:rgba(15,23,42,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:12px;padding:12px 16px;font-size:0.84rem;font-weight:600;line-height:1.45;display:flex;align-items:center;gap:10px;box-shadow:0 12px 30px rgba(0,0,0,0.6);transition:all 0.3s cubic-bezier(0.16,1,0.3,1);opacity:0;transform:translateY(-15px);cursor:pointer;";
+
+        let borderCol = "#00f2fe";
+        let textCol = "#e0f2fe";
+        let icon = "ℹ️";
+
+        if (type === "success") {
+            borderCol = "#10b981";
+            textCol = "#a7f3d0";
+            icon = "✅";
+            toast.style.boxShadow = "0 0 20px rgba(16,185,129,0.25)";
+        } else if (type === "warning") {
+            borderCol = "#f59e0b";
+            textCol = "#fde68a";
+            icon = "⚠️";
+            toast.style.boxShadow = "0 0 20px rgba(245,158,11,0.25)";
+        } else if (type === "error") {
+            borderCol = "#ef4444";
+            textCol = "#fca5a5";
+            icon = "❌";
+            toast.style.boxShadow = "0 0 20px rgba(239,68,68,0.25)";
+        }
+
+        toast.style.border = `1px solid ${borderCol}`;
+        toast.style.color = textCol;
+        toast.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">${icon}</span><span style="flex:1;">${message}</span>`;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity = "1";
+            toast.style.transform = "translateY(0)";
+        });
+
+        const timer = setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(-15px)";
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+
+        toast.onclick = () => {
+            clearTimeout(timer);
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(-15px)";
+            setTimeout(() => toast.remove(), 300);
+        };
+    } catch (e) {
+        console.log("Toast fallback:", message);
+    }
+}
+
 async function apiCall(endpoint, options = {}) {
     try {
         const res = await fetch(endpoint, options);
@@ -1625,6 +1689,16 @@ async function submitReceiptOCR() {
             throw new Error(`अवैध सर्व्हर रिस्पॉन्स.`);
         }
 
+        if (json && (json.rate_limited || res.status === 429)) {
+            if (json.data) {
+                state.currentBillId = json.data.id || null;
+                state.currentBill = json.data;
+                populateBillCard(json.data);
+            }
+            showToast(json.warning || "⚠️ AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Google Rate Limit). कृपया काही सेकंद थांबा किंवा खाली पावती भरा.", "warning", 5000);
+            return;
+        }
+
         if (!res.ok || !json.data) {
             throw new Error(json.detail || json.error || "OCR स्कॅनिंग अयशस्वी झाले.");
         }
@@ -1634,17 +1708,22 @@ async function submitReceiptOCR() {
         populateBillCard(json.data);
 
         if (json.duplicate) {
-            alert("⚠️ दुबार पावती: " + (json.warning || "ही पावती आधीच लेजरमध्ये नोंदवलेली आहे. दुबार नोंद टाळली गेली आहे."));
+            showToast("⚠️ दुबार पावती: " + (json.warning || "ही पावती आधीच लेजरमध्ये नोंदवलेली आहे."), "warning", 4500);
         } else {
             VernaStorage.addReceipt(json.data);
-            alert("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!");
+            showToast("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);
         }
 
         loadDashboardMetrics();
         loadReceiptsLedger();
     } catch (err) {
         console.error("OCR Error:", err);
-        alert("OCR एरर: " + err.message);
+        const errMsg = String(err.message || err || "");
+        if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("Rate Limit") || errMsg.includes("exceeded") || errMsg.includes("502")) {
+            showToast("⚠️ AI सर्व्हरवर तात्पुरती गर्दी आहे (Google Rate Limit). कृपया काही सेकंद थांबा आणि पुन्हा स्कॅन करा.", "warning", 5000);
+        } else {
+            showToast("❌ OCR स्कॅनिंग अयशस्वी: " + (errMsg.length > 80 ? errMsg.substring(0, 80) + "..." : errMsg), "error", 4500);
+        }
     } finally {
         isOcrScanning = false;
         if (loader) loader.style.display = "none";
