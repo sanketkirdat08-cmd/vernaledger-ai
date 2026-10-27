@@ -2942,7 +2942,10 @@ function prepareClientSpeech(audio_text) {
     clean = clean.replace(/\bSakshi\s+Bhagat\b/gi, "साक्षी भगत");
     clean = clean.replace(/\bVaishnavi\s+(?:Dhavale|Dhawale)\b/gi, "वैष्णवी ढव्-ळे");
     clean = clean.replace(/\bRushikesh\s+Mulik\b/gi, "ऋषिकेश मुळीक");
-    clean = clean.replace(/\b(?:Prof\.?\s*)?Kaisar\s+(?:Atar|Attar)(?:\s+Sir)?\b/gi, "प्राध्यापक कै-सर अतार सर");
+    clean = clean.replace(/\b(?:Prof\.?\s*|Mr\.?\s*)?Kaisar\s+(?:Atar|Attar)(?:\s+Sir)?\b/gi, "श्री कै-सर अतार");
+    clean = clean.replace(/\b(?:Dr\.?\s*)?S\.?\s*Y\.?\s*Mulla\b/gi, "डॉक्टर एस. वाय. मुल्ला");
+    clean = clean.replace(/\bHead\s+of\s+Department\b/gi, "विभागप्रमुख");
+    clean = clean.replace(/\bHOD\b/gi, "विभागप्रमुख");
     clean = clean.replace(/\bArvind\s+Gavali(?:\s+College(?:\s+of\s+Engineering)?)?\b/gi, "अरविंद गव्-ळी कॉलेज");
     clean = clean.replace(/\bLead\s+Developer\b/gi, "प्रमुख विकासक");
     clean = clean.replace(/\bProject\s+Guide\b/gi, "प्रकल्प मार्गदर्शक");
@@ -3004,6 +3007,8 @@ function autoCorrectMarathiSpeech(text) {
         [/\bsatha\b/gi, "साठा"],
         [/\bkaise?r\s+atar\b/gi, "कैसर अतार"],
         [/\batar\s+sir\b/gi, "अतार सर"],
+        [/\b(?:mr\.?\s*)?kaisar\s+atar\b/gi, "श्री कैसर अतार"],
+        [/\b(hod|head of department|vibhang pramukh|mulla sir)\b/gi, "विभागप्रमुख डॉ. एस. वाय. मुल्ला"],
         [/\battar\b/gi, "अतार"],
         [/\bअत्तार\b/g, "अतार"],
         [/\bधवले\b/g, "ढवळे"],

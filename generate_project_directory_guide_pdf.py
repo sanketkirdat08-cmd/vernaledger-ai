@@ -224,7 +224,11 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
           <td style="font-weight:700; color:#0369a1; border:none; padding:2px 4px;">👨‍🏫 प्रकल्प मार्गदर्शक:</td>
-          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 4px;">प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir) <span class="pill pill-slate">Dept of AI & DS, AGCE Satara</span></td>
+          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 4px;">श्री. कैसर अत्तार (Mr. Kaisar Atar) <span class="pill pill-slate">Dept of AI & DS, AGCE Satara</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700; color:#0369a1; border:none; padding:2px 4px;">🏛️ विभागप्रमुख (HOD):</td>
+          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 4px;">डॉ. एस. वाय. मुल्ला (Dr. S. Y. Mulla) <span class="pill pill-slate">Head of Department (AI & DS), AGCE Satara</span></td>
         </tr>
         <tr>
           <td style="font-weight:700; color:#0369a1; border:none; padding:4px 4px; vertical-align:top;">👨‍💻 प्रकल्प डेव्हलपर्स व कार्यविभागणी:</td>

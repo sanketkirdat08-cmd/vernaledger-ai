@@ -234,7 +234,8 @@ Environment Variables for Production, Preview, and Development as appropriate.
 
 This project was developed by the B.Tech Final Year Engineering Team at **Arvind Gavali College of Engineering, Satara (AGCE Satara)**, affiliated with **Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere**:
 
-* 🎓 **Project Guide:** **Prof. Kaisar Atar Sir** (*प्रा. कैसर अत्तार सर*) — Department of AI & DS
+* 🎓 **Project Guide:** **Mr. Kaisar Atar** (*श्री. कैसर अत्तार*) — Department of AI & DS
+* 🏛️ **Head of Department (HOD):** **Dr. S. Y. Mulla** (*डॉ. एस. वाय. मुल्ला*) — Department of AI & DS
 * 💻 **Project Development Team:**
   * 👑 **Sanket Kirdat** (*संकेत किर्दत*) — **Roll No: 4060 | PRN: 24065451263508** — **Team Leader & AI Developer**
   * 🎨 **Sakshi Bhagat** (*साक्षी भगत*) — **Roll No: 4054 | PRN: 24065451263502** — **Frontend & UI Developer**

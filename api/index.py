@@ -2193,6 +2193,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     is_bhagat = any(k in lower_msg for k in ['bhagat', 'भगत', 'sakshi', 'साक्षी'])
     is_dhawale = any(k in lower_msg for k in ['dhawale', 'ढवळे', 'vaishnavi', 'वैष्णवी'])
     is_atar = any(k in lower_msg for k in ['guide', 'मार्गदर्शक', 'गाईड', 'अत्तार', 'attar', 'atar', 'कैसर', 'kaisar', 'सर कोण']) and not any(k in lower_msg for k in ['डेव्हलपर', 'developer', 'टीम', 'team'])
+    is_hod = any(k in lower_msg for k in ['hod', 'एचओडी', 'एच ओ डी', 'विभाग प्रमुख', 'विभागप्रमुख', 'head of department', 'mulla', 'मुल्ला'])
     
     # Check if user specifically asked for Sanket Kirdat individually vs whole team
     is_kirdat_individual = (any(k in lower_msg for k in ['kirdat', 'किर्दत', 'sanket kirdat', 'संकेत किर्दत']) or any(k in lower_msg for k in ['sanket', 'संकेत'])) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची', 'डेवलपर', 'डेव्हलपर', 'developer']) and not any(k in lower_msg for k in ['सर्व', 'सगळे', 'पूर्ण', 'संपूर्ण', 'all', 'team', 'टीम', 'जेवढे', 'इतर', 'नावे', 'सगळ्यांची'])
@@ -2236,7 +2237,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 🏛️ **Academic Dossier (AGCE Satara)**:
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-• **Project Guide:** Prof. Kaisar Atar Sir
+• **Project Guide:** Mr. Kaisar Atar
 • **Development Team:** 1. Sanket Kirdat (Team Leader & AI Developer), 2. Sakshi Bhagat (Frontend & UI Developer), 3. Vaishnavi Dhavale (Voice Billing & AI Developer), 4. Rushikesh Mulik (Backend & Database Developer)."""
         elif is_hindi:
             answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) बनाम अन्य सामान्य ऐप्स (तुलना तालिका)**:
@@ -2255,7 +2256,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 🏛️ **शैक्षणिक विवरण**:
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Department of AI & DS)
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Department of AI & DS)
 • **डेवलपमेंट टीम:** १. संकेत किर्दत (Team Leader & AI Developer), २. साक्षी भगत (Frontend & UI Developer), ३. वैष्णवी ढवळे (Voice Billing & AI Developer), ४. ऋषिकेश मुळीक (Backend & Database Developer)."""
         else:
             answer = """🎯 **VernaLedger.AI (Merchant Pro v7.5) वि. इतर सामान्य ॲप्लिकेशन्स (तुलना तक्ता)**:
@@ -2271,7 +2272,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 | 🖨️ **हार्डवेअर सुसंगतता** | **५८mm थर्मल प्रिंटर (ESC/POS)** व १-क्लिक **Excel (.xlsx) डेटा एक्सपोर्ट**. | ⚠️ अतिरिक्त शुल्क किंवा प्रिंटर सपोर्ट मर्यादित. |
 | 🔒 **डेटा सुरक्षा & स्वातंत्र्य** | **ACID-Compliant SQLite:** संपूर्ण डेटा व्यापाऱ्याच्या नियंत्रणात, सुरक्षित व खाजगी. | ⚠️ क्लाउड व्हेंडर लॉक-इन व डेटा प्रायव्हसी धोके. |
 
-आमचा हा नाविन्यपूर्ण प्रकल्प **अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग (AGCE), सातारा** येथील **प्रा. कैसर अत्तार सर** यांच्या मार्गदर्शनाखाली खालील अंतिम वर्ष B.Tech (AI & DS) टीमने विकसित केला आहे:
+आमचा हा नाविन्यपूर्ण प्रकल्प **अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग (AGCE), सातारा** येथील **श्री. कैसर अत्तार** यांच्या मार्गदर्शनाखाली खालील अंतिम वर्ष B.Tech (AI & DS) टीमने विकसित केला आहे:
 १. **संकेत किर्दत (Team Leader & AI Developer)** [रोल: 4060 | PRN: 24065451263508]
 २. **साक्षी भगत (Frontend & UI Developer)** [रोल: 4054 | PRN: 24065451263502]
 ३. **वैष्णवी ढवळे (Voice Billing & AI Developer)** [रोल: 4056 | PRN: 24065451263504]
@@ -2289,7 +2290,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 | 3 | **Vaishnavi Dhavale** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
 | 4 | **Rushikesh Mulik** | 4004 | 23065451263005 | **Backend & Database Developer** |
 
-• **Project Guide:** Prof. Kaisar Atar Sir
+• **Project Guide:** Mr. Kaisar Atar
 • **Department:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
@@ -2303,7 +2304,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 | ३ | **वैष्णवी ढवळे (Vaishnavi Dhavale)** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
 | ४ | **ऋषिकेश मुळीक (Rushikesh Mulik)** | 4004 | 23065451263005 | **Backend & Database Developer** |
 
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **विभाग:** कृत्रिम बुद्धिमत्ता और डेटा साइंस (Department of AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)"""
@@ -2317,7 +2318,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 | ३ | **वैष्णवी ढवळे (Vaishnavi Dhavale)** | 4056 | 24065451263504 | **Voice Billing & AI Developer** |
 | ४ | **ऋषिकेश मुळीक (Rushikesh Mulik)** | 4004 | 23065451263005 | **Backend & Database Developer** |
 
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Department of AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
@@ -2449,7 +2450,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-• **Project Guide:** Prof. Kaisar Atar Sir"""
+• **Project Guide:** Mr. Kaisar Atar"""
         elif is_hindi:
             answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
 • **रोल नंबर (Roll No):** 4004
@@ -2459,7 +2460,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
         else:
             answer = """👨‍💻 **ऋषिकेश मुळीक (Rushikesh Mulik)**:
 • **रोल नंबर (Roll No):** 4004
@@ -2469,7 +2470,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
 
     elif is_bhagat and not is_all_devs_query:
         if is_english:
@@ -2481,7 +2482,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-• **Project Guide:** Prof. Kaisar Atar Sir"""
+• **Project Guide:** Mr. Kaisar Atar"""
         elif is_hindi:
             answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
 • **रोल नंबर (Roll No):** 4054
@@ -2491,7 +2492,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
         else:
             answer = """👩‍💻 **साक्षी भगत (Sakshi Bhagat)**:
 • **रोल नंबर (Roll No):** 4054
@@ -2501,7 +2502,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
 
     elif is_dhawale and not is_all_devs_query:
         if is_english:
@@ -2513,7 +2514,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-• **Project Guide:** Prof. Kaisar Atar Sir"""
+• **Project Guide:** Mr. Kaisar Atar"""
         elif is_hindi:
             answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhavale)**:
 • **रोल नंबर (Roll No):** 4056
@@ -2523,7 +2524,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
         else:
             answer = """👩‍💻 **वैष्णवी ढवळे (Vaishnavi Dhavale)**:
 • **रोल नंबर (Roll No):** 4056
@@ -2533,7 +2534,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
 
     elif is_kirdat_individual and not is_all_devs_query:
         if is_english:
@@ -2545,7 +2546,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Department:** B.Tech Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 • **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
-• **Project Guide:** Prof. Kaisar Atar Sir"""
+• **Project Guide:** Mr. Kaisar Atar"""
         elif is_hindi:
             answer = """👨‍💻 **संकेत किर्दत (Sanket Kirdat)**:
 • **रोल नंबर (Roll No):** 4060
@@ -2555,7 +2556,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 • **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)
-• **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
         else:
             answer = """👨‍💻 **संकेत किर्दत (Sanket Kirdat)**:
 • **रोल नंबर (Roll No):** 4060
@@ -2565,11 +2566,34 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **विभाग:** B.Tech कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (AI & DS)
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
+
+    elif is_hod:
+        if is_english:
+            answer = """🏛️ **Head of Department (HOD)**:
+• **HOD Name:** Dr. S. Y. Mulla
+• **Designation:** Head of Department (AI & DS)
+• **Department:** Department of Artificial Intelligence & Data Science
+• **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
+• **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
+        elif is_hindi:
+            answer = """🏛️ **विभागप्रमुख (Head of Department - HOD)**:
+• **विभागप्रमुख:** डॉ. एस. वाय. मुल्ला (Dr. S. Y. Mulla)
+• **पद:** विभाग प्रमुख (Head of Department - AI & DS)
+• **विभाग:** आर्टिफिशियल इंटेलिजेंस और डेटा साइंस (AI & DS)
+• **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
+• **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)"""
+        else:
+            answer = """🏛️ **विभागप्रमुख (Head of Department - HOD)**:
+• **विभागप्रमुख:** डॉ. एस. वाय. मुल्ला (Dr. S. Y. Mulla)
+• **पद:** विभागप्रमुख (Head of Department - AI & DS)
+• **विभाग:** कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स (Department of AI & DS)
+• **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
+• **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
 
     elif is_atar:
         if is_english:
-            answer = """🎓 **Prof. Kaisar Atar Sir (Project Guide)**:
+            answer = """🎓 **Mr. Kaisar Atar (Project Guide)**:
 • **Designation:** Project Guide & Faculty Member
 • **Department:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
@@ -2577,7 +2601,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Project Guided:** VernaLedger.AI (Merchant Pro v7.5)"""
         elif is_hindi:
             answer = """🎓 **प्रोजेक्ट मार्गदर्शक (Project Guide)**:
-• **मार्गदर्शक प्राध्यापक:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **पद:** प्रोजेक्ट गाइड व फैकल्टी
 • **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
@@ -2585,7 +2609,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **मार्गदर्शित प्रोजेक्ट:** VernaLedger.AI (Merchant Pro v7.5)"""
         else:
             answer = """🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
-• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **विभाग:** Department of Artificial Intelligence & Data Science (AI & DS)
 • **संस्था:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
@@ -2602,7 +2626,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 3. **Vaishnavi Dhavale** [Roll: 4056 | PRN: 24065451263504] – Voice Billing & AI Developer
 4. **Rushikesh Mulik** [Roll: 4004 | PRN: 23065451263005] – Backend & Database Developer
 
-🎓 **Project Guide:** Prof. Kaisar Atar Sir
+🎓 **Project Guide:** Mr. Kaisar Atar
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)"""
             elif is_hindi:
                 answer = """👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम (Project Team)**:
@@ -2611,7 +2635,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** [रोल: 4056 | PRN: 24065451263504] – वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
 ४. **ऋषिकेश मुळीक (Rushikesh Mulik)** [रोल: 4004 | PRN: 23065451263005] – बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
 
-🎓 **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🎓 **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 🏛️ **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)"""
             else:
                 answer = """👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team)**:
@@ -2620,7 +2644,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** [रोल: 4056 | PRN: 24065451263504] – व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
 ४. **ऋषिकेश मुळीक (Rushikesh Mulik)** [रोल: 4004 | PRN: 23065451263005] – बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
 
-🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🎓 **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)"""
         else:
             if is_english:
@@ -2630,7 +2654,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 3. **Vaishnavi Dhavale** (Roll: 4056 | PRN: 24065451263504) – Voice Billing & AI Developer
 4. **Rushikesh Mulik** (Roll: 4004 | PRN: 23065451263005) – Backend & Database Developer
 
-🎓 **Project Guide:** Prof. Kaisar Atar Sir
+🎓 **Project Guide:** Mr. Kaisar Atar
 🏛️ **College:** Arvind Gavali College of Engineering, Satara (AGCE Satara)
 🏛️ **University:** Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere"""
             elif is_hindi:
@@ -2640,7 +2664,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – वॉइस बिलिंग व AI डेवलपर (Voice Billing & AI Developer)
 ४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बैकएंड व डेटाबेस डेवलपर (Backend & Database Developer)
 
-🎓 **प्रोजेक्ट गाइड:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🎓 **प्रोजेक्ट गाइड:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 🏛️ **महाविद्यालय:** अरविंद गवली कॉलेज ऑफ इंजीनियरिंग, सातारा (AGCE Satara)
 🏛️ **विश्वविद्यालय:** डॉ. बाबासाहेब आंबेडकर तकनीकी विश्वविद्यालय, लोनेरे (DBATU)"""
             else:
@@ -2650,7 +2674,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 ३. **वैष्णवी ढवळे (Vaishnavi Dhavale)** (Roll: 4056 | PRN: 24065451263504) – व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing & AI Developer)
 ४. **ऋषिकेश मुळीक (Rushikesh Mulik)** (Roll: 4004 | PRN: 23065451263005) – बॅकएंड व डेटाबेस डेव्हलपर (Backend & Database Developer)
 
-🎓 **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+🎓 **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 🏛️ **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 🏛️ **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)"""
 
@@ -2663,7 +2687,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **महाविद्यालयाचे नाव:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering, Satara - AGCE)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU University, Lonere)
 • **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)"""
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)"""
 
     # D. Full Project Dossier (Triggered for 'project baddal mahiti sanga', 'project chi mahiti sanga', etc.)
     elif (any(p in lower_msg for p in ['प्रकल्प', 'प्रकल्पा', 'प्रोजेक्ट', 'project', 'vernaledger', 'सॉफ्टवेअर', 'software', 'सिस्टीम', 'system']) and any(k in lower_msg for k in ['सर्व माहिती', 'पूर्ण माहिती', 'सविस्तर माहिती', 'संपूर्ण माहिती', 'माहिती सांगा', 'माहिती द्या', 'माहिती', 'mahiti', 'info', 'details', 'about', 'overview', 'उद्दिष्ट', 'हेतू', 'वैशिष्ट्य', 'baddal', 'vishayi', 'sanga', 'dya', 'काय आहे', 'kay ahe', 'chi mahiti', 'baddal mahiti'])) or any(k in lower_msg for k in ['project details', 'about project', 'clg developer', 'college developer', 'प्रकल्प माहिती', 'प्रोजेक्ट माहिती', 'project mahiti', 'project baddal']):
@@ -2677,7 +2701,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 • **Academic Year:** 2026 - 2027
 
 🎓 **Project Guide**:
-• **Faculty Guide:** Prof. Kaisar Atar Sir (Department of AI & DS, AGCE Satara)
+• **Faculty Guide:** Mr. Kaisar Atar (Department of AI & DS, AGCE Satara)
 
 👨‍💻 **Project Development Team (All 4 Developers)**:
 1. **Sanket Kirdat** (Roll: 4060 | PRN: 24065451263508) – Team Leader & AI Developer
@@ -2702,7 +2726,7 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 • **शैक्षणिक वर्ष:** 2026 - 2027
 
 🎓 **प्रोजेक्ट मार्गदर्शक (Project Guide)**:
-• **मार्गदर्शक प्राध्यापक:** प्रो. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **विभाग:** Department of AI & DS, AGCE Satara
 
 👨‍💻 **प्रोजेक्ट डेवलपमेंट टीम (सभी 4 डेवलपर्स)**:
@@ -2728,7 +2752,7 @@ A next-generation AI-powered billing & digital ledger platform built for retail 
 • **शैक्षणिक वर्ष:** २०२६ – २०२७ (2026 - 2027)
 
 🎓 **प्रकल्प मार्गदर्शक (Project Guide)**:
-• **मार्गदर्शक प्राध्यापक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **विभाग:** Department of Artificial Intelligence & Data Science, AGCE Satara
 
 👨‍💻 **प्रकल्प डेव्हलपमेंट टीम (Project Team Members - सर्व ४ डेव्हलपर्स)**:
@@ -2885,7 +2909,7 @@ You possess two core intelligence systems:
    - College: Arvind Gavali College of Engineering, Satara (AGCE Satara)
    - University: Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
    - Academic Year: 2026 - 2027
-   - Project Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara)
+   - Project Guide: Mr. Kaisar Atar (Dept of AI & DS, AGCE Satara)
    - Complete Development Team (All 4 Developers):
      1. Sanket Kirdat (Roll: 4060 | PRN: 24065451263508) - Team Leader & AI Developer
      2. Sakshi Bhagat (Roll: 4054 | PRN: 24065451263502) - Frontend & UI Developer
@@ -2896,7 +2920,7 @@ You possess two core intelligence systems:
      2. Sakshi Bhagat - Frontend & UI Developer (Roll: 4054, PRN: 24065451263502)
      3. Vaishnavi Dhavale - Voice Billing & AI Developer (Roll: 4056, PRN: 24065451263504)
      4. Rushikesh Mulik - Backend & Database Developer (Roll: 4004, PRN: 23065451263005)
-     And Project Guide: Prof. Kaisar Atar Sir (Dept of AI & DS, AGCE Satara, DBATU Lonere). Never alter or omit any role or member.
+     And Project Guide: Mr. Kaisar Atar (Dept of AI & DS, AGCE Satara, DBATU Lonere). Never alter or omit any role or member.
    - LANGUAGE INSTRUCTION: When responding in Marathi, write in pure Devanagari Marathi even if the user typed their question using English/Roman alphabet (e.g. 'mulik', 'project baddal sanga').
    - 5 Scanner Pillars: Vision Transformers (ViT), Native Multimodal AI, Google TPU Cloud, Context-Aware Attention, Google Cloud Vision / Document AI Fallback.
    - 4 Chatbot Pillars: Native Multimodal Architecture, High-Accuracy Vernacular ASR, Transformer LLM Reasoning (Zero-Hallucination), Low Latency Engine (SQLite ACID WAL).
@@ -2974,7 +2998,7 @@ You possess two core intelligence systems:
 • **महाविद्यालय:** अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (AGCE Satara)
 • **विद्यापीठ:** डॉ. बाबासाहेब आंबेडकर तंत्रज्ञान विद्यापीठ, लोणेरे (DBATU)
 • **विभाग:** B.Tech (कृत्रिम बुद्धिमत्ता आणि डेटा सायन्स - AI & DS)
-• **प्रकल्प मार्गदर्शक:** प्रा. कैसर अत्तार सर (Prof. Kaisar Atar Sir)
+• **प्रकल्प मार्गदर्शक:** श्री. कैसर अत्तार (Mr. Kaisar Atar)
 • **डेव्हलपर टीम (सर्व ४ डेव्हलपर्स):**
   १. संकेत किर्दत (Team Leader & AI Developer) [रोल: 4060 | PRN: 24065451263508]
   २. साक्षी भगत (Frontend & UI Developer) [रोल: 4054 | PRN: 24065451263502]
