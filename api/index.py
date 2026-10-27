@@ -229,13 +229,11 @@ def get_backup_api_key() -> str:
         return ""
 
 OCR_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-2.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-flash-latest',
-    'gemini-1.5-pro'
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
 ]
 
 def get_api_keys_pool() -> List[str]:
@@ -752,10 +750,13 @@ def clean_json_str(text: str) -> dict:
             else:
                 total_val = float(total_raw or 0.0)
 
-            # Auto-compute if missing
+            # Auto-compute if missing or ambiguous
             if total_val == 0.0 and rate_val > 0.0:
                 total_val = round(qty_val * rate_val, 2)
             elif rate_val == 0.0 and total_val > 0.0 and qty_val > 0:
+                rate_val = round(total_val / qty_val, 2)
+            elif qty_val > 1.0 and abs(rate_val - total_val) < 0.01 and total_val > 0.0:
+                # In Kirana slips, row total is frequently written in the price column (e.g. 50 Rs for 10 kg)
                 rate_val = round(total_val / qty_val, 2)
 
             clean_items.append({
@@ -803,7 +804,7 @@ async def _execute_ocr(file: UploadFile):
     conn = get_db()
     existing = conn.execute(
         "SELECT id, vendor_name, date, category, grand_total, raw_json "
-        "FROM receipts WHERE image_hash = ? ORDER BY id DESC LIMIT 1",
+        "FROM receipts WHERE image_hash = ? AND grand_total > 0 ORDER BY id DESC LIMIT 1",
         (image_hash,)
     ).fetchone()
     conn.close()
@@ -834,43 +835,27 @@ async def _execute_ocr(file: UploadFile):
 
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
-        # Optimal 1280 max dimension for speed and precision
-        img.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
-        # Apply gentle contrast and sharpness boost for faint handwriting on Indian Kirana slips
+        # Optimal 960 max dimension for fast transfer and high multimodal vision clarity
+        img.thumbnail((960, 960), Image.Resampling.LANCZOS)
         enh_c = ImageEnhance.Contrast(img)
-        img = enh_c.enhance(1.15)
+        img = enh_c.enhance(1.20)
         enh_s = ImageEnhance.Sharpness(img)
-        img = enh_s.enhance(1.20)
+        img = enh_s.enhance(1.25)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
-    prompt = """You are VernaLedger Smart Scanner, a production-grade multilingual handwriting and receipt reader.
+    prompt = """You are VernaLedger Smart Scanner, an expert multilingual OCR system for Indian retail receipts and Marathi handwritten Kirana slips.
 
-Use Gemini's native multimodal vision pipeline: understand the image and this instruction
-together instead of using a separate text-only OCR pass.
-
-VISION PIPELINE:
-- Inspect visual patches so tilted, connected, rushed, faint, and uneven handwriting is not skipped.
-- Use surrounding words, row labels, units, and arithmetic as context when a character is ambiguous.
-  Carefully distinguish handwritten digits such as 1/7 and 3/8.
-- Support Marathi/Devanagari, Hindi, and English in the same image.
-- Preserve the source meaning and never invent an unreadable line item or amount.
-- TPU and Cloud Vision/Document AI are infrastructure concepts for scalable multimodal processing;
-  base this response only on the pixels supplied in this image.
-
-You are specialized in Indian retail receipts, Marathi/Devanagari handwritten ledger slips, and printed bills.
-
-TASK:
-Examine this image with extreme care and extract all details with 100% precision:
-1. vendor_name: Shop, merchant, or customer party name at the top (in Marathi Devanagari or English). Default: "किराणा पावती" (or "Kirana Store").
-2. date: Receipt date (YYYY-MM-DD or DD/MM/YYYY). If missing, use today's date.
-3. items: Extract EVERY SINGLE LINE ITEM visible on the bill/slip:
-   - item_name: Name of grocery/item in Devanagari Marathi or English (e.g. 'साखर', 'शेंगदाणा तेल', 'गहू', 'चहा पावडर', 'साबण').
-   - quantity: Quantity with unit (e.g. '1 kg', '2 लिटर', '500 gm', '1 पाकीट', '2 नग').
-   - rate: Numeric price per unit (float).
-   - total_price: Numeric line total (quantity * rate). If only total is written, calculate rate = total / quantity.
-4. grand_total: The sum of all item totals or final bill total amount.
-
-Convert all Devanagari Marathi numbers (०, १, २, ३, ४, ५, ६, ७, ८, ९) to standard Arabic digits (0, 1, 2, 3, 4, 5, 6, 7, 8, 9) in 'rate', 'total_price', and 'grand_total'.
+Extract all details from this handwritten slip with extreme accuracy:
+1. vendor_name: Shop or merchant name written at the top in Marathi (e.g. "सोनल किराणा", "महादेव किराणा"). Pay close attention to Marathi handwriting letters (स, म, न, ल).
+2. date: Date if written on slip (YYYY-MM-DD or DD/MM/YYYY), else return today's date formatted as YYYY-MM-DD.
+3. items: Array of objects for EACH line item written on the slip:
+   - item_name: Name of grocery/item in Marathi (e.g. "गहू", "तेल", "साखर", "तांदूळ").
+   - quantity: Quantity string with unit exactly as written (e.g. "10 किलो", "5 ltr", "1 kg", "2 नग").
+   - rate: Price per single unit as a number.
+     * In Indian Kirana slips, often the total line amount is written (e.g. "गहू 10 किलो 50 रुपये"). In that case, compute rate = total_price / quantity (50 / 10 = 5.0).
+     * For "तेल 5 ltr 100 रुपये", compute rate = 100 / 5 = 20.0.
+   - total_price: Numeric line total in rupees (e.g. 50.0, 100.0).
+4. grand_total: Total bill amount (sum of total_price of all items, e.g. 150.0).
 
 Return strictly valid JSON only:
 {
@@ -891,10 +876,13 @@ Return strictly valid JSON only:
     # Multi-Key & Multi-Model Cascade: automatically bypasses 429 quota exhaustion
     for key in api_keys:
         try:
-            genai.configure(api_key=key, transport='rest')
-        except Exception as cfg_err:
-            logger.warning(f"Key config notice: {cfg_err}")
-            continue
+            genai.configure(api_key=key)
+        except Exception:
+            try:
+                genai.configure(api_key=key, transport='rest')
+            except Exception as cfg_err:
+                logger.warning(f"Key config notice: {cfg_err}")
+                continue
 
         for m in OCR_MODELS:
             try:
@@ -902,7 +890,7 @@ Return strictly valid JSON only:
                     m,
                     generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
                 )
-                res = model.generate_content([prompt, img], request_options={"timeout": 8})
+                res = model.generate_content([prompt, img], request_options={"timeout": 35})
                 if res and res.text:
                     response = res.text
                     break
@@ -930,23 +918,15 @@ Return strictly valid JSON only:
     if not response:
         is_quota = any(w in str(last_err).lower() for w in ["429", "quota", "resourceexhausted", "limit", "exceeded"])
         warn_msg = (
-            "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा किंवा खालील पावती भरा."
+            "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा."
             if is_quota else
-            "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात फोटो काढून पुन्हा प्रयत्न करा."
+            "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा."
         )
         return {
             "success": False,
             "rate_limited": is_quota,
             "warning": warn_msg,
-            "data": {
-                "vendor_name": "किराणा पावती",
-                "date": today_str,
-                "category": "General",
-                "items": [
-                    {"item_name": "किराणा सामान", "quantity": "1 नग", "rate": 0.0, "total_price": 0.0}
-                ],
-                "grand_total": 0.0
-            }
+            "data": None
         }
 
     if response != "LOCAL_VISION":

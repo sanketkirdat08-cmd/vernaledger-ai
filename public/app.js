@@ -1689,18 +1689,10 @@ async function submitReceiptOCR() {
             throw new Error(`अवैध सर्व्हर रिस्पॉन्स.`);
         }
 
-        if (json && (json.rate_limited || res.status === 429)) {
-            if (json.data) {
-                state.currentBillId = json.data.id || null;
-                state.currentBill = json.data;
-                populateBillCard(json.data);
-            }
-            showToast(json.warning || "⚠️ AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Google Rate Limit). कृपया काही सेकंद थांबा किंवा खाली पावती भरा.", "warning", 5000);
+        if (!res.ok || !json || !json.success || !json.data) {
+            const warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा स्कॅन करा.";
+            showToast(warnMsg, "warning", 5000);
             return;
-        }
-
-        if (!res.ok || !json.data) {
-            throw new Error(json.detail || json.error || "OCR स्कॅनिंग अयशस्वी झाले.");
         }
 
         state.currentBillId = json.data.id || null;
