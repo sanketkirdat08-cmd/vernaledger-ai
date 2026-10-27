@@ -1404,6 +1404,9 @@ async def generate_tts(req: TTSRequest):
 @app.get("/api/export/excel")
 @app.get("/api/receipts/export-excel")
 @app.get("/export/excel")
+@app.get("/receipts/export-excel")
+@app.get("/excel")
+@app.get("/api/excel")
 def export_receipts_excel():
     conn = get_db()
     rows = conn.execute("SELECT * FROM receipts ORDER BY id DESC").fetchall()

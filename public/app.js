@@ -2936,6 +2936,7 @@ async function downloadExcelReport() {
         const candidateUrls = [
             `/export/excel?t=${Date.now()}`,
             `/receipts/export-excel?t=${Date.now()}`,
+            `/excel?t=${Date.now()}`,
             `/api/export/excel?t=${Date.now()}`,
             `/api/receipts/export-excel?t=${Date.now()}`
         ];
