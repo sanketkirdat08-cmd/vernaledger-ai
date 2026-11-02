@@ -1727,6 +1727,54 @@ async function submitReceiptOCR() {
 // -----------------------------------------------------------------------------
 // VERNACULAR MARATHI VOICE BILLING
 // -----------------------------------------------------------------------------
+let voiceFinalTranscript = "";
+let voiceActiveLang = "mr-IN";
+let voiceRestartAttempts = 0;
+
+function setVoiceLang(langCode) {
+    voiceActiveLang = langCode;
+    const pills = document.querySelectorAll(".voice-lang-pill");
+    pills.forEach(p => {
+        p.style.background = "rgba(255,255,255,0.06)";
+        p.style.borderColor = "var(--card-border)";
+        p.style.color = "var(--text-slate)";
+    });
+    const activeBtn = document.getElementById(langCode === "mr-IN" ? "vlang-mr" : (langCode === "hi-IN" ? "vlang-hi" : "vlang-en"));
+    if (activeBtn) {
+        activeBtn.style.background = "rgba(0,242,254,0.18)";
+        activeBtn.style.borderColor = "var(--neon-cyan)";
+        activeBtn.style.color = "var(--neon-cyan)";
+    }
+    if (state.speechRecognition) {
+        state.speechRecognition.lang = voiceActiveLang;
+    }
+    if (typeof showToast === "function") {
+        showToast(`व्हॉइस भाषा सेट केली: ${langCode === "mr-IN" ? "मराठी" : (langCode === "hi-IN" ? "हिन्दी" : "English")}`, "info", 1800);
+    }
+}
+
+function clearVoiceTranscript() {
+    voiceFinalTranscript = "";
+    const el = document.getElementById("voice-transcript-text");
+    if (el) el.value = "";
+    if (typeof showToast === "function") {
+        showToast("मजकूर पुसला गेला", "info", 1200);
+    }
+}
+
+function setQuickVoiceSample(sampleText) {
+    voiceFinalTranscript = sampleText;
+    const el = document.getElementById("voice-transcript-text");
+    if (el) {
+        el.value = sampleText;
+        el.style.borderColor = "var(--neon-cyan)";
+        setTimeout(() => el.style.borderColor = "", 1000);
+    }
+    if (typeof showToast === "function") {
+        showToast("नमुना मजकूर जोडला! आता 'व्हॉइस वरून पावती तयार करा' वर क्लिक करा.", "success", 2500);
+    }
+}
+
 function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -1737,35 +1785,64 @@ function initSpeechRecognition() {
     state.speechRecognition = new SpeechRecognition();
     state.speechRecognition.continuous = true;
     state.speechRecognition.interimResults = true;
-    state.speechRecognition.lang = getLanguage().speech;
+    state.speechRecognition.maxAlternatives = 1;
+    state.speechRecognition.lang = voiceActiveLang || (getLanguage().speech || "mr-IN");
 
     state.speechRecognition.onstart = () => {
         state.isRecording = true;
-        document.getElementById("btn-voice-mic").classList.add("recording");
-        document.getElementById("voice-recording-status").innerText = "🎙️ मी ऐकत आहे... सामान बोला...";
-        document.getElementById("voice-recording-status").style.color = "var(--neon-green)";
+        voiceRestartAttempts = 0;
+        const mic = document.getElementById("btn-voice-mic");
+        if (mic) mic.classList.add("recording");
+        const statusEl = document.getElementById("voice-recording-status");
+        if (statusEl) {
+            statusEl.innerText = "🎙️ मी ऐकत आहे... सामान बोला (उदा. साखर २ किलो ८० रु)...";
+            statusEl.style.color = "var(--neon-green)";
+        }
     };
 
     state.speechRecognition.onresult = (event) => {
         const output = document.getElementById("voice-transcript-text");
-        let finalText = "";
-        let interimText = "";
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-            const text = event.results[i][0].transcript;
-            if (event.results[i].isFinal) finalText += text;
-            else interimText += text;
+        if (!output) return;
+
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                voiceFinalTranscript += (voiceFinalTranscript ? " " : "") + transcript.trim();
+            } else {
+                interim += transcript;
+            }
         }
-        const currentText = output.value.replace(/\s*\[.*\]$/, "").trim();
-        const combined = `${currentText}${finalText.trim() ? ` ${finalText.trim()}` : ""}${interimText.trim() ? ` [${interimText.trim()}]` : ""}`.trim();
-        output.value = autoCorrectMarathiSpeech(combined);
+        const fullDisplay = (voiceFinalTranscript + (interim ? " " + interim : "")).trim();
+        output.value = autoCorrectMarathiSpeech(fullDisplay);
     };
 
     state.speechRecognition.onerror = (event) => {
-        console.error("Speech Recognition Error:", event.error);
-        stopVoiceRecording();
+        console.warn("Speech Recognition notice:", event.error);
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+            if (typeof showToast === "function") {
+                showToast("मायक्रोफोन परवानगी (Microphone Permission) ब्लॉक आहे. कृपया ब्राऊझर सेटिंग्समध्ये Allow करा.", "warning", 4500);
+            }
+            stopVoiceRecording();
+        } else if (event.error === "network") {
+            if (typeof showToast === "function") {
+                showToast("नेटवर्क अडचण. खालील नमुना क्लिक करा किंवा मजकूर टाईप करा.", "warning", 3000);
+            }
+            stopVoiceRecording();
+        }
     };
 
     state.speechRecognition.onend = () => {
+        // Auto-restart if user did not click stop (keeps microphone continuous)
+        if (state.isRecording && voiceRestartAttempts < 5) {
+            voiceRestartAttempts++;
+            try {
+                state.speechRecognition.start();
+                return;
+            } catch (e) {
+                console.warn("Auto-restart notice:", e);
+            }
+        }
         stopVoiceRecording();
     };
 }
@@ -1775,41 +1852,67 @@ function toggleVoiceRecording() {
         initSpeechRecognition();
     }
     if (!state.speechRecognition) {
-        alert("आपल्या ब्राऊझरमध्ये व्हॉइस रेकग्निशन समर्थित नाही. कृपया खाली बॉक्समध्ये स्वतः टाईप करा.");
+        if (typeof showToast === "function") {
+            showToast("आपल्या ब्राऊझरमध्ये व्हॉइस रेकग्निशन समर्थित नाही. कृपया खाली बॉक्समध्ये टाईप करा किंवा नमुने वापरा.", "warning");
+        } else {
+            alert("आपल्या ब्राऊझरमध्ये व्हॉइस रेकग्निशन समर्थित नाही. कृपया खाली बॉक्समध्ये स्वतः टाईप करा.");
+        }
         return;
     }
 
     if (state.isRecording) {
-        state.speechRecognition.stop();
+        state.isRecording = false;
+        try { state.speechRecognition.stop(); } catch (e) {}
         stopVoiceRecording();
     } else {
-        state.speechRecognition.lang = getLanguage().speech;
+        const output = document.getElementById("voice-transcript-text");
+        if (output && output.value.trim() && !voiceFinalTranscript) {
+            voiceFinalTranscript = output.value.trim();
+        }
+        state.speechRecognition.lang = voiceActiveLang || "mr-IN";
         try {
             state.speechRecognition.start();
         } catch (err) {
-            console.warn("Speech recognition could not start:", err);
-            stopVoiceRecording();
+            console.warn("Speech recognition start notice:", err);
+            try {
+                state.speechRecognition.stop();
+                setTimeout(() => {
+                    try { state.speechRecognition.start(); } catch (e) {}
+                }, 150);
+            } catch (e) {
+                stopVoiceRecording();
+            }
         }
     }
 }
 
 function stopVoiceRecording() {
     state.isRecording = false;
-    document.getElementById("btn-voice-mic").classList.remove("recording");
-    document.getElementById("voice-recording-status").innerText = "बोलण्यासाठी माईक वर क्लिक करा";
-    document.getElementById("voice-recording-status").style.color = "var(--text-dim)";
+    const mic = document.getElementById("btn-voice-mic");
+    if (mic) mic.classList.remove("recording");
+    const statusEl = document.getElementById("voice-recording-status");
+    if (statusEl) {
+        statusEl.innerText = "बोलण्यासाठी माईक वर क्लिक करा";
+        statusEl.style.color = "var(--text-dim)";
+    }
 }
 
 async function submitVoiceBilling() {
-    const text = document.getElementById("voice-transcript-text").value.trim();
+    const textEl = document.getElementById("voice-transcript-text");
+    const text = textEl ? textEl.value.trim() : "";
     if (!text) {
-        alert("कृपया आधी माईक द्वारे बोला किंवा मजकूर टाईप करा.");
+        if (typeof showToast === "function") {
+            showToast("कृपया आधी माईक द्वारे बोला, नमुना निवडा किंवा मजकूर टाईप करा.", "warning");
+        } else {
+            alert("कृपया आधी माईक द्वारे बोला किंवा मजकूर टाईप करा.");
+        }
         return;
     }
 
     const loader = document.getElementById("scanner-loader");
-    loader.style.display = "block";
-    document.getElementById("scanner-loader-text").innerText = "व्हॉइस पावती तयार होत आहे...";
+    if (loader) loader.style.display = "block";
+    const loaderText = document.getElementById("scanner-loader-text");
+    if (loaderText) loaderText.innerText = "⚡ व्हॉइस पावती तयार होत आहे...";
 
     try {
         const res = await apiCall("/api/voice-billing", {
@@ -1819,18 +1922,32 @@ async function submitVoiceBilling() {
         });
         const json = await res.json();
 
-        if (!res.ok) {
-            throw new Error(json.detail || "व्हॉइस पावती तयार करता आली नाही.");
+        if (!res.ok || !json.success) {
+            throw new Error(json.error || json.detail || "व्हॉइस पावती तयार करता आली नाही.");
         }
 
         populateBillCard(json.data);
         loadDashboardMetrics();
         loadReceiptsLedger();
-        alert("✅ व्हॉइस पावती तयार झाली व लेजरमध्ये नोंदवली गेली!");
+        if (typeof showToast === "function") {
+            showToast("✅ व्हॉइस पावती यशस्वीरित्या तयार झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);
+        } else {
+            alert("✅ व्हॉइस पावती तयार झाली व लेजरमध्ये नोंदवली गेली!");
+        }
+
+        // Smooth scroll to digital bill preview
+        const billInput = document.getElementById("bill-vendor-name");
+        if (billInput) {
+            billInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
     } catch (err) {
-        alert("व्हॉइस एरर: " + err.message);
+        if (typeof showToast === "function") {
+            showToast("व्हॉइस एरर: " + err.message, "error", 4500);
+        } else {
+            alert("व्हॉइस एरर: " + err.message);
+        }
     } finally {
-        loader.style.display = "none";
+        if (loader) loader.style.display = "none";
     }
 }
 

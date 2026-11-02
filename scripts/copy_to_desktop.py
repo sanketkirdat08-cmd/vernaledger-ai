@@ -1,8 +1,8 @@
 import shutil
 import os
 
-desktop_dir = r"C:\Users\mahan\OneDrive\Desktop"
-workspace_dir = r"C:\Users\mahan\OneDrive\Desktop\VernaLedger-AI"
+workspace_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+desktop_dir = os.path.dirname(workspace_dir)
 
 files_to_copy = [
     ("VernaLedger_AI_Final_Year_Project_Report.docx", "VernaLedger_AI_Final_Year_Project_Report.docx"),

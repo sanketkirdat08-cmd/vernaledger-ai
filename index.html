@@ -178,22 +178,26 @@
                     VernaLedger AI • AGCE Satara
                 </div>
 
-                <!-- Compact Sleek Developers Badge in Sidebar Footer (English) -->
-                <div class="developer-team-badge" style="background: linear-gradient(135deg, rgba(0, 242, 254, 0.08), rgba(176, 38, 255, 0.08)); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 10px; padding: 7px 9px; margin-bottom: 10px; font-size: 0.72rem; line-height: 1.4; text-align: left;">
-                    <div style="font-weight: 800; color: var(--neon-cyan); display: flex; align-items: center; gap: 5px; margin-bottom: 3px; font-size: 0.73rem;">
-                        <span>👥</span> <span>Project Developers (AI &amp; DS):</span>
+                <!-- Ultra-Compact Developers Badge in Sidebar Footer -->
+                <details class="developer-team-badge" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 8px; padding: 5px 8px; margin-bottom: 8px; font-size: 0.64rem; line-height: 1.35; cursor: pointer; transition: all 0.2s ease;">
+                    <summary style="font-weight: 800; color: var(--neon-cyan); display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 0.66rem; outline: none; list-style: none;">
+                        <span style="display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <span>👥</span> <span>Project Devs (AI &amp; DS)</span>
+                        </span>
+                        <span style="font-size: 0.6rem; color: var(--neon-purple); font-weight: 700;">▼</span>
+                    </summary>
+                    <div style="color: var(--text-white); font-weight: 500; font-size: 0.61rem; line-height: 1.35; margin-top: 5px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.08);">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px;">
+                            <div>1. Sanket (4060)</div>
+                            <div>2. Sakshi (4054)</div>
+                            <div>3. Vaishnavi (4056)</div>
+                            <div>4. Rushikesh (4004)</div>
+                        </div>
+                        <div style="color: var(--neon-green); font-size: 0.59rem; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 3px;">
+                            🎓 Guide: Mr. Kaisar Atar | 🏛️ HOD: Dr. S. Y. Mulla
+                        </div>
                     </div>
-                    <div style="color: var(--text-white); font-weight: 600; font-size: 0.67rem; line-height: 1.45;">
-                        1. Sanket Kirdat (Team Leader &amp; AI Developer) • 4060<br>
-                        2. Sakshi Bhagat (Frontend &amp; UI Developer) • 4054<br>
-                        3. Vaishnavi Dhavale (Voice Billing &amp; AI Developer) • 4056<br>
-                        4. Rushikesh Mulik (Backend &amp; Database Developer) • 4004
-                    </div>
-                    <div style="color: var(--neon-green); font-size: 0.64rem; margin-top: 4px; font-weight: 600; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 3px; display: flex; flex-direction: column; gap: 2px;">
-                        <div>🎓 Guide: Mr. Kaisar Atar (AGCE)</div>
-                        <div style="color: #38bdf8;">🏛️ HOD: Dr. S. Y. Mulla (AI &amp; DS)</div>
-                    </div>
-                </div>
+                </details>
                 <div class="user-pill" style="margin-bottom: 0;">
                     <div>
                         <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-white);" id="sidebar-user-name">admin</div>
@@ -272,18 +276,43 @@
 
                         <!-- Voice Container -->
                         <div id="scanner-voice-container" style="display: none; text-align: center;">
-                            <p style="font-size: 0.86rem; color: var(--text-slate); margin-bottom: 12px;">
-                                <span data-i18n="voice_hint">मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान मराठीत बोला (उदा. "सागर ला २ किलो साखर ५० रुपये आणि १ तेल १५० रुपये")</span>
+                            <!-- Voice Language Switcher Bar -->
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <span style="font-size: 0.72rem; color: var(--text-dim); font-weight: 700;">🌐 भाषा:</span>
+                                <button type="button" class="btn-pill voice-lang-pill active" id="vlang-mr" onclick="setVoiceLang('mr-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(0,242,254,0.18); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); cursor: pointer; font-weight: 700;">मराठी</button>
+                                <button type="button" class="btn-pill voice-lang-pill" id="vlang-hi" onclick="setVoiceLang('hi-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); color: var(--text-slate); cursor: pointer; font-weight: 700;">हिन्दी</button>
+                                <button type="button" class="btn-pill voice-lang-pill" id="vlang-en" onclick="setVoiceLang('en-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); color: var(--text-slate); cursor: pointer; font-weight: 700;">English</button>
+                            </div>
+
+                            <p style="font-size: 0.84rem; color: var(--text-slate); margin-bottom: 12px; line-height: 1.45;">
+                                <span data-i18n="voice_hint">मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान स्पष्ट बोला (उदा. "सागर ला २ किलो साखर ८० रुपये आणि १ लिटर तेल १६० रुपये")</span>
                             </p>
 
-                            <button id="btn-voice-mic" class="mic-btn-pulse" onclick="toggleVoiceRecording()">
-                                🎙️
-                            </button>
-                            <div id="voice-recording-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                <button id="btn-voice-mic" class="mic-btn-pulse" onclick="toggleVoiceRecording()" title="माईक सुरू / बंद करा">
+                                    🎙️
+                                </button>
+                                <button type="button" onclick="clearVoiceTranscript()" title="मजकूर पुसून टाका (Clear)" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; transition: all 0.2s ease;">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div id="voice-recording-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 10px;">
                                 <span data-i18n="voice_ready">बोलण्यासाठी माईक वर क्लिक करा</span>
                             </div>
 
                             <textarea id="voice-transcript-text" class="input-cyber" rows="3" placeholder="येथे उच्चारलेला मजकूर दिसेल किंवा स्वतः टाईप करा..." data-i18n-ph="voice_placeholder"></textarea>
+
+                            <!-- Quick One-Click Voice Billing Sample Chips -->
+                            <div style="margin-top: 10px; text-align: left;">
+                                <div style="font-size: 0.70rem; font-weight: 700; color: var(--text-dim); margin-bottom: 5px; display: flex; align-items: center; gap: 4px;">
+                                    <span>⚡</span> <span>द्रुत नमुना उदाहरणे (क्लिक करून लगेच तपासा):</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button type="button" onclick="setQuickVoiceSample('साखर २ किलो ८० रुपये आणि गहू ५ किलो १५० रुपये')" style="font-size: 0.68rem; padding: 4px 8px; border-radius: 6px; background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.25); color: var(--neon-cyan); cursor: pointer; font-weight: 600;">🏷️ साखर २ किलो ८० रु + गहू ५ किलो १५० रु</button>
+                                    <button type="button" onclick="setQuickVoiceSample('तूर डाळ १ किलो १४० रुपये आणि लक्स साबण ३ नग ६० रुपये')" style="font-size: 0.68rem; padding: 4px 8px; border-radius: 6px; background: rgba(176,38,255,0.08); border: 1px solid rgba(176,38,255,0.25); color: #d8b4fe; cursor: pointer; font-weight: 600;">🏷️ तूर डाळ १ किलो १४० रु + साबण ३ नग ६० रु</button>
+                                    <button type="button" onclick="setQuickVoiceSample('रमेशची पावती: शेंगदाणा तेल २ लिटर ३२० रुपये आणि पोहे २ किलो ७० रुपये')" style="font-size: 0.68rem; padding: 4px 8px; border-radius: 6px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: #6ee7b7; cursor: pointer; font-weight: 600;">🏷️ रमेशची पावती: तेल २ लिटर ३२० रु + पोहे २ किलो ७० रु</button>
+                                </div>
+                            </div>
 
                             <button class="btn-cyber success" style="width: 100%; margin-top: 14px;" onclick="submitVoiceBilling()">
                                 <span data-i18n="btn_voice_submit">⚡ व्हॉइस वरून पावती तयार करा</span>

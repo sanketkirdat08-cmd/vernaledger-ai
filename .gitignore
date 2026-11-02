@@ -1,5 +1,6 @@
 .streamlit/secrets.toml
 secrets.toml
+.env
 
 *.db
 *.db-*
@@ -9,3 +10,5 @@ __pycache__/
 *.log
 *.mp3
 .kilo/
+venv/
+.venv/

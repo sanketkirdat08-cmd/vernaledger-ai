@@ -19,6 +19,8 @@ import sqlite3
 import hashlib
 import asyncio
 import logging
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 
@@ -82,6 +84,11 @@ async def force_fresh_reload_middleware(request: Request, call_next):
 # DATABASE MANAGEMENT (SERVERLESS COMPATIBLE)
 # -----------------------------------------------------------------------------
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(ROOT_DIR, ".env"))
+except Exception:
+    pass
 LOCAL_DB = os.path.join(ROOT_DIR, "ledger.db")
 
 # In Vercel serverless environment, the filesystem is read-only except /tmp
@@ -222,18 +229,25 @@ def log_activity(username: str, action: str):
 # Initialize on startup
 init_db()
 
+def is_valid_gemini_key(k: str) -> bool:
+    if not k or not isinstance(k, str):
+        return False
+    k = k.strip()
+    return len(k) >= 20 and not k.startswith(("PASTE_", "AQ.", "YOUR_", "your_"))
+
 def get_backup_api_key() -> str:
     try:
-        return base64.b64decode("QVEuQWI4Uk42SVdYNnVHdnFwaVl0TnZtdkhENklrMEVYMXBqVUJWRUVqTEU4amNfUEVXVlE=").decode("utf-8")
+        decoded = base64.b64decode("QVEuQWI4Uk42SVdYNnVHdnFwaVl0TnZtdkhENklrMEVYMXBqVUJWRUVqTEU4amNfUEVXVlE=").decode("utf-8")
+        return decoded if is_valid_gemini_key(decoded) else ""
     except Exception:
         return ""
 
 OCR_MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-flash-lite-latest',
-    'gemini-3.8-flash',
-    'gemini-flash-latest'
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro'
 ]
 
 def get_api_keys_pool() -> List[str]:
@@ -243,13 +257,13 @@ def get_api_keys_pool() -> List[str]:
     raw_env = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
     for k in re.split(r'[,;\s]+', raw_env):
         k = k.strip()
-        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+        if k and is_valid_gemini_key(k) and k not in keys:
             keys.append(k)
 
     # 2. Check numbered keys GEMINI_API_KEY_1..5
     for i in range(1, 6):
         k = os.getenv(f"GEMINI_API_KEY_{i}", "").strip()
-        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+        if k and is_valid_gemini_key(k) and k not in keys:
             keys.append(k)
 
     # 3. Check Streamlit secrets.toml
@@ -263,7 +277,7 @@ def get_api_keys_pool() -> List[str]:
                     val = str(sec.get(kname, "")).strip()
                     for k in re.split(r'[,;\s]+', val):
                         k = k.strip()
-                        if k and not k.startswith("PASTE_YOUR_") and k not in keys:
+                        if k and is_valid_gemini_key(k) and k not in keys:
                             keys.append(k)
         except Exception:
             pass
@@ -429,6 +443,7 @@ class ShopSettingsRequest(BaseModel):
     phone: Optional[str] = "9876543210"
     upi_id: Optional[str] = "merchant@upi"
     address: Optional[str] = "सातारा, महाराष्ट्र"
+    gemini_api_key: Optional[str] = None
 
 # -----------------------------------------------------------------------------
 # AUTH & USER ENDPOINTS
@@ -579,6 +594,9 @@ def save_shop_settings(req: ShopSettingsRequest):
     }
     for k, v in data.items():
         cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (k, v))
+    if req.gemini_api_key and req.gemini_api_key.strip():
+        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES ('gemini_api_key', ?)", (req.gemini_api_key.strip(),))
+        data["gemini_api_key"] = req.gemini_api_key.strip()
     conn.commit()
     conn.close()
     log_activity("admin", f"Updated shop settings: {data['shop_name']}")
@@ -933,10 +951,11 @@ Return strictly valid JSON only:
     if response != "LOCAL_VISION":
         data = clean_json_str(response)
     if not data or not data.get("items"):
-        raise HTTPException(
-            status_code=502,
-            detail="Gemini returned an unreadable result. Please retake the photo with better lighting."
-        )
+        return {
+            "success": False,
+            "warning": "⚠️ पावतीमधील अक्षरे वाचता आली नाहीत. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा.",
+            "data": None
+        }
 
     # Multi-Layer Semantic Duplicate Receipt Detection
     v_name = (data.get("vendor_name") or "Kirana Store").strip()
@@ -1008,11 +1027,150 @@ Return strictly valid JSON only:
 # -----------------------------------------------------------------------------
 # VERNACULAR VOICE BILLING
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# WORLD-CLASS VERNACULAR KIRANA VOICE BILLING NLP PARSER
+# -----------------------------------------------------------------------------
+DEV_DIGITS_MAP = str.maketrans("०१२३४५६७८९", "0123456789")
+
+VERNACULAR_NUMBERS = {
+    "एक": 1, "दोन": 2, "तीन": 3, "चार": 4, "पाच": 5, "सहा": 6, "सात": 7, "आठ": 8, "नऊ": 9, "दहा": 10,
+    "अकरा": 11, "बारा": 12, "तेरा": 13, "चौदा": 14, "पंधरा": 15, "सोळा": 16, "सतरा": 17, "अठरा": 18, "एकोणीस": 19, "वीस": 20,
+    "पंचवीस": 25, "तीस": 30, "चाळीस": 40, "पन्नास": 50, "साठ": 60, "सत्तर": 70, "ऐंशी": 80, "नव्वद": 90,
+    "शंभर": 100, "दीडशे": 150, "दोनशे": 200, "अडीचशे": 250, "तीनशे": 300, "चारशे": 400, "पाचशे": 500, "हजार": 1000,
+    "अर्धा": 0.5, "पाव": 0.25, "पाऊण": 0.75, "सव्वा": 1.25, "दीड": 1.5, "अडीच": 2.5,
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "half": 0.5
+}
+
+UNITS_REGEX = r"(?:किलो|कि|kg|kgs|kilo|ग्रॅम|ग्राम|gm|gms|g|लिटर|लीटर|लि|ltr|l|नग|पाकीट|पुडा|पॅकेट|डझन|डबा|pcs|pc|nos)"
+
+KNOWN_KIRANA_ITEMS = [
+    "शेंगदाणा तेल", "सोयाबीन तेल", "सूर्यफूल तेल", "गोडेतेल", "राई तेल", "तेल",
+    "चहा पावडर", "चहापत्ती", "चहा", "कॉफी",
+    "मिरची पावडर", "धने पावडर", "हळद पावडर", "हळद", "जिरे", "मोहरी", "धने", "खसखस", "गरम मसाला", "मसाला",
+    "तूर डाळ", "तूरडाळ", "चना डाळ", "उडीद डाळ", "मूग डाळ", "मसूर डाळ", "डाळ",
+    "बासमती तांदूळ", "कोलम तांदूळ", "इंद्रायणी तांदूळ", "तांदूळ", "गहू", "ज्वारी", "बाजरी",
+    "साखर", "गुळ", "गूळ", "मीठ", "रवा", "मैदा", "बेसन", "आटा", "पोहे", "शेंगदाणे", "फुटाणे", "काजू", "बदाम",
+    "लक्स साबण", "लाईफबॉय साबण", "संतूर साबण", "डिटर्जंट पावडर", "सर्फ", "साबण", "शॅम्पू", "पेस्ट", "टूथपेस्ट",
+    "बिस्किट", "मॅगी", "नूडल्स", "शेवया", "ब्रेड", "टोस्ट", "खारी",
+    "कांदे", "बटाटे", "लसूण", "आले", "टोमॅटो", "मिरची",
+    "दूध", "दही", "तूप", "पनीर", "बटर",
+    "अंडे", "अंडी"
+]
+
+def parse_voice_billing_nlp(transcript: str, today_str: str) -> dict:
+    if not transcript or not transcript.strip():
+        return {}
+
+    raw = transcript.translate(DEV_DIGITS_MAP)
+    for w, num in VERNACULAR_NUMBERS.items():
+        raw = re.sub(r'(?i)\b' + re.escape(w) + r'\b', str(num), raw)
+
+    vendor_name = "किराणा पावती"
+    cust_m = re.search(
+        r"^(?:(?:ग्राहक|कस्टमर|नाव|श्री\.?|party)\s*[:=-]?\s*([A-Za-z\u0900-\u097F]{3,20})|([A-Za-z\u0900-\u097F]{3,20})\s*(?:ची|चे|चा|ला|ना|कडे|च्या)\s*(?:पावती|बिल|खाते|उधारी)\s*[:=-]?)",
+        raw,
+        re.IGNORECASE
+    )
+    if cust_m:
+        raw_name = cust_m.group(1) or cust_m.group(2)
+        raw_name = re.sub(r"\s*(?:ची|चे|चा|ला|ना|कडे|च्या)$", "", raw_name).strip()
+        if len(raw_name) >= 3 and raw_name not in ["किराणा", "पावती", "सामान"]:
+            vendor_name = raw_name
+            raw = raw[cust_m.end():]
+
+    # Insert comma after price markers followed by words
+    raw = re.sub(r'(\d+\s*(?:रु(?:पये)?\.?|rs\.?|inr))\s+([A-Za-z\u0900-\u097F])', r'\1, \2', raw, flags=re.IGNORECASE)
+
+    chunks = re.split(r'[\n,]+|\s+(?:आणि|तसेच|व|मग|plus|and)\s+', raw, flags=re.IGNORECASE)
+
+    items = []
+    total_bill = 0.0
+
+    for chunk in chunks:
+        chunk = chunk.strip()
+        if not chunk or len(chunk) < 2:
+            continue
+
+        qty_match = re.search(r'(\d+(?:\.\d+)?)\s*(' + UNITS_REGEX + r')?', chunk, flags=re.IGNORECASE)
+
+        matched_known = None
+        for k_item in KNOWN_KIRANA_ITEMS:
+            if re.search(r'\b' + re.escape(k_item) + r'\b', chunk, re.IGNORECASE) or k_item in chunk:
+                matched_known = k_item
+                break
+
+        if matched_known:
+            item_name = matched_known
+        else:
+            before_num = re.split(r'\d+', chunk)[0].strip()
+            before_num = re.sub(r'^(?:आणखी|तसेच|एक|दोन|तीन|व|आणि)\s+', '', before_num).strip()
+            before_num = re.sub(r'[.,!?;:]+$', '', before_num).strip()
+            item_name = before_num if len(before_num) >= 2 else f"किराणा आयटम #{len(items)+1}"
+
+        all_nums = [float(n) for n in re.findall(r'\d+(?:\.\d+)?', chunk)]
+
+        if len(all_nums) >= 2:
+            qty_val = all_nums[0]
+            unit = qty_match.group(2) if (qty_match and qty_match.group(2)) else "नग"
+            qty_str = f"{int(qty_val) if qty_val.is_integer() else qty_val} {unit}"
+            line_total = all_nums[-1]
+            rate = round(line_total / qty_val, 2) if qty_val > 0 else line_total
+        elif len(all_nums) == 1:
+            unit = qty_match.group(2) if (qty_match and qty_match.group(2)) else "नग"
+            line_total = all_nums[0]
+            rate = line_total
+            qty_str = f"1 {unit}"
+        else:
+            continue
+
+        if line_total > 0:
+            items.append({
+                "item_name": item_name,
+                "quantity": qty_str,
+                "rate": rate,
+                "total_price": line_total
+            })
+            total_bill += line_total
+
+    if not items:
+        # Ultimate fallback: try parse_receipt_text_locally
+        return parse_receipt_text_locally(transcript, today_str)
+
+    return {
+        "vendor_name": vendor_name,
+        "date": today_str,
+        "category": "Kirana",
+        "items": items,
+        "grand_total": round(total_bill, 2)
+    }
+
 @app.post("/api/voice-billing")
 def process_voice_billing(req: VoiceBillRequest):
     api_key = get_api_key()
-    if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in Vercel environment.")
+    today_str = date.today().strftime("%Y-%m-%d")
+
+    # If no Gemini API key configured, use instant local parsing fallback
+    if not api_key or not genai:
+        local_parsed = parse_voice_billing_nlp(req.transcript, today_str)
+        if local_parsed and local_parsed.get("items"):
+            conn = get_db()
+            cursor = conn.cursor()
+            raw_json_str = json.dumps(local_parsed, ensure_ascii=False)
+            cursor.execute(
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                (local_parsed.get("vendor_name", "Voice Bill"), today_str, "General", local_parsed.get("grand_total", 0.0), raw_json_str)
+            )
+            local_parsed["id"] = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            log_activity(req.username or "admin", f"Created Voice Bill #{local_parsed['id']} (Local Fallback)")
+            return {"success": True, "data": local_parsed, "fallback": True}
+        return {
+            "success": False,
+            "error": "व्हॉइस बिल प्रोसेस करण्यासाठी कृपया .env किंवा Settings मध्ये Gemini API Key प्रविष्ट करा.",
+            "data": None
+        }
 
     genai.configure(api_key=api_key)
     prompt = f"""You are an expert vernacular billing intelligence system for Maharashtra Kirana stores.
@@ -1043,11 +1201,11 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 
     genai.configure(api_key=api_key, transport='rest')
     models_to_try = [
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.8-flash',
-        'gemini-flash-latest'
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro'
     ]
     res_text = None
     for m in models_to_try:
@@ -1063,10 +1221,22 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
         except Exception:
             continue
 
-    if not res_text:
-        raise HTTPException(status_code=500, detail="Could not parse voice billing input")
+    data = None
+    today_str = date.today().strftime("%Y-%m-%d")
+    if res_text:
+        data = clean_json_str(res_text)
+    if not data or not data.get("items"):
+        # Local heuristic fallback for offline or failed Gemini parsing
+        local_parsed = parse_voice_billing_nlp(req.transcript, today_str)
+        if local_parsed and local_parsed.get("items"):
+            data = local_parsed
 
-    data = clean_json_str(res_text)
+    if not data or not data.get("items"):
+        return {
+            "success": False,
+            "error": "व्हॉइस बिल प्रोसेस होऊ शकले नाही. कृपया पुन्हा स्पष्ट आवाजात बोला.",
+            "data": None
+        }
     today_str = date.today().strftime("%Y-%m-%d")
     rec_date = data.get("date") or today_str
     raw_json_str = json.dumps(data, ensure_ascii=False)
@@ -2108,11 +2278,11 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.8-flash',
-        'gemini-flash-latest'
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro'
     ]
             for m in models_to_try:
                 try:
@@ -3064,11 +3234,11 @@ You possess two core intelligence systems:
         try:
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-flash-lite-latest',
-        'gemini-3.8-flash',
-        'gemini-flash-latest'
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-pro'
     ]
             for m in models_to_try:
                 try:
@@ -3183,6 +3353,8 @@ app.add_api_route('/chat', rag_chat, methods=['POST'])
 # STATIC FILES SERVING (FOR LOCAL RUN & FALLBACK)
 # -----------------------------------------------------------------------------
 public_dir = os.path.join(ROOT_DIR, "public")
+if not os.path.exists(public_dir):
+    public_dir = ROOT_DIR
 if os.path.exists(public_dir):
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
