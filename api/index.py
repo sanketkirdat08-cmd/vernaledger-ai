@@ -189,6 +189,25 @@ def init_db():
         value TEXT
     );
     """)
+
+    # Permanent deletion tombstone tables (strictly prevents resurrection on refresh/sync)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS deleted_receipts (
+        id INTEGER PRIMARY KEY,
+        signature TEXT,
+        deleted_at TEXT
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_deleted_receipts_sig ON deleted_receipts(signature);")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS deleted_khata (
+        id INTEGER PRIMARY KEY,
+        signature TEXT,
+        deleted_at TEXT
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_deleted_khata_sig ON deleted_khata(signature);")
     
     # Seed default Shop Settings if empty
     cursor.execute("SELECT COUNT(*) FROM shop_settings")
@@ -403,6 +422,8 @@ class SyncDataRequest(BaseModel):
     khata: Optional[List[Dict[str, Any]]] = None
     expenses: Optional[List[Dict[str, Any]]] = None
     shop_settings: Optional[Dict[str, Any]] = None
+    deleted_receipt_ids: Optional[List[int]] = None
+    deleted_khata_ids: Optional[List[int]] = None
 
 class BulkDeleteReceiptsRequest(BaseModel):
     receipt_ids: List[int]
@@ -1919,31 +1940,58 @@ def save_or_update_receipt(req: ReceiptSaveRequest):
     }
 
 @app.delete("/api/receipts/{receipt_id}")
+@app.delete("/receipts/{receipt_id}")
 def delete_receipt(receipt_id: int):
     conn = get_db()
-    conn.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
+    cursor = conn.cursor()
+    # Save tombstone signature before deletion
+    row = cursor.execute("SELECT id, vendor_name, date, grand_total FROM receipts WHERE id = ?", (receipt_id,)).fetchone()
+    now_iso = datetime.now().isoformat()
+    if row:
+        v_name = row["vendor_name"] or ""
+        r_date = row["date"] or ""
+        g_total = float(row["grand_total"] or 0.0)
+        sig = f"{v_name}_{r_date}_{g_total}"
+        cursor.execute("INSERT OR REPLACE INTO deleted_receipts (id, signature, deleted_at) VALUES (?, ?, ?)", (receipt_id, sig, now_iso))
+    else:
+        cursor.execute("INSERT OR REPLACE INTO deleted_receipts (id, signature, deleted_at) VALUES (?, ?, ?)", (receipt_id, "", now_iso))
+    cursor.execute("DELETE FROM receipts WHERE id = ?", (receipt_id,))
     conn.commit()
     conn.close()
-    return {"success": True}
+    return {"success": True, "deleted_id": receipt_id}
 
 @app.post("/api/receipts/bulk-delete")
+@app.post("/receipts/bulk-delete")
 def bulk_delete_receipts(req: BulkDeleteReceiptsRequest):
     if not req.receipt_ids:
         return {"success": True, "deleted_count": 0}
     conn = get_db()
+    cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
+    for rid in req.receipt_ids:
+        row = cursor.execute("SELECT vendor_name, date, grand_total FROM receipts WHERE id = ?", (rid,)).fetchone()
+        sig = f"{row['vendor_name'] or ''}_{row['date'] or ''}_{float(row['grand_total'] or 0.0)}" if row else ""
+        cursor.execute("INSERT OR REPLACE INTO deleted_receipts (id, signature, deleted_at) VALUES (?, ?, ?)", (rid, sig, now_iso))
     placeholders = ",".join("?" for _ in req.receipt_ids)
-    conn.execute(f"DELETE FROM receipts WHERE id IN ({placeholders})", req.receipt_ids)
+    cursor.execute(f"DELETE FROM receipts WHERE id IN ({placeholders})", req.receipt_ids)
     conn.commit()
     conn.close()
     return {"success": True, "deleted_count": len(req.receipt_ids)}
 
 @app.delete("/api/receipts/all")
+@app.delete("/receipts/all")
 def delete_all_receipts():
     conn = get_db()
-    conn.execute("DELETE FROM receipts")
+    cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
+    rows = cursor.execute("SELECT id, vendor_name, date, grand_total FROM receipts").fetchall()
+    for row in rows:
+        sig = f"{row['vendor_name'] or ''}_{row['date'] or ''}_{float(row['grand_total'] or 0.0)}"
+        cursor.execute("INSERT OR REPLACE INTO deleted_receipts (id, signature, deleted_at) VALUES (?, ?, ?)", (row["id"], sig, now_iso))
+    cursor.execute("DELETE FROM receipts")
     conn.commit()
     conn.close()
-    return {"success": True}
+    return {"success": True, "deleted_count": len(rows)}
 
 # -----------------------------------------------------------------------------
 # CUSTOMER KHATA (DIGITAL UDHAR LEDGER)
@@ -1995,31 +2043,51 @@ def add_khata_entry(req: KhataEntryRequest):
     return {"success": True, "id": new_id}
 
 @app.delete("/api/khata/{entry_id}")
+@app.delete("/khata/{entry_id}")
 def delete_khata_entry(entry_id: int):
     conn = get_db()
-    conn.execute("DELETE FROM customer_khata WHERE id = ?", (entry_id,))
+    cursor = conn.cursor()
+    row = cursor.execute("SELECT customer_name, date, amount, transaction_type FROM customer_khata WHERE id = ?", (entry_id,)).fetchone()
+    now_iso = datetime.now().isoformat()
+    sig = f"{row['customer_name'] or ''}_{row['date'] or ''}_{float(row['amount'] or 0.0)}_{row['transaction_type'] or ''}" if row else ""
+    cursor.execute("INSERT OR REPLACE INTO deleted_khata (id, signature, deleted_at) VALUES (?, ?, ?)", (entry_id, sig, now_iso))
+    cursor.execute("DELETE FROM customer_khata WHERE id = ?", (entry_id,))
     conn.commit()
     conn.close()
-    return {"success": True}
+    return {"success": True, "deleted_id": entry_id}
 
 @app.post("/api/khata/bulk-delete")
+@app.post("/khata/bulk-delete")
 def bulk_delete_khata(req: BulkDeleteKhataRequest):
     if not req.entry_ids:
         return {"success": True, "deleted_count": 0}
     conn = get_db()
+    cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
+    for eid in req.entry_ids:
+        row = cursor.execute("SELECT customer_name, date, amount, transaction_type FROM customer_khata WHERE id = ?", (eid,)).fetchone()
+        sig = f"{row['customer_name'] or ''}_{row['date'] or ''}_{float(row['amount'] or 0.0)}_{row['transaction_type'] or ''}" if row else ""
+        cursor.execute("INSERT OR REPLACE INTO deleted_khata (id, signature, deleted_at) VALUES (?, ?, ?)", (eid, sig, now_iso))
     placeholders = ",".join("?" for _ in req.entry_ids)
-    conn.execute(f"DELETE FROM customer_khata WHERE id IN ({placeholders})", req.entry_ids)
+    cursor.execute(f"DELETE FROM customer_khata WHERE id IN ({placeholders})", req.entry_ids)
     conn.commit()
     conn.close()
     return {"success": True, "deleted_count": len(req.entry_ids)}
 
 @app.delete("/api/khata/all")
+@app.delete("/khata/all")
 def delete_all_khata():
     conn = get_db()
-    conn.execute("DELETE FROM customer_khata")
+    cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
+    rows = cursor.execute("SELECT id, customer_name, date, amount, transaction_type FROM customer_khata").fetchall()
+    for row in rows:
+        sig = f"{row['customer_name'] or ''}_{row['date'] or ''}_{float(row['amount'] or 0.0)}_{row['transaction_type'] or ''}"
+        cursor.execute("INSERT OR REPLACE INTO deleted_khata (id, signature, deleted_at) VALUES (?, ?, ?)", (row["id"], sig, now_iso))
+    cursor.execute("DELETE FROM customer_khata")
     conn.commit()
     conn.close()
-    return {"success": True}
+    return {"success": True, "deleted_count": len(rows)}
 
 # -----------------------------------------------------------------------------
 # INVENTORY & BUSINESS OPERATIONS
@@ -2069,25 +2137,74 @@ def add_expense(req: ExpenseRequest):
     conn.close()
     return {"success": True}
 
+@app.delete("/api/expenses/{expense_id}")
+@app.delete("/expenses/{expense_id}")
+def delete_expense(expense_id: int):
+    conn = get_db()
+    conn.execute("DELETE FROM business_expenses WHERE id = ?", (expense_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
 # -----------------------------------------------------------------------------
 # BI-DIRECTIONAL CLIENT-TO-SERVER PERSISTENCE & AUTO-SYNC
 # -----------------------------------------------------------------------------
 @app.post("/api/sync")
+@app.post("/sync")
 def sync_client_data(req: SyncDataRequest):
     """Bi-directional auto-sync: restores client's persistent offline bills into serverless SQLite."""
     conn = get_db()
     cursor = conn.cursor()
+    now_iso = datetime.now().isoformat()
     restored_receipts = 0
     restored_khata = 0
     restored_expenses = 0
 
+    # 1. Process client deleted receipt IDs (tombstone sync)
+    if req.deleted_receipt_ids:
+        for rid in req.deleted_receipt_ids:
+            try:
+                row = cursor.execute("SELECT vendor_name, date, grand_total FROM receipts WHERE id = ?", (rid,)).fetchone()
+                sig = f"{row['vendor_name'] or ''}_{row['date'] or ''}_{float(row['grand_total'] or 0.0)}" if row else ""
+                cursor.execute("INSERT OR REPLACE INTO deleted_receipts (id, signature, deleted_at) VALUES (?, ?, ?)", (rid, sig, now_iso))
+                cursor.execute("DELETE FROM receipts WHERE id = ?", (rid,))
+            except Exception as e:
+                logger.warning(f"Sync delete receipt notice: {e}")
+
+    # 2. Process client deleted khata IDs (tombstone sync)
+    if req.deleted_khata_ids:
+        for kid in req.deleted_khata_ids:
+            try:
+                row = cursor.execute("SELECT customer_name, date, amount, transaction_type FROM customer_khata WHERE id = ?", (kid,)).fetchone()
+                sig = f"{row['customer_name'] or ''}_{row['date'] or ''}_{float(row['amount'] or 0.0)}_{row['transaction_type'] or ''}" if row else ""
+                cursor.execute("INSERT OR REPLACE INTO deleted_khata (id, signature, deleted_at) VALUES (?, ?, ?)", (kid, sig, now_iso))
+                cursor.execute("DELETE FROM customer_khata WHERE id = ?", (kid,))
+            except Exception as e:
+                logger.warning(f"Sync delete khata notice: {e}")
+
+    # Load tombstone sets to strictly forbid resurrecting deleted items
+    deleted_receipt_ids = {r[0] for r in cursor.execute("SELECT id FROM deleted_receipts").fetchall()}
+    deleted_receipt_sigs = {r[0] for r in cursor.execute("SELECT signature FROM deleted_receipts WHERE signature != ''").fetchall()}
+
+    deleted_khata_ids = {r[0] for r in cursor.execute("SELECT id FROM deleted_khata").fetchall()}
+    deleted_khata_sigs = {r[0] for r in cursor.execute("SELECT signature FROM deleted_khata WHERE signature != ''").fetchall()}
+
     if req.receipts:
         for r in req.receipts:
             try:
+                r_id = r.get("id")
+                # Do NOT restore if ID was deleted
+                if r_id and int(r_id) in deleted_receipt_ids:
+                    continue
                 v_name = r.get("vendor_name", "किराणा स्टोअर")
                 r_date = r.get("date", date.today().strftime("%Y-%m-%d"))
                 cat = r.get("category", "General")
                 total = float(r.get("grand_total") or 0.0)
+                sig = f"{v_name}_{r_date}_{total}"
+                # Do NOT restore if signature was deleted
+                if sig in deleted_receipt_sigs:
+                    continue
+
                 raw = r.get("raw_json", {})
                 raw_str = json.dumps(raw, ensure_ascii=False) if isinstance(raw, dict) else str(raw or "{}")
                 h = r.get("image_hash", "")

@@ -32,6 +32,10 @@ const VernaStorage = {
     KEY_RECEIPTS: "verna_persistent_receipts",
     KEY_KHATA: "verna_persistent_khata",
     KEY_EXPENSES: "verna_persistent_expenses",
+    KEY_DELETED_RECEIPTS: "verna_deleted_receipt_ids",
+    KEY_DELETED_RECEIPT_SIGS: "verna_deleted_receipt_sigs",
+    KEY_DELETED_KHATA: "verna_deleted_khata_ids",
+    KEY_DELETED_KHATA_SIGS: "verna_deleted_khata_sigs",
 
     get(key) {
         try {
@@ -51,11 +55,75 @@ const VernaStorage = {
         }
     },
 
+    getDeletedReceiptIds() {
+        const list = this.get(this.KEY_DELETED_RECEIPTS);
+        return new Set((list || []).map(x => String(x).trim()));
+    },
+
+    getDeletedReceiptSigs() {
+        const list = this.get(this.KEY_DELETED_RECEIPT_SIGS);
+        return new Set((list || []).map(x => String(x).trim()));
+    },
+
+    markReceiptDeleted(id, signature) {
+        if (id != null) {
+            const strId = String(id).trim();
+            if (strId) {
+                const ids = this.get(this.KEY_DELETED_RECEIPTS);
+                if (!ids.includes(strId)) {
+                    ids.push(strId);
+                    this.save(this.KEY_DELETED_RECEIPTS, ids);
+                }
+            }
+        }
+        if (signature) {
+            const strSig = String(signature).trim();
+            if (strSig) {
+                const sigs = this.get(this.KEY_DELETED_RECEIPT_SIGS);
+                if (!sigs.includes(strSig)) {
+                    sigs.push(strSig);
+                    this.save(this.KEY_DELETED_RECEIPT_SIGS, sigs);
+                }
+            }
+        }
+    },
+
+    isReceiptDeleted(r) {
+        if (!r) return true;
+        const deletedIds = this.getDeletedReceiptIds();
+        if (r.id != null) {
+            const strId = String(r.id).trim();
+            if (deletedIds.has(strId)) return true;
+            const numId = Number(r.id);
+            if (!isNaN(numId) && deletedIds.has(String(numId))) return true;
+        }
+        const deletedSigs = this.getDeletedReceiptSigs();
+        const sig = `${r.vendor_name || ''}_${r.date || ''}_${r.grand_total || ''}`;
+        if (deletedSigs.has(sig)) return true;
+        return false;
+    },
+
+    unmarkReceiptDeleted(id, signature) {
+        if (id != null) {
+            const strId = String(id).trim();
+            const ids = this.get(this.KEY_DELETED_RECEIPTS).filter(x => String(x).trim() !== strId);
+            this.save(this.KEY_DELETED_RECEIPTS, ids);
+        }
+        if (signature) {
+            const strSig = String(signature).trim();
+            const sigs = this.get(this.KEY_DELETED_RECEIPT_SIGS).filter(x => String(x).trim() !== strSig);
+            this.save(this.KEY_DELETED_RECEIPT_SIGS, sigs);
+        }
+    },
+
     addReceipt(receipt) {
         if (!receipt) return;
+        const sig = `${receipt.vendor_name || ''}_${receipt.date || ''}_${receipt.grand_total || ''}`;
+        this.unmarkReceiptDeleted(receipt.id, sig);
+
         const list = this.get(this.KEY_RECEIPTS);
         const exists = list.some(r => 
-            (r.id && receipt.id && r.id === receipt.id) ||
+            (r.id && receipt.id && (String(r.id).trim() === String(receipt.id).trim() || Number(r.id) === Number(receipt.id))) ||
             (r.vendor_name === receipt.vendor_name && r.date === receipt.date && Math.abs((Number(r.grand_total) || 0) - (Number(receipt.grand_total) || 0)) < 0.01)
         );
         if (!exists) {
@@ -64,67 +132,208 @@ const VernaStorage = {
         }
     },
 
-    removeReceipt(id) {
-        const list = this.get(this.KEY_RECEIPTS).filter(r => r.id !== id);
+    removeReceipt(id, signature) {
+        this.markReceiptDeleted(id, signature);
+        const strId = id != null ? String(id).trim() : "";
+        const numId = Number(id);
+        const list = this.get(this.KEY_RECEIPTS).filter(r => {
+            if (!r) return false;
+            const rStr = r.id != null ? String(r.id).trim() : "";
+            const rNum = Number(r.id);
+            if (strId && rStr && rStr === strId) return false;
+            if (!isNaN(numId) && !isNaN(rNum) && numId === rNum) return false;
+            if (signature) {
+                const rSig = `${r.vendor_name || ''}_${r.date || ''}_${r.grand_total || ''}`;
+                if (rSig === signature) return false;
+            }
+            return true;
+        });
         this.save(this.KEY_RECEIPTS, list);
     },
 
-    removeReceipts(ids) {
-        const idSet = new Set((ids || []).map(Number));
-        const list = this.get(this.KEY_RECEIPTS).filter(r => !idSet.has(Number(r.id)));
+    removeReceipts(ids, signatures = []) {
+        (ids || []).forEach(id => this.markReceiptDeleted(id));
+        (signatures || []).forEach(sig => this.markReceiptDeleted(null, sig));
+        const idSet = new Set((ids || []).map(x => String(x).trim()));
+        const sigSet = new Set((signatures || []).map(String));
+        const list = this.get(this.KEY_RECEIPTS).filter(r => {
+            if (!r) return false;
+            const rStr = r.id != null ? String(r.id).trim() : "";
+            const rNum = Number(r.id);
+            if (rStr && idSet.has(rStr)) return false;
+            if (!isNaN(rNum) && idSet.has(String(rNum))) return false;
+            const rSig = `${r.vendor_name || ''}_${r.date || ''}_${r.grand_total || ''}`;
+            if (sigSet.has(rSig)) return false;
+            return true;
+        });
         this.save(this.KEY_RECEIPTS, list);
     },
 
-    clearAllReceipts() {
+    clearAllReceipts(currentReceipts = []) {
+        (currentReceipts || []).forEach(r => {
+            const sig = `${r.vendor_name || ''}_${r.date || ''}_${r.grand_total || ''}`;
+            this.markReceiptDeleted(r.id, sig);
+        });
         this.save(this.KEY_RECEIPTS, []);
     },
 
-    mergeReceipts(serverReceipts) {
+    reconcileServerReceipts(serverReceipts) {
+        // When online, server is the primary source of truth!
+        // Purge any server-deleted receipts from local cache so they NEVER resurrect.
+        const serverList = (serverReceipts || []).filter(r => !this.isReceiptDeleted(r));
         const local = this.get(this.KEY_RECEIPTS);
+        // Only keep genuine pending offline receipts (created offline, no server id yet, not deleted)
+        const offlinePending = local.filter(r => r && r._offline_pending === true && !this.isReceiptDeleted(r));
+
         const map = new Map();
-        (serverReceipts || []).forEach(r => {
-            const key = r.id ? String(r.id) : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+        serverList.forEach(r => {
+            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
             map.set(key, r);
         });
-        (local || []).forEach(r => {
-            const key = r.id ? String(r.id) : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+        offlinePending.forEach(r => {
+            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
             if (!map.has(key)) {
                 map.set(key, r);
             }
         });
-        const merged = Array.from(map.values());
-        this.save(this.KEY_RECEIPTS, merged);
-        return merged;
+        const reconciled = Array.from(map.values());
+        this.save(this.KEY_RECEIPTS, reconciled);
+        return reconciled;
+    },
+
+    mergeReceipts(serverReceipts) {
+        return this.reconcileServerReceipts(serverReceipts);
+    },
+
+    getActiveReceipts() {
+        return this.get(this.KEY_RECEIPTS).filter(r => !this.isReceiptDeleted(r));
+    },
+
+    getOfflinePendingReceipts() {
+        return this.get(this.KEY_RECEIPTS).filter(r => r && r._offline_pending === true && !this.isReceiptDeleted(r));
+    },
+
+    markOfflinePendingSynced() {
+        const local = this.get(this.KEY_RECEIPTS);
+        local.forEach(r => {
+            if (r._offline_pending) {
+                delete r._offline_pending;
+            }
+        });
+        this.save(this.KEY_RECEIPTS, local);
+    },
+
+    getDeletedKhataIds() {
+        const list = this.get(this.KEY_DELETED_KHATA);
+        return new Set((list || []).map(x => String(x).trim()));
+    },
+
+    getDeletedKhataSigs() {
+        const list = this.get(this.KEY_DELETED_KHATA_SIGS);
+        return new Set((list || []).map(x => String(x).trim()));
+    },
+
+    markKhataDeleted(id, signature) {
+        if (id != null) {
+            const strId = String(id).trim();
+            if (strId) {
+                const ids = this.get(this.KEY_DELETED_KHATA);
+                if (!ids.includes(strId)) {
+                    ids.push(strId);
+                    this.save(this.KEY_DELETED_KHATA, ids);
+                }
+            }
+        }
+        if (signature) {
+            const strSig = String(signature).trim();
+            if (strSig) {
+                const sigs = this.get(this.KEY_DELETED_KHATA_SIGS);
+                if (!sigs.includes(strSig)) {
+                    sigs.push(strSig);
+                    this.save(this.KEY_DELETED_KHATA, sigs);
+                }
+            }
+        }
+    },
+
+    isKhataDeleted(k) {
+        if (!k) return true;
+        const deletedIds = this.getDeletedKhataIds();
+        if (k.id != null) {
+            const strId = String(k.id).trim();
+            if (deletedIds.has(strId)) return true;
+            const numId = Number(k.id);
+            if (!isNaN(numId) && deletedIds.has(String(numId))) return true;
+        }
+        const deletedSigs = this.getDeletedKhataSigs();
+        const sig = `${k.customer_name || ''}_${k.date || ''}_${k.amount || ''}_${k.transaction_type || ''}`;
+        if (deletedSigs.has(sig)) return true;
+        return false;
+    },
+
+    unmarkKhataDeleted(id, signature) {
+        if (id != null) {
+            const strId = String(id).trim();
+            const ids = this.get(this.KEY_DELETED_KHATA).filter(x => String(x).trim() !== strId);
+            this.save(this.KEY_DELETED_KHATA, ids);
+        }
+        if (signature) {
+            const strSig = String(signature).trim();
+            const sigs = this.get(this.KEY_DELETED_KHATA_SIGS).filter(x => String(x).trim() !== strSig);
+            this.save(this.KEY_DELETED_KHATA, sigs);
+        }
     },
 
     addKhata(entry) {
         if (!entry) return;
+        const sig = `${entry.customer_name || ''}_${entry.date || ''}_${entry.amount || ''}_${entry.transaction_type || ''}`;
+        this.unmarkKhataDeleted(entry.id, sig);
         const list = this.get(this.KEY_KHATA);
         list.unshift(entry);
         this.save(this.KEY_KHATA, list);
     },
 
-    removeKhata(id) {
-        const list = this.get(this.KEY_KHATA).filter(k => k.id !== id);
+    removeKhata(id, signature) {
+        this.markKhataDeleted(id, signature);
+        const strId = id != null ? String(id).trim() : "";
+        const numId = Number(id);
+        const list = this.get(this.KEY_KHATA).filter(k => {
+            if (!k) return false;
+            const kStr = k.id != null ? String(k.id).trim() : "";
+            const kNum = Number(k.id);
+            if (strId && kStr && kStr === strId) return false;
+            if (!isNaN(numId) && !isNaN(kNum) && numId === kNum) return false;
+            if (signature) {
+                const kSig = `${k.customer_name || ''}_${k.date || ''}_${k.amount || ''}_${k.transaction_type || ''}`;
+                if (kSig === signature) return false;
+            }
+            return true;
+        });
         this.save(this.KEY_KHATA, list);
     },
 
-    mergeKhata(serverTxns) {
+    reconcileServerKhata(serverTxns) {
+        const serverList = (serverTxns || []).filter(t => !this.isKhataDeleted(t));
         const local = this.get(this.KEY_KHATA);
+        const offlinePending = local.filter(t => t && t._offline_pending === true && !this.isKhataDeleted(t));
         const map = new Map();
-        (serverTxns || []).forEach(t => {
-            const key = t.id ? String(t.id) : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
+        serverList.forEach(t => {
+            const key = t.id != null ? String(t.id).trim() : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
             map.set(key, t);
         });
-        (local || []).forEach(t => {
-            const key = t.id ? String(t.id) : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
+        offlinePending.forEach(t => {
+            const key = t.id != null ? String(t.id).trim() : `${t.customer_name}_${t.date}_${t.amount}_${t.transaction_type}`;
             if (!map.has(key)) {
                 map.set(key, t);
             }
         });
-        const merged = Array.from(map.values());
-        this.save(this.KEY_KHATA, merged);
-        return merged;
+        const reconciled = Array.from(map.values());
+        this.save(this.KEY_KHATA, reconciled);
+        return reconciled;
+    },
+
+    mergeKhata(serverTxns) {
+        return this.reconcileServerKhata(serverTxns);
     },
 
     addExpense(exp) {
@@ -135,7 +344,7 @@ const VernaStorage = {
     },
 
     getReceipts() {
-        return this.get(this.KEY_RECEIPTS);
+        return this.getActiveReceipts();
     },
 
     saveReceipts(items) {
@@ -143,7 +352,7 @@ const VernaStorage = {
     },
 
     getKhata() {
-        return this.get(this.KEY_KHATA);
+        return this.get(this.KEY_KHATA).filter(k => !this.isKhataDeleted(k));
     },
 
     saveKhata(items) {
@@ -182,9 +391,12 @@ async function syncLocalDataToServer() {
     if (isAutoSyncing) return;
     try {
         isAutoSyncing = true;
-        const localReceipts = VernaStorage.get(VernaStorage.KEY_RECEIPTS);
-        const localKhata = VernaStorage.get(VernaStorage.KEY_KHATA);
+        const offlineReceipts = VernaStorage.getOfflinePendingReceipts();
+        const localKhata = VernaStorage.get(VernaStorage.KEY_KHATA).filter(k => k && k._offline_pending === true && !VernaStorage.isKhataDeleted(k));
         const localExpenses = VernaStorage.get(VernaStorage.KEY_EXPENSES);
+        const deletedReceiptIds = Array.from(VernaStorage.getDeletedReceiptIds()).map(Number).filter(x => !isNaN(x) && x > 0);
+        const deletedKhataIds = Array.from(VernaStorage.getDeletedKhataIds()).map(Number).filter(x => !isNaN(x) && x > 0);
+
         let localSettings = state.shopSettings || null;
         if (!localSettings) {
             try {
@@ -193,20 +405,26 @@ async function syncLocalDataToServer() {
             } catch (_) {}
         }
 
-        if (localReceipts.length === 0 && localKhata.length === 0 && localExpenses.length === 0 && !localSettings) {
+        if (offlineReceipts.length === 0 && localKhata.length === 0 && localExpenses.length === 0 && !localSettings && deletedReceiptIds.length === 0 && deletedKhataIds.length === 0) {
             return;
         }
 
-        await apiCall("/api/sync", {
+        const res = await apiCall("/api/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                receipts: localReceipts,
+                receipts: offlineReceipts,
                 khata: localKhata,
                 expenses: localExpenses,
-                shop_settings: localSettings
+                shop_settings: localSettings,
+                deleted_receipt_ids: deletedReceiptIds,
+                deleted_khata_ids: deletedKhataIds
             })
         });
+
+        if (res && res.ok) {
+            VernaStorage.markOfflinePendingSynced();
+        }
     } catch (e) {
         console.warn("Auto-sync notice:", e);
     } finally {
@@ -2132,7 +2350,7 @@ async function saveCurrentBillToLedger() {
     } catch (e) {
         console.error("Save bill error:", e);
         // Offline-first fallback
-        VernaStorage.addReceipt({ ...bill, id: Date.now() });
+        VernaStorage.addReceipt({ ...bill, id: Date.now(), _offline_pending: true });
         state.currentBillId = null;
         state.currentBill = null;
         loadDashboardMetrics();
@@ -2226,7 +2444,7 @@ async function loadKhataData() {
             console.warn("Khata server fetch notice:", netErr);
         }
 
-        const serverTxns = (serverData && serverData.transactions) ? serverData.transactions : [];
+        const serverTxns = (serverData && serverData.transactions) ? serverData.transactions : (Array.isArray(serverData) ? serverData : []);
         const mergedTxns = VernaStorage.mergeKhata(serverTxns);
 
         const custMap = {};
@@ -2421,7 +2639,7 @@ function renderKhataTable(transactions) {
             <td>${t.date}</td>
             <td style="color: var(--neon-amber);">${t.due_date || '-'}</td>
             <td>
-                <button onclick="deleteKhataEntry(${tid})" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1rem;" title="डीलीट करा">
+                <button onclick="deleteKhataEntry('${tid}')" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1rem;" title="डीलीट करा">
                     🗑️
                 </button>
             </td>
@@ -2591,12 +2809,19 @@ async function submitAddKhata(e) {
 }
 
 async function deleteKhataEntry(id) {
+    if (!id) return;
+    const strId = String(id).trim();
+    const numId = Number(id);
     if (!confirm("हा व्यवहार कायमचा डिलीट करायचा आहे का?")) return;
     try {
-        VernaStorage.removeKhata(id);
+        const target = (state.allKhata || []).find(k => String(k.id).trim() === strId || (!isNaN(numId) && Number(k.id) === numId));
+        const sig = target ? `${target.customer_name || ''}_${target.date || ''}_${target.amount || ''}_${target.transaction_type || ''}` : null;
+        VernaStorage.markKhataDeleted(id, sig);
+        VernaStorage.removeKhata(id, sig);
+        state.allKhata = (state.allKhata || []).filter(k => String(k.id).trim() !== strId && (isNaN(numId) || Number(k.id) !== numId));
         await apiCall(`/api/khata/${id}`, { method: "DELETE" }).catch(() => {});
-        loadKhataData();
-        loadDashboardMetrics();
+        await loadKhataData();
+        await loadDashboardMetrics();
     } catch (e) {
         alert("एरर: " + e.message);
     }
@@ -2782,22 +3007,35 @@ function shareDailyDigestWhatsApp() {
 // -----------------------------------------------------------------------------
 async function loadReceiptsLedger() {
     try {
-        let serverData = [];
+        let serverData = null;
+        let isOnline = false;
         try {
             const res = await apiCall("/api/receipts");
             if (res.ok) {
                 serverData = await res.json();
+                isOnline = true;
             }
         } catch (netErr) {
             console.warn("Server receipts fetch notice:", netErr);
         }
-        const merged = VernaStorage.mergeReceipts(serverData);
-        state.allReceipts = merged;
-        renderLedgerTable(merged);
 
-        if (merged.length > serverData.length) {
-            syncLocalDataToServer();
+        let receiptsToRender = [];
+        if (isOnline && Array.isArray(serverData)) {
+            // Online: Reconcile server truth with local store, strictly purging any server-deleted receipts
+            receiptsToRender = VernaStorage.reconcileServerReceipts(serverData);
+            
+            // If any genuine offline bills were created, sync them up
+            const pending = VernaStorage.getOfflinePendingReceipts();
+            if (pending.length > 0) {
+                syncLocalDataToServer();
+            }
+        } else {
+            // Offline fallback: load active, non-deleted receipts
+            receiptsToRender = VernaStorage.getActiveReceipts();
         }
+
+        state.allReceipts = receiptsToRender;
+        renderLedgerTable(receiptsToRender);
     } catch (e) {
         console.error("Receipts load error:", e);
     }
@@ -2830,7 +3068,7 @@ function renderLedgerTable(receipts) {
         tr.id = `ledger-row-${r.id}`;
         tr.innerHTML = `
             <td style="text-align: center;">
-                <input type="checkbox" class="cyber-checkbox ledger-row-checkbox" value="${r.id}" onchange="onReceiptCheckboxChange(this, ${r.id})">
+                <input type="checkbox" class="cyber-checkbox ledger-row-checkbox" value="${r.id}" onchange="onReceiptCheckboxChange(this, '${r.id}')">
             </td>
             <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--neon-cyan);">#VL-${r.id}</td>
             <td style="font-weight: 700; color: var(--text-white);">${escapeHtml(displayName)}</td>
@@ -2839,10 +3077,10 @@ function renderLedgerTable(receipts) {
             <td style="font-weight: 800; color: var(--neon-green); font-size: 0.95rem;">₹${Number(r.grand_total).toFixed(2)}</td>
             <td>
                 <div style="display: flex; gap: 6px;">
-                    <button class="btn-pill btn-lang" onclick="viewSavedReceiptThermal(${r.id})" title="पावती पहा">
+                    <button class="btn-pill btn-lang" onclick="viewSavedReceiptThermal('${r.id}')" title="पावती पहा">
                         🖨️
                     </button>
-                    <button onclick="deleteReceipt(${r.id})" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1.1rem;" title="डीलीट">
+                    <button onclick="deleteReceipt('${r.id}')" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1.1rem;" title="डीलीट">
                         🗑️
                     </button>
                 </div>
@@ -2930,27 +3168,40 @@ async function bulkDeleteSelectedReceipts() {
     if (!confirm(msg)) return;
 
     try {
-        // 1. Remove from local client persistence
-        VernaStorage.removeReceipts(selectedIds);
-
-        // 2. Call server bulk-delete endpoint
-        await apiCall("/api/receipts/bulk-delete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ receipt_ids: selectedIds })
-        }).catch(async (e) => {
-            console.warn("Bulk delete server notice, falling back to sequential:", e);
-            for (const id of selectedIds) {
-                await apiCall(`/api/receipts/${id}`, { method: "DELETE" }).catch(() => {});
+        const idSet = new Set(selectedIds.map(x => String(x).trim()));
+        const sigs = [];
+        (state.allReceipts || []).forEach(r => {
+            if (r && (idSet.has(String(r.id).trim()) || idSet.has(String(Number(r.id))))) {
+                sigs.push(`${r.vendor_name || ''}_${r.date || ''}_${r.grand_total || ''}`);
             }
         });
 
-        // 3. Reload ledger and metrics
+        // 1. Immediately mark deleted & remove from local client persistence
+        VernaStorage.removeReceipts(selectedIds, sigs);
+
+        // 2. Remove immediately from memory state & refresh UI
+        state.allReceipts = (state.allReceipts || []).filter(r => 
+            !idSet.has(String(r.id).trim()) && !idSet.has(String(Number(r.id)))
+        );
+        renderLedgerTable(state.allReceipts);
+
+        // 3. Call server bulk-delete endpoint
+        try {
+            await apiCall("/api/receipts/bulk-delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ receipt_ids: selectedIds })
+            });
+        } catch (e) {
+            console.warn("Bulk delete server notice:", e);
+        }
+
+        // 4. Reload ledger and metrics
         await loadReceiptsLedger();
-        loadDashboardMetrics();
+        await loadDashboardMetrics();
 
         const successTpl = dict.msg_bulk_delete_success || "✅ निवडलेल्या {n} पावत्या यशस्वीरीत्या डिलीट केल्या!";
-        alert(successTpl.replace("{n}", count));
+        showToast(successTpl.replace("{n}", count), "success", 3500);
     } catch (err) {
         alert("एरर: " + err.message);
     }
@@ -2971,20 +3222,24 @@ async function clearEntireLedger() {
     if (!confirm(`नक्की? लेजरमधील संपूर्ण ${total} पावत्या कायमच्या नष्ट होतील!`)) return;
 
     try {
-        VernaStorage.clearAllReceipts();
-        await apiCall("/api/receipts/all", { method: "DELETE" }).catch(async () => {
-            const allIds = (state.allReceipts || []).map(r => r.id);
-            await apiCall("/api/receipts/bulk-delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ receipt_ids: allIds })
-            }).catch(() => {});
-        });
+        // 1. Mark all current receipts deleted in tombstone storage
+        VernaStorage.clearAllReceipts(state.allReceipts);
+
+        // 2. Clear state and UI immediately
+        state.allReceipts = [];
+        renderLedgerTable([]);
+
+        // 3. Call server delete-all endpoint
+        try {
+            await apiCall("/api/receipts/all", { method: "DELETE" });
+        } catch (e) {
+            console.warn("Clear all receipts server notice:", e);
+        }
 
         await loadReceiptsLedger();
-        loadDashboardMetrics();
+        await loadDashboardMetrics();
 
-        alert(dict.msg_clear_all_success || "✅ सर्व पावत्या लेजरमधून यशस्वीरीत्या डिलीट केल्या!");
+        showToast(dict.msg_clear_all_success || "✅ सर्व पावत्या लेजरमधून यशस्वीरीत्या डिलीट केल्या!", "success", 3500);
     } catch (err) {
         alert("एरर: " + err.message);
     }
@@ -2992,7 +3247,7 @@ async function clearEntireLedger() {
 
 function filterLedgerList() {
     const q = document.getElementById("ledger-search-input").value.toLowerCase();
-    const filtered = state.allReceipts.filter(r => 
+    const filtered = (state.allReceipts || []).filter(r => 
         (r.vendor_name && r.vendor_name.toLowerCase().includes(q)) ||
         (r.category && r.category.toLowerCase().includes(q)) ||
         (r.date && r.date.includes(q)) ||
@@ -3002,7 +3257,11 @@ function filterLedgerList() {
 }
 
 function viewSavedReceiptThermal(id) {
-    const r = state.allReceipts.find(x => x.id === id);
+    const strId = String(id).trim();
+    const numId = Number(id);
+    const r = (state.allReceipts || []).find(x => 
+        String(x.id).trim() === strId || (!isNaN(numId) && Number(x.id) === numId)
+    );
     if (!r) return;
 
     const raw = r.raw_json || {};
@@ -3017,13 +3276,44 @@ function viewSavedReceiptThermal(id) {
 }
 
 async function deleteReceipt(id) {
+    if (!id) return;
+    const strId = String(id).trim();
+    const numId = Number(id);
+    const dict = i18n[state.lang] || i18n.mr;
+
     if (!confirm(`पावती #${id} लेजरमधून कायमची डिलीट करायची का?`)) return;
+
     try {
-        VernaStorage.removeReceipt(id);
-        await apiCall(`/api/receipts/${id}`, { method: "DELETE" }).catch(() => {});
-        loadReceiptsLedger();
-        loadDashboardMetrics();
+        // Find receipt before deleting to get its exact signature
+        const target = (state.allReceipts || []).find(r => 
+            String(r.id).trim() === strId || (!isNaN(numId) && Number(r.id) === numId)
+        );
+        const signature = target ? `${target.vendor_name || ''}_${target.date || ''}_${target.grand_total || ''}` : null;
+
+        // 1. Mark permanently deleted in client tombstone and local storage
+        VernaStorage.markReceiptDeleted(id, signature);
+        VernaStorage.removeReceipt(id, signature);
+
+        // 2. Remove immediately from UI memory state and re-render table instantly
+        state.allReceipts = (state.allReceipts || []).filter(r => 
+            String(r.id).trim() !== strId && (isNaN(numId) || Number(r.id) !== numId)
+        );
+        renderLedgerTable(state.allReceipts);
+
+        // 3. Call server DELETE endpoint
+        try {
+            await apiCall(`/api/receipts/${id}`, { method: "DELETE" });
+        } catch (apiErr) {
+            console.warn("Server delete notice:", apiErr);
+        }
+
+        // 4. Reload ledger and dashboard metrics
+        await loadReceiptsLedger();
+        await loadDashboardMetrics();
+
+        showToast("✅ पावती कायमची डिलीट झाली!", "success", 3000);
     } catch (e) {
+        console.error("Delete receipt error:", e);
         alert("एरर: " + e.message);
     }
 }
