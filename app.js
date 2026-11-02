@@ -1363,6 +1363,18 @@ function formatLocalizedName(name, lang = state.lang) {
 // INITIALIZATION
 // -----------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+    // Automatic Storage Epoch: purge legacy cached ghost receipts from mobile/desktop
+    const STORAGE_EPOCH_KEY = "verna_cache_epoch";
+    const CURRENT_EPOCH = "v54_unified_sync";
+    const savedEpoch = localStorage.getItem(STORAGE_EPOCH_KEY);
+    if (savedEpoch !== CURRENT_EPOCH) {
+        localStorage.removeItem("verna_persistent_receipts");
+        localStorage.removeItem("verna_deleted_receipt_ids");
+        localStorage.removeItem("verna_deleted_receipt_sigs");
+        localStorage.setItem(STORAGE_EPOCH_KEY, CURRENT_EPOCH);
+        console.info("VernaStorage: Purged legacy local ghost receipts for unified live sync.");
+    }
+
     // Unregister any old service workers to keep browser always 100% live and fresh
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then((regs) => {
@@ -2434,6 +2446,16 @@ function triggerBrowserPrint() {
 // -----------------------------------------------------------------------------
 async function loadKhataData() {
     try {
+        // Ingest server khata tombstones so deletions on laptop propagate to mobile
+        try {
+            const tombRes = await apiCall("/api/khata/tombstones");
+            if (tombRes && tombRes.ok) {
+                const tomb = await tombRes.json();
+                (tomb.deleted_ids || []).forEach(id => VernaStorage.markKhataDeleted(id));
+                (tomb.deleted_signatures || []).forEach(sig => VernaStorage.markKhataDeleted(null, sig));
+            }
+        } catch (_) {}
+
         let serverData = null;
         try {
             const res = await apiCall("/api/khata");
@@ -3007,6 +3029,18 @@ function shareDailyDigestWhatsApp() {
 // -----------------------------------------------------------------------------
 async function loadReceiptsLedger() {
     try {
+        // Step 1: Always ingest server tombstones first so mobile immediately inherits deletions made from laptop
+        try {
+            const tombRes = await apiCall("/api/receipts/tombstones");
+            if (tombRes && tombRes.ok) {
+                const tomb = await tombRes.json();
+                (tomb.deleted_ids || []).forEach(id => VernaStorage.markReceiptDeleted(id));
+                (tomb.deleted_signatures || []).forEach(sig => VernaStorage.markReceiptDeleted(null, sig));
+            }
+        } catch (tombErr) {
+            console.warn("Server tombstones notice:", tombErr);
+        }
+
         let serverData = null;
         let isOnline = false;
         try {
@@ -3316,6 +3350,77 @@ async function deleteReceipt(id) {
         console.error("Delete receipt error:", e);
         alert("एरर: " + e.message);
     }
+}
+
+// =============================================================================
+// MOBILE & LAPTOP LIVE SYNC & GHOST CACHE PURGE CONTROLLER
+// =============================================================================
+async function forceCleanMobileCacheAndResync() {
+    showToast("⏳ सर्व्हरवरून थेट डेटा सिंक व कॅशे साफ होत आहे...", "info", 2500);
+    try {
+        // 1. Clear local browser persistent cache
+        localStorage.removeItem("verna_persistent_receipts");
+        localStorage.removeItem("verna_deleted_receipt_ids");
+        localStorage.removeItem("verna_deleted_receipt_sigs");
+        localStorage.setItem("verna_cache_epoch", "v54_unified_sync");
+
+        // 2. Fetch fresh server tombstones & ledger data
+        await loadReceiptsLedger();
+        await loadDashboardMetrics();
+        showToast("✅ मोबाईल व लॅपटॉप डेटा 100% सिंक झाला!", "success", 3000);
+    } catch (e) {
+        showToast("⚠️ सिंक करताना अडचण: " + e.message, "error", 3500);
+    }
+}
+
+async function showMobileConnectModal() {
+    let mobileUrl = "";
+    try {
+        const res = await apiCall("/api/server-info");
+        if (res && res.ok) {
+            const info = await res.json();
+            if (info && info.mobile_url) {
+                mobileUrl = info.mobile_url;
+            }
+        }
+    } catch (_) {}
+
+    if (!mobileUrl) {
+        const port = window.location.port ? `:${window.location.port}` : "";
+        mobileUrl = `${window.location.protocol}//${window.location.hostname}${port}`;
+    }
+
+    const modal = document.createElement("div");
+    modal.id = "modal-mobile-connect";
+    modal.className = "modal-backdrop";
+    modal.style.display = "flex";
+    modal.innerHTML = `
+        <div class="modal-card glass-card" style="max-width: 480px; width: 92%;">
+            <div class="modal-header">
+                <h3>📱 मोबाईलवर लाइव्ह सिंकने उघडा</h3>
+                <button class="btn-close" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 20px 10px;">
+                <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 16px;">
+                    लॅपटॉप आणि मोबाईल एकाच वायफाय / हॉटस्पॉटवर कनेक्ट असावेत. खालील लिंक मोबाईलच्या ब्राऊझरमध्ये उघडा:
+                </p>
+                <div style="background: rgba(0, 242, 254, 0.08); border: 1px dashed var(--neon-cyan); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+                    <a href="${mobileUrl}" target="_blank" style="color: var(--neon-cyan); font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; word-break: break-all; text-decoration: none;">
+                        ${mobileUrl}
+                    </a>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-cyber" onclick="navigator.clipboard.writeText('${mobileUrl}').then(() => showToast('✅ लिंक क्लिपबोर्डवर कॉपी झाली!', 'success'))" style="padding: 10px 18px;">
+                        📋 लिंक कॉपी करा
+                    </button>
+                    <button class="btn-pill" onclick="this.closest('.modal-backdrop').remove()" style="padding: 10px 18px;">
+                        बंद करा
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
 // =============================================================================

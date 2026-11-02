@@ -1993,6 +1993,21 @@ def delete_all_receipts():
     conn.close()
     return {"success": True, "deleted_count": len(rows)}
 
+@app.get("/api/receipts/tombstones")
+@app.get("/receipts/tombstones")
+def get_receipt_tombstones():
+    """Returns all permanently deleted receipt IDs and signatures so mobile devices purge old deleted bills."""
+    conn = get_db()
+    cursor = conn.cursor()
+    ids = [r[0] for r in cursor.execute("SELECT id FROM deleted_receipts").fetchall()]
+    sigs = [r[0] for r in cursor.execute("SELECT signature FROM deleted_receipts WHERE signature != ''").fetchall()]
+    conn.close()
+    return {
+        "success": True,
+        "deleted_ids": ids,
+        "deleted_signatures": sigs
+    }
+
 # -----------------------------------------------------------------------------
 # CUSTOMER KHATA (DIGITAL UDHAR LEDGER)
 # -----------------------------------------------------------------------------
@@ -2088,6 +2103,21 @@ def delete_all_khata():
     conn.commit()
     conn.close()
     return {"success": True, "deleted_count": len(rows)}
+
+@app.get("/api/khata/tombstones")
+@app.get("/khata/tombstones")
+def get_khata_tombstones():
+    """Returns all permanently deleted khata IDs and signatures so mobile devices purge old deleted transactions."""
+    conn = get_db()
+    cursor = conn.cursor()
+    ids = [r[0] for r in cursor.execute("SELECT id FROM deleted_khata").fetchall()]
+    sigs = [r[0] for r in cursor.execute("SELECT signature FROM deleted_khata WHERE signature != ''").fetchall()]
+    conn.close()
+    return {
+        "success": True,
+        "deleted_ids": ids,
+        "deleted_signatures": sigs
+    }
 
 # -----------------------------------------------------------------------------
 # INVENTORY & BUSINESS OPERATIONS
@@ -3450,6 +3480,28 @@ def health_check():
         "status": "healthy",
         "app": "VernaLedger.AI Merchant Pro v7.5",
         "runtime": "Vercel Serverless Python",
+        "timestamp": datetime.now().isoformat()
+    }
+
+def get_local_ip() -> str:
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+@app.get("/api/server-info")
+@app.get("/server-info")
+def get_server_info():
+    ip = get_local_ip()
+    return {
+        "local_ip": ip,
+        "port": 8000,
+        "mobile_url": f"http://{ip}:8000",
         "timestamp": datetime.now().isoformat()
     }
 

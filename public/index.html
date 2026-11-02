@@ -111,6 +111,9 @@
                 <span>VernaLedger.AI</span>
             </div>
             <div class="actions">
+                <button class="btn-pill" onclick="forceCleanMobileCacheAndResync()" title="सर्व्हर डेटा सिंक करा" style="padding: 4px 8px; font-size: 0.82rem; background: rgba(0, 242, 254, 0.15); border: 1px solid var(--neon-cyan); color: var(--neon-cyan);">
+                    🔄
+                </button>
                 <button class="btn-pill btn-lang" id="mob-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला" style="padding: 4px 10px;">
                     <span id="mob-theme-icon">☀️</span>
                 </button>
@@ -216,6 +219,12 @@
                     <h2 id="hud-title" data-i18n="hud_title_scanner">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
                 <div class="hud-controls" style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-pill" onclick="showMobileConnectModal()" title="मोबाईलवर लाइव्ह सिंकने उघडा" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--neon-cyan); background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); cursor: pointer;">
+                        📱 <span>मोबाईल लिंक</span>
+                    </button>
+                    <button class="btn-pill" onclick="forceCleanMobileCacheAndResync()" title="सर्व्हरवरून थेट डेटा सिंक करा" style="padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer;">
+                        🔄 <span>सिंक</span>
+                    </button>
                     <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
                         <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label" data-i18n="theme_kirana_mode">किराणा मोड</span>
                     </button>
@@ -662,6 +671,11 @@
                                 🗑️ <span id="lbl-bulk-delete" data-i18n="btn_delete_selected">निवडलेल्या डिलीट करा</span> (<span id="ledger-selected-count">0</span>)
                             </button>
 
+                            <!-- Force Sync / Clear Mobile Cache Button -->
+                            <button class="btn-pill" id="btn-ledger-sync" onclick="forceCleanMobileCacheAndResync()" style="background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); border: 1px solid rgba(0, 242, 254, 0.4); padding: 8px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer;" title="मोबाईल व लॅपटॉप लाइव्ह डेटा रीफ्रेश करा">
+                                🔄 सिंक व रीफ्रेश
+                            </button>
+
                             <!-- Clear Entire Ledger Button -->
                             <button class="btn-pill" id="btn-ledger-clear-all" onclick="clearEntireLedger()" style="background: rgba(255, 0, 85, 0.1); color: var(--neon-red); border: 1px solid rgba(255, 0, 85, 0.35); padding: 8px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer;" title="सर्व पावत्या डिलीट करा" data-i18n="btn_clear_all_ledger">
                                 ⚠️ सर्व रिकामे करा
@@ -1106,6 +1120,6 @@
         </div>
     </div>
 
-<script src="app.js?v=54.0"></script>
+<script src="app.js?v=55.0"></script>
 </body>
 </html>

@@ -42,16 +42,33 @@ def launch_browser():
     except Exception:
         pass
 
+def get_local_ip():
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
 if __name__ == "__main__":
     import uvicorn
 
     # Launch browser automatically on server startup
     threading.Thread(target=launch_browser, daemon=True).start()
 
-    print("=" * 65)
-    print("VernaLedger.AI - Merchant Pro v7.5 (Starting Server)")
-    print("Local Server: http://127.0.0.1:8000")
-    print("Opening browser automatically in 1 second...")
-    print("API Docs:     http://127.0.0.1:8000/docs")
-    print("=" * 65)
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    local_ip = get_local_ip()
+    print("=" * 70)
+    print("  🚀 VernaLedger.AI - Merchant Pro v7.5 (Live Unified Server)")
+    print("=" * 70)
+    print(f"  💻 Laptop URL:  http://127.0.0.1:8000")
+    print(f"  📱 Mobile URL:  http://{local_ip}:8000")
+    print("=" * 70)
+    print("  👉 मोबाईलवर उघडण्यासाठी: फोन आणि लॅपटॉप एकाच वायफाय/हॉटस्पॉटवर")
+    print(f"     कनेक्ट करा आणि फोनच्या क्रोम ब्राऊझरमध्ये http://{local_ip}:8000 उघडा.")
+    print("     दोन्ही डिव्हाइसवर एकाच वेळी रिअल-टाईम बदल (Real-Time Live Sync) दिसतील!")
+    print("=" * 70)
+    # Bind to 0.0.0.0 so both laptop and mobile can access simultaneously
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
