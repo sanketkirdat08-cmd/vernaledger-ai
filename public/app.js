@@ -4008,9 +4008,7 @@ function renderAiResponseBubble(aiBubble, data) {
     `;
 }
 
-async function speakAiBubbleText(btn) {
-    stopCurrentAudio();
-}
+
 
 function speakWithBrowserVoiceClean(text, onEnd) {
     if (!window.speechSynthesis) {
@@ -4668,18 +4666,7 @@ function applyShopSettingsToUI() {
     const sNameEl = document.getElementById("sidebar-shop-name");
     if (sNameEl) sNameEl.innerText = s.shop_name || "SK Store";
 
-    // Operation view inputs
-    const elShopName = document.getElementById("setting-shop-name");
-    const elOwnerName = document.getElementById("setting-owner-name");
-    const elPhone = document.getElementById("setting-phone");
-    const elUpi = document.getElementById("setting-upi");
-    const elAddr = document.getElementById("setting-address");
 
-    if (elShopName) elShopName.value = s.shop_name || "";
-    if (elOwnerName) elOwnerName.value = s.owner_name || "";
-    if (elPhone) elPhone.value = s.phone || "";
-    if (elUpi) elUpi.value = s.upi_id || "";
-    if (elAddr) elAddr.value = s.address || "";
 
     // Default vendor name in Digital Receipt Preview if empty or default placeholder
     const billVendor = document.getElementById("bill-vendor-name");
@@ -4706,18 +4693,7 @@ function openShopSettingsModal() {
     if (modal) modal.classList.add("active");
 }
 
-async function saveShopSettingsFromOperations() {
-    const enteredName = (document.getElementById("setting-shop-name") ? document.getElementById("setting-shop-name").value : "").trim();
-    const payload = {
-        shop_name: enteredName || (state.shopSettings && state.shopSettings.shop_name) || "SK Store",
-        owner_name: (document.getElementById("setting-owner-name") ? document.getElementById("setting-owner-name").value : "").trim() || (state.shopSettings && state.shopSettings.owner_name) || "संकेत किर्दत",
-        phone: (document.getElementById("setting-phone") ? document.getElementById("setting-phone").value : "").trim() || (state.shopSettings && state.shopSettings.phone) || "9876543210",
-        upi_id: (document.getElementById("setting-upi") ? document.getElementById("setting-upi").value : "").trim() || (state.shopSettings && state.shopSettings.upi_id) || "merchant@upi",
-        address: (document.getElementById("setting-address") ? document.getElementById("setting-address").value : "").trim() || (state.shopSettings && state.shopSettings.address) || "सातारा, महाराष्ट्र"
-    };
 
-    await persistShopSettings(payload);
-}
 
 async function handleSaveShopSettingsModal(e) {
     if (e) e.preventDefault();
