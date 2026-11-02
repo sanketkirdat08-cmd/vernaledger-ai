@@ -65,7 +65,7 @@ app.add_middleware(
 )
 
 # -----------------------------------------------------------------------------
-# ZERO-CACHE & INSTANT 200 OK MIDDLEWARE (ELIMINATES 304 NOT MODIFIED)
+# ZERO-CACHE, PATH NORMALIZER & INSTANT 200 OK MIDDLEWARE
 # -----------------------------------------------------------------------------
 @app.middleware("http")
 async def force_fresh_reload_middleware(request: Request, call_next):
@@ -74,6 +74,20 @@ async def force_fresh_reload_middleware(request: Request, call_next):
         (k, v) for k, v in request.scope.get("headers", [])
         if k.lower() not in (b"if-none-match", b"if-modified-since")
     ]
+
+    # Universal Path Normalization (Eliminates 405 Method Not Allowed on redirects / trailing slashes)
+    path = request.scope.get("path", "")
+    if path.startswith("/api/index.py"):
+        path = path[len("/api/index.py"):] or "/"
+        request.scope["path"] = path
+    elif path.startswith("/index.py"):
+        path = path[len("/index.py"):] or "/"
+        request.scope["path"] = path
+
+    # Strip trailing slash for API endpoints so /api/ocr/ routes to /api/ocr
+    if len(path) > 1 and path.endswith("/") and not path.endswith(".html"):
+        request.scope["path"] = path.rstrip("/")
+
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -826,6 +840,11 @@ def clean_json_str(text: str) -> dict:
     return data
 
 @app.post("/api/ocr")
+@app.post("/ocr")
+@app.post("/api/ocr/")
+@app.post("/ocr/")
+@app.post("/api/index.py/api/ocr")
+@app.post("/api/index.py/ocr")
 async def process_ocr(file: UploadFile = File(...)):
     try:
         return await _execute_ocr(file)
@@ -837,6 +856,17 @@ async def process_ocr(file: UploadFile = File(...)):
             status_code=502,
             detail="Smart Scanner could not read this image. Please try a clearer photo or try again."
         ) from exc
+
+@app.get("/api/ocr")
+@app.get("/ocr")
+@app.get("/api/ocr/")
+@app.get("/ocr/")
+async def get_ocr_info():
+    return {
+        "status": "online",
+        "service": "VernaLedger Smart Multimodal OCR",
+        "method": "POST multipart/form-data with 'file' parameter"
+    }
 
 async def _execute_ocr(file: UploadFile):
     contents = await file.read()
@@ -1167,6 +1197,11 @@ def parse_voice_billing_nlp(transcript: str, today_str: str) -> dict:
     }
 
 @app.post("/api/voice-billing")
+@app.post("/voice-billing")
+@app.post("/api/voice-billing/")
+@app.post("/voice-billing/")
+@app.post("/api/index.py/api/voice-billing")
+@app.post("/api/index.py/voice-billing")
 def process_voice_billing(req: VoiceBillRequest):
     api_key = get_api_key()
     today_str = date.today().strftime("%Y-%m-%d")
@@ -3519,11 +3554,26 @@ app.add_api_route('/api/chat', rag_chat, methods=['POST'])
 app.add_api_route('/chat', rag_chat, methods=['POST'])
 
 # -----------------------------------------------------------------------------
-# STATIC FILES SERVING (FOR LOCAL RUN & FALLBACK)
+# SAFE STATIC FILES SERVING (PREVENTS 405 METHOD NOT ALLOWED ON UNMATCHED POST)
 # -----------------------------------------------------------------------------
 public_dir = os.path.join(ROOT_DIR, "public")
 if not os.path.exists(public_dir):
     public_dir = ROOT_DIR
 if os.path.exists(public_dir):
     from fastapi.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
+
+    class SafeStaticFiles(StaticFiles):
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "http" and scope.get("method") not in ("GET", "HEAD"):
+                # Non-GET requests that fall through all routes are unmatched API endpoints.
+                # Returning 404 (instead of StaticFiles' default 405) lets frontends cleanly handle or retry.
+                resp = Response(
+                    content=json.dumps({"detail": f"Endpoint not found: {scope.get('method')} {scope.get('path', '')}"}),
+                    status_code=404,
+                    media_type="application/json"
+                )
+                await resp(scope, receive, send)
+                return
+            await super().__call__(scope, receive, send)
+
+    app.mount("/", SafeStaticFiles(directory=public_dir, html=True), name="static")

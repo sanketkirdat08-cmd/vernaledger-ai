@@ -1500,16 +1500,27 @@ function showToast(message, type = "info", duration = 3500) {
 
 async function apiCall(endpoint, options = {}) {
     try {
-        const res = await fetch(endpoint, options);
-        if (res.status === 404 && endpoint.startsWith('/api/')) {
+        let res = await fetch(endpoint, options);
+        if ((res.status === 404 || res.status === 405) && endpoint.startsWith('/api/')) {
             const fallbackPath = endpoint.replace('/api', '');
-            return await fetch(fallbackPath, options);
+            try {
+                const retryRes = await fetch(fallbackPath, options);
+                if (retryRes && (retryRes.ok || retryRes.status !== 405)) {
+                    return retryRes;
+                }
+            } catch (err) {
+                console.warn("apiCall fallback error:", err);
+            }
         }
         return res;
     } catch (e) {
         if (endpoint.startsWith('/api/')) {
             const fallbackPath = endpoint.replace('/api', '');
-            return await fetch(fallbackPath, options);
+            try {
+                return await fetch(fallbackPath, options);
+            } catch (err) {
+                throw e;
+            }
         }
         throw e;
     }
@@ -1903,10 +1914,37 @@ async function submitReceiptOCR() {
         const formData = new FormData();
         formData.append("file", fileToUpload);
 
-        const res = await apiCall("/api/ocr", {
-            method: "POST",
-            body: formData
-        });
+        let res = null;
+        try {
+            res = await fetch("/api/ocr", {
+                method: "POST",
+                body: formData
+            });
+        } catch (initialErr) {
+            console.warn("Direct /api/ocr fetch failed:", initialErr);
+        }
+
+        // Automatic fallback to /ocr if 404, 405 or network glitch
+        if (!res || (!res.ok && (res.status === 404 || res.status === 405))) {
+            console.warn(`Attempting /ocr fallback due to status: ${res ? res.status : 'network error'}`);
+            try {
+                const retryFormData = new FormData();
+                retryFormData.append("file", fileToUpload);
+                const retryRes = await fetch("/ocr", {
+                    method: "POST",
+                    body: retryFormData
+                });
+                if (retryRes && (retryRes.ok || retryRes.status !== 405)) {
+                    res = retryRes;
+                }
+            } catch (retryErr) {
+                console.warn("/ocr retry failed:", retryErr);
+            }
+        }
+
+        if (!res) {
+            throw new Error("सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट कनेक्शन किंवा सर्व्हर तपासा.");
+        }
 
         let json;
         const text = await res.text();
@@ -1920,7 +1958,10 @@ async function submitReceiptOCR() {
         }
 
         if (!res.ok || !json || !json.success || !json.data) {
-            const warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा स्कॅन करा.";
+            let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा स्कॅन करा.";
+            if (warnMsg === "Method Not Allowed" || res.status === 405) {
+                warnMsg = "⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.";
+            }
             showToast(warnMsg, "warning", 5000);
             return;
         }
@@ -1941,7 +1982,9 @@ async function submitReceiptOCR() {
     } catch (err) {
         console.error("OCR Error:", err);
         const errMsg = String(err.message || err || "");
-        if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("Rate Limit") || errMsg.includes("exceeded") || errMsg.includes("502")) {
+        if (errMsg.includes("Method Not Allowed")) {
+            showToast("⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.", "warning", 5000);
+        } else if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("Rate Limit") || errMsg.includes("exceeded") || errMsg.includes("502")) {
             showToast("⚠️ AI सर्व्हरवर तात्पुरती गर्दी आहे (Google Rate Limit). कृपया काही सेकंद थांबा आणि पुन्हा स्कॅन करा.", "warning", 5000);
         } else {
             showToast("❌ OCR स्कॅनिंग अयशस्वी: " + (errMsg.length > 80 ? errMsg.substring(0, 80) + "..." : errMsg), "error", 4500);

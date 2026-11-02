@@ -23,6 +23,42 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/ocr",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/ocr/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/voice-billing",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/chat",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/sync",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/tts",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/receipts/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/khata/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/export/(.*)",
+      "destination": "/api/index.py"
     }
   ],
   "functions": {
