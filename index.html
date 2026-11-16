@@ -22,24 +22,11 @@
     <!-- Google Fonts for Marathi Devanagari & Cyberpunk UI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Mukta:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script>
-        // Force unregister all old service workers and clear caches on laptop/mobile
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-                for (var r of regs) r.unregister();
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function(keys) {
-                for (var k of keys) caches.delete(k);
-            });
-        }
-    </script>
     <link rel="stylesheet" href="style.css?v=57.0">
 </head>
 <body>

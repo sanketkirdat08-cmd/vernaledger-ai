@@ -70,5 +70,8 @@ if __name__ == "__main__":
     print(f"     कनेक्ट करा आणि फोनच्या क्रोम ब्राऊझरमध्ये http://{local_ip}:8000 उघडा.")
     print("     दोन्ही डिव्हाइसवर एकाच वेळी रिअल-टाईम बदल (Real-Time Live Sync) दिसतील!")
     print("=" * 70)
-    # Bind to 0.0.0.0 so both laptop and mobile can access simultaneously
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Bind to 0.0.0.0 so both laptop and mobile can access simultaneously.
+    # Reload is opt-in because the reloader can interrupt mobile requests while
+    # watching the workspace and is not needed for normal local use.
+    reload_enabled = os.getenv("VERNA_RELOAD", "").strip().lower() in {"1", "true", "yes"}
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=reload_enabled)
