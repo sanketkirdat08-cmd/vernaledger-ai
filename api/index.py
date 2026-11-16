@@ -332,13 +332,12 @@ def get_backup_api_key() -> str:
 
 OCR_MODELS = [
     'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
     'gemini-3.5-flash',
+    'gemini-3-flash-preview',
     'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
-    'gemini-flash-latest',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-flash-latest'
 ]
 
 def get_api_keys_pool() -> List[str]:
@@ -1085,10 +1084,10 @@ Return strictly valid JSON only:
     if response != "LOCAL_VISION":
         for key in api_keys:
             try:
-                genai.configure(api_key=key)
+                genai.configure(api_key=key, transport='rest')
             except Exception:
                 try:
-                    genai.configure(api_key=key, transport='rest')
+                    genai.configure(api_key=key)
                 except Exception as cfg_err:
                     logger.warning(f"Key config notice: {cfg_err}")
                     continue
@@ -1099,7 +1098,7 @@ Return strictly valid JSON only:
                         m,
                         generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
                     )
-                    res = model.generate_content([prompt, img], request_options={"timeout": 35})
+                    res = model.generate_content([prompt, img], request_options={"timeout": 20})
                     if res and res.text:
                         response = res.text
                         break
@@ -1149,7 +1148,7 @@ Return strictly valid JSON only:
     if not data or not data.get("items"):
         return {
             "success": False,
-            "warning": "⚠️ पावतीमधील अक्षरे वाचता आली नाहीत. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा.",
+            "warning": "⚠️ पावतीमधील वस्तू किंवा दर वाचताना त्रुटी आली. कृपया १-२ मिनिटांनी पुन्हा स्कॅन करा.",
             "data": None
         }
 
@@ -1422,12 +1421,13 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 
     genai.configure(api_key=api_key, transport='rest')
     models_to_try = [
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.5-flash',
+        'gemini-3-flash-preview',
+        'gemini-3.1-flash-lite',
         'gemini-3.8-flash',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro'
+        'gemini-flash-latest'
     ]
     res_text = None
     for m in models_to_try:
