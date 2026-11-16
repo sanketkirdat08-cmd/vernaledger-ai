@@ -266,7 +266,7 @@ def is_valid_gemini_key(k: str) -> bool:
     if not k or not isinstance(k, str):
         return False
     k = k.strip()
-    return len(k) >= 20 and not k.startswith(("PASTE_", "AQ.", "YOUR_", "your_"))
+    return len(k) >= 20 and not k.startswith(("PASTE_", "YOUR_", "your_"))
 
 def get_backup_api_key() -> str:
     try:
@@ -276,6 +276,7 @@ def get_backup_api_key() -> str:
         return ""
 
 OCR_MODELS = [
+    'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
@@ -426,7 +427,7 @@ class RAGChatRequest(BaseModel):
     message: Optional[str] = ""
     audio_data: Optional[str] = None
     mime_type: Optional[str] = "audio/webm"
-    chat_history: Optional[List[Dict[str, Any]]] = []
+    chat_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
     lang: Optional[str] = "mr"
     voice_output: Optional[bool] = False
     username: Optional[str] = "admin"
@@ -450,7 +451,7 @@ class ReceiptSaveRequest(BaseModel):
     vendor_name: str
     date: Optional[str] = None
     category: Optional[str] = "General"
-    items: List[Dict[str, Any]] = []
+    items: List[Dict[str, Any]] = Field(default_factory=list)
     grand_total: float
     username: Optional[str] = "admin"
 
@@ -612,7 +613,9 @@ def get_shop_settings():
         "address": "सातारा, महाराष्ट्र"
     }
     for r in rows:
-        settings[r["key"]] = r["value"]
+        # API credentials are server-only and must never be sent to the browser.
+        if r["key"] != "gemini_api_key":
+            settings[r["key"]] = r["value"]
     return settings
 
 @app.post("/api/shop/settings")
@@ -1257,6 +1260,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 
     genai.configure(api_key=api_key, transport='rest')
     models_to_try = [
+        'gemini-3.8-flash',
         'gemini-2.5-flash',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
@@ -2460,6 +2464,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
+        'gemini-3.8-flash',
         'gemini-2.5-flash',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
@@ -3416,6 +3421,7 @@ You possess two core intelligence systems:
         try:
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
+        'gemini-3.8-flash',
         'gemini-2.5-flash',
         'gemini-2.0-flash',
         'gemini-1.5-flash',
