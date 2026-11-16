@@ -1988,7 +1988,7 @@ async function submitReceiptOCR() {
         }
 
         if (!res.ok || !json || !json.success || !json.data) {
-            let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा स्कॅन करा.";
+            let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना सर्व्हर व्यस्त आहे. कृपया थोड्या वेळाने पुन्हा स्कॅन करा.";
             if (typeof warnMsg === "string" && (warnMsg.includes("Endpoint not found") || warnMsg.includes("Method Not Allowed") || res.status === 405 || res.status === 404)) {
                 warnMsg = "⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.";
             }

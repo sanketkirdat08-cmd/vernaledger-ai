@@ -331,14 +331,14 @@ def get_backup_api_key() -> str:
         return ""
 
 OCR_MODELS = [
-    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-2.5-flash',
+    'gemini-3.8-flash',
     'gemini-flash-latest',
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-2.5-pro'
+    'gemini-1.5-flash'
 ]
 
 def get_api_keys_pool() -> List[str]:
@@ -1126,15 +1126,15 @@ Return strictly valid JSON only:
     # Graceful Rate Limit & Error Handling: Never crash with raw 502 dialog!
     if not response:
         err_lower = str(last_err).lower()
-        is_quota = any(w in err_lower for w in ["429", "quota", "resourceexhausted", "limit", "exceeded"])
+        is_quota = any(w in err_lower for w in ["429", "quota", "resourceexhausted", "limit", "exceeded", "503", "demand", "unavailable", "504", "deadline", "timeout", "timed out"])
         is_auth_error = any(w in err_lower for w in ["401", "unauthorized", "api_key_invalid", "deleted or disabled", "account_state_invalid", "permission_denied", "api key not valid"])
 
         if is_auth_error:
-            warn_msg = "⚠️ Gemini API Key अमान्य किंवा एक्सपायर आहे. कृपया सेटिंग्ज (Settings) मध्ये तुमची मोफत API Key प्रविष्ट करा."
+            warn_msg = "⚠️ Gemini API Key अमान्य किंवा एक्सपायर आहे."
         elif is_quota:
-            warn_msg = "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा."
+            warn_msg = "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (High Demand / Rate Limit). पावतीचा फोटो एकदम स्पष्ट आहे! कृपया १-२ मिनिटांनी पुन्हा स्कॅन करा."
         else:
-            warn_msg = "⚠️ पावतीमधील अक्षरे वाचता आली नाहीत. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा."
+            warn_msg = "⚠️ Google AI सर्व्हर तात्पुरता व्यस्त आहे. पावतीचा फोटो चांगला आहे, कृपया १ मिनिटाने पुन्हा स्कॅन करा."
 
         return {
             "success": False,
@@ -2638,14 +2638,14 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-                'gemini-3.8-flash',
+                'gemini-3.5-flash-lite',
+                'gemini-3.5-flash',
                 'gemini-3.1-flash-lite',
-                'gemini-2.5-flash',
+                'gemini-3.8-flash',
                 'gemini-flash-latest',
+                'gemini-2.5-flash',
                 'gemini-2.0-flash',
-                'gemini-2.5-flash-lite',
-                'gemini-1.5-flash',
-                'gemini-1.5-pro'
+                'gemini-1.5-flash'
             ]
             for m in models_to_try:
                 try:
@@ -3597,14 +3597,14 @@ You possess two core intelligence systems:
         try:
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-                'gemini-3.8-flash',
+                'gemini-3.5-flash-lite',
+                'gemini-3.5-flash',
                 'gemini-3.1-flash-lite',
-                'gemini-2.5-flash',
+                'gemini-3.8-flash',
                 'gemini-flash-latest',
+                'gemini-2.5-flash',
                 'gemini-2.0-flash',
-                'gemini-2.5-flash-lite',
-                'gemini-1.5-flash',
-                'gemini-1.5-pro'
+                'gemini-1.5-flash'
             ]
             for m in models_to_try:
                 try:
