@@ -1972,7 +1972,7 @@ async function submitReceiptOCR() {
 
         if (!res.ok || !json || !json.success || !json.data) {
             let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा स्कॅन करा.";
-            if (warnMsg === "Method Not Allowed" || res.status === 405) {
+            if (typeof warnMsg === "string" && (warnMsg.includes("Endpoint not found") || warnMsg.includes("Method Not Allowed") || res.status === 405 || res.status === 404)) {
                 warnMsg = "⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.";
             }
             showToast(warnMsg, "warning", 5500);
@@ -5223,28 +5223,12 @@ function openShopSettingsModal() {
     const mPhone = document.getElementById("modal-phone");
     const mUpi = document.getElementById("modal-upi");
     const mAddr = document.getElementById("modal-address");
-    const mGemini = document.getElementById("modal-gemini-key");
-    const mGeminiStatus = document.getElementById("modal-gemini-status");
 
     if (mShop) mShop.value = s.shop_name || "";
     if (mOwner) mOwner.value = s.owner_name || "";
     if (mPhone) mPhone.value = s.phone || "";
     if (mUpi) mUpi.value = s.upi_id || "";
     if (mAddr) mAddr.value = s.address || "";
-    if (mGemini) {
-        mGemini.value = "";
-        if (s.gemini_key_preview || s.has_gemini_key) {
-            mGemini.placeholder = `सध्या सेट केलेली की: ${s.gemini_key_preview || 'सक्रिय आहे'}`;
-            if (mGeminiStatus) {
-                mGeminiStatus.innerHTML = `✅ <span style="color: var(--neon-green); font-weight: 700;">Gemini Key सक्रिय आहे</span> (${s.gemini_key_preview || ''}). नवीन टाकायची असल्यास पेस्ट करा.`;
-            }
-        } else {
-            mGemini.placeholder = "AIzaSy... (Google AI Studio Key पेस्ट करा)";
-            if (mGeminiStatus) {
-                mGeminiStatus.innerText = "पावती स्कॅन करणे आणि व्हॉइस बिलिंगसाठी Google Gemini Key वापरा.";
-            }
-        }
-    }
 
     const modal = document.getElementById("modal-shop-settings");
     if (modal) modal.classList.add("active");
@@ -5253,7 +5237,6 @@ function openShopSettingsModal() {
 async function handleSaveShopSettingsModal(e) {
     if (e) e.preventDefault();
     const enteredName = (document.getElementById("modal-shop-name") ? document.getElementById("modal-shop-name").value : "").trim();
-    const enteredGemini = (document.getElementById("modal-gemini-key") ? document.getElementById("modal-gemini-key").value : "").trim();
 
     const payload = {
         shop_name: enteredName || (state.shopSettings && state.shopSettings.shop_name) || "SK Store",
@@ -5262,9 +5245,6 @@ async function handleSaveShopSettingsModal(e) {
         upi_id: (document.getElementById("modal-upi") ? document.getElementById("modal-upi").value : "").trim() || (state.shopSettings && state.shopSettings.upi_id) || "merchant@upi",
         address: (document.getElementById("modal-address") ? document.getElementById("modal-address").value : "").trim() || (state.shopSettings && state.shopSettings.address) || "सातारा, महाराष्ट्र"
     };
-    if (enteredGemini) {
-        payload.gemini_api_key = enteredGemini;
-    }
 
     await persistShopSettings(payload);
     closeModal("modal-shop-settings");

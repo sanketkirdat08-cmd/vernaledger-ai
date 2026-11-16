@@ -49,7 +49,15 @@
       "destination": "/api/index.py"
     },
     {
+      "source": "/receipts",
+      "destination": "/api/index.py"
+    },
+    {
       "source": "/receipts/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/khata",
       "destination": "/api/index.py"
     },
     {
