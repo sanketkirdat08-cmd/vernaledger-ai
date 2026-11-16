@@ -2001,33 +2001,17 @@ async function submitReceiptOCR() {
 // VERNACULAR MARATHI VOICE BILLING
 // -----------------------------------------------------------------------------
 let voiceFinalTranscript = "";
-let voiceActiveLang = "mr-IN";
+let voiceActiveLang = "";
 let voiceRestartAttempts = 0;
-
-function setVoiceLang(langCode) {
-    voiceActiveLang = langCode;
-    const pills = document.querySelectorAll(".voice-lang-pill");
-    pills.forEach(p => {
-        p.style.background = "rgba(255,255,255,0.06)";
-        p.style.borderColor = "var(--card-border)";
-        p.style.color = "var(--text-slate)";
-    });
-    const activeBtn = document.getElementById(langCode === "mr-IN" ? "vlang-mr" : (langCode === "hi-IN" ? "vlang-hi" : "vlang-en"));
-    if (activeBtn) {
-        activeBtn.style.background = "rgba(0,242,254,0.18)";
-        activeBtn.style.borderColor = "var(--neon-cyan)";
-        activeBtn.style.color = "var(--neon-cyan)";
-    }
-    if (state.speechRecognition) {
-        state.speechRecognition.lang = voiceActiveLang;
-    }
-    if (typeof showToast === "function") {
-        showToast(`व्हॉइस भाषा सेट केली: ${langCode === "mr-IN" ? "मराठी" : (langCode === "hi-IN" ? "हिन्दी" : "English")}`, "info", 1800);
-    }
-}
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
+let voiceAudioChunks = [];
+let voiceAudioData = null;
+let voiceAudioMimeType = "audio/webm";
 
 function clearVoiceTranscript() {
     voiceFinalTranscript = "";
+    voiceAudioData = null;
     const el = document.getElementById("voice-transcript-text");
     if (el) el.value = "";
     if (typeof showToast === "function") {
@@ -2059,7 +2043,7 @@ function initSpeechRecognition() {
     state.speechRecognition.continuous = true;
     state.speechRecognition.interimResults = true;
     state.speechRecognition.maxAlternatives = 1;
-    state.speechRecognition.lang = voiceActiveLang || (getLanguage().speech || "mr-IN");
+    if (voiceActiveLang) state.speechRecognition.lang = voiceActiveLang;
 
     state.speechRecognition.onstart = () => {
         state.isRecording = true;
@@ -2142,7 +2126,8 @@ function toggleVoiceRecording() {
         if (output && output.value.trim() && !voiceFinalTranscript) {
             voiceFinalTranscript = output.value.trim();
         }
-        state.speechRecognition.lang = voiceActiveLang || "mr-IN";
+        startVoiceAudioCapture();
+        if (voiceActiveLang) state.speechRecognition.lang = voiceActiveLang;
         try {
             state.speechRecognition.start();
         } catch (err) {
@@ -2159,8 +2144,48 @@ function toggleVoiceRecording() {
     }
 }
 
+async function startVoiceAudioCapture() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") return;
+    try {
+        voiceMediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+        const preferred = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(type =>
+            MediaRecorder.isTypeSupported(type)
+        );
+        voiceMediaRecorder = preferred ? new MediaRecorder(voiceMediaStream, { mimeType: preferred }) : new MediaRecorder(voiceMediaStream);
+        voiceAudioMimeType = voiceMediaRecorder.mimeType || preferred || "audio/webm";
+        voiceAudioChunks = [];
+        voiceAudioData = null;
+        voiceMediaRecorder.ondataavailable = event => {
+            if (event.data && event.data.size) voiceAudioChunks.push(event.data);
+        };
+        voiceMediaRecorder.onstop = () => {
+            const blob = new Blob(voiceAudioChunks, { type: voiceAudioMimeType });
+            voiceAudioChunks = [];
+            if (blob.size < 500) return;
+            const reader = new FileReader();
+            reader.onloadend = () => { voiceAudioData = reader.result; };
+            reader.readAsDataURL(blob);
+        };
+        voiceMediaRecorder.start(250);
+    } catch (error) {
+        console.warn("Voice audio capture unavailable; using browser speech recognition:", error);
+        voiceMediaRecorder = null;
+        if (voiceMediaStream) voiceMediaStream.getTracks().forEach(track => track.stop());
+        voiceMediaStream = null;
+    }
+}
+
 function stopVoiceRecording() {
     state.isRecording = false;
+    if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive") {
+        try { voiceMediaRecorder.stop(); } catch (error) { console.warn("Voice audio stop notice:", error); }
+    }
+    if (voiceMediaStream) {
+        voiceMediaStream.getTracks().forEach(track => track.stop());
+        voiceMediaStream = null;
+    }
     const mic = document.getElementById("btn-voice-mic");
     if (mic) mic.classList.remove("recording");
     const statusEl = document.getElementById("voice-recording-status");
@@ -2173,7 +2198,7 @@ function stopVoiceRecording() {
 async function submitVoiceBilling() {
     const textEl = document.getElementById("voice-transcript-text");
     const text = textEl ? textEl.value.trim() : "";
-    if (!text) {
+    if (!text && !voiceAudioData) {
         if (typeof showToast === "function") {
             showToast("कृपया आधी माईक द्वारे बोला, नमुना निवडा किंवा मजकूर टाईप करा.", "warning");
         } else {
@@ -2191,7 +2216,12 @@ async function submitVoiceBilling() {
         const res = await apiCall("/api/voice-billing", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transcript: text, username: state.user ? state.user.username : "admin" })
+            body: JSON.stringify({
+                transcript: text,
+                audio_data: voiceAudioData,
+                mime_type: voiceAudioMimeType,
+                username: state.user ? state.user.username : "admin"
+            })
         });
         const json = await res.json();
 
@@ -2200,6 +2230,7 @@ async function submitVoiceBilling() {
         }
 
         populateBillCard(json.data);
+        voiceAudioData = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
         if (typeof showToast === "function") {

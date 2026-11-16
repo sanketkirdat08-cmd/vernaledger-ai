@@ -98,9 +98,6 @@
                 <span>VernaLedger.AI</span>
             </div>
             <div class="actions">
-                <button class="btn-pill" onclick="forceCleanMobileCacheAndResync()" title="सर्व्हर डेटा सिंक करा" style="padding: 4px 8px; font-size: 0.82rem; background: rgba(0, 242, 254, 0.15); border: 1px solid var(--neon-cyan); color: var(--neon-cyan);">
-                    🔄
-                </button>
                 <button class="btn-pill btn-lang" id="mob-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला" style="padding: 4px 10px;">
                     <span id="mob-theme-icon">☀️</span>
                 </button>
@@ -209,9 +206,6 @@
                     <button class="btn-pill" onclick="showMobileConnectModal()" title="मोबाईलवर लाइव्ह सिंकने उघडा" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--neon-cyan); background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); cursor: pointer;">
                         📱 <span>मोबाईल लिंक</span>
                     </button>
-                    <button class="btn-pill" onclick="forceCleanMobileCacheAndResync()" title="सर्व्हरवरून थेट डेटा सिंक करा" style="padding: 5px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer;">
-                        🔄 <span>सिंक</span>
-                    </button>
                     <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
                         <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label" data-i18n="theme_kirana_mode">किराणा मोड</span>
                     </button>
@@ -272,14 +266,6 @@
 
                         <!-- Voice Container -->
                         <div id="scanner-voice-container" style="display: none; text-align: center;">
-                            <!-- Voice Language Switcher Bar -->
-                            <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px;">
-                                <span style="font-size: 0.72rem; color: var(--text-dim); font-weight: 700;">🌐 भाषा:</span>
-                                <button type="button" class="btn-pill voice-lang-pill active" id="vlang-mr" onclick="setVoiceLang('mr-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(0,242,254,0.18); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); cursor: pointer; font-weight: 700;">मराठी</button>
-                                <button type="button" class="btn-pill voice-lang-pill" id="vlang-hi" onclick="setVoiceLang('hi-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); color: var(--text-slate); cursor: pointer; font-weight: 700;">हिन्दी</button>
-                                <button type="button" class="btn-pill voice-lang-pill" id="vlang-en" onclick="setVoiceLang('en-IN')" style="padding: 3px 10px; font-size: 0.72rem; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); color: var(--text-slate); cursor: pointer; font-weight: 700;">English</button>
-                            </div>
-
                             <p style="font-size: 0.84rem; color: var(--text-slate); margin-bottom: 12px; line-height: 1.45;">
                                 <span data-i18n="voice_hint">मायक्रोफोन बटण दाबून ग्राहकाचे नाव व सामान स्पष्ट बोला (उदा. "सागर ला २ किलो साखर ८० रुपये आणि १ लिटर तेल १६० रुपये")</span>
                             </p>
@@ -656,11 +642,6 @@
                             <!-- Bulk Delete Button (Visible when 1 or more receipts checked) -->
                             <button class="btn-cyber danger" id="btn-ledger-bulk-delete" onclick="bulkDeleteSelectedReceipts()" style="display: none; padding: 9px 16px; font-weight: 700; font-size: 0.88rem; align-items: center; gap: 6px; border-radius: 8px; box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); animation: pulseDanger 1.8s infinite;">
                                 🗑️ <span id="lbl-bulk-delete" data-i18n="btn_delete_selected">निवडलेल्या डिलीट करा</span> (<span id="ledger-selected-count">0</span>)
-                            </button>
-
-                            <!-- Force Sync / Clear Mobile Cache Button -->
-                            <button class="btn-pill" id="btn-ledger-sync" onclick="forceCleanMobileCacheAndResync()" style="background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); border: 1px solid rgba(0, 242, 254, 0.4); padding: 8px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer;" title="मोबाईल व लॅपटॉप लाइव्ह डेटा रीफ्रेश करा">
-                                🔄 सिंक व रीफ्रेश
                             </button>
 
                             <!-- Clear Entire Ledger Button -->

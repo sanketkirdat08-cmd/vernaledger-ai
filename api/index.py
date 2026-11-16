@@ -15,6 +15,7 @@ except ImportError:
     xlsxwriter = None
 import time
 import base64
+import binascii
 import sqlite3
 import hashlib
 import asyncio
@@ -394,7 +395,9 @@ class LoginRequest(BaseModel):
     password: str
 
 class VoiceBillRequest(BaseModel):
-    transcript: str
+    transcript: Optional[str] = ""
+    audio_data: Optional[str] = None
+    mime_type: Optional[str] = "audio/webm"
     username: Optional[str] = "admin"
 
 class TTSRequest(BaseModel):
@@ -1208,10 +1211,23 @@ def parse_voice_billing_nlp(transcript: str, today_str: str) -> dict:
 def process_voice_billing(req: VoiceBillRequest):
     api_key = get_api_key()
     today_str = date.today().strftime("%Y-%m-%d")
+    transcript = (req.transcript or "").strip()
+    audio_part = None
+    if req.audio_data:
+        try:
+            encoded_audio = req.audio_data.split(",", 1)[-1]
+            audio_bytes = base64.b64decode(encoded_audio, validate=True)
+            if audio_bytes:
+                audio_part = {
+                    "mime_type": req.mime_type or "audio/webm",
+                    "data": audio_bytes,
+                }
+        except (ValueError, binascii.Error) as exc:
+            logger.warning("Voice audio decode failed: %s", exc)
 
     # If no Gemini API key configured, use instant local parsing fallback
     if not api_key or not genai:
-        local_parsed = parse_voice_billing_nlp(req.transcript, today_str)
+        local_parsed = parse_voice_billing_nlp(transcript, today_str)
         if local_parsed and local_parsed.get("items"):
             conn = get_db()
             cursor = conn.cursor()
@@ -1234,7 +1250,7 @@ def process_voice_billing(req: VoiceBillRequest):
     genai.configure(api_key=api_key)
     prompt = f"""You are an expert vernacular billing intelligence system for Maharashtra Kirana stores.
 Convert the following spoken store transaction into structured receipt JSON:
-Spoken Text: "{req.transcript}"
+Spoken Text: "{transcript}"
 
 RULES:
 1. Party / Customer / Vendor Name:
@@ -1274,7 +1290,8 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
                 m,
                 generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
             )
-            res = model.generate_content(prompt, request_options={"timeout": 25})
+            model_input = [prompt, audio_part] if audio_part else prompt
+            res = model.generate_content(model_input, request_options={"timeout": 35})
             if res and res.text:
                 res_text = res.text
                 break
@@ -1287,7 +1304,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
         data = clean_json_str(res_text)
     if not data or not data.get("items"):
         # Local heuristic fallback for offline or failed Gemini parsing
-        local_parsed = parse_voice_billing_nlp(req.transcript, today_str)
+        local_parsed = parse_voice_billing_nlp(transcript, today_str)
         if local_parsed and local_parsed.get("items"):
             data = local_parsed
 
@@ -1309,7 +1326,7 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
     )
     data["id"] = cursor.lastrowid
     # Auto-sync to Customer Khata if spoken text mentions credit/udhar
-    if any(k in req.transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
+    if any(k in transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
         cust = data.get("vendor_name", "").replace("महादेव किराणा स्टोअर", "").replace("किराणा पावती", "").strip() or "ग्राहक"
         cursor.execute(
             "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
