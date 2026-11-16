@@ -1375,10 +1375,15 @@ document.addEventListener("DOMContentLoaded", () => {
         console.info("VernaStorage: Purged legacy local ghost receipts for unified live sync.");
     }
 
-    // Unregister any old service workers to keep browser always 100% live and fresh
+    // Unregister any old service workers and purge legacy caches to keep browser fresh
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then((regs) => {
             for (const r of regs) r.unregister();
+        }).catch(() => {});
+    }
+    if ("caches" in window) {
+        caches.keys().then((keys) => {
+            for (const k of keys) caches.delete(k);
         }).catch(() => {});
     }
     // Set today's date in bill input
@@ -1810,7 +1815,11 @@ async function openCameraModal() {
 
     try {
         state.cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" }
+            video: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
         });
         video.srcObject = state.cameraStream;
     } catch (err) {
@@ -1854,7 +1863,11 @@ function captureCameraPhoto() {
 // -----------------------------------------------------------------------------
 async function compressImageForOCR(file, maxDimension = 1280, quality = 0.82) {
     return new Promise((resolve) => {
-        if (!file || (file.size && file.size < 350 * 1024)) {
+        if (!file) {
+            resolve(file);
+            return;
+        }
+        if (file.type === "image/jpeg" && file.size && file.size < 300 * 1024) {
             resolve(file);
             return;
         }
@@ -1988,7 +2001,7 @@ async function submitReceiptOCR() {
         }
 
         if (!res.ok || !json || !json.success || !json.data) {
-            let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ पावती स्कॅन करताना सर्व्हर व्यस्त आहे. कृपया थोड्या वेळाने पुन्हा स्कॅन करा.";
+            let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ AI सर्व्हर तात्पुरता व्यस्त आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.";
             if (typeof warnMsg === "string" && (warnMsg.includes("Endpoint not found") || warnMsg.includes("Method Not Allowed") || res.status === 405 || res.status === 404)) {
                 warnMsg = "⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.";
             }
@@ -2029,10 +2042,10 @@ async function submitReceiptOCR() {
         const errMsg = String(err.message || err || "");
         if (errMsg.includes("Method Not Allowed")) {
             showToast("⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.", "warning", 5000);
-        } else if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("Rate Limit") || errMsg.includes("exceeded") || errMsg.includes("502")) {
-            showToast("⚠️ AI सर्व्हरवर तात्पुरती गर्दी आहे (Google Rate Limit). कृपया काही सेकंद थांबा आणि पुन्हा स्कॅन करा.", "warning", 5000);
+        } else if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("Rate Limit") || errMsg.includes("exceeded") || errMsg.includes("502") || errMsg.includes("503") || errMsg.includes("504")) {
+            showToast("⚠️ Google AI सर्व्हरवर तात्पुरती गर्दी आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.", "warning", 5000);
         } else {
-            showToast("❌ OCR स्कॅनिंग अयशस्वी: " + (errMsg.length > 80 ? errMsg.substring(0, 80) + "..." : errMsg), "error", 4500);
+            showToast("⚠️ AI सर्व्हर तात्पुरता व्यस्त आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.", "warning", 4500);
         }
         // Initialize bill card even on error so merchant is never blocked
         if (!state.currentBill) {

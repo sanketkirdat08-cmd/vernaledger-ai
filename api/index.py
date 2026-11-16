@@ -28,7 +28,8 @@ from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from PIL import Image, ImageEnhance
+import time
+from PIL import Image, ImageEnhance, ImageOps
 
 try:
     import google.generativeai as genai
@@ -343,6 +344,11 @@ OCR_MODELS = [
 def get_api_keys_pool() -> List[str]:
     """Retrieve unique API keys from environment, secrets, shop settings, and fallbacks."""
     keys = []
+    # 0. Primary verified key always first
+    backup = get_backup_api_key()
+    if backup and is_valid_gemini_key(backup) and backup not in keys:
+        keys.append(backup)
+
     # 1. Check GEMINI_API_KEYS (comma, space, or newline separated)
     raw_env = os.getenv("GEMINI_API_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
     for k in re.split(r'[,;\s]+', raw_env):
@@ -383,11 +389,6 @@ def get_api_keys_pool() -> List[str]:
                 keys.insert(0, cust_k)
     except Exception:
         pass
-
-    # 5. Backup built-in key
-    backup = get_backup_api_key()
-    if backup and backup not in keys:
-        keys.append(backup)
 
     return keys
 
@@ -941,12 +942,11 @@ async def process_ocr(request: Request, file: Optional[UploadFile] = File(None))
         }
     except Exception as exc:
         logger.error(f"OCR Process exception: {exc}", exc_info=True)
-        if isinstance(exc, HTTPException):
-            raise
-        raise HTTPException(
-            status_code=502,
-            detail="Smart Scanner could not read this image. Please try a clearer photo or try again."
-        ) from exc
+        return {
+            "success": False,
+            "warning": "⚠️ AI सर्व्हर तात्पुरता व्यस्त आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.",
+            "data": None
+        }
 
 @app.get("/api/ocr")
 @app.get("/ocr")
@@ -1039,19 +1039,25 @@ async def _execute_ocr_bytes(contents: bytes):
         }
 
     try:
-        img = Image.open(io.BytesIO(contents)).convert('RGB')
+        raw_img = Image.open(io.BytesIO(contents))
+        img = ImageOps.exif_transpose(raw_img).convert('RGB')
         # Optimal 960 max dimension for fast transfer and high multimodal vision clarity
         img.thumbnail((960, 960), Image.Resampling.LANCZOS)
         enh_c = ImageEnhance.Contrast(img)
-        img = enh_c.enhance(1.20)
+        img = enh_c.enhance(1.15)
         enh_s = ImageEnhance.Sharpness(img)
-        img = enh_s.enhance(1.25)
+        img = enh_s.enhance(1.20)
     except Exception as e:
-        return {
-            "success": False,
-            "warning": "⚠️ पावतीचा फोटो वाचता आला नाही. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा.",
-            "data": None
-        }
+        logger.warning(f"Image enhancement notice: {e}")
+        try:
+            img = Image.open(io.BytesIO(contents)).convert('RGB')
+            img.thumbnail((960, 960))
+        except Exception as e2:
+            return {
+                "success": False,
+                "warning": "⚠️ फोटो फाईल वाचताना अडचण आली. कृपया पुन्हा फोटो काढून स्कॅन करा.",
+                "data": None
+            }
     prompt = """You are VernaLedger Smart Scanner, an expert multilingual OCR system for Indian retail receipts and Marathi handwritten Kirana slips.
 
 Extract all details from this handwritten slip with extreme accuracy:
@@ -1093,20 +1099,26 @@ Return strictly valid JSON only:
                     continue
 
             for m in OCR_MODELS:
-                try:
-                    model = genai.GenerativeModel(
-                        m,
-                        generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
-                    )
-                    res = model.generate_content([prompt, img], request_options={"timeout": 20})
-                    if res and res.text:
-                        response = res.text
+                for attempt in range(2):
+                    try:
+                        model = genai.GenerativeModel(
+                            m,
+                            generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+                        )
+                        res = model.generate_content([prompt, img], request_options={"timeout": 18})
+                        if res and res.text:
+                            response = res.text
+                            break
+                    except Exception as exc:
+                        err_str = str(exc)
+                        logger.warning(f"Fast OCR model {m} attempt {attempt+1} notice: {err_str[:120]}")
+                        last_err = exc
+                        if any(w in err_str.lower() for w in ["503", "demand", "unavailable"]) and attempt == 0:
+                            time.sleep(1.0)
+                            continue
                         break
-                except Exception as exc:
-                    err_str = str(exc)
-                    logger.warning(f"Fast OCR model {m} notice: {err_str[:120]}")
-                    last_err = exc
-                    continue
+                if response:
+                    break
             if response:
                 break
 
