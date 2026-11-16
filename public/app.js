@@ -1937,7 +1937,24 @@ async function submitReceiptOCR() {
             console.warn("Direct /api/ocr fetch failed:", initialErr);
         }
 
-        // Automatic fallback to /ocr if 404, 405 or network glitch
+        // Automatic fallback to /api/scan-receipt or /ocr if 404, 405 or network glitch
+        if (!res || (!res.ok && (res.status === 404 || res.status === 405))) {
+            console.warn(`Attempting /api/scan-receipt fallback due to status: ${res ? res.status : 'network error'}`);
+            try {
+                const retryFormData = new FormData();
+                retryFormData.append("file", fileToUpload);
+                const retryRes = await fetch("/api/scan-receipt", {
+                    method: "POST",
+                    body: retryFormData
+                });
+                if (retryRes && (retryRes.ok || retryRes.status !== 405)) {
+                    res = retryRes;
+                }
+            } catch (retryErr) {
+                console.warn("/api/scan-receipt retry notice:", retryErr);
+            }
+        }
+
         if (!res || (!res.ok && (res.status === 404 || res.status === 405))) {
             console.warn(`Attempting /ocr fallback due to status: ${res ? res.status : 'network error'}`);
             try {

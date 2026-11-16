@@ -65,6 +65,34 @@
       "destination": "/api/index.py"
     },
     {
+      "source": "/scan-receipt",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/scan-receipt/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/customers",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/customers/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/inventory",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/inventory/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/export-excel",
+      "destination": "/api/index.py"
+    },
+    {
       "source": "/export/(.*)",
       "destination": "/api/index.py"
     }

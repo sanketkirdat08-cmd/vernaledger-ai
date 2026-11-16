@@ -463,9 +463,9 @@ class TTSRequest(BaseModel):
 
 class KhataEntryRequest(BaseModel):
     customer_name: str
-    phone: str
-    amount: float
-    transaction_type: str  # 'Credit Given' or 'Payment Received'
+    phone: Optional[str] = ""
+    amount: Optional[float] = 0.0
+    transaction_type: Optional[str] = "Credit Given"  # 'Credit Given' or 'Payment Received'
     due_date: Optional[str] = ""
     notes: Optional[str] = ""
     username: Optional[str] = "admin"
@@ -495,6 +495,7 @@ class RAGChatRequest(BaseModel):
 class SyncDataRequest(BaseModel):
     receipts: Optional[List[Dict[str, Any]]] = None
     khata: Optional[List[Dict[str, Any]]] = None
+    customers: Optional[List[Dict[str, Any]]] = None
     expenses: Optional[List[Dict[str, Any]]] = None
     shop_settings: Optional[Dict[str, Any]] = None
     deleted_receipt_ids: Optional[List[int]] = None
@@ -901,11 +902,42 @@ def clean_json_str(text: str) -> dict:
 @app.post("/ocr")
 @app.post("/api/ocr/")
 @app.post("/ocr/")
+@app.post("/api/scan-receipt")
+@app.post("/scan-receipt")
+@app.post("/api/scan-receipt/")
+@app.post("/scan-receipt/")
 @app.post("/api/index.py/api/ocr")
 @app.post("/api/index.py/ocr")
-async def process_ocr(file: UploadFile = File(...)):
+@app.post("/api/index.py/api/scan-receipt")
+@app.post("/api/index.py/scan-receipt")
+async def process_ocr(request: Request, file: Optional[UploadFile] = File(None)):
     try:
-        return await _execute_ocr(file)
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = await request.json()
+                raw_b64 = body.get("image_data", "")
+                if raw_b64:
+                    if "," in raw_b64:
+                        raw_b64 = raw_b64.split(",", 1)[1]
+                    img_bytes = base64.b64decode(raw_b64)
+                    return await _execute_ocr_bytes(img_bytes)
+            except Exception as e:
+                logger.error(f"Error parsing scan-receipt JSON: {e}")
+        if file is not None:
+            return await _execute_ocr(file)
+        try:
+            form = await request.form()
+            form_file = form.get("file")
+            if form_file and hasattr(form_file, "read"):
+                return await _execute_ocr(form_file)
+        except Exception:
+            pass
+        return {
+            "success": False,
+            "warning": "⚠️ फोटो फाईल उपलब्ध नाही. कृपया पावतीचा स्पष्ट फोटो पाठवा.",
+            "data": None
+        }
     except Exception as exc:
         logger.error(f"OCR Process exception: {exc}", exc_info=True)
         if isinstance(exc, HTTPException):
@@ -919,15 +951,20 @@ async def process_ocr(file: UploadFile = File(...)):
 @app.get("/ocr")
 @app.get("/api/ocr/")
 @app.get("/ocr/")
+@app.get("/api/scan-receipt")
+@app.get("/scan-receipt")
 async def get_ocr_info():
     return {
         "status": "online",
         "service": "VernaLedger Smart Multimodal OCR",
-        "method": "POST multipart/form-data with 'file' parameter"
+        "method": "POST multipart/form-data with 'file' parameter or JSON with 'image_data'"
     }
 
 async def _execute_ocr(file: UploadFile):
     contents = await file.read()
+    return await _execute_ocr_bytes(contents)
+
+async def _execute_ocr_bytes(contents: bytes):
     if not contents or len(contents) < 50:
         return {
             "success": False,
@@ -1752,6 +1789,8 @@ async def generate_tts(req: TTSRequest):
 # -----------------------------------------------------------------------------
 # RECEIPTS & LEDGER DATABASE
 # -----------------------------------------------------------------------------
+@app.get("/api/export-excel")
+@app.get("/export-excel")
 @app.get("/api/export/excel")
 @app.get("/api/receipts/export-excel")
 @app.get("/export/excel")
@@ -2172,6 +2211,9 @@ def get_receipt_tombstones():
 # CUSTOMER KHATA (DIGITAL UDHAR LEDGER)
 # -----------------------------------------------------------------------------
 @app.get("/api/khata")
+@app.get("/khata")
+@app.get("/api/customers")
+@app.get("/customers")
 def get_khata():
     conn = get_db()
     rows = [dict(r) for r in conn.execute("SELECT * FROM customer_khata ORDER BY id DESC").fetchall()]
@@ -2203,18 +2245,23 @@ def get_khata():
     }
 
 @app.post("/api/khata")
+@app.post("/khata")
+@app.post("/api/customers")
+@app.post("/customers")
 def add_khata_entry(req: KhataEntryRequest):
     conn = get_db()
     cursor = conn.cursor()
     today_str = date.today().strftime("%Y-%m-%d")
+    amt = float(req.amount or 0.0)
+    tx_type = req.transaction_type or "Credit Given"
     cursor.execute(
         "INSERT INTO customer_khata (customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (req.customer_name.strip(), req.phone.strip(), req.amount, req.transaction_type, today_str, req.due_date, req.notes)
+        (req.customer_name.strip(), (req.phone or "").strip(), amt, tx_type, today_str, req.due_date or "", req.notes or "")
     )
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
-    log_activity(req.username or "admin", f"Added Khata #{new_id} for {req.customer_name} (₹{req.amount} - {req.transaction_type})")
+    log_activity(req.username or "admin", f"Added Khata #{new_id} for {req.customer_name} (₹{amt} - {tx_type})")
     return {"success": True, "id": new_id}
 
 @app.delete("/api/khata/{entry_id}")
@@ -2412,8 +2459,9 @@ def sync_client_data(req: SyncDataRequest):
             except Exception as e:
                 logger.warning(f"Sync receipt item skipped: {e}")
 
-    if req.khata:
-        for k in req.khata:
+    khata_entries = req.khata or req.customers
+    if khata_entries:
+        for k in khata_entries:
             try:
                 c_name = (k.get("customer_name") or "").strip()
                 phone = (k.get("phone") or "").strip()
@@ -2585,13 +2633,13 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-        'gemini-3.8-flash',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro'
-    ]
+                'gemini-2.5-flash',
+                'gemini-flash-latest',
+                'gemini-2.0-flash',
+                'gemini-2.5-flash-lite',
+                'gemini-1.5-flash',
+                'gemini-1.5-pro'
+            ]
             for m in models_to_try:
                 try:
                     model = genai.GenerativeModel(
@@ -3542,13 +3590,13 @@ You possess two core intelligence systems:
         try:
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
-        'gemini-3.8-flash',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro'
-    ]
+                'gemini-2.5-flash',
+                'gemini-flash-latest',
+                'gemini-2.0-flash',
+                'gemini-2.5-flash-lite',
+                'gemini-1.5-flash',
+                'gemini-1.5-pro'
+            ]
             for m in models_to_try:
                 try:
                     max_tokens = 1200 if is_detailed else 500
