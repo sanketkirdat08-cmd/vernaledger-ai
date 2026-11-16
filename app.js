@@ -1317,47 +1317,10 @@ const KIRANA_ITEMS_DICT = {
     "किराना स्टोर": { mr: "किराणा स्टोअर", en: "Kirana Store", hi: "किराना स्टोर" }
 };
 
-// Helper: Show item and customer names strictly ONCE in the active language
+// Helper: Show item and customer names strictly as written - never alter or translate receipt text
 function formatLocalizedName(name, lang = state.lang) {
     if (!name) return "";
-    name = String(name).trim();
-
-    // 1. Check direct match in grocery dictionary
-    const lower = name.toLowerCase();
-    if (KIRANA_ITEMS_DICT[lower]) {
-        return KIRANA_ITEMS_DICT[lower][lang] || KIRANA_ITEMS_DICT[lower].mr || name;
-    }
-    if (KIRANA_ITEMS_DICT[name]) {
-        return KIRANA_ITEMS_DICT[name][lang] || KIRANA_ITEMS_DICT[name].mr || name;
-    }
-
-    // 2. Check format: "Marathi (English)" e.g. "साखर (Sugar M-30)" or "सागर पाटील (Sagar Patil)"
-    const parenMatch = name.match(/^([^(]+)\s*\(([^)]+)\)$/);
-    if (parenMatch) {
-        const mrPart = parenMatch[1].trim();
-        const enPart = parenMatch[2].trim();
-        if (lang === "en") return enPart;
-        if (lang === "hi") {
-            const lk = mrPart.toLowerCase();
-            return (KIRANA_ITEMS_DICT[lk] && KIRANA_ITEMS_DICT[lk].hi) ? KIRANA_ITEMS_DICT[lk].hi : mrPart;
-        }
-        return mrPart;
-    }
-
-    // 3. Check format: "Marathi / English"
-    const slashMatch = name.match(/^([^/]+)\s*\/\s*(.+)$/);
-    if (slashMatch) {
-        const mrPart = slashMatch[1].trim();
-        const enPart = slashMatch[2].trim();
-        if (lang === "en") return enPart;
-        if (lang === "hi") {
-            const lk = mrPart.toLowerCase();
-            return (KIRANA_ITEMS_DICT[lk] && KIRANA_ITEMS_DICT[lk].hi) ? KIRANA_ITEMS_DICT[lk].hi : mrPart;
-        }
-        return mrPart;
-    }
-
-    return name;
+    return String(name).trim();
 }
 
 // INITIALIZATION
@@ -2362,8 +2325,7 @@ function populateBillCard(data) {
 
     if (data.items && data.items.length > 0) {
         data.items.forEach(item => {
-            const displayName = formatLocalizedName(item.item_name || "", state.lang);
-            appendBillRow(displayName, item.quantity || "1", item.rate || 0, item.total_price || 0);
+            appendBillRow(item.item_name || "", item.quantity || "1", item.rate || 0, item.total_price || 0);
         });
     }
 
@@ -4785,17 +4747,7 @@ function applyLanguage() {
         renderLedgerTable(state.allReceipts);
     }
     
-    // In-place live translation of Digital Receipt Preview inputs
-    const vendorInput = document.getElementById("bill-vendor-name");
-    if (vendorInput && vendorInput.value) {
-        vendorInput.value = formatLocalizedName(vendorInput.value, state.lang);
-    }
-    document.querySelectorAll("#bill-items-tbody tr").forEach(row => {
-        const nameInput = row.querySelector(".item-name");
-        if (nameInput && nameInput.value) {
-            nameInput.value = formatLocalizedName(nameInput.value, state.lang);
-        }
-    });
+    // Digital Receipt Preview inputs preserve exact text from receipt without modification
 }
 
 function escapeHtml(text) {

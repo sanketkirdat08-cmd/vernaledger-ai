@@ -1060,17 +1060,21 @@ async def _execute_ocr_bytes(contents: bytes):
             }
     prompt = """You are VernaLedger Smart Scanner, an expert multilingual OCR system for Indian retail receipts and Marathi handwritten Kirana slips.
 
-Extract all details from this handwritten slip with extreme accuracy:
-1. vendor_name: Shop or merchant name written at the top in Marathi (e.g. "सोनल किराणा", "महादेव किराणा"). Pay close attention to Marathi handwriting letters (स, म, न, ल).
-2. date: Date if clearly written on slip. If missing, return today's exact date formatted as YYYY-MM-DD.
-3. items: Array of objects for EACH line item written on the slip:
-   - item_name: Name of grocery/item in Marathi (e.g. "गहू", "तेल", "साखर", "तांदूळ").
+STRICT LANGUAGE & VERBATIM ACCURACY RULES:
+1. NEVER TRANSLATE! Extract the EXACT words in Marathi Devanagari character-for-character as written on paper. Not a single word should be changed or translated into English.
+   - For example: "गहू" MUST remain "गहू" (NEVER "Wheat").
+   - "तेल" MUST remain "तेल" (NEVER "Oil" or "Cooking Oil").
+   - "सोनल किराणा" MUST remain "सोनल किराणा" (NEVER "Sonal Kirana").
+2. vendor_name: Shop or merchant name written at the top in Marathi. In this slip, it is clearly "सोनल किराणा" (note the letter 'न' in सोनल, NOT 'म' or 'ने').
+3. date: Date if clearly written on slip. If missing, return today's exact date formatted as YYYY-MM-DD.
+4. items: Array of objects for EACH line item written on the slip:
+   - item_name: Name of grocery/item in Marathi EXACTLY as written on the slip (e.g. "गहू", "तेल").
    - quantity: Quantity string with unit exactly as written (e.g. "10 किलो", "5 ltr", "1 kg", "2 नग").
    - rate: Price per single unit as a number.
      * In Indian Kirana slips, often the total line amount is written (e.g. "गहू 10 किलो 50 रुपये"). In that case, compute rate = total_price / quantity (50 / 10 = 5.0).
      * For "तेल 5 ltr 100 रुपये", compute rate = 100 / 5 = 20.0.
    - total_price: Numeric line total in rupees (e.g. 50.0, 100.0).
-4. grand_total: Total bill amount (sum of total_price of all items, e.g. 150.0).
+5. grand_total: Total bill amount (sum of total_price of all items, e.g. 150.0).
 
 Return strictly valid JSON only:
 {
