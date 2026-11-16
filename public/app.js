@@ -1836,7 +1836,14 @@ function captureCameraPhoto() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
-        const file = new File([blob], `camera_receipt_${Date.now()}.jpg`, { type: "image/jpeg" });
+        if (!blob) return;
+        let file;
+        try {
+            file = new File([blob], `camera_receipt_${Date.now()}.jpg`, { type: "image/jpeg" });
+        } catch (_) {
+            file = blob;
+            file.name = `camera_receipt_${Date.now()}.jpg`;
+        }
         setReceiptImage(file);
         closeCameraModal();
     }, "image/jpeg", 0.9);
@@ -1876,10 +1883,16 @@ async function compressImageForOCR(file, maxDimension = 1280, quality = 0.82) {
                         resolve(file);
                         return;
                     }
-                    const compressed = new File([blob], "receipt_scan.jpg", {
-                        type: "image/jpeg",
-                        lastModified: Date.now()
-                    });
+                    let compressed;
+                    try {
+                        compressed = new File([blob], "receipt_scan.jpg", {
+                            type: "image/jpeg",
+                            lastModified: Date.now()
+                        });
+                    } catch (_) {
+                        compressed = blob;
+                        compressed.name = "receipt_scan.jpg";
+                    }
                     resolve(compressed);
                 }, "image/jpeg", quality);
             };
@@ -1962,7 +1975,22 @@ async function submitReceiptOCR() {
             if (warnMsg === "Method Not Allowed" || res.status === 405) {
                 warnMsg = "⚠️ पावती स्कॅन सर्व्हरशी जोडताना अडचण आली. कृपया पुन्हा स्कॅन करा.";
             }
-            showToast(warnMsg, "warning", 5000);
+            showToast(warnMsg, "warning", 5500);
+
+            // Resilient Fallback: If OCR extraction did not return items (due to API key or lighting),
+            // DO NOT BLOCK the merchant! Immediately initialize the digital bill card with the preview visible.
+            const fileName = (state.selectedFile && state.selectedFile.name) ? state.selectedFile.name.replace(/\.[^/.]+$/, "") : "";
+            const fallbackBill = {
+                id: null,
+                vendor_name: fileName && !fileName.startsWith("camera_receipt") ? fileName : ((state.shopSettings && state.shopSettings.shop_name) || "किराणा पावती"),
+                date: new Date().toISOString().split("T")[0],
+                category: "General",
+                items: [
+                    { item_name: "किराणा सामान", quantity: "1 नग", rate: 0, total_price: 0 }
+                ],
+                grand_total: 0
+            };
+            populateBillCard(fallbackBill);
             return;
         }
 
@@ -1988,6 +2016,17 @@ async function submitReceiptOCR() {
             showToast("⚠️ AI सर्व्हरवर तात्पुरती गर्दी आहे (Google Rate Limit). कृपया काही सेकंद थांबा आणि पुन्हा स्कॅन करा.", "warning", 5000);
         } else {
             showToast("❌ OCR स्कॅनिंग अयशस्वी: " + (errMsg.length > 80 ? errMsg.substring(0, 80) + "..." : errMsg), "error", 4500);
+        }
+        // Initialize bill card even on error so merchant is never blocked
+        if (!state.currentBill) {
+            populateBillCard({
+                id: null,
+                vendor_name: (state.shopSettings && state.shopSettings.shop_name) || "किराणा पावती",
+                date: new Date().toISOString().split("T")[0],
+                category: "General",
+                items: [{ item_name: "किराणा सामान", quantity: "1 नग", rate: 0, total_price: 0 }],
+                grand_total: 0
+            });
         }
     } finally {
         isOcrScanning = false;
@@ -5184,22 +5223,38 @@ function openShopSettingsModal() {
     const mPhone = document.getElementById("modal-phone");
     const mUpi = document.getElementById("modal-upi");
     const mAddr = document.getElementById("modal-address");
+    const mGemini = document.getElementById("modal-gemini-key");
+    const mGeminiStatus = document.getElementById("modal-gemini-status");
 
     if (mShop) mShop.value = s.shop_name || "";
     if (mOwner) mOwner.value = s.owner_name || "";
     if (mPhone) mPhone.value = s.phone || "";
     if (mUpi) mUpi.value = s.upi_id || "";
     if (mAddr) mAddr.value = s.address || "";
+    if (mGemini) {
+        mGemini.value = "";
+        if (s.gemini_key_preview || s.has_gemini_key) {
+            mGemini.placeholder = `सध्या सेट केलेली की: ${s.gemini_key_preview || 'सक्रिय आहे'}`;
+            if (mGeminiStatus) {
+                mGeminiStatus.innerHTML = `✅ <span style="color: var(--neon-green); font-weight: 700;">Gemini Key सक्रिय आहे</span> (${s.gemini_key_preview || ''}). नवीन टाकायची असल्यास पेस्ट करा.`;
+            }
+        } else {
+            mGemini.placeholder = "AIzaSy... (Google AI Studio Key पेस्ट करा)";
+            if (mGeminiStatus) {
+                mGeminiStatus.innerText = "पावती स्कॅन करणे आणि व्हॉइस बिलिंगसाठी Google Gemini Key वापरा.";
+            }
+        }
+    }
 
     const modal = document.getElementById("modal-shop-settings");
     if (modal) modal.classList.add("active");
 }
 
-
-
 async function handleSaveShopSettingsModal(e) {
     if (e) e.preventDefault();
     const enteredName = (document.getElementById("modal-shop-name") ? document.getElementById("modal-shop-name").value : "").trim();
+    const enteredGemini = (document.getElementById("modal-gemini-key") ? document.getElementById("modal-gemini-key").value : "").trim();
+
     const payload = {
         shop_name: enteredName || (state.shopSettings && state.shopSettings.shop_name) || "SK Store",
         owner_name: (document.getElementById("modal-owner-name") ? document.getElementById("modal-owner-name").value : "").trim() || (state.shopSettings && state.shopSettings.owner_name) || "संकेत किर्दत",
@@ -5207,6 +5262,9 @@ async function handleSaveShopSettingsModal(e) {
         upi_id: (document.getElementById("modal-upi") ? document.getElementById("modal-upi").value : "").trim() || (state.shopSettings && state.shopSettings.upi_id) || "merchant@upi",
         address: (document.getElementById("modal-address") ? document.getElementById("modal-address").value : "").trim() || (state.shopSettings && state.shopSettings.address) || "सातारा, महाराष्ट्र"
     };
+    if (enteredGemini) {
+        payload.gemini_api_key = enteredGemini;
+    }
 
     await persistShopSettings(payload);
     closeModal("modal-shop-settings");

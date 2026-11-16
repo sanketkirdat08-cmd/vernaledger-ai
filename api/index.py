@@ -267,22 +267,19 @@ def is_valid_gemini_key(k: str) -> bool:
     if not k or not isinstance(k, str):
         return False
     k = k.strip()
-    return len(k) >= 20 and not k.startswith(("PASTE_", "YOUR_", "your_"))
+    return len(k) >= 20 and not k.startswith(("PASTE_", "YOUR_", "your_", "AQ.Ab8RN"))
 
 def get_backup_api_key() -> str:
-    try:
-        decoded = base64.b64decode("QVEuQWI4Uk42SVdYNnVHdnFwaVl0TnZtdkhENklrMEVYMXBqVUJWRUVqTEU4amNfUEVXVlE=").decode("utf-8")
-        return decoded if is_valid_gemini_key(decoded) else ""
-    except Exception:
-        return ""
+    # Merchants set their own active Gemini key via UI Settings or .env
+    return ""
 
 OCR_MODELS = [
-    'gemini-3.8-flash',
     'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-flash-lite',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-pro'
+    'gemini-2.5-pro'
 ]
 
 def get_api_keys_pool() -> List[str]:
@@ -356,14 +353,17 @@ def get_cloud_vision_client():
     # Check local key path fallback (e.g. from Downloads)
     cred_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
     if not cred_file or not os.path.exists(cred_file):
-        downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
-        if os.path.exists(downloads_dir):
-            for fname in os.listdir(downloads_dir):
-                if fname.endswith(".json") and ("weighty-casing" in fname or "vernaledger" in fname):
-                    candidate = os.path.join(downloads_dir, fname)
-                    if os.path.exists(candidate):
-                        cred_file = candidate
-                        break
+        try:
+            downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+            if os.path.exists(downloads_dir):
+                for fname in os.listdir(downloads_dir):
+                    if fname.endswith(".json") and ("weighty-casing" in fname or "vernaledger" in fname):
+                        candidate = os.path.join(downloads_dir, fname)
+                        if os.path.exists(candidate):
+                            cred_file = candidate
+                            break
+        except Exception as e:
+            logger.warning("Could not scan Downloads directory: %s", e)
 
     if cred_file and os.path.exists(cred_file) and service_account:
         try:
@@ -616,9 +616,12 @@ def get_shop_settings():
         "address": "सातारा, महाराष्ट्र"
     }
     for r in rows:
-        # API credentials are server-only and must never be sent to the browser.
+        # API credentials are server-only and must never be sent in full to the browser.
         if r["key"] != "gemini_api_key":
             settings[r["key"]] = r["value"]
+    active_k = get_api_key()
+    settings["has_gemini_key"] = bool(active_k)
+    settings["gemini_key_preview"] = (active_k[:6] + "..." + active_k[-4:]) if active_k else ""
     return settings
 
 @app.post("/api/shop/settings")
@@ -636,8 +639,15 @@ def save_shop_settings(req: ShopSettingsRequest):
     for k, v in data.items():
         cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES (?, ?)", (k, v))
     if req.gemini_api_key and req.gemini_api_key.strip():
-        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES ('gemini_api_key', ?)", (req.gemini_api_key.strip(),))
-        data["gemini_api_key"] = req.gemini_api_key.strip()
+        new_k = req.gemini_api_key.strip()
+        cursor.execute("INSERT OR REPLACE INTO shop_settings (key, value) VALUES ('gemini_api_key', ?)", (new_k,))
+        data["gemini_api_key"] = new_k
+        try:
+            env_path = os.path.join(ROOT_DIR, ".env")
+            with open(env_path, "w", encoding="utf-8") as ef:
+                ef.write(f"GEMINI_API_KEY={new_k}\n")
+        except Exception:
+            pass
     conn.commit()
     conn.close()
     log_activity("admin", f"Updated shop settings: {data['shop_name']}")
@@ -933,7 +943,8 @@ async def _execute_ocr(file: UploadFile):
         if not response:
             return {
                 "success": False,
-                "warning": "⚠️ AI OCR स्कॅनरसाठी API Key सेट केलेली नाही. कृपया .env किंवा Settings मध्ये GEMINI_API_KEY सेट करा.",
+                "auth_error": True,
+                "warning": "⚠️ AI OCR स्कॅनरसाठी मोफत Gemini API Key आवश्यक आहे. कृपया Settings मध्ये तुमची API Key प्रविष्ट करा (किंवा खालील बिलात थेट सामान भरा).",
                 "data": None
             }
 
@@ -1028,17 +1039,23 @@ Return strictly valid JSON only:
         except Exception as v_err:
             logger.warning(f"Cloud Vision fallback notice: {v_err}")
 
-    # Graceful Rate Limit Handling: Never crash with raw 502 dialog!
+    # Graceful Rate Limit & Error Handling: Never crash with raw 502 dialog!
     if not response:
-        is_quota = any(w in str(last_err).lower() for w in ["429", "quota", "resourceexhausted", "limit", "exceeded"])
-        warn_msg = (
-            "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा."
-            if is_quota else
-            "⚠️ पावती स्कॅन करताना अडचण आली. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा."
-        )
+        err_lower = str(last_err).lower()
+        is_quota = any(w in err_lower for w in ["429", "quota", "resourceexhausted", "limit", "exceeded"])
+        is_auth_error = any(w in err_lower for w in ["401", "unauthorized", "api_key_invalid", "deleted or disabled", "account_state_invalid", "permission_denied", "api key not valid"])
+
+        if is_auth_error:
+            warn_msg = "⚠️ Gemini API Key अमान्य किंवा एक्सपायर आहे. कृपया सेटिंग्ज (Settings) मध्ये तुमची मोफत API Key प्रविष्ट करा."
+        elif is_quota:
+            warn_msg = "⚠️ Google AI सर्व्हरवर सध्या जास्त ट्रॅफिक आहे (Rate Limit). कृपया १५-३० सेकंदांनी पुन्हा स्कॅन करा."
+        else:
+            warn_msg = "⚠️ पावतीमधील अक्षरे वाचता आली नाहीत. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा."
+
         return {
             "success": False,
             "rate_limited": is_quota,
+            "auth_error": is_auth_error,
             "warning": warn_msg,
             "data": None
         }
