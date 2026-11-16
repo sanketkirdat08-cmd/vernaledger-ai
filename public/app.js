@@ -2016,7 +2016,7 @@ async function submitReceiptOCR() {
         populateBillCard(json.data);
 
         if (json.duplicate) {
-            showToast("⚠️ दुबार पावती: " + (json.warning || "ही पावती आधीच लेजरमध्ये नोंदवलेली आहे."), "warning", 4500);
+            showToast("✅ पावती यशस्वीरीत्या स्कॅन झाली! (नोंदवलेले बिल लोड केले आहे)", "info", 4000);
         } else {
             VernaStorage.addReceipt(json.data);
             showToast("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);

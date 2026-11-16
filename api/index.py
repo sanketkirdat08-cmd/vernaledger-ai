@@ -992,6 +992,9 @@ async def _execute_ocr_bytes(contents: bytes):
             "category": existing["category"],
             "grand_total": existing["grand_total"],
         })
+        ex_date = str(existing_data.get("date") or "")
+        if not ex_date or any(yr in ex_date for yr in ["2020", "2021", "2022", "2023", "2024"]):
+            existing_data["date"] = date.today().strftime("%Y-%m-%d")
         return {
             "success": True,
             "data": existing_data,
