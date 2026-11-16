@@ -325,16 +325,18 @@ def is_valid_gemini_key(k: str) -> bool:
 
 def get_backup_api_key() -> str:
     try:
-        decoded = base64.b64decode("QVEuQWI4Uk42SVdYNnVHdnFwaVl0TnZtdkhENklrMEVYMXBqVUJWRUVqTEU4amNfUEVXVlE=").decode("utf-8")
+        decoded = base64.b64decode("QVEuQWI4Uk42SXBPc1NRTGZfaVhiMFlSa2ptLXZnRDF1UW05Qng1V1I4dDdudDhDS21TQlE=").decode("utf-8")
         return decoded if is_valid_gemini_key(decoded) else ""
     except Exception:
         return ""
 
 OCR_MODELS = [
+    'gemini-3.8-flash',
+    'gemini-3.1-flash-lite',
     'gemini-2.5-flash',
     'gemini-flash-latest',
-    'gemini-2.5-flash-lite',
     'gemini-2.0-flash',
+    'gemini-2.5-flash-lite',
     'gemini-1.5-flash',
     'gemini-2.5-pro'
 ]
@@ -2636,6 +2638,8 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
 
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
+                'gemini-3.8-flash',
+                'gemini-3.1-flash-lite',
                 'gemini-2.5-flash',
                 'gemini-flash-latest',
                 'gemini-2.0-flash',
@@ -3593,6 +3597,8 @@ You possess two core intelligence systems:
         try:
             genai.configure(api_key=api_key, transport='rest')
             models_to_try = [
+                'gemini-3.8-flash',
+                'gemini-3.1-flash-lite',
                 'gemini-2.5-flash',
                 'gemini-flash-latest',
                 'gemini-2.0-flash',
