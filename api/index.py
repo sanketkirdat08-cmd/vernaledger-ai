@@ -876,6 +876,13 @@ async def get_ocr_info():
 
 async def _execute_ocr(file: UploadFile):
     contents = await file.read()
+    if not contents or len(contents) < 50:
+        return {
+            "success": False,
+            "warning": "⚠️ फोटो फाईल रिकामी आहे. कृपया पावतीचा स्पष्ट फोटो निवडा.",
+            "data": None
+        }
+
     image_hash = hashlib.sha256(contents).hexdigest()
     conn = get_db()
     existing = conn.execute(
@@ -903,11 +910,39 @@ async def _execute_ocr(file: UploadFile):
             "warning": "ही पावती आधीच स्कॅन करून लेजरमध्ये नोंदवली आहे."
         }
 
+    today_str = date.today().strftime("%Y-%m-%d")
+    response = None
     api_key = get_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in Vercel environment variables.")
+        # Check if local Cloud Vision can process it
+        vision_text = None
+        try:
+            vision_text = run_cloud_vision_ocr(contents)
+        except Exception:
+            pass
+        if vision_text:
+            local_parsed = parse_receipt_text_locally(vision_text, today_str)
+            if local_parsed and local_parsed.get("items"):
+                data = local_parsed
+                response = "LOCAL_VISION"
+            else:
+                response = None
+        else:
+            response = None
+
+        if not response:
+            return {
+                "success": False,
+                "warning": "⚠️ AI OCR स्कॅनरसाठी API Key सेट केलेली नाही. कृपया .env किंवा Settings मध्ये GEMINI_API_KEY सेट करा.",
+                "data": None
+            }
+
     if not genai:
-        raise HTTPException(status_code=500, detail="Google Generative AI package is not installed.")
+        return {
+            "success": False,
+            "warning": "⚠️ Google Generative AI पॅकेज उपलब्ध नाही.",
+            "data": None
+        }
 
     try:
         img = Image.open(io.BytesIO(contents)).convert('RGB')
@@ -918,7 +953,11 @@ async def _execute_ocr(file: UploadFile):
         enh_s = ImageEnhance.Sharpness(img)
         img = enh_s.enhance(1.25)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid image format: {e}")
+        return {
+            "success": False,
+            "warning": "⚠️ पावतीचा फोटो वाचता आला नाही. कृपया चांगल्या प्रकाशात सरळ फोटो काढून पुन्हा प्रयत्न करा.",
+            "data": None
+        }
     prompt = """You are VernaLedger Smart Scanner, an expert multilingual OCR system for Indian retail receipts and Marathi handwritten Kirana slips.
 
 Extract all details from this handwritten slip with extreme accuracy:
@@ -945,38 +984,37 @@ Return strictly valid JSON only:
 }"""
 
     api_keys = get_api_keys_pool()
-    response = None
     last_err = None
-    today_str = date.today().strftime("%Y-%m-%d")
 
     # Multi-Key & Multi-Model Cascade: automatically bypasses 429 quota exhaustion
-    for key in api_keys:
-        try:
-            genai.configure(api_key=key)
-        except Exception:
+    if response != "LOCAL_VISION":
+        for key in api_keys:
             try:
-                genai.configure(api_key=key, transport='rest')
-            except Exception as cfg_err:
-                logger.warning(f"Key config notice: {cfg_err}")
-                continue
+                genai.configure(api_key=key)
+            except Exception:
+                try:
+                    genai.configure(api_key=key, transport='rest')
+                except Exception as cfg_err:
+                    logger.warning(f"Key config notice: {cfg_err}")
+                    continue
 
-        for m in OCR_MODELS:
-            try:
-                model = genai.GenerativeModel(
-                    m,
-                    generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
-                )
-                res = model.generate_content([prompt, img], request_options={"timeout": 35})
-                if res and res.text:
-                    response = res.text
-                    break
-            except Exception as exc:
-                err_str = str(exc)
-                logger.warning(f"Fast OCR model {m} notice: {err_str[:120]}")
-                last_err = exc
-                continue
-        if response:
-            break
+            for m in OCR_MODELS:
+                try:
+                    model = genai.GenerativeModel(
+                        m,
+                        generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+                    )
+                    res = model.generate_content([prompt, img], request_options={"timeout": 35})
+                    if res and res.text:
+                        response = res.text
+                        break
+                except Exception as exc:
+                    err_str = str(exc)
+                    logger.warning(f"Fast OCR model {m} notice: {err_str[:120]}")
+                    last_err = exc
+                    continue
+            if response:
+                break
 
     # Cloud Vision Fallback with Local Heuristic Parsing
     if not response:
@@ -1224,6 +1262,13 @@ def process_voice_billing(req: VoiceBillRequest):
                 }
         except (ValueError, binascii.Error) as exc:
             logger.warning("Voice audio decode failed: %s", exc)
+
+    if not transcript and not audio_part:
+        return {
+            "success": False,
+            "error": "कृपया आधी मायक्रोफोन बटण दाबून बिल बोला किंवा मजकूर टाईप करा.",
+            "data": None
+        }
 
     # If no Gemini API key configured, use instant local parsing fallback
     if not api_key or not genai:

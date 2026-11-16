@@ -2001,33 +2001,17 @@ async function submitReceiptOCR() {
 // VERNACULAR MARATHI VOICE BILLING
 // -----------------------------------------------------------------------------
 let voiceFinalTranscript = "";
-let voiceActiveLang = "mr-IN";
+let voiceActiveLang = "";
 let voiceRestartAttempts = 0;
-
-function setVoiceLang(langCode) {
-    voiceActiveLang = langCode;
-    const pills = document.querySelectorAll(".voice-lang-pill");
-    pills.forEach(p => {
-        p.style.background = "rgba(255,255,255,0.06)";
-        p.style.borderColor = "var(--card-border)";
-        p.style.color = "var(--text-slate)";
-    });
-    const activeBtn = document.getElementById(langCode === "mr-IN" ? "vlang-mr" : (langCode === "hi-IN" ? "vlang-hi" : "vlang-en"));
-    if (activeBtn) {
-        activeBtn.style.background = "rgba(0,242,254,0.18)";
-        activeBtn.style.borderColor = "var(--neon-cyan)";
-        activeBtn.style.color = "var(--neon-cyan)";
-    }
-    if (state.speechRecognition) {
-        state.speechRecognition.lang = voiceActiveLang;
-    }
-    if (typeof showToast === "function") {
-        showToast(`व्हॉइस भाषा सेट केली: ${langCode === "mr-IN" ? "मराठी" : (langCode === "hi-IN" ? "हिन्दी" : "English")}`, "info", 1800);
-    }
-}
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
+let voiceAudioChunks = [];
+let voiceAudioData = null;
+let voiceAudioMimeType = "audio/webm";
 
 function clearVoiceTranscript() {
     voiceFinalTranscript = "";
+    voiceAudioData = null;
     const el = document.getElementById("voice-transcript-text");
     if (el) el.value = "";
     if (typeof showToast === "function") {
@@ -2059,7 +2043,7 @@ function initSpeechRecognition() {
     state.speechRecognition.continuous = true;
     state.speechRecognition.interimResults = true;
     state.speechRecognition.maxAlternatives = 1;
-    state.speechRecognition.lang = voiceActiveLang || (getLanguage().speech || "mr-IN");
+    if (voiceActiveLang) state.speechRecognition.lang = voiceActiveLang;
 
     state.speechRecognition.onstart = () => {
         state.isRecording = true;
@@ -2142,7 +2126,8 @@ function toggleVoiceRecording() {
         if (output && output.value.trim() && !voiceFinalTranscript) {
             voiceFinalTranscript = output.value.trim();
         }
-        state.speechRecognition.lang = voiceActiveLang || "mr-IN";
+        startVoiceAudioCapture();
+        if (voiceActiveLang) state.speechRecognition.lang = voiceActiveLang;
         try {
             state.speechRecognition.start();
         } catch (err) {
@@ -2159,8 +2144,48 @@ function toggleVoiceRecording() {
     }
 }
 
+async function startVoiceAudioCapture() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") return;
+    try {
+        voiceMediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+        const preferred = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(type =>
+            MediaRecorder.isTypeSupported(type)
+        );
+        voiceMediaRecorder = preferred ? new MediaRecorder(voiceMediaStream, { mimeType: preferred }) : new MediaRecorder(voiceMediaStream);
+        voiceAudioMimeType = voiceMediaRecorder.mimeType || preferred || "audio/webm";
+        voiceAudioChunks = [];
+        voiceAudioData = null;
+        voiceMediaRecorder.ondataavailable = event => {
+            if (event.data && event.data.size) voiceAudioChunks.push(event.data);
+        };
+        voiceMediaRecorder.onstop = () => {
+            const blob = new Blob(voiceAudioChunks, { type: voiceAudioMimeType });
+            voiceAudioChunks = [];
+            if (blob.size < 500) return;
+            const reader = new FileReader();
+            reader.onloadend = () => { voiceAudioData = reader.result; };
+            reader.readAsDataURL(blob);
+        };
+        voiceMediaRecorder.start(250);
+    } catch (error) {
+        console.warn("Voice audio capture unavailable; using browser speech recognition:", error);
+        voiceMediaRecorder = null;
+        if (voiceMediaStream) voiceMediaStream.getTracks().forEach(track => track.stop());
+        voiceMediaStream = null;
+    }
+}
+
 function stopVoiceRecording() {
     state.isRecording = false;
+    if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive") {
+        try { voiceMediaRecorder.stop(); } catch (error) { console.warn("Voice audio stop notice:", error); }
+    }
+    if (voiceMediaStream) {
+        voiceMediaStream.getTracks().forEach(track => track.stop());
+        voiceMediaStream = null;
+    }
     const mic = document.getElementById("btn-voice-mic");
     if (mic) mic.classList.remove("recording");
     const statusEl = document.getElementById("voice-recording-status");
@@ -2173,7 +2198,7 @@ function stopVoiceRecording() {
 async function submitVoiceBilling() {
     const textEl = document.getElementById("voice-transcript-text");
     const text = textEl ? textEl.value.trim() : "";
-    if (!text) {
+    if (!text && !voiceAudioData) {
         if (typeof showToast === "function") {
             showToast("कृपया आधी माईक द्वारे बोला, नमुना निवडा किंवा मजकूर टाईप करा.", "warning");
         } else {
@@ -2191,7 +2216,12 @@ async function submitVoiceBilling() {
         const res = await apiCall("/api/voice-billing", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transcript: text, username: state.user ? state.user.username : "admin" })
+            body: JSON.stringify({
+                transcript: text,
+                audio_data: voiceAudioData,
+                mime_type: voiceAudioMimeType,
+                username: state.user ? state.user.username : "admin"
+            })
         });
         const json = await res.json();
 
@@ -2200,6 +2230,7 @@ async function submitVoiceBilling() {
         }
 
         populateBillCard(json.data);
+        voiceAudioData = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
         if (typeof showToast === "function") {
@@ -2387,7 +2418,16 @@ async function saveCurrentBillToLedger() {
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error("पावती सेव्ह करता आली नाही.");
+        if (!res.ok) {
+            let detail = "पावती सेव्ह करता आली नाही.";
+            try {
+                const errorBody = await res.json();
+                detail = errorBody.detail || errorBody.error || detail;
+            } catch (_) {}
+            const error = new Error(detail);
+            error.isNetworkError = false;
+            throw error;
+        }
 
         const jsonRes = await res.json().catch(() => ({}));
         const savedData = (jsonRes && jsonRes.data) ? jsonRes.data : { ...payload, id: jsonRes.id || Date.now() };
@@ -2404,13 +2444,18 @@ async function saveCurrentBillToLedger() {
         resetBillCard();
     } catch (e) {
         console.error("Save bill error:", e);
-        // Offline-first fallback
+        // Only queue a bill offline when the server could not be reached.
+        // Validation and server errors must remain visible and must not create duplicates.
+        if (e && e.isNetworkError === false) {
+            alert("एरर: " + e.message);
+            return;
+        }
         VernaStorage.addReceipt({ ...bill, id: Date.now(), _offline_pending: true });
         state.currentBillId = null;
         state.currentBill = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
-        alert("✅ पावती ऑफलाइन लेजरमध्ये सेव्ह झाली!");
+        alert("✅ सर्व्हर उपलब्ध नाही; पावती ऑफलाइन लेजरमध्ये सुरक्षित ठेवली आहे.");
         resetBillCard();
     }
 }
@@ -2451,8 +2496,15 @@ async function playCurrentBillTTS() {
 // Thermal Print Modal
 function openThermalPrintModal() {
     const bill = getCurrentBillData();
-    const isMr = state.lang === "mr";
-    document.getElementById("receipt-shop-name").innerText = formatLocalizedName(bill.vendor_name, state.lang) || (state.lang === "en" ? "Kirana Store" : (state.lang === "hi" ? "किराना स्टोर" : "किराणा स्टोअर"));
+    const shop = state.shopSettings || {};
+    const shopName = shop.shop_name || bill.vendor_name || "SK Store";
+    const shopAddress = shop.address || "";
+    const shopPhone = shop.phone || "";
+    document.getElementById("receipt-shop-name").innerText = formatLocalizedName(shopName, state.lang);
+    const addressEl = document.getElementById("receipt-shop-addr");
+    if (addressEl) {
+        addressEl.innerText = [shopAddress, shopPhone ? `Ph: ${shopPhone}` : ""].filter(Boolean).join(" | ");
+    }
     document.getElementById("receipt-bill-no").innerText = `#VL-${Math.floor(100 + Math.random() * 900)}`;
     document.getElementById("receipt-print-date").innerText = bill.date;
     document.getElementById("receipt-print-total").innerText = `₹${bill.grand_total.toFixed(2)}`;
@@ -2474,7 +2526,8 @@ function openThermalPrintModal() {
     });
 
     // Update UPI QR Code URL
-    const upiUrl = `upi://pay?pa=merchant@upi&pn=${encodeURIComponent(bill.vendor_name)}&am=${bill.grand_total.toFixed(2)}&cu=INR`;
+    const upiId = shop.upi_id || "merchant@upi";
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(shopName)}&am=${bill.grand_total.toFixed(2)}&cu=INR`;
     document.getElementById("receipt-qr-img").src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}`;
 
     document.getElementById("modal-thermal").classList.add("active");
@@ -5104,7 +5157,18 @@ function applyShopSettingsToUI() {
     const sNameEl = document.getElementById("sidebar-shop-name");
     if (sNameEl) sNameEl.innerText = s.shop_name || "SK Store";
 
+    // Keep the session and every receipt surface on the same canonical profile.
+    if (state.user && s.shop_name) {
+        state.user.shop_name = s.shop_name;
+        localStorage.setItem("verna_user", JSON.stringify(state.user));
+    }
 
+    const receiptName = document.getElementById("receipt-shop-name");
+    if (receiptName) receiptName.innerText = s.shop_name || "SK Store";
+    const receiptAddress = document.getElementById("receipt-shop-addr");
+    if (receiptAddress) {
+        receiptAddress.innerText = [s.address, s.phone ? `Ph: ${s.phone}` : ""].filter(Boolean).join(" | ");
+    }
 
     // Default vendor name in Digital Receipt Preview if empty or default placeholder
     const billVendor = document.getElementById("bill-vendor-name");
