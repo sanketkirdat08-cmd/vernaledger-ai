@@ -1659,7 +1659,7 @@ function switchView(viewName) {
     if (viewName === "business") {
         applyShopSettingsToUI();
         loadInventoryData();
-        loadExpenses();
+        loadExpensesData();
     }
 
     // Update HUD titles based on active language
