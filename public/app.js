@@ -3898,23 +3898,14 @@ function getActiveSpeechLang() {
     return "mr-IN";
 }
 
-let currentVoiceLang = localStorage.getItem("verna_voice_lang") || "mr-IN";
-
 function getActiveVoiceLang() {
-    const sel = document.getElementById("voice-lang-select");
-    if (sel && sel.value) return sel.value;
     if (state && state.lang === "hi") return "hi-IN";
     if (state && state.lang === "en") return "en-IN";
-    return currentVoiceLang || "mr-IN";
+    return "mr-IN";
 }
 
 function setVoiceLanguage(val) {
-    if (!val) return;
-    currentVoiceLang = val;
-    localStorage.setItem("verna_voice_lang", val);
-    const sel = document.getElementById("voice-lang-select");
-    if (sel) sel.value = val;
-    if (ragSpeechRecognition) {
+    if (ragSpeechRecognition && val) {
         ragSpeechRecognition.lang = val;
     }
 }
@@ -4060,9 +4051,9 @@ function clearAiChat() {
         historyContainer.innerHTML = `
             <div class="chat-bubble chat-ai">
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 700; font-size: 0.78rem; color: var(--neon-cyan);">
-                    <span>✨</span> <span>Google Gemini AI</span>
+                    <span>✨</span> <span>VernaLedger.AI Assistant</span>
                 </div>
-                संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण कोणत्याही भाषेत काहीही विचारू शकता किंवा माईक दाबून थेट बोलू शकता.
+                संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण कोणत्याही भाषेत काहीही विचारू शकता किंवा माईक दाबून थेट बोलू शकता - भाषा आपोआप ओळखली जाईल.
             </div>
         `;
     }
@@ -4128,7 +4119,7 @@ function streamTextIntoBubble(bubbleEl, fullMarkdown, actionStatus = "", onCompl
                 ${actionStatus ? `<div style="margin-bottom: 6px; font-size: 0.78rem; color: var(--neon-green); font-weight: 700; background: rgba(0,255,102,0.08); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(0,255,102,0.25);">⚡ ${escapeHtml(actionStatus)}</div>` : ''}
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-size: 0.72rem; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
-                        <span>✨</span> <span>Google Gemini AI</span>
+                        <span>✨</span> <span>VernaLedger.AI Assistant</span>
                     </span>
                     <div style="display: flex; gap: 6px;">
                         <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${safeEncodeURIComponent(fullMarkdown)}" title="उत्तर कॉपी करा">
