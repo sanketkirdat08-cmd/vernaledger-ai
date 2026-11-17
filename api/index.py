@@ -25,7 +25,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import time
@@ -1518,11 +1518,21 @@ def detect_msg_language(text: str, requested: str = "mr") -> str:
     lower_clean = clean.lower()
 
     # 1. Explicit language override requests take highest precedence
-    if any(em in lower_clean for em in ["english madhe", "english mande", "in english", "speak in english", "answer in english", "reply in english", "इंग्रजीत", "इंग्लिश मध्ये"]):
+    if any(em in lower_clean for em in [
+        "english madhe", "english mande", "english madhye", "in english",
+        "speak in english", "answer in english", "reply in english",
+        "इंग्रजीत", "इंग्रजी मध्ये", "इंग्रजीमध्ये", "इंग्लिश मध्ये", "इंग्लिशमध्ये"
+    ]):
         return "en"
-    if any(mm in lower_clean for mm in ["marathi madhe", "marathi mande", "in marathi", "speak in marathi", "answer in marathi", "मराठीत", "मराठी मध्ये"]):
+    if any(mm in lower_clean for mm in [
+        "marathi madhe", "marathi mande", "marathi madhye", "in marathi",
+        "speak in marathi", "answer in marathi", "मराठीत", "मराठी मध्ये", "मराठीमध्ये"
+    ]):
         return "mr"
-    if any(hm in lower_clean for hm in ["hindi me", "hindi mein", "hindi madhe", "in hindi", "speak in hindi", "answer in hindi", "हिंदी में", "हिन्दी मध्ये"]):
+    if any(hm in lower_clean for hm in [
+        "hindi me", "hindi mein", "hindi madhe", "hindi madhye", "in hindi",
+        "speak in hindi", "answer in hindi", "हिंदी में", "हिन्दी मध्ये", "हिन्दीमध्ये"
+    ]):
         return "hi"
 
     devanagari_chars = re.findall(r"[ऀ-ॿ]", clean)
@@ -2787,17 +2797,26 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
             "provide a structured, helpful multi-point answer."
         )
 
+    strict_language_rule = (
+        "You are the official AI assistant for 'VernaLedger.AI: Merchant Pro v7.5'. "
+        "You must automatically detect the exact language and script of the user's message "
+        "(such as Marathi in Devanagari, Marathi written in English/Latin script, Hindi, or English) "
+        "and reply strictly in that same language and script. Maintain this language consistently "
+        "across the entire conversation. Do NOT switch to another language unless the user explicitly "
+        "asks you to change the language. Once the user asks to switch languages, continue replying "
+        "in the newly requested language until told otherwise."
+    )
     if is_hindi:
         language_instruction = (
-            f"The user is querying in Hindi (हिन्दी). You MUST reply strictly in natural, polite, and grammatically correct Hindi (हिन्दी).\n{length_instruction}"
+            f"{strict_language_rule}\nThe user is querying in Hindi (हिन्दी). Reply in natural, polite Hindi (हिन्दी), preserving the user's script.\n{length_instruction}"
         )
     elif is_english:
         language_instruction = (
-            f"The user asked in English. Answer in clear, polite, and helpful English.\n{length_instruction}"
+            f"{strict_language_rule}\nThe user asked in English. Answer in clear, polite, and helpful English.\n{length_instruction}"
         )
     else:
         language_instruction = (
-            f"The user language is Marathi (मराठी). Answer in natural, fluent, grammatically correct Marathi (शुद्ध देवनागरी मराठी).\n{length_instruction}"
+            f"{strict_language_rule}\nThe user language is Marathi (मराठी). Preserve Marathi Devanagari or Roman/Latin script exactly as used by the user.\n{length_instruction}"
         )
 
     # -------------------------------------------------------------------------
@@ -3575,7 +3594,7 @@ You possess two core intelligence systems:
      3. Vaishnavi Dhavale - Voice Billing & AI Developer (Roll: 4056, PRN: 24065451263504)
      4. Rushikesh Mulik - Backend & Database Developer (Roll: 4004, PRN: 23065451263005)
      And Project Guide: Mr. Kaisar Atar (Dept of AI & DS, AGCE Satara, DBATU Lonere). Never alter or omit any role or member.
-   - LANGUAGE INSTRUCTION: When responding in Marathi, write in pure Devanagari Marathi even if the user typed their question using English/Roman alphabet (e.g. 'mulik', 'project baddal sanga').
+   - LANGUAGE INSTRUCTION: Follow the exact language and script rule above, including Roman/Latin-script Marathi (for example, 'project baddal sanga').
    - 5 Scanner Pillars: Vision Transformers (ViT), Native Multimodal AI, Google TPU Cloud, Context-Aware Attention, Google Cloud Vision / Document AI Fallback.
    - 4 Chatbot Pillars: Native Multimodal Architecture, High-Accuracy Vernacular ASR, Transformer LLM Reasoning (Zero-Hallucination), Low Latency Engine (SQLite ACID WAL).
    - Live Store Data: Use [Live Shop Real Data] to answer store financial/stock questions with 100% mathematical accuracy.
@@ -3740,14 +3759,85 @@ def get_server_info():
         "timestamp": datetime.now().isoformat()
     }
 
+@app.websocket("/api/live-chat")
+async def live_chat(websocket: WebSocket):
+    """Proxy a browser PCM stream to Gemini Live without exposing the API key."""
+    await websocket.accept()
+    api_key = get_api_key()
+    if not api_key:
+        await websocket.close(code=1011, reason="Gemini API key is not configured")
+        return
+
+    try:
+        import websockets
+        model_name = os.getenv(
+            "GEMINI_LIVE_MODEL",
+            "gemini-2.5-flash-native-audio-preview-12-2025"
+        )
+        upstream_url = (
+            "wss://generativelanguage.googleapis.com/ws/"
+            "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
+            f"?key={api_key}"
+        )
+        async with websockets.connect(upstream_url, max_size=None) as upstream:
+            await upstream.send(json.dumps({
+                "setup": {
+                    "model": f"models/{model_name}",
+                    "generationConfig": {"responseModalities": ["AUDIO"]},
+                    "realtimeInputConfig": {
+                        "automaticActivityDetection": {"disabled": True}
+                    },
+                    "inputAudioTranscription": {},
+                    "outputAudioTranscription": {},
+                    "systemInstruction": {
+                        "parts": [{
+                            "text": (
+                                "You are the official AI assistant for "
+                                "'VernaLedger.AI: Merchant Pro v7.5'. Automatically detect "
+                                "the user's language and script, including Marathi in "
+                                "Devanagari, Roman Marathi, Hindi, and English. Reply in "
+                                "the same language and script unless the user asks to switch. "
+                                "Answer as a helpful merchant assistant using the live "
+                                "VernaLedger business context when provided."
+                            )
+                        }]
+                    }
+                }
+            }))
+
+            async def browser_to_gemini():
+                while True:
+                    message = await websocket.receive_text()
+                    await upstream.send(message)
+
+            async def gemini_to_browser():
+                async for message in upstream:
+                    if isinstance(message, bytes):
+                        await websocket.send_text(message.decode("utf-8"))
+                    else:
+                        await websocket.send_text(message)
+
+            await asyncio.gather(browser_to_gemini(), gemini_to_browser())
+    except WebSocketDisconnect:
+        logger.info("Gemini Live client disconnected")
+    except Exception as exc:
+        logger.exception("Gemini Live bridge failed: %s", exc)
+        try:
+            await websocket.close(code=1011, reason="Gemini Live connection failed")
+        except Exception:
+            pass
+
 # -----------------------------------------------------------------------------
 # DUAL ROUTE ALIASES (SUPPORTS BOTH /api/* AND /* FOR VERCEL REWRITES)
 # -----------------------------------------------------------------------------
 for route in list(app.routes):
     if hasattr(route, "path") and route.path.startswith("/api/"):
+        methods = getattr(route, "methods", None)
+        if not methods:
+            continue
         alias_path = route.path.replace("/api", "", 1)
         if alias_path:
-            app.add_api_route(alias_path, route.endpoint, methods=route.methods)
+            app.add_api_route(alias_path, route.endpoint, methods=methods)
 
 # Universal chat route aliases
 app.add_api_route('/api/chat', rag_chat, methods=['POST'])

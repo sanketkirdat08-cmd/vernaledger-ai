@@ -3537,7 +3537,7 @@ async function showMobileConnectModal() {
                     </a>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    <button class="btn-cyber" onclick="navigator.clipboard.writeText('${mobileUrl}').then(() => showToast('✅ लिंक क्लिपबोर्डवर कॉपी झाली!', 'success'))" style="padding: 10px 18px;">
+                    <button class="btn-cyber" id="btn-copy-mobile-link" style="padding: 10px 18px;">
                         📋 लिंक कॉपी करा
                     </button>
                     <button class="btn-pill" onclick="this.closest('.modal-backdrop').remove()" style="padding: 10px 18px;">
@@ -3548,6 +3548,33 @@ async function showMobileConnectModal() {
         </div>
     `;
     document.body.appendChild(modal);
+    const copyButton = document.getElementById("btn-copy-mobile-link");
+    if (copyButton) {
+        copyButton.addEventListener("click", () => copyMobileLink(mobileUrl));
+    }
+}
+
+async function copyMobileLink(url) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(url);
+        } else {
+            const helper = document.createElement("textarea");
+            helper.value = url;
+            helper.setAttribute("readonly", "");
+            helper.style.position = "fixed";
+            helper.style.opacity = "0";
+            document.body.appendChild(helper);
+            helper.select();
+            const copied = document.execCommand("copy");
+            helper.remove();
+            if (!copied) throw new Error("Clipboard unavailable");
+        }
+        showToast("✅ लिंक क्लिपबोर्डवर कॉपी झाली!", "success");
+    } catch (error) {
+        console.warn("Mobile link copy failed:", error);
+        showToast("लिंक कॉपी झाली नाही. लिंकवर दीर्घ दाब करून कॉपी करा.", "warning");
+    }
 }
 
 // =============================================================================
@@ -3871,6 +3898,30 @@ function getActiveSpeechLang() {
     return "mr-IN";
 }
 
+let currentVoiceLang = localStorage.getItem("verna_voice_lang") || "mr-IN";
+
+function getActiveVoiceLang() {
+    const sel = document.getElementById("voice-lang-select");
+    if (sel && sel.value) return sel.value;
+    if (state && state.lang === "hi") return "hi-IN";
+    if (state && state.lang === "en") return "en-IN";
+    return currentVoiceLang || "mr-IN";
+}
+
+function setVoiceLanguage(val) {
+    if (!val) return;
+    currentVoiceLang = val;
+    localStorage.setItem("verna_voice_lang", val);
+    const sel = document.getElementById("voice-lang-select");
+    if (sel) sel.value = val;
+    if (ragSpeechRecognition) {
+        ragSpeechRecognition.lang = val;
+    }
+}
+
+let ragSpeechRecognition = null;
+let isRagListening = false;
+
 function initRagSpeech() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return null;
@@ -3878,10 +3929,10 @@ function initRagSpeech() {
         if (!ragSpeechRecognition) {
             ragSpeechRecognition = new SpeechRecognition();
         }
-        ragSpeechRecognition.continuous = false;
+        ragSpeechRecognition.continuous = true;
         ragSpeechRecognition.interimResults = true;
         ragSpeechRecognition.maxAlternatives = 1;
-        ragSpeechRecognition.lang = getActiveSpeechLang();
+        ragSpeechRecognition.lang = getActiveVoiceLang();
 
         ragSpeechRecognition.onstart = () => {
             isRagListening = true;
@@ -3894,13 +3945,13 @@ function initRagSpeech() {
             }
             if (statusEl) {
                 statusEl.style.display = "block";
-                const lang = state ? state.lang : "mr";
-                if (lang === "en") {
-                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>Listening... Speak now</strong> (e.g. 'Who created this project?', 'What is today's sale?')`;
-                } else if (lang === "hi") {
-                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>सुन रहा हूँ... बोलिए</strong> (जैसे 'प्रोजेक्ट किसने बनाया?', 'आज की बिक्री कितनी है?')`;
+                const lang = getActiveVoiceLang();
+                if (lang === "en-IN") {
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>Listening... Speak now</strong> (Transcribing live in English)...`;
+                } else if (lang === "hi-IN") {
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>सुन रहा हूँ... बोलिए</strong> (लाइव टाइपिंग चालू है)...`;
                 } else {
-                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>ऐकत आहे... स्पष्ट बोला</strong> (उदा. 'प्रकल्प कोणी बनवला?', 'आजची विक्री किती?')`;
+                    statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>ऐकत आहे... बोला</strong> (थेट व्हॉइस टायपिंग चालू आहे)...`;
                 }
             }
         };
@@ -3921,15 +3972,10 @@ function initRagSpeech() {
             const inputEl = document.getElementById("ai-user-input");
             const spokenText = (finalTranscript || interimTranscript).trim();
             if (inputEl && spokenText) {
-                inputEl.value = (state && state.lang === "mr") ? autoCorrectMarathiSpeech(spokenText) : spokenText;
-            }
-
-            if (finalTranscript.trim()) {
-                clearTimeout(ragAutoSubmitTimer);
-                ragAutoSubmitTimer = setTimeout(() => {
-                    stopRagVoice();
-                    submitAiChat();
-                }, 800);
+                const existing = inputEl.dataset.voiceBase || "";
+                const transcript = existing ? `${existing} ${spokenText}`.trim() : spokenText;
+                inputEl.value = (getActiveVoiceLang() === "mr-IN") ? autoCorrectMarathiSpeech(transcript) : transcript;
+                if (finalTranscript.trim()) inputEl.dataset.voiceBase = inputEl.value;
             }
         };
 
@@ -3938,7 +3984,7 @@ function initRagSpeech() {
             stopRagVoice();
             if (event.error === "not-allowed" || event.error === "service-not-allowed") {
                 if (typeof showToast === "function") {
-                    showToast("कृपया ब्राऊझर मायक्रोफोन परवानगी (Microphone Permission) Allow करा.", "warning");
+                    showToast("कृपया ब्राउझर मायक्रोफोन परवानगी (Microphone Permission) Allow करा.", "warning");
                 }
             }
         };
@@ -3947,12 +3993,7 @@ function initRagSpeech() {
             const wasListening = isRagListening;
             stopRagVoice();
             const inputEl = document.getElementById("ai-user-input");
-            if (wasListening && inputEl && inputEl.value.trim() && !isAiProcessing) {
-                clearTimeout(ragAutoSubmitTimer);
-                ragAutoSubmitTimer = setTimeout(() => {
-                    submitAiChat();
-                }, 300);
-            }
+            if (wasListening && inputEl) delete inputEl.dataset.voiceBase;
         };
 
         return ragSpeechRecognition;
@@ -3962,150 +4003,42 @@ function initRagSpeech() {
     }
 }
 
-let ragSpeechRecognition = null;
-let isRagListening = false;
-let ragAutoSubmitTimer = null;
-let ragMediaRecorder = null;
-let ragAudioChunks = [];
-let isRagRecording = false;
-let ragRecordTimer = null;
-let ragRecordSeconds = 0;
-
-// High-speed Native Voice Interaction for Verna AI Studio
-async function toggleRagVoice() {
+function toggleRagVoice() {
     if (isAiProcessing) return;
 
     if (isRagListening) {
         stopRagVoice();
-        const inputEl = document.getElementById("ai-user-input");
-        if (inputEl && inputEl.value.trim()) {
-            submitAiChat();
-        }
         return;
     }
 
-    if (isRagRecording) {
-        stopRagNativeRecording();
-        return;
-    }
-
-    // 1. Primary: Browser Native Web Speech API with Zero Latency & Live Display
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-        try {
-            initRagSpeech();
-            if (ragSpeechRecognition) {
-                ragSpeechRecognition.lang = getActiveSpeechLang();
-                ragSpeechRecognition.start();
-                return;
-            }
-        } catch (err) {
-            console.warn("Speech recognition restart notice:", err);
-            stopRagVoice();
-            try {
-                if (ragSpeechRecognition) {
-                    ragSpeechRecognition.lang = getActiveSpeechLang();
-                    ragSpeechRecognition.start();
-                    return;
-                }
-            } catch (e) {}
-        }
-    }
-
-    // 2. Secondary Fallback: MediaRecorder Audio capture (for Firefox / restricted WebSpeech)
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        startRagMediaRecorderFallback();
+    if (!SpeechRecognition) {
+        alert("आपल्या ब्राउझरमध्ये व्हॉइस टायपिंग उपलब्ध नाही. कृपया Google Chrome किंवा Microsoft Edge वापरा अथवा बॉक्समध्ये टाईप करा.");
         return;
     }
 
-    alert("आपल्या ब्राऊझरमध्ये मायक्रोफोन उपलब्ध नाही. कृपया बॉक्समध्ये स्वतः टाईप करा.");
-}
-
-async function startRagMediaRecorderFallback() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
-
-        let mimeType = 'audio/webm;codecs=opus';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
-                       MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
-                       MediaRecorder.isTypeSupported('audio/wav') ? 'audio/wav' : '';
+        const reco = initRagSpeech();
+        if (reco) {
+            reco.lang = getActiveVoiceLang();
+            const inputEl = document.getElementById("ai-user-input");
+            if (inputEl) inputEl.dataset.voiceBase = inputEl.value || "";
+            reco.start();
         }
-
-        ragMediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-        ragAudioChunks = [];
-        isRagRecording = true;
-        ragRecordSeconds = 0;
-
-        const micBtn = document.getElementById("btn-rag-mic");
-        const statusEl = document.getElementById("rag-voice-status");
-        if (micBtn) {
-            micBtn.classList.add("listening");
-            micBtn.innerHTML = "⏹️";
-            micBtn.title = "रेकॉर्डिंग थांबवण्यासाठी टॅप करा";
-        }
-        if (statusEl) {
-            statusEl.style.display = "block";
-            statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे...</strong> (स्पष्ट बोला, पूर्ण झाल्यावर ⏹️ दाबा)`;
-        }
-
-        ragRecordTimer = setInterval(() => {
-            ragRecordSeconds++;
-            if (statusEl && isRagRecording) {
-                statusEl.innerHTML = `<span class="pulse-red">🔴</span> <strong>थेट आवाज रेकॉर्ड होत आहे (${ragRecordSeconds}s)...</strong> (थांबवण्यासाठी ⏹️ दाबा)`;
-            }
-            if (ragRecordSeconds >= 12) {
-                stopRagNativeRecording();
-            }
-        }, 1000);
-
-        ragMediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) ragAudioChunks.push(e.data);
-        };
-
-        ragMediaRecorder.onstop = async () => {
-            stream.getTracks().forEach(track => track.stop());
-            clearInterval(ragRecordTimer);
-            if (micBtn) {
-                micBtn.classList.remove("listening");
-                micBtn.innerHTML = "🎙️";
-                micBtn.title = "माईक द्वारे थेट बोला";
-            }
-            if (statusEl) statusEl.style.display = "none";
-            if (ragAudioChunks.length === 0) return;
-
-            const finalMime = ragMediaRecorder.mimeType || 'audio/webm';
-            const audioBlob = new Blob(ragAudioChunks, { type: finalMime });
-            if (audioBlob.size < 500) return;
-
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = async () => {
-                await submitNativeVoiceAi(reader.result, finalMime);
-            };
-        };
-
-        ragMediaRecorder.start(250);
     } catch (err) {
-        console.warn("Microphone access error:", err);
+        console.warn("Speech recognition restart notice:", err);
         stopRagVoice();
-        alert("कृपया ब्राऊझर मायक्रोफोन परवानगी (Microphone Permission) Allow करा.");
+        try {
+            if (ragSpeechRecognition) {
+                ragSpeechRecognition.lang = getActiveVoiceLang();
+                ragSpeechRecognition.start();
+            }
+        } catch (e) {}
     }
-}
-
-function stopRagNativeRecording() {
-    if (ragMediaRecorder && ragMediaRecorder.state !== "inactive") {
-        try { ragMediaRecorder.stop(); } catch (e) {}
-    }
-    isRagRecording = false;
-    clearInterval(ragRecordTimer);
 }
 
 function stopRagVoice() {
     isRagListening = false;
-    clearTimeout(ragAutoSubmitTimer);
     if (ragSpeechRecognition) {
         try { ragSpeechRecognition.stop(); } catch (e) {}
     }
@@ -4114,7 +4047,7 @@ function stopRagVoice() {
     if (micBtn) {
         micBtn.classList.remove("listening");
         micBtn.innerHTML = "🎙️";
-        micBtn.title = "माईक द्वारे बोला";
+        micBtn.title = "व्हॉइस टायपिंग (माईक दाबून बोला)";
     }
     if (statusEl) {
         statusEl.style.display = "none";
@@ -4123,103 +4056,110 @@ function stopRagVoice() {
 
 function clearAiChat() {
     const historyContainer = document.getElementById("ai-chat-history");
-    historyContainer.innerHTML = `
-        <div class="chat-bubble chat-ai">
-            संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण मराठीत काहीही विचारू शकता किंवा माईक दाबून थेट उधारी/खर्च नोंदवू शकता.
-        </div>
-    `;
+    if (historyContainer) {
+        historyContainer.innerHTML = `
+            <div class="chat-bubble chat-ai">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 700; font-size: 0.78rem; color: var(--neon-cyan);">
+                    <span>✨</span> <span>Google Gemini AI</span>
+                </div>
+                संभाषण रीसेट झाले आहे. आपल्या किराणा दुकानाची विक्री, उधारी किंवा साठ्याबद्दल आपण कोणत्याही भाषेत काहीही विचारू शकता किंवा माईक दाबून थेट बोलू शकता.
+            </div>
+        `;
+    }
     state.chatHistory = [];
 }
 
 function askAiPrompt(text) {
-    document.getElementById("ai-user-input").value = text;
-    submitAiChat();
+    const input = document.getElementById("ai-user-input");
+    if (input) {
+        input.value = text;
+        submitAiChat();
+    }
 }
 
-// Submit Native Spoken Voice Directly to Gemini Native Multimodal Model
-async function submitNativeVoiceAi(base64Audio, mimeType) {
-    if (isAiProcessing) return;
-    isAiProcessing = true;
-    stopCurrentAudio();
+// Word-by-word streaming effect matching official Google Gemini experience
+function streamTextIntoBubble(bubbleEl, fullMarkdown, actionStatus = "", onComplete = null) {
+    if (!bubbleEl) return;
+    
+    const tokens = fullMarkdown.match(/(\s+|\S+)/g) || [fullMarkdown];
+    let currentIdx = 0;
+    let accumulated = "";
+    
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "ai-bubble-content";
+    bubbleEl.innerHTML = "";
+    bubbleEl.appendChild(contentDiv);
+    
+    const cursorSpan = document.createElement("span");
+    cursorSpan.className = "streaming-cursor";
+    cursorSpan.style.display = "inline-block";
+    cursorSpan.style.width = "6px";
+    cursorSpan.style.height = "14px";
+    cursorSpan.style.background = "var(--neon-cyan)";
+    cursorSpan.style.marginLeft = "3px";
+    cursorSpan.style.verticalAlign = "middle";
+    cursorSpan.style.animation = "pulseDot 0.8s infinite";
+    bubbleEl.appendChild(cursorSpan);
 
     const historyContainer = document.getElementById("ai-chat-history");
-    const sendBtn = document.getElementById("btn-ai-send");
-    if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.innerHTML = `<span>...</span> ⏳`;
-    }
+    const intervalMs = Math.max(10, Math.min(22, Math.floor(1600 / Math.max(tokens.length, 1))));
 
-    // Add User Bubble with Audio Icon
-    const userBubble = document.createElement("div");
-    userBubble.className = "chat-bubble chat-user";
-    userBubble.innerHTML = `
-        <div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (व्हॉइस इनपुट)</div>
-        <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:1.1rem;">🎙️</span>
-            <span>व्हॉइस रेकॉर्डिंग पाठवत आहे...</span>
-        </div>
-    `;
-    historyContainer.appendChild(userBubble);
-    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
-
-    // Add AI Typing Indicator
-    const aiBubble = document.createElement("div");
-    aiBubble.className = "chat-bubble chat-ai";
-    aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">🧠 जेमिनी मल्टिमोडल AI आवाज ऐकत आहे...</span>`;
-    historyContainer.appendChild(aiBubble);
-    historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
-
-    try {
-        const res = await apiCall("/api/rag-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: "",
-                audio_data: base64Audio,
-                mime_type: mimeType,
-                lang: state.lang,
-                chat_history: state.chatHistory.slice(-10)
-            })
-        });
-
-        const data = await res.json();
-
-        // Update user bubble with Gemini's exact native transcription
-        const spokenWords = data.user_transcript || "व्हॉइस ऑडिओ मेसेज";
-        userBubble.innerHTML = `
-            <div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (व्हॉइस इनपुट)</div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:1.1rem;">🎙️</span>
-                <span>"${escapeHtml(spokenWords)}"</span>
-            </div>
-        `;
-        state.chatHistory.push({ role: "user", parts: [{ text: spokenWords }] });
-        state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
-
-        renderAiResponseBubble(aiBubble, data);
-    } catch (err) {
-        aiBubble.innerHTML = `एरर: जेमिनी मल्टिमोडल व्हॉइस प्रोसेस होऊ शकला नाही. कृपया पुन्हा प्रयत्न करा.`;
-    } finally {
-        isAiProcessing = false;
-        if (sendBtn) {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
+    const streamInterval = setInterval(() => {
+        const step = tokens.length > 200 ? 3 : (tokens.length > 80 ? 2 : 1);
+        for (let i = 0; i < step && currentIdx < tokens.length; i++) {
+            accumulated += tokens[currentIdx++];
         }
-        historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
-    }
+        
+        contentDiv.innerHTML = formatAiMarkdown(accumulated);
+        if (historyContainer) {
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        if (currentIdx >= tokens.length) {
+            clearInterval(streamInterval);
+            if (cursorSpan && cursorSpan.parentNode) {
+                cursorSpan.remove();
+            }
+            contentDiv.innerHTML = formatAiMarkdown(fullMarkdown);
+
+            const footerEl = document.createElement("div");
+            footerEl.className = "ai-bubble-footer";
+            footerEl.innerHTML = `
+                ${actionStatus ? `<div style="margin-bottom: 6px; font-size: 0.78rem; color: var(--neon-green); font-weight: 700; background: rgba(0,255,102,0.08); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(0,255,102,0.25);">⚡ ${escapeHtml(actionStatus)}</div>` : ''}
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span style="font-size: 0.72rem; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
+                        <span>✨</span> <span>Google Gemini AI</span>
+                    </span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="ai-action-btn-sm" onclick="copyAiBubbleText(this)" data-raw="${safeEncodeURIComponent(fullMarkdown)}" title="उत्तर कॉपी करा">
+                            📋 <span>कॉपी</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            bubbleEl.appendChild(footerEl);
+            if (historyContainer) {
+                historyContainer.scrollTop = historyContainer.scrollHeight;
+            }
+            if (typeof onComplete === "function") onComplete();
+        }
+    }, intervalMs);
 }
 
-// Submit Text Chat Message
+// Submit Text / Spoken Voice Chat Message to Gemini Assistant
 async function submitAiChat() {
     if (isAiProcessing) return;
 
     const input = document.getElementById("ai-user-input");
-    const msg = input.value.trim();
+    const msg = input ? input.value.trim() : "";
     if (!msg) return;
 
+    stopRagVoice();
     stopCurrentAudio();
     isAiProcessing = true;
     input.value = "";
+    delete input.dataset.voiceBase;
+
     const sendBtn = document.getElementById("btn-ai-send");
     if (sendBtn) {
         sendBtn.disabled = true;
@@ -4227,15 +4167,22 @@ async function submitAiChat() {
     }
     const historyContainer = document.getElementById("ai-chat-history");
 
+    // 1. User Message Bubble
     const userBubble = document.createElement("div");
     userBubble.className = "chat-bubble chat-user";
     userBubble.innerHTML = `<div style="font-weight:700; font-size:0.75rem; color:var(--neon-cyan); margin-bottom:2px;">👤 आपण (You)</div>` + escapeHtml(msg);
     historyContainer.appendChild(userBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
+    // 2. Gemini Thinking Indicator Bubble
     const aiBubble = document.createElement("div");
     aiBubble.className = "chat-bubble chat-ai";
-    aiBubble.innerHTML = `<span style="animation: pulseDot 1s infinite;">🧠 विचार करत आहे...</span>`;
+    aiBubble.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1rem; animation: pulseDot 1s infinite;">✨</span>
+            <span style="font-size: 0.88rem; color: var(--text-white);">विचार करत आहे...</span>
+        </div>
+    `;
     historyContainer.appendChild(aiBubble);
     historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
 
@@ -4256,21 +4203,24 @@ async function submitAiChat() {
         state.chatHistory.push({ role: "user", parts: [{ text: msg }] });
         state.chatHistory.push({ role: "model", parts: [{ text: data.answer || "" }] });
 
-        renderAiResponseBubble(aiBubble, data);
+        streamTextIntoBubble(aiBubble, data.answer || "माफ करा, उत्तर मिळू शकले नाही.", data.action_status);
     } catch (e) {
         console.error("AI CHAT ERROR CAUGHT:", e);
-        aiBubble.innerHTML = `एरर: ${e.message || "सर्व्हरशी संपर्क होऊ शकला नाही."}`;
+        aiBubble.innerHTML = `
+            <div style="color: #ef4444; font-weight: 600;">⚠️ त्रुटी: ${escapeHtml(e.message || "सर्व्हरशी संपर्क होऊ शकला नाही.")}</div>
+        `;
     } finally {
         isAiProcessing = false;
         if (sendBtn) {
             sendBtn.disabled = false;
             sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
         }
-        historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+        if (historyContainer) {
+            historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
+        }
     }
 }
 
-// Next-Level Markdown & Table Parser for Verna AI Chatbot
 function formatAiMarkdown(text) {
     if (!text) return "";
 

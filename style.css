@@ -782,6 +782,16 @@ body::after {
         flex: 0 0 38px !important;
         font-size: 1.1rem !important;
     }
+    .rag-language-control {
+        gap: 0;
+    }
+    .rag-language-control span {
+        display: none;
+    }
+    .rag-language-control select {
+        max-width: 62px;
+        font-size: 0.68rem;
+    }
     .rag-input {
         flex: 1 1 auto !important;
         min-width: 0 !important;
@@ -1071,6 +1081,27 @@ body::after {
     color: #ffffff !important;
     border-color: #ef4444 !important;
     animation: ragMicPulse 1.2s infinite ease-in-out;
+}
+.rag-language-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--text-slate);
+    flex-shrink: 0;
+}
+.rag-language-control select {
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-slate);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.rag-language-control option {
+    background: #0a1128;
+    color: #f8fafc;
 }
 @keyframes ragMicPulse {
     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }

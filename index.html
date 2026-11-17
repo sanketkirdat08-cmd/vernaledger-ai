@@ -27,7 +27,7 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="stylesheet" href="style.css?v=64.0">
+    <link rel="stylesheet" href="style.css?v=65.0">
 </head>
 <body>
 
@@ -203,9 +203,6 @@
                     <h2 id="hud-title" data-i18n="hud_title_scanner">⚡ स्मार्ट स्कॅनर व व्हॉइस बिलिंग</h2>
                 </div>
                 <div class="hud-controls" style="display: flex; align-items: center; gap: 8px;">
-                    <button class="btn-pill" onclick="showMobileConnectModal()" title="मोबाईलवर लाइव्ह सिंकने उघडा" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--neon-cyan); background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); cursor: pointer;">
-                        📱 <span>मोबाईल लिंक</span>
-                    </button>
                     <button class="btn-pill btn-theme-compact" id="hud-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला (Dark/Light Mode)" style="padding: 5px 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.06); color: var(--text-white); cursor: pointer; transition: all 0.2s ease;">
                         <span id="hud-theme-icon">☀️</span> <span id="hud-theme-label" data-i18n="theme_kirana_mode">किराणा मोड</span>
                     </button>
@@ -697,16 +694,34 @@
                  VIEW 5: NEURAL AI STUDIO (RAG ENGINE QUERY)
                  ================================================================= -->
                         <!-- =================================================================
-                 VIEW 5: NEURAL AI STUDIO (RAG ENGINE & VOICE COMMAND CHAT)
+                 VIEW 5: OFFICIAL GEMINI AI ASSISTANT (VERNALEDGER PRO)
                  ================================================================= -->
             <section id="view-ai" class="view-section">
-                <div class="glass-card">
-                    <!-- Clean Minimalist Chat Header -->
-                    <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
-                        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px; margin: 0;">
-                            <span>🤖</span> Verna AI
-                        </h3>
+                <div class="glass-card" style="display: flex; flex-direction: column; min-height: 580px; height: calc(100vh - 150px); max-height: 840px; padding: 18px;">
+                    <!-- Sleek Gemini Header -->
+                    <div class="chat-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; flex-shrink: 0;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.5rem; background: linear-gradient(135deg, #00f2fe, #4facfe, #b026ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0 0 10px rgba(0,242,254,0.5));">✨</span>
+                            <div>
+                                <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-white); margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    Google Gemini AI Assistant
+                                    <span style="font-size: 0.68rem; font-weight: 700; background: rgba(0,242,254,0.15); color: var(--neon-cyan); padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,242,254,0.3);">Pro v7.5</span>
+                                </h3>
+                                <p style="font-size: 0.75rem; color: var(--text-dim); margin: 2px 0 0 0;">
+                                    दुकानातील हिशोब, उधारी, विक्री व जागतिक ज्ञानासाठी व्हॉइस किंवा टेक्स्ट सहाय्यक
+                                </p>
+                            </div>
+                        </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
+                            <!-- Voice Typing Language Selector -->
+                            <div class="voice-lang-pill" style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; color: var(--text-white);">
+                                <span>🎙️</span>
+                                <select id="voice-lang-select" onchange="setVoiceLanguage(this.value)" style="background: transparent; border: none; color: var(--neon-cyan); font-weight: 700; font-size: 0.75rem; outline: none; cursor: pointer;">
+                                    <option value="mr-IN" selected>मराठी (mr-IN)</option>
+                                    <option value="hi-IN">हिन्दी (hi-IN)</option>
+                                    <option value="en-IN">English (en-IN)</option>
+                                </select>
+                            </div>
                             <button class="btn-pill btn-logout" onclick="clearAiChat()" data-i18n="btn_clear_chat" title="संभाषण स्वच्छ करा" style="padding: 5px 12px;">
                                 🗑️ Clear
                             </button>
@@ -714,7 +729,7 @@
                     </div>
 
                     <!-- Clean Quick Action Chips -->
-                    <div class="prompt-chips" style="margin-bottom: 12px; padding: 2px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="prompt-chips" style="margin-bottom: 10px; padding: 2px 0; display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0;">
                         <span class="chip" onclick="askAiPrompt('आजची विक्री किती आहे?')" data-i18n="chip_today_sales">📊 आजची विक्री</span>
                         <span class="chip" onclick="askAiPrompt('एकूण बाकी उधारी किती आहे?')" data-i18n="chip_pending_credit">👥 बाकी उधारी</span>
                         <span class="chip" onclick="askAiPrompt('कमी साठा असलेल्या वस्तू कोणत्या आहेत?')" data-i18n="chip_low_stock">🚨 कमी साठा</span>
@@ -723,26 +738,29 @@
                     </div>
 
                     <!-- Scrollable Messages Container -->
-                    <div class="chat-container">
-                        <div class="chat-history" id="ai-chat-history">
-                            <div class="chat-bubble chat-ai" data-i18n="ai_greeting">
-                                नमस्कार! मी <strong>Verna AI</strong>. दुकानातील विक्री, उधारी किंवा साठ्याबद्दल विचारा किंवा माईक दाबून बोला.
+                    <div class="chat-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+                        <div class="chat-history" id="ai-chat-history" style="flex: 1; overflow-y: auto; padding-right: 6px;">
+                            <div class="chat-bubble chat-ai">
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 700; font-size: 0.78rem; color: var(--neon-cyan);">
+                                    <span>✨</span> <span>Google Gemini AI</span>
+                                </div>
+                                नमस्कार! मी <strong>VernaLedger.AI</strong> चा अधिकृत Google Gemini सहाय्यक आहे. आपण मला कोणत्याही भाषेत (मराठी, हिन्दी किंवा English) दुकानातील विक्री, उधारी, साठा किंवा जगातील कोणताही प्रश्न विचारू शकता. माईक दाबून थेट बोला किंवा खाली टाईप करा!
                             </div>
                         </div>
 
                         <!-- Real-time Voice Listening Indicator -->
-                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin-bottom: 6px;" data-i18n="rag_voice_status_text">
-                            🎙️ मी ऐकत आहे... प्रश्न विचारा किंवा उधारी बोला...
+                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin: 8px 0 4px 0; flex-shrink: 0;">
+                            🎙️ <span class="pulse-red">🔴</span> ऐकत आहे... बोला (शब्दांची थेट टाईपिंग चालू आहे)...
                         </div>
 
                         <!-- Pinned Docked Voice & Text Chat Bar -->
-                        <div class="rag-chat-bar">
-                            <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" data-i18n-title="title_rag_mic" title="माईक द्वारे बोला">
+                        <div class="rag-chat-bar" style="margin-top: 10px; flex-shrink: 0;">
+                            <button id="btn-rag-mic" class="rag-mic-btn" onclick="toggleRagVoice()" title="व्हॉइस टायपिंग (माईक दाबून बोला)" style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
                                 🎙️
                             </button>
-                            <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" data-i18n-ph="ph_ai_input" onkeypress="if(event.key==='Enter') submitAiChat()">
+                            <input type="text" id="ai-user-input" class="rag-input" placeholder="येथे प्रश्न विचारा किंवा बोला... (उदा. 'आजची विक्री किती?')" onkeypress="if(event.key==='Enter') submitAiChat()" autocomplete="off">
                             <button class="rag-send-btn" onclick="submitAiChat()" id="btn-ai-send" title="पाठवा">
-                                <span data-i18n="btn_send">पाठवा</span> 🚀
+                                <span>पाठवा</span> 🚀
                             </button>
                         </div>
                     </div>
@@ -1089,6 +1107,6 @@
         </div>
     </div>
 
-<script src="app.js?v=64.0"></script>
+<script src="app.js?v=65.0"></script>
 </body>
 </html>
