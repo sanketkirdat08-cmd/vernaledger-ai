@@ -2493,6 +2493,13 @@ body.light-theme .modal-card {
     color: var(--neon-cyan);
 }
 
+.ai-action-btn-sm.playing {
+    background: rgba(0, 255, 102, 0.22) !important;
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    animation: pulseDot 1s infinite ease-in-out;
+}
+
 /* Light Theme Support */
 body.light-theme .ai-table-wrapper {
     background: #ffffff;

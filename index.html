@@ -27,7 +27,7 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="stylesheet" href="style.css?v=66.0">
+    <link rel="stylesheet" href="style.css?v=67.0">
 </head>
 <body>
 
@@ -713,9 +713,9 @@
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 0.72rem; color: var(--neon-cyan); background: rgba(0,242,254,0.08); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(0,242,254,0.25); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                                ⚡ ऑटो भाषा ओळख
-                            </span>
+                            <button id="btn-ai-voice-toggle" class="btn-pill" onclick="toggleAiVoiceMode()" title="व्हॉइस उत्तर चालू / बंद" style="padding: 5px 12px; font-size: 0.76rem; background: rgba(0,255,102,0.12); border: 1px solid rgba(0,255,102,0.35); color: var(--neon-green); font-weight: 700; cursor: pointer;">
+                                🔊 व्हॉइस चालू
+                            </button>
                             <button class="btn-pill btn-logout" onclick="clearAiChat()" data-i18n="btn_clear_chat" title="संभाषण स्वच्छ करा" style="padding: 5px 12px;">
                                 🗑️ Clear
                             </button>
@@ -743,8 +743,8 @@
                         </div>
 
                         <!-- Real-time Voice Listening Indicator -->
-                        <div id="rag-voice-status" style="display: none; padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin: 8px 0 4px 0; flex-shrink: 0;">
-                            🎙️ <span class="pulse-red">🔴</span> ऐकत आहे... बोला (शब्दांची थेट टाईपिंग चालू आहे)...
+                        <div id="rag-voice-status" style="display: none; padding: 7px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; text-align: center; margin: 8px 0 4px 0; flex-shrink: 0;">
+                            🎙️ <span class="pulse-red">🔴</span> ऐकत आहे... बोला (बोलून थांबल्यावर आपोआप उत्तर येईल किंवा माईक दाबा)...
                         </div>
 
                         <!-- Pinned Docked Voice & Text Chat Bar -->
@@ -1101,6 +1101,6 @@
         </div>
     </div>
 
-<script src="app.js?v=66.0"></script>
+<script src="app.js?v=67.0"></script>
 </body>
 </html>
