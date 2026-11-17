@@ -184,6 +184,59 @@ def get_db():
         pass
     return conn
 
+DEFAULT_50_KIRANA_ITEMS = [
+    ("लोकवन गहू (Lokwan Wheat)", 100.0, "kg", 15.0, 38.0),
+    ("बासमती तुकडा तांदूळ (Basmati Rice)", 80.0, "kg", 10.0, 65.0),
+    ("कोलम तांदूळ (Kolam Rice)", 75.0, "kg", 10.0, 55.0),
+    ("ज्वारी (Jowar)", 60.0, "kg", 10.0, 45.0),
+    ("बाजरी (Bajra)", 50.0, "kg", 8.0, 35.0),
+    ("तुरीची डाळ (Toor Dal)", 50.0, "kg", 8.0, 160.0),
+    ("मूग डाळ (Moong Dal)", 40.0, "kg", 5.0, 125.0),
+    ("उडीद डाळ (Urad Dal)", 35.0, "kg", 5.0, 130.0),
+    ("चणा डाळ (Chana Dal)", 45.0, "kg", 6.0, 85.0),
+    ("मसूर डाळ (Masoor Dal)", 30.0, "kg", 5.0, 95.0),
+    ("हरभरा / काबुली चणे (Kabuli Chana)", 30.0, "kg", 5.0, 110.0),
+    ("मटकी (Matki)", 25.0, "kg", 4.0, 120.0),
+    ("मूग (Whole Moong)", 25.0, "kg", 4.0, 115.0),
+    ("साखर (Sugar)", 100.0, "kg", 15.0, 42.0),
+    ("गूळ (Kolhapuri Gul)", 50.0, "kg", 8.0, 60.0),
+    ("बारीक रवा (Rawa / Suji)", 40.0, "kg", 5.0, 42.0),
+    ("जाड पोहे (Poha)", 50.0, "kg", 8.0, 50.0),
+    ("मैदा (Maida)", 30.0, "kg", 5.0, 40.0),
+    ("बेसन पीठ (Besan)", 40.0, "kg", 6.0, 90.0),
+    ("शेंगदाणा तेल (Groundnut Oil)", 50.0, "लिटर", 8.0, 175.0),
+    ("सूर्यफूल तेल (Sunflower Oil)", 60.0, "लिटर", 10.0, 140.0),
+    ("सोयाबीन तेल (Soybean Oil)", 70.0, "लिटर", 10.0, 125.0),
+    ("मोहरी तेल (Mustard Oil)", 20.0, "लिटर", 4.0, 165.0),
+    ("शुद्ध गाईचे तूप (Pure Cow Ghee)", 20.0, "लिटर", 3.0, 650.0),
+    ("टाटा मीठ (Tata Salt)", 80.0, "पॅकेट", 10.0, 28.0),
+    ("हळद पावडर (Turmeric Powder)", 30.0, "kg", 4.0, 220.0),
+    ("लाल तिखट (Red Chilli Powder)", 35.0, "kg", 5.0, 280.0),
+    ("कांदा लसूण मसाला (Kanda Lasun Masala)", 25.0, "kg", 4.0, 260.0),
+    ("जिरे (Jeera)", 20.0, "kg", 3.0, 340.0),
+    ("मोहरी (Mustard Seeds)", 25.0, "kg", 4.0, 110.0),
+    ("धने पावडर (Coriander Powder)", 20.0, "kg", 3.0, 180.0),
+    ("गरम मसाला (Garam Masala)", 15.0, "kg", 2.0, 320.0),
+    ("शेंगदाणे (Peanuts)", 50.0, "kg", 8.0, 120.0),
+    ("काजू (Cashews)", 10.0, "kg", 2.0, 850.0),
+    ("बदाम (Almonds)", 10.0, "kg", 2.0, 780.0),
+    ("सुके खोबरे (Dry Coconut)", 25.0, "kg", 4.0, 190.0),
+    ("वाघ बकरी चहा (Wagh Bakri Tea)", 40.0, "पॅकेट", 6.0, 140.0),
+    ("रेड लेबल चहा पावडर (Red Label Tea)", 35.0, "पॅकेट", 5.0, 135.0),
+    ("नेस्कॅफे कॉफी (Nescafe Coffee)", 25.0, "बाटली", 4.0, 180.0),
+    ("पार्ले-जी बिस्किट (Parle-G Biscuits)", 120.0, "पॅकेट", 15.0, 10.0),
+    ("गुड डे बिस्किट (Good Day Biscuits)", 80.0, "पॅकेट", 10.0, 25.0),
+    ("मारी लाईट बिस्किट (Marie Light Biscuits)", 60.0, "पॅकेट", 8.0, 30.0),
+    ("मॅगी नूडल्स (Maggi 2-Minute Noodles)", 100.0, "पॅकेट", 12.0, 14.0),
+    ("रिन साबण (Rin Soap)", 90.0, "नग", 12.0, 20.0),
+    ("सर्फ एक्सेल डिटर्जंट पावडर (Surf Excel)", 50.0, "kg", 8.0, 145.0),
+    ("व्हील डिटर्जंट पावडर (Wheel Powder)", 60.0, "kg", 10.0, 70.0),
+    ("लाईफबॉय साबण (Lifebuoy Soap)", 80.0, "नग", 10.0, 35.0),
+    ("डेटॉल साबण (Dettol Soap)", 75.0, "नग", 10.0, 45.0),
+    ("कोलगेट पेस्ट (Colgate MaxFresh)", 50.0, "नग", 8.0, 65.0),
+    ("विम डिशवॉश बार (Vim Dishwash Bar)", 100.0, "नग", 15.0, 15.0)
+]
+
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
@@ -211,6 +264,8 @@ def init_db():
     }
     if "image_hash" not in receipt_columns:
         cursor.execute("ALTER TABLE receipts ADD COLUMN image_hash TEXT")
+    if "stock_deducted" not in receipt_columns:
+        cursor.execute("ALTER TABLE receipts ADD COLUMN stock_deducted INTEGER DEFAULT 0")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_receipts_image_hash ON receipts(image_hash)")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS customer_khata (
@@ -296,6 +351,15 @@ def init_db():
         admin_pass_hash = hash_password_secure("admin123")
         cursor.execute("INSERT OR IGNORE INTO users VALUES ('admin', ?, 'Admin', '9999999999')", (admin_pass_hash,))
         cursor.execute("INSERT OR IGNORE INTO users VALUES ('sanket', ?, 'Admin', '9999999999')", (admin_pass_hash,))
+    
+    # Seed 50 authentic Kirana store items if empty or fewer than 50
+    cursor.execute("SELECT COUNT(*) FROM shop_inventory")
+    if cursor.fetchone()[0] < 50:
+        cursor.execute("DELETE FROM shop_inventory")
+        cursor.executemany(
+            "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, selling_price) VALUES (?, ?, ?, ?, ?)",
+            DEFAULT_50_KIRANA_ITEMS
+        )
     
     # Database starts clean. Only user-entered or scanned data is persisted.
     
@@ -900,6 +964,128 @@ def clean_json_str(text: str) -> dict:
     data["category"] = data.get("category") or "General"
     return data
 
+# -----------------------------------------------------------------------------
+# AUTOMATIC INVENTORY STOCK DEDUCTION ENGINE
+# -----------------------------------------------------------------------------
+def normalize_item_text(text: str) -> str:
+    if not text:
+        return ""
+    text = str(text).lower()
+    for ch in "()[]{}-_.,:;\\/\"'+*":
+        text = text.replace(ch, " ")
+    return " ".join(text.split())
+
+def parse_billed_quantity(raw_qty, unit_hint: str = "") -> float:
+    if isinstance(raw_qty, (int, float)):
+        return max(0.01, float(raw_qty))
+    if not raw_qty or not isinstance(raw_qty, str):
+        return 1.0
+    qty_str = raw_qty.strip().lower()
+    if "अर्धा" in qty_str or "1/2" in qty_str:
+        return 0.5
+    if "पाव" in qty_str or "1/4" in qty_str:
+        return 0.25
+    if "पाऊण" in qty_str or "3/4" in qty_str:
+        return 0.75
+    is_gm = bool(re.search(r'(gm|gram|ग्रॅम|ग्राम)', qty_str))
+    match = re.search(r'([0-9]+(?:\.[0-9]+)?)', qty_str)
+    if match:
+        val = float(match.group(1))
+        if is_gm and val >= 50 and ('kg' in str(unit_hint).lower() or 'किलो' in str(unit_hint)):
+            val = val / 1000.0
+        return max(0.01, val)
+    return 1.0
+
+INVENTORY_STOPWORDS = {"किलो", "kg", "लिटर", "ltr", "liter", "pkt", "पॅकेट", "नग", "pcs", "चा", "ची", "चे", "व", "आणि", "नंबर", "bar", "बार"}
+
+def find_matching_inventory(billed_name: str, inventory_list: list):
+    clean_b = normalize_item_text(billed_name)
+    b_tokens = [w for w in clean_b.split() if len(w) > 1 and w not in INVENTORY_STOPWORDS]
+    if not b_tokens:
+        b_tokens = clean_b.split()
+    
+    best_match = None
+    best_score = -9999
+    
+    for inv in inventory_list:
+        inv_name = inv.get("item_name") or inv.get("name") or ""
+        clean_inv = normalize_item_text(inv_name)
+        inv_tokens = [w for w in clean_inv.split() if len(w) > 1 and w not in INVENTORY_STOPWORDS]
+        
+        # Exact match
+        if clean_b == clean_inv:
+            return inv
+            
+        matched_tokens = [t for t in b_tokens if any(t in it or it in t for it in inv_tokens)]
+        if not matched_tokens:
+            continue
+            
+        score = sum(len(t) * 15 for t in matched_tokens)
+        
+        # Match oil specificity
+        if "तेल" in clean_inv and "तेल" not in clean_b:
+            score -= 20
+        if "तेल" in clean_b and "तेल" in clean_inv:
+            score += 25
+            
+        score -= abs(len(inv_tokens) - len(b_tokens)) * 2
+        
+        if score > best_score:
+            best_score = score
+            best_match = inv
+            
+    return best_match
+
+def deduct_inventory_stock(items: list, conn) -> list:
+    """
+    Automatically deducts sold items from shop_inventory.
+    Decrements stock_qty = MAX(0, stock_qty - billed_qty).
+    Returns details of all items that were deducted.
+    """
+    if not items or not isinstance(items, list):
+        return []
+    
+    cursor = conn.cursor()
+    inv_rows = cursor.execute("SELECT id, item_name, stock_qty, unit, alert_limit, selling_price FROM shop_inventory").fetchall()
+    if not inv_rows:
+        return []
+    
+    inv_list = [dict(r) for r in inv_rows]
+    deducted = []
+    
+    for itm in items:
+        if not isinstance(itm, dict):
+            continue
+        raw_name = (itm.get("item_name") or itm.get("name") or "").strip()
+        if not raw_name:
+            continue
+            
+        matched = find_matching_inventory(raw_name, inv_list)
+        if not matched:
+            continue
+            
+        raw_qty = itm.get("quantity") or itm.get("qty") or 1.0
+        deduct_qty = parse_billed_quantity(raw_qty, matched.get("unit", ""))
+        
+        current_stock = float(matched.get("stock_qty") or 0.0)
+        new_stock = max(0.0, round(current_stock - deduct_qty, 3))
+        
+        cursor.execute("UPDATE shop_inventory SET stock_qty = ? WHERE id = ?", (new_stock, matched["id"]))
+        matched["stock_qty"] = new_stock
+        
+        is_low = new_stock <= float(matched.get("alert_limit") or 0.0)
+        deducted.append({
+            "id": matched["id"],
+            "item_name": matched["item_name"],
+            "deducted_qty": deduct_qty,
+            "unit": matched["unit"],
+            "remaining_stock": new_stock,
+            "is_low": is_low
+        })
+        logger.info(f"⚡ Stock Auto-Deducted: {matched['item_name']} -{deduct_qty} {matched['unit']} -> {new_stock} left")
+        
+    return deducted
+
 @app.post("/api/ocr")
 @app.post("/ocr")
 @app.post("/api/ocr/")
@@ -1210,8 +1396,8 @@ Return strictly valid JSON only:
 
     # If not duplicate, insert new unique receipt
     cursor.execute(
-        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, image_hash) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, image_hash, stock_deducted) "
+        "VALUES (?, ?, ?, ?, ?, ?, 1)",
         (
             v_name,
             rec_date,
@@ -1222,6 +1408,10 @@ Return strictly valid JSON only:
         )
     )
     data["id"] = cursor.lastrowid
+    deductions = deduct_inventory_stock(data.get("items", []), conn)
+    if deductions:
+        data["stock_deducted"] = True
+        data["deductions"] = deductions
     # Auto-sync to Customer Khata if invoice mentions credit/udhar
     if any(k in raw_json_str for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
         cust = data.get("vendor_name", "").replace("अनामित (Local Kirana)", "").strip() or "ग्राहक"
@@ -1394,10 +1584,14 @@ def process_voice_billing(req: VoiceBillRequest):
             cursor = conn.cursor()
             raw_json_str = json.dumps(local_parsed, ensure_ascii=False)
             cursor.execute(
-                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, stock_deducted) VALUES (?, ?, ?, ?, ?, 1)",
                 (local_parsed.get("vendor_name", "Voice Bill"), today_str, "General", local_parsed.get("grand_total", 0.0), raw_json_str)
             )
             local_parsed["id"] = cursor.lastrowid
+            deductions = deduct_inventory_stock(local_parsed.get("items", []), conn)
+            if deductions:
+                local_parsed["stock_deducted"] = True
+                local_parsed["deductions"] = deductions
             conn.commit()
             conn.close()
             log_activity(req.username or "admin", f"Created Voice Bill #{local_parsed['id']} (Local Fallback)")
@@ -1483,10 +1677,14 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, stock_deducted) VALUES (?, ?, ?, ?, ?, 1)",
         (data.get("vendor_name", "Voice Bill"), rec_date, data.get("category", "General"), data.get("grand_total", 0.0), raw_json_str)
     )
     data["id"] = cursor.lastrowid
+    deductions = deduct_inventory_stock(data.get("items", []), conn)
+    if deductions:
+        data["stock_deducted"] = True
+        data["deductions"] = deductions
     # Auto-sync to Customer Khata if spoken text mentions credit/udhar
     if any(k in transcript for k in ["उधारी", "खाते", "खात्यावर", "credit", "उधार"]) and data.get("grand_total", 0) > 0:
         cust = data.get("vendor_name", "").replace("महादेव किराणा स्टोअर", "").replace("किराणा पावती", "").strip() or "ग्राहक"
@@ -2124,10 +2322,15 @@ def save_or_update_receipt(req: ReceiptSaveRequest):
         "grand_total": req.grand_total
     }, ensure_ascii=False)
     
+    deductions = []
     # If existing ID is passed, update it
     if req.id and req.id > 0:
+        row = cursor.execute("SELECT stock_deducted FROM receipts WHERE id = ?", (req.id,)).fetchone()
+        already_deducted = bool(row and row["stock_deducted"])
+        if not already_deducted:
+            deductions = deduct_inventory_stock(req.items or [], conn)
         cursor.execute(
-            "UPDATE receipts SET vendor_name = ?, date = ?, category = ?, grand_total = ?, raw_json = ? WHERE id = ?",
+            "UPDATE receipts SET vendor_name = ?, date = ?, category = ?, grand_total = ?, raw_json = ?, stock_deducted = 1 WHERE id = ?",
             (v_name, r_date, req.category or "General", req.grand_total, raw_json_str, req.id)
         )
         conn.commit()
@@ -2136,15 +2339,20 @@ def save_or_update_receipt(req: ReceiptSaveRequest):
     else:
         # Check duplicate receipt before inserting
         dup = cursor.execute(
-            "SELECT id FROM receipts WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND LOWER(vendor_name) = LOWER(?)) ORDER BY id DESC LIMIT 1",
+            "SELECT id, stock_deducted FROM receipts WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND LOWER(vendor_name) = LOWER(?)) ORDER BY id DESC LIMIT 1",
             (r_date, req.grand_total, v_name)
         ).fetchone()
         if dup:
             receipt_id = dup["id"]
+            if not dup["stock_deducted"]:
+                deductions = deduct_inventory_stock(req.items or [], conn)
+                cursor.execute("UPDATE receipts SET stock_deducted = 1 WHERE id = ?", (receipt_id,))
+                conn.commit()
             action = f"Matched existing Receipt #{receipt_id}"
         else:
+            deductions = deduct_inventory_stock(req.items or [], conn)
             cursor.execute(
-                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO receipts (vendor_name, date, category, grand_total, raw_json, stock_deducted) VALUES (?, ?, ?, ?, ?, 1)",
                 (v_name, r_date, req.category or "General", req.grand_total, raw_json_str)
             )
             conn.commit()
@@ -2156,13 +2364,16 @@ def save_or_update_receipt(req: ReceiptSaveRequest):
     return {
         "success": True,
         "id": receipt_id,
+        "deductions": deductions,
         "data": {
             "id": receipt_id,
             "vendor_name": v_name,
             "date": r_date,
             "category": req.category or "General",
             "items": req.items,
-            "grand_total": req.grand_total
+            "grand_total": req.grand_total,
+            "stock_deducted": True,
+            "deductions": deductions
         }
     }
 
@@ -2360,9 +2571,22 @@ def get_khata_tombstones():
 @app.get("/api/inventory")
 def get_inventory():
     conn = get_db()
-    rows = [dict(r) for r in conn.execute("SELECT * FROM shop_inventory ORDER BY id DESC").fetchall()]
+    rows = [dict(r) for r in conn.execute("SELECT * FROM shop_inventory ORDER BY id ASC").fetchall()]
     conn.close()
     return rows
+
+@app.post("/api/inventory/reset-defaults")
+def reset_default_inventory():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM shop_inventory")
+    cursor.executemany(
+        "INSERT INTO shop_inventory (item_name, stock_qty, unit, alert_limit, selling_price) VALUES (?, ?, ?, ?, ?)",
+        DEFAULT_50_KIRANA_ITEMS
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True, "count": len(DEFAULT_50_KIRANA_ITEMS)}
 
 @app.post("/api/inventory")
 def add_inventory_item(req: InventoryItemRequest):

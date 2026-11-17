@@ -1658,6 +1658,8 @@ function switchView(viewName) {
 
     if (viewName === "business") {
         applyShopSettingsToUI();
+        loadInventoryData();
+        loadExpenses();
     }
 
     // Update HUD titles based on active language
@@ -2000,6 +2002,7 @@ async function submitReceiptOCR() {
 
         loadDashboardMetrics();
         loadReceiptsLedger();
+        loadInventoryData();
     } catch (err) {
         console.error("OCR Error:", err);
         const errMsg = String(err.message || err || "");
@@ -2265,6 +2268,7 @@ async function submitVoiceBilling() {
         voiceAudioData = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
+        loadInventoryData();
         if (typeof showToast === "function") {
             showToast("✅ व्हॉइस पावती यशस्वीरित्या तयार झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);
         } else {
@@ -2469,9 +2473,15 @@ async function saveCurrentBillToLedger() {
 
         loadDashboardMetrics();
         loadReceiptsLedger();
+        loadInventoryData();
         
         const dict = i18n[state.lang] || i18n.mr;
-        alert(dict.msg_receipt_saved || "✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!");
+        let successMsg = dict.msg_receipt_saved || "✅ पावती यशस्वीरित्या डिजिटल लेजरमध्ये सेव्ह झाली!";
+        if (jsonRes && jsonRes.deductions && jsonRes.deductions.length > 0) {
+            const dNames = jsonRes.deductions.map(d => `${d.item_name} (-${d.deducted_qty} ${d.unit})`).join(", ");
+            successMsg += `\n📦 साठा आपोआप कमी केला: ${dNames}`;
+        }
+        alert(successMsg);
         resetBillCard();
     } catch (e) {
         console.error("Save bill error:", e);
@@ -2486,6 +2496,7 @@ async function saveCurrentBillToLedger() {
         state.currentBill = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
+        loadInventoryData();
         alert("✅ सर्व्हर उपलब्ध नाही; पावती ऑफलाइन लेजरमध्ये सुरक्षित ठेवली आहे.");
         resetBillCard();
     }
@@ -3000,7 +3011,20 @@ function renderInventoryTable(data) {
     const isMr = state.lang === "mr";
     let lowStockItems = [];
 
-    data.forEach(item => {
+    // Filter by search query if user typed in search bar
+    const searchInput = document.getElementById("inventory-search-input");
+    const query = searchInput ? (searchInput.value || "").trim().toLowerCase() : "";
+    const filteredData = query
+        ? data.filter(item => (item.item_name || "").toLowerCase().includes(query))
+        : data;
+
+    // Update count badge
+    const badge = document.getElementById("inventory-count-badge");
+    if (badge) {
+        badge.innerText = `${data.length} वस्तू`;
+    }
+
+    filteredData.forEach(item => {
         const isLow = item.stock_qty <= item.alert_limit;
         const displayName = formatLocalizedName(item.item_name, state.lang);
         if (isLow) lowStockItems.push(`${displayName} (${item.stock_qty} ${item.unit})`);
@@ -3026,6 +3050,12 @@ function renderInventoryTable(data) {
         tbody.appendChild(tr);
     });
 
+    if (filteredData.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">कोणतीही वस्तू आढळली नाही.</td>`;
+        tbody.appendChild(tr);
+    }
+
     const banner = document.getElementById("low-stock-banner");
     const bannerText = document.getElementById("low-stock-items-text");
     if (banner && bannerText) {
@@ -3035,6 +3065,23 @@ function renderInventoryTable(data) {
         } else {
             banner.style.display = "none";
         }
+    }
+}
+
+function handleInventorySearch(val) {
+    renderInventoryTable(state.allInventory);
+}
+
+async function resetInventoryToDefaults() {
+    if (!confirm("तुम्हाला सर्व 50 किराणा माल साठा पूर्ववत (Reset Defaults) करायचा आहे का?")) return;
+    try {
+        const res = await apiCall("/api/inventory/reset-defaults", { method: "POST" });
+        if (res.ok) {
+            showToast("✅ सर्व 50 किराणा वस्तू साठ्यामध्ये यशस्वीरित्या लोड झाल्या!", "success", 3500);
+            loadInventoryData();
+        }
+    } catch (e) {
+        console.error("Reset inventory error:", e);
     }
 }
 

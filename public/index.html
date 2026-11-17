@@ -27,7 +27,7 @@
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="stylesheet" href="style.css?v=68.0">
+    <link rel="stylesheet" href="style.css?v=69.0">
 </head>
 <body>
 
@@ -539,16 +539,27 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
                     <!-- Left: Inventory Stock -->
                     <div class="glass-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                             <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-white); display: flex; align-items: center; gap: 8px;">
                                 <span>📦</span> <span data-i18n="card_inventory">दुकानातील माल साठा</span>
+                                <span id="inventory-count-badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); font-weight: 700;">50 वस्तू</span>
                             </h3>
-                            <button class="btn-pill" onclick="openAddInventoryModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
-                                <span data-i18n="btn_new_stock">+ नवीन माल</span>
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-pill" onclick="resetInventoryToDefaults()" style="background: rgba(255, 255, 255, 0.08); color: var(--text-muted); border-color: rgba(255,255,255,0.2); font-size: 0.75rem;" title="सर्व 50 किराणा माल पूर्ववत लोड करा">
+                                    🔄 Defaults
+                                </button>
+                                <button class="btn-pill" onclick="openAddInventoryModal()" style="background: rgba(0, 242, 254, 0.15); color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                                    <span data-i18n="btn_new_stock">+ नवीन माल</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="table-responsive" style="max-height: 380px;">
+                        <!-- Live Kirana Item Search Bar -->
+                        <div style="margin-bottom: 12px;">
+                            <input type="text" id="inventory-search-input" oninput="handleInventorySearch(this.value)" placeholder="🔍 ५० किराणा वस्तूंमध्ये शोधा (उदा. साखर, तेल, गहू, तांदूळ, Parle-G)..." style="width: 100%; box-sizing: border-box; padding: 8px 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: var(--text-white); font-size: 0.82rem; outline: none;">
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
                             <table class="cyber-table">
                                 <thead>
                                     <tr>
@@ -1098,6 +1109,6 @@
         </div>
     </div>
 
-<script src="app.js?v=68.0"></script>
+<script src="app.js?v=69.0"></script>
 </body>
 </html>
