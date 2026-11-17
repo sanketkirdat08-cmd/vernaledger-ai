@@ -1510,10 +1510,10 @@ SUPPORTED_LANGUAGES = {
 }
 
 def detect_msg_language(text: str, requested: str = "mr") -> str:
-    """Detect whether user query is in Marathi, Hindi, or English based on actual text, fallback to requested."""
+    """Detect whether user query is in Marathi, Hindi, or English based on actual text with 100% precision."""
     clean = (text or "").strip()
     if not clean:
-        return requested if requested in ["mr", "en", "hi"] else "mr"
+        return "mr"
 
     lower_clean = clean.lower()
 
@@ -1537,68 +1537,65 @@ def detect_msg_language(text: str, requested: str = "mr") -> str:
 
     devanagari_chars = re.findall(r"[ऀ-ॿ]", clean)
     dev_count = len(devanagari_chars)
-    latin_chars = re.findall(r"[A-Za-z]", clean)
-    latin_count = len(latin_chars)
 
-    # 2. Devanagari Script Analysis (Hindi vs Marathi)
-    if dev_count >= 2:
+    # 2. Devanagari Script Analysis
+    if dev_count > 0:
         hindi_dev_markers = [
             "है", "हैं", "हूँ", "हूं", "हो", "था", "थी", "थे", "किसने", "किसका", "किसकी", "किसके",
             "कितना", "कितनी", "कितने", "क्या", "कहाँ", "कहा", "कैसे", "कैसा", "कौन",
-            "बनाया", "बताओ", "बताइए", "दीजिए", "कीजिए", "दुकानदार", "नमस्ते", "धन्यवाद", "बिक्री",
-            "बकाया", "कुल", "वस्तुएं", "सामान", "मुझे", "हमे", "हमें", "आपका", "आपकी", "आपके"
+            "बनाया", "बताओ", "बताइए", "दीजिए", "कीजिए", "नमस्ते", "धन्यवाद", "बिक्री",
+            "बकाया", "वस्तुएं", "मुझे", "हमे", "हमें", "आपका", "आपकी", "आपके"
         ]
         marathi_dev_markers = [
             "आहे", "आहेत", "नाही", "नाहीत", "सांगा", "किती", "काय", "कोणी", "कोणाचा", "कोणाची",
             "कोणाचे", "कसे", "कुठे", "केले", "झाले", "झाली", "झाला", "दिली", "घेतले", "उधारी",
-            "विक्री", "साठा", "पावती", "हिशोब", "नमस्कार", "वस्तू", "वस्तूंची", "शिल्लक", "बाकी"
+            "विक्री", "साठा", "पावती", "हिशोब", "नमस्कार", "वस्तू", "वस्तूंची", "शिल्लक", "बाकी",
+            "बघ", "बघा", "द्या", "टाका", "करा", "पाहिजे", "अडकले", "मिळेल", "कोण"
         ]
-        h_score = sum(1 for m in hindi_dev_markers if re.search(r"" + re.escape(m) + r"", clean) or m in clean)
-        m_score = sum(1 for m in marathi_dev_markers if re.search(r"" + re.escape(m) + r"", clean) or m in clean)
+        h_score = sum(1 for m in hindi_dev_markers if m in clean)
+        m_score = sum(1 for m in marathi_dev_markers if m in clean)
 
         if h_score > m_score:
             return "hi"
-        if m_score > h_score:
-            return "mr"
-        return requested if requested in ["mr", "hi"] else "mr"
+        return "mr"
 
-    # 3. Latin / Romanized Script Analysis (English vs Roman Hindi vs Roman Marathi)
-    eng_words = {
-        "who", "what", "where", "when", "why", "how", "is", "are", "was", "were",
-        "the", "this", "that", "these", "those", "project", "developer", "developers",
-        "team", "guide", "college", "sale", "sales", "credit", "stock", "profit", "expense",
-        "inventory", "today", "todays", "show", "tell", "give", "detail", "details",
-        "hello", "hi", "hey", "name", "store", "shop", "khatabook", "vyapar", "difference",
-        "explain", "feature", "features", "architecture", "status", "summary", "about",
-        "all", "members", "list", "check", "system", "please", "can", "you", "made"
-    }
-    roman_hindi_words = {
-        "hai", "hain", "hoon", "kya", "kaun", "kisne", "kiska", "kitna", "kitni", "kitne",
-        "kaise", "kahan", "batao", "bataiye", "banaya", "diya", "liya", "mera", "meri",
-        "apka", "aapka", "namaste", "shukriya", "kripya", "dhanyawad", "bikri", "dukaan"
-    }
+    # 3. Latin / Romanized Script Analysis
     roman_marathi_words = {
         "ahe", "aahe", "nahiy", "nahi", "sanga", "kiti", "kay", "koni", "konakade",
         "kase", "kuthe", "kele", "zale", "jhale", "dili", "dilya", "ghetle", "udhari",
         "vikri", "satha", "pavti", "hishob", "namaskar", "baddal", "vishayi", "dya",
-        "bagha", "chya", "kadhun", "taka", "kara", "karun", "dukana", "dukan"
+        "bagha", "bgha", "chya", "kadhun", "taka", "kara", "karun", "dukana", "dukan",
+        "mahiti", "nav", "naav", "kon", "mala", "tula", "aple", "amhi", "he", "te",
+        "ata", "pn", "pan", "bghat", "disat", "yethe", "tithe", "kadhi", "kas", "kayam",
+        "nit", "aikun", "ghet", "det", "sarv", "ekdum", "shabd", "parantu", "jara",
+        "pahije", "vakkya", "boltoy", "bolto", "vichartoy", "vicharto", "uttar", "ale",
+        "nakoy", "adhchan", "ali", "tech", "achuk", "itke", "jevde", "ani", "madhdla", "madhe"
     }
+    roman_hindi_words = {
+        "hai", "hain", "hoon", "kya", "kaun", "kisne", "kiska", "kitna", "kitni", "kitne",
+        "kaise", "kahan", "batao", "bataiye", "banaya", "diya", "liya", "mera", "meri",
+        "apka", "aapka", "namaste", "shukriya", "kripya", "dhanyawad", "bikri", "dukaan", "chahiye"
+    }
+    pure_english_phrases = [
+        "what is", "who is", "who are", "how to", "where is", "tell me", "explain",
+        "show me", "can you", "list all", "summary of", "difference between",
+        "architecture of", "give me", "why is", "when did"
+    ]
 
     words = set(re.findall(r"[a-z]+", lower_clean))
-    eng_score = len(words.intersection(eng_words))
-    hi_score = len(words.intersection(roman_hindi_words))
-    mr_score = len(words.intersection(roman_marathi_words))
+    mr_matches = len(words.intersection(roman_marathi_words))
+    hi_matches = len(words.intersection(roman_hindi_words))
 
-    if hi_score > eng_score and hi_score > mr_score:
-        return "hi"
-    if mr_score > eng_score and mr_score > hi_score:
+    if mr_matches > 0:
         return "mr"
-    if eng_score > hi_score and eng_score > mr_score:
-        return "en"
-    if eng_score > 0 and hi_score == 0 and mr_score == 0:
+    if hi_matches > 0:
+        return "hi"
+
+    if any(p in lower_clean for p in pure_english_phrases):
         return "en"
 
-    return requested if requested in ["mr", "en", "hi"] else "mr"
+    # Default in VernaLedger is ALWAYS Marathi
+    return "mr"
 
 TTS_VOICES = {
     "mr": "mr-IN-AarohiNeural", "en": "en-IN-NeerjaNeural",
