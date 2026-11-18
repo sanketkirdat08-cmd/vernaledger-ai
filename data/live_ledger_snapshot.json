@@ -1,0 +1,608 @@
+{
+  "version": "7.5",
+  "last_synced_at": "2026-11-18T23:01:07.838423",
+  "counts": {
+    "receipts": 1,
+    "khata": 5,
+    "inventory": 50,
+    "expenses": 1
+  },
+  "receipts": [
+    {
+      "id": 61,
+      "vendor_name": "सोनल किराणा",
+      "date": "2026-11-18",
+      "category": "General",
+      "grand_total": 150.0,
+      "raw_json": {
+        "vendor_name": "सोनल किराणा",
+        "date": "2026-11-18",
+        "category": "General",
+        "items": [
+          {
+            "item_name": "गहू",
+            "quantity": "10 किलो",
+            "rate": 5,
+            "total_price": 50
+          },
+          {
+            "item_name": "तेल",
+            "quantity": "5 ltr",
+            "rate": 20,
+            "total_price": 100
+          }
+        ],
+        "grand_total": 150.0
+      },
+      "image_hash": "0322178a2f9087e3ac6b26d4be443075f90997f6f251123aa8a6ed74a083f072",
+      "stock_deducted": 1
+    }
+  ],
+  "khata": [
+    {
+      "id": 10,
+      "customer_name": "sonal",
+      "phone": "7620042972",
+      "amount": 200.0,
+      "transaction_type": "Payment Received",
+      "date": "2026-11-18",
+      "due_date": "",
+      "notes": ""
+    },
+    {
+      "id": 9,
+      "customer_name": "महेश जाधव",
+      "phone": "9811223344",
+      "amount": 500.0,
+      "transaction_type": "Credit Given",
+      "date": "2026-11-16",
+      "due_date": "",
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "customer_name": "सुरेश पवार",
+      "phone": "9822334455",
+      "amount": 250.0,
+      "transaction_type": "Credit Given",
+      "date": "2026-11-16",
+      "due_date": "",
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "customer_name": "सागर",
+      "phone": "",
+      "amount": 500.0,
+      "transaction_type": "Credit Given",
+      "date": "2026-10-20",
+      "due_date": "",
+      "notes": "सागर ला ५०० उधारी लिही"
+    },
+    {
+      "id": 1,
+      "customer_name": "sonal",
+      "phone": "7620042972",
+      "amount": 500.0,
+      "transaction_type": "Credit Given",
+      "date": "2026-10-05",
+      "due_date": "2026-10-05",
+      "notes": "sugar"
+    }
+  ],
+  "inventory": [
+    {
+      "id": 300,
+      "item_name": "लोकवन गहू (Lokwan Wheat)",
+      "stock_qty": 90.0,
+      "unit": "kg",
+      "alert_limit": 15.0,
+      "barcode": "",
+      "selling_price": 38.0
+    },
+    {
+      "id": 301,
+      "item_name": "बासमती तुकडा तांदूळ (Basmati Rice)",
+      "stock_qty": 80.0,
+      "unit": "kg",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 65.0
+    },
+    {
+      "id": 302,
+      "item_name": "कोलम तांदूळ (Kolam Rice)",
+      "stock_qty": 75.0,
+      "unit": "kg",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 55.0
+    },
+    {
+      "id": 303,
+      "item_name": "ज्वारी (Jowar)",
+      "stock_qty": 60.0,
+      "unit": "kg",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 45.0
+    },
+    {
+      "id": 304,
+      "item_name": "बाजरी (Bajra)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 35.0
+    },
+    {
+      "id": 305,
+      "item_name": "तुरीची डाळ (Toor Dal)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 160.0
+    },
+    {
+      "id": 306,
+      "item_name": "मूग डाळ (Moong Dal)",
+      "stock_qty": 40.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 125.0
+    },
+    {
+      "id": 307,
+      "item_name": "उडीद डाळ (Urad Dal)",
+      "stock_qty": 35.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 130.0
+    },
+    {
+      "id": 308,
+      "item_name": "चणा डाळ (Chana Dal)",
+      "stock_qty": 45.0,
+      "unit": "kg",
+      "alert_limit": 6.0,
+      "barcode": "",
+      "selling_price": 85.0
+    },
+    {
+      "id": 309,
+      "item_name": "मसूर डाळ (Masoor Dal)",
+      "stock_qty": 30.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 95.0
+    },
+    {
+      "id": 310,
+      "item_name": "हरभरा / काबुली चणे (Kabuli Chana)",
+      "stock_qty": 30.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 110.0
+    },
+    {
+      "id": 311,
+      "item_name": "मटकी (Matki)",
+      "stock_qty": 25.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 120.0
+    },
+    {
+      "id": 312,
+      "item_name": "मूग (Whole Moong)",
+      "stock_qty": 25.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 115.0
+    },
+    {
+      "id": 313,
+      "item_name": "साखर (Sugar)",
+      "stock_qty": 100.0,
+      "unit": "kg",
+      "alert_limit": 15.0,
+      "barcode": "",
+      "selling_price": 42.0
+    },
+    {
+      "id": 314,
+      "item_name": "गूळ (Kolhapuri Gul)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 60.0
+    },
+    {
+      "id": 315,
+      "item_name": "बारीक रवा (Rawa / Suji)",
+      "stock_qty": 40.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 42.0
+    },
+    {
+      "id": 316,
+      "item_name": "जाड पोहे (Poha)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 50.0
+    },
+    {
+      "id": 317,
+      "item_name": "मैदा (Maida)",
+      "stock_qty": 30.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 40.0
+    },
+    {
+      "id": 318,
+      "item_name": "बेसन पीठ (Besan)",
+      "stock_qty": 40.0,
+      "unit": "kg",
+      "alert_limit": 6.0,
+      "barcode": "",
+      "selling_price": 90.0
+    },
+    {
+      "id": 319,
+      "item_name": "शेंगदाणा तेल (Groundnut Oil)",
+      "stock_qty": 45.0,
+      "unit": "लिटर",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 175.0
+    },
+    {
+      "id": 320,
+      "item_name": "सूर्यफूल तेल (Sunflower Oil)",
+      "stock_qty": 60.0,
+      "unit": "लिटर",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 140.0
+    },
+    {
+      "id": 321,
+      "item_name": "सोयाबीन तेल (Soybean Oil)",
+      "stock_qty": 70.0,
+      "unit": "लिटर",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 125.0
+    },
+    {
+      "id": 322,
+      "item_name": "मोहरी तेल (Mustard Oil)",
+      "stock_qty": 20.0,
+      "unit": "लिटर",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 165.0
+    },
+    {
+      "id": 323,
+      "item_name": "शुद्ध गाईचे तूप (Pure Cow Ghee)",
+      "stock_qty": 20.0,
+      "unit": "लिटर",
+      "alert_limit": 3.0,
+      "barcode": "",
+      "selling_price": 650.0
+    },
+    {
+      "id": 324,
+      "item_name": "टाटा मीठ (Tata Salt)",
+      "stock_qty": 80.0,
+      "unit": "पॅकेट",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 28.0
+    },
+    {
+      "id": 325,
+      "item_name": "हळद पावडर (Turmeric Powder)",
+      "stock_qty": 30.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 220.0
+    },
+    {
+      "id": 326,
+      "item_name": "लाल तिखट (Red Chilli Powder)",
+      "stock_qty": 35.0,
+      "unit": "kg",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 280.0
+    },
+    {
+      "id": 327,
+      "item_name": "कांदा लसूण मसाला (Kanda Lasun Masala)",
+      "stock_qty": 25.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 260.0
+    },
+    {
+      "id": 328,
+      "item_name": "जिरे (Jeera)",
+      "stock_qty": 20.0,
+      "unit": "kg",
+      "alert_limit": 3.0,
+      "barcode": "",
+      "selling_price": 340.0
+    },
+    {
+      "id": 329,
+      "item_name": "मोहरी (Mustard Seeds)",
+      "stock_qty": 25.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 110.0
+    },
+    {
+      "id": 330,
+      "item_name": "धने पावडर (Coriander Powder)",
+      "stock_qty": 20.0,
+      "unit": "kg",
+      "alert_limit": 3.0,
+      "barcode": "",
+      "selling_price": 180.0
+    },
+    {
+      "id": 331,
+      "item_name": "गरम मसाला (Garam Masala)",
+      "stock_qty": 15.0,
+      "unit": "kg",
+      "alert_limit": 2.0,
+      "barcode": "",
+      "selling_price": 320.0
+    },
+    {
+      "id": 332,
+      "item_name": "शेंगदाणे (Peanuts)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 120.0
+    },
+    {
+      "id": 333,
+      "item_name": "काजू (Cashews)",
+      "stock_qty": 10.0,
+      "unit": "kg",
+      "alert_limit": 2.0,
+      "barcode": "",
+      "selling_price": 850.0
+    },
+    {
+      "id": 334,
+      "item_name": "बदाम (Almonds)",
+      "stock_qty": 10.0,
+      "unit": "kg",
+      "alert_limit": 2.0,
+      "barcode": "",
+      "selling_price": 780.0
+    },
+    {
+      "id": 335,
+      "item_name": "सुके खोबरे (Dry Coconut)",
+      "stock_qty": 25.0,
+      "unit": "kg",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 190.0
+    },
+    {
+      "id": 336,
+      "item_name": "वाघ बकरी चहा (Wagh Bakri Tea)",
+      "stock_qty": 40.0,
+      "unit": "पॅकेट",
+      "alert_limit": 6.0,
+      "barcode": "",
+      "selling_price": 140.0
+    },
+    {
+      "id": 337,
+      "item_name": "रेड लेबल चहा पावडर (Red Label Tea)",
+      "stock_qty": 35.0,
+      "unit": "पॅकेट",
+      "alert_limit": 5.0,
+      "barcode": "",
+      "selling_price": 135.0
+    },
+    {
+      "id": 338,
+      "item_name": "नेस्कॅफे कॉफी (Nescafe Coffee)",
+      "stock_qty": 25.0,
+      "unit": "बाटली",
+      "alert_limit": 4.0,
+      "barcode": "",
+      "selling_price": 180.0
+    },
+    {
+      "id": 339,
+      "item_name": "पार्ले-जी बिस्किट (Parle-G Biscuits)",
+      "stock_qty": 120.0,
+      "unit": "पॅकेट",
+      "alert_limit": 15.0,
+      "barcode": "",
+      "selling_price": 10.0
+    },
+    {
+      "id": 340,
+      "item_name": "गुड डे बिस्किट (Good Day Biscuits)",
+      "stock_qty": 80.0,
+      "unit": "पॅकेट",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 25.0
+    },
+    {
+      "id": 341,
+      "item_name": "मारी लाईट बिस्किट (Marie Light Biscuits)",
+      "stock_qty": 60.0,
+      "unit": "पॅकेट",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 30.0
+    },
+    {
+      "id": 342,
+      "item_name": "मॅगी नूडल्स (Maggi 2-Minute Noodles)",
+      "stock_qty": 100.0,
+      "unit": "पॅकेट",
+      "alert_limit": 12.0,
+      "barcode": "",
+      "selling_price": 14.0
+    },
+    {
+      "id": 343,
+      "item_name": "रिन साबण (Rin Soap)",
+      "stock_qty": 90.0,
+      "unit": "नग",
+      "alert_limit": 12.0,
+      "barcode": "",
+      "selling_price": 20.0
+    },
+    {
+      "id": 344,
+      "item_name": "सर्फ एक्सेल डिटर्जंट पावडर (Surf Excel)",
+      "stock_qty": 50.0,
+      "unit": "kg",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 145.0
+    },
+    {
+      "id": 345,
+      "item_name": "व्हील डिटर्जंट पावडर (Wheel Powder)",
+      "stock_qty": 60.0,
+      "unit": "kg",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 70.0
+    },
+    {
+      "id": 346,
+      "item_name": "लाईफबॉय साबण (Lifebuoy Soap)",
+      "stock_qty": 80.0,
+      "unit": "नग",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 35.0
+    },
+    {
+      "id": 347,
+      "item_name": "डेटॉल साबण (Dettol Soap)",
+      "stock_qty": 75.0,
+      "unit": "नग",
+      "alert_limit": 10.0,
+      "barcode": "",
+      "selling_price": 45.0
+    },
+    {
+      "id": 348,
+      "item_name": "कोलगेट पेस्ट (Colgate MaxFresh)",
+      "stock_qty": 50.0,
+      "unit": "नग",
+      "alert_limit": 8.0,
+      "barcode": "",
+      "selling_price": 65.0
+    },
+    {
+      "id": 349,
+      "item_name": "विम डिशवॉश बार (Vim Dishwash Bar)",
+      "stock_qty": 100.0,
+      "unit": "नग",
+      "alert_limit": 15.0,
+      "barcode": "",
+      "selling_price": 15.0
+    }
+  ],
+  "expenses": [
+    {
+      "id": 1,
+      "expense_title": "लाईट बिल",
+      "amount": 350.0,
+      "category": "दुकान खर्च",
+      "date": "2026-10-20",
+      "notes": "लाईट बिल ३५० खर्च नोंदव"
+    }
+  ],
+  "deleted_receipts": [
+    {
+      "id": 59,
+      "signature": "गणेश करिणा_2026-11-17_830.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 58,
+      "signature": "सोनल किराणा_2026-11-17_150.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 57,
+      "signature": "सोनल किराणा_2026-11-17_150.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 56,
+      "signature": "टेस्ट किराणा_2026-11-16_120.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 55,
+      "signature": "किराणा पावती_2026-11-16_90.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 54,
+      "signature": "किराणा पावती_2026-11-16_100.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 53,
+      "signature": "sk_2026-11-16_20.0",
+      "deleted_at": "2026-11-16T18:01:08.890405"
+    },
+    {
+      "id": 51,
+      "signature": "चाचणी किराणा टेस्ट_2026-11-02_777.0",
+      "deleted_at": "2026-11-02 08:31:49"
+    },
+    {
+      "id": 49,
+      "signature": "किराणा पावती_2026-11-02_230.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    },
+    {
+      "id": 42,
+      "signature": "सोनल किराणा_2024-05-24_150.0",
+      "deleted_at": "2026-11-18T22:52:04.779947"
+    }
+  ],
+  "deleted_khata": []
+}

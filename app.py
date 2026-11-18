@@ -60,6 +60,14 @@ if __name__ == "__main__":
     # Launch browser automatically on server startup
     threading.Thread(target=launch_browser, daemon=True).start()
 
+    # Start Real-Time GitOps Auto-Sync Daemon (Heartbeat every 4 seconds)
+    try:
+        from git_auto_sync import start_background_thread
+        start_background_thread(interval_seconds=4)
+        print("  🔄 GitOps Auto-Sync: Active (Auto Commit & Push every 4s, Offline & Online)")
+    except Exception as e:
+        print(f"  ⚠️ GitOps notice: {e}")
+
     local_ip = get_local_ip()
     print("=" * 70)
     print("  🚀 VernaLedger.AI - Merchant Pro v7.5 (Live Unified Server)")
