@@ -1,15 +1,15 @@
 """
 VernaLedger.AI: Merchant Pro v7.5
-Presentation Script & Role-Wise Defense Guide Generator (23-Slide Comprehensive & Concise Edition)
+Presentation Script & Role-Wise Defense Guide Generator (Super Simple & Memorable Edition)
 Features:
 - Complete 23 slides matching VernaLedger_Presentation.html
-- Prominent Guide & HOD details: Prof. Kaisar Atar (Guide) | Dr. S. Y. Mulla (HOD)
-- Detailed Technical Contribution (प्रकल्पातील नक्की योगदान) right next to each member's name
-- Prominent Speaker Badges on EVERY slide card: Sanket (6), Sakshi (6), Vaishnavi (5), Rushikesh (6)
-- Crisp spoken English (3-4 punchy sentences, 45-60s speech)
-- Concise Marathi core concept (2 lines, direct explanation)
-- Targeted Examiner Viva Question & Answer per slide
+- Super simple, easy-to-memorize English (2-4 punchy sentences per slide, no tongue-twisters)
+- Simple, clear Marathi explanation (2 lines of plain everyday Marathi)
+- 1 targeted Examiner Viva Question & simple direct answer per slide
 - Smooth English handover cue to next presenter
+- Prominently displays: Guide: Prof. Kaisar Atar sir | HOD: Dr. S. Y. Mulla mam | AGCE Satara (DBATU Lonere)
+- Exact technical contribution (प्रकल्पातील नक्की योगदान) detailed for all 4 members
+- Speaker badges with slide counts: Sanket (6), Sakshi (6), Vaishnavi (5), Rushikesh (6)
 """
 
 import os
@@ -22,7 +22,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 <html lang="mr">
 <head>
 <meta charset="utf-8">
-<title>VernaLedger.AI - 23-Slide Presentation Defense Guide</title>
+<title>VernaLedger.AI - सोपे प्रेझेंटेशन स्क्रिप्ट व डिफेन्स गाईड</title>
 <style>
   @page {
     size: A4;
@@ -42,7 +42,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     color: #0f172a;
     background: #ffffff;
     font-size: 8.6pt;
-    line-height: 1.35;
+    line-height: 1.34;
   }
 
   /* Compact Hero Header */
@@ -110,7 +110,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
   /* Contributions Table */
   .sec-heading {
-    font-size: 10pt;
+    font-size: 9.8pt;
     font-weight: 800;
     color: #0f172a;
     border-left: 4px solid #0284c7;
@@ -238,14 +238,14 @@ HTML_CONTENT = """<!DOCTYPE html>
 
   .text-en {
     font-size: 7.8pt;
-    line-height: 1.33;
+    line-height: 1.32;
     color: #1e293b;
   }
   .text-en strong { color: #0f172a; }
 
   .text-mr {
     font-size: 7.8pt;
-    line-height: 1.33;
+    line-height: 1.32;
     color: #334155;
   }
   .text-mr strong { color: #065f46; }
@@ -291,14 +291,14 @@ HTML_CONTENT = """<!DOCTYPE html>
   <div class="hero-box">
     <div class="hero-top">
       <span class="badge-inst">Arvind Gavali College of Engineering, Satara • DBATU Lonere</span>
-      <span class="badge-guide">Project Guide: Prof. Kaisar Atar | HOD: Dr. S. Y. Mulla</span>
+      <span class="badge-guide">Guide: Prof. Kaisar Atar | HOD: Dr. S. Y. Mulla mam</span>
     </div>
     <div class="hero-title">VernaLedger.AI <span>Merchant Pro v7.5</span></div>
-    <div class="hero-desc">Final Year Major Project Defense Guide • Complete 23-Slide Deck Script (English Spoken + Marathi Meaning)</div>
+    <div class="hero-desc">सोपे व सुटसुटीत प्रेझेंटेशन स्क्रिप्ट आणि डिफेन्स गाईड • पाठ करायला व बोलायला अगदी सोपे</div>
     
     <div class="guide-strip">
-      <div><strong>प्रकल्प मार्गदर्शक (Guide):</strong> Prof. Kaisar Atar</div>
-      <div><strong>विभागप्रमुख (HOD):</strong> Dr. S. Y. Mulla</div>
+      <div><strong>प्रकल्प मार्गदर्शक (Guide):</strong> Prof. Kaisar Atar sir</div>
+      <div><strong>विभागप्रमुख (HOD):</strong> Dr. S. Y. Mulla mam</div>
       <div><strong>Department:</strong> Artificial Intelligence & Data Science (2026-2027)</div>
       <div><strong>Deck Presentation:</strong> VernaLedger_Presentation.html (23 Slides)</div>
     </div>
@@ -325,7 +325,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <td>Roll: 4060<br><span style="font-size: 7pt; color: #64748b;">24065451263508</span></td>
         <td>
           • <strong>AI Vision OCR इंजिन:</strong> गुगल Gemini 3.1 Flash द्वारे कागदी हस्तलिखित पावत्यांचे <1.5s मध्ये डिजिटायझेशन (`/api/ocr`).<br>
-          • <strong>इमेज प्री-प्रोसेसिंग:</strong> 960px Lanczos कॉन्ट्रास्ट फिल्टर आणि SHA-256 हॅश द्वारे डुप्लिकेट पावती प्रतिबंध.<br>
+          • <strong>इमेज प्री-प्रोसेसिंग:</strong> ९६०px Lanczos कॉन्ट्रास्ट फिल्टर आणि SHA-256 हॅश द्वारे डुप्लिकेट पावती प्रतिबंध.<br>
           • <strong>प्रकल्प नेतृत्व:</strong> सिस्टीम एकत्रीकरण, उद्दिष्टे, पाईपलाईन आणि अंतिम ओपन डिफेन्स (Q&A).
         </td>
         <td><strong>Slides: 01, 02, 06, 07, 12, 23</strong><br><span style="color: #0284c7; font-weight: 700;">(६ स्लाईड्स)</span></td>
@@ -335,8 +335,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         <td>Roll: 4054<br><span style="font-size: 7pt; color: #64748b;">24065451263502</span></td>
         <td>
           • <strong>UI/UX आर्किटेक्चर:</strong> व्हॅनिला JavaScript आधारित जलद सिंगल पेज ॲप्लिकेशन (SPA) इंटरफेस.<br>
-          • <strong>उधारी खातेवही (Khata):</strong> 'उधारी दिली' व 'जमा मिळाले' ऑटो-कॅल्क्युलेशन आणि 1-क्लिक व्हॉट्सॲप UPI पेमेंट लिंक.<br>
-          • <strong>किराणा मोड व PWA:</strong> थेट उन्हात स्पष्ट दिसणारा किराणा मोड आणि मोबाईलसाठी 5-टॅब बॉटम टच बार.
+          • <strong>उधारी खातेवही (Khata):</strong> 'उधारी दिली' व 'जमा मिळाले' ऑटो-कॅल्क्युलेशन आणि १-क्लिक व्हॉट्सॲप UPI पेमेंट लिंक.<br>
+          • <strong>किराणा मोड व PWA:</strong> थेट उन्हात स्पष्ट दिसणारा किराणा मोड आणि मोबाईलसाठी ५-टॅब बॉटम टच बार.
         </td>
         <td><strong>Slides: 03, 04, 14, 18, 19, 20</strong><br><span style="color: #d97706; font-weight: 700;">(६ स्लाईड्स)</span></td>
       </tr>
@@ -356,7 +356,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <td>
           • <strong>FastAPI सर्व्हरलेस बॅकएंड:</strong> हाय-स्पीड ASGI गेटवे आणि multi-key failover rotation पूल (`api/index.py`).<br>
           • <strong>SQLite ACID डेटाबेस:</strong> Write-Ahead Logging (WAL) मोडमध्ये <2ms लेटन्सीसह 5 टेबल्सचे व्यवस्थापन.<br>
-          • <strong>50 किराणा माल साठा इंजिन:</strong> 50 वस्तूंचा साठा, रिअल-टाइम सर्च आणि बिलांनंतर स्वयंचलित स्टॉक वजावट.<br>
+          • <strong>५० किराणा माल साठा इंजिन:</strong> ५० वस्तूंचा साठा, रिअल-टाइम सर्च आणि बिलांनंतर स्वयंचलित स्टॉक वजावट.<br>
           • <strong>एक्सेल एक्सपोर्ट इंजिन:</strong> XlsxWriter द्वारे देवनागरी मराठी फॉन्टसह थेट `.xlsx` स्प्रेडशीट जनरेशन.
         </td>
         <td><strong>Slides: 08, 09, 10, 11, 15, 17</strong><br><span style="color: #059669; font-weight: 700;">(६ स्लाईड्स)</span></td>
@@ -364,9 +364,9 @@ HTML_CONTENT = """<!DOCTYPE html>
     </tbody>
   </table>
 
-  <!-- ==================== ALL 23 SLIDES ==================== -->
+  <!-- ==================== ALL 23 SLIDES (Super Simple Edition) ==================== -->
   <div class="sec-heading">
-    <span>2. सर्व २३ स्लाईड्सचे मुद्देसूद स्क्रिप्ट (Chronological Presentation Script: Slides 1 to 23)</span>
+    <span>2. सर्व २३ स्लाईड्सचे सोपे स्क्रिप्ट (Simple Spoken English + Marathi Meaning)</span>
   </div>
 
   <!-- SLIDE 01 -->
@@ -377,20 +377,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Respected Project Guide <strong>Prof. Kaisar Atar sir</strong>, HOD <strong>Dr. S. Y. Mulla sir</strong>, and external examiners, a very good morning. I am <strong>Sanket Kirdat</strong>, leading our team with Sakshi Bhagat, Vaishnavi Dhavale, and Rushikesh Mulik from AGCE Satara. Today, we defend our major project: <strong>'VernaLedger.AI: Merchant Pro v7.5'</strong> — an offline-first vernacular POS suite tailored for India's 63 million kirana merchants to digitize handwritten bills and manage finances with zero English dependency."
+          "Good morning respected guide <strong>Prof. Kaisar Atar sir</strong>, HOD <strong>Dr. S. Y. Mulla mam</strong>, and examiners. I am <strong>Sanket Kirdat</strong>, leading our team with Sakshi, Vaishnavi, and Rushikesh. Today, we present <strong>'VernaLedger.AI'</strong> — an AI billing and bookkeeping system made specially for local Indian kirana stores."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          मार्गदर्शक <strong>अतार सर</strong>, विभागप्रमुख <strong>मुल्ला सर</strong> आणि परीक्षकांना आदरपूर्वक नमस्कार करा. स्वतःची व टीमची ओळख करून देऊन प्रकल्पाचे नाव सांगा: हा स्थानिक किराणा दुकानदारांसाठी बनवलेला मराठी AI बिलिंग प्लॅटफॉर्म आहे.
+          सुरुवात करताना <strong>अतार सर</strong>, <strong>मुल्ला मॅम</strong> आणि परीक्षकांना आदरपूर्वक नमस्कार करा. स्वतःची व सहकाऱ्यांची ओळख करून देऊन सांगा: "हा किराणा दुकानदारांसाठी बनवलेला सोपा मराठी AI बिलिंग प्लॅटफॉर्म आहे."
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What does 'Vernacular' mean? <strong>Ans:</strong> Operating in regional native languages (Marathi) so shopkeepers have zero English dependency.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us see the project overview on Slide 2."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is the main goal of your project? <strong>Ans:</strong> To help local kirana shopkeepers make bills by camera photo or Marathi voice, without typing or English.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us look at the project overview on Slide 2."</div>
       </div>
     </div>
   </div>
@@ -403,20 +403,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "VernaLedger.AI unites three core capabilities: <strong>First</strong>, Multimodal Vision OCR to scan physical Marathi paper bills in under 1.5 seconds. <strong>Second</strong>, continuous Marathi Voice Billing for hands-free checkout during rush hours. <strong>Third</strong>, a local SQLite ACID Ledger with 1-click WhatsApp UPI payment links and instant Excel export."
+          "VernaLedger.AI does three main things: <strong>First</strong>, it scans paper bills using camera AI in under 2 seconds. <strong>Second</strong>, shopkeepers can create bills simply by speaking in Marathi. <strong>Third</strong>, it tracks customer udhari and sends WhatsApp payment links with Google Pay and PhonePe."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          प्रकल्पाचे ३ मुख्य घटक सांगा: १. कागदी पावती १.५ सेकंदात स्कॅन होणे, २. गर्दीत मराठीत बोलून बिल बनणे, आणि ३. सुरक्षित स्थानिक डेटाबेससह व्हॉट्सॲपवर UPI लिंक पाठवणे.
+          ३ मुख्य कामे सांगा: १. कागदी पावती २ सेकंदात स्कॅन करणे, २. मराठीत बोलून बिल बनवणे, आणि ३. उधारीचा हिशोब ठेवून ग्राहकांना व्हॉट्सॲपवर UPI लिंक पाठवणे.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why offline-first? <strong>Ans:</strong> Rural broadband fluctuates; core ledger transactions commit locally in <2ms without internet lag.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Now Sakshi will present the critical market problems on Slide 3."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why does it work offline? <strong>Ans:</strong> In villages, internet is slow; so our database saves all bills locally in under 2 milliseconds.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Now Sakshi will explain the real problems shopkeepers face on Slide 3."</div>
       </div>
     </div>
   </div>
@@ -429,20 +429,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Thank you Sanket. Over 85% of small retailers still rely on manual paper notebooks ('बही-खाते') prone to damage, page loss, and math errors. Unrecorded customer credit ties up working capital, resulting in bad debts. Existing billing apps are English-centric, full of ads, and require slow manual typing."
+          "Thank you Sanket. Today, 85% of local kirana stores still use paper notebooks. These notebooks get torn, wet, or lost, and math mistakes happen easily. Also, customers buy on credit, but shopkeepers forget to collect money on time, losing cash. Existing software is in English and too hard to use."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ८५% दुकानदार अजूनही कागदी वह्या वापरतात, ज्यामुळे हिशोबाच्या चुका होतात आणि उधारी अडकते. सध्याची ॲप्स इंग्रजीत असल्याने अवघड आहेत.
+          किराणा दुकानांच्या ३ अडचणी सांगा: १. कागदी वह्या खराब होतात व हिशोबात चुका होतात. २. उधारीचे पैसे वेळेवर न मागितल्याने बुडतात. ३. सध्याची ॲप्स इंग्रजीत असल्याने अवघड आहेत.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How much capital is tied in credit? <strong>Ans:</strong> Retailers extend 15-45 days of credit, losing 15-20% working capital due to forgotten credit records.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us examine our motivation on Slide 4."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How does paper ledger cause loss? <strong>Ans:</strong> Shopkeepers lose 15-20% working capital because forgotten credit records are never recovered.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us see our motivation on Slide 4."</div>
       </div>
     </div>
   </div>
@@ -455,20 +455,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Our motivation is to eliminate digital literacy barriers. If a merchant can snap a photo or speak Marathi, they can operate VernaLedger without typing. Automated WhatsApp reminders recover debts 60% faster, giving local kiranas the power of enterprise POS at zero hardware cost."
+          "Our main goal is to remove typing and language barriers. If a shopkeeper can take a photo or speak Marathi, they can easily make bills. Sending 1-click WhatsApp payment reminders helps them recover money 60% faster, without any awkward phone calls."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          दुकानदाराला टायपिंग न येताही फक्त फोटो काढून किंवा बोलून बिलिंग करता यावी आणि व्हॉट्सॲपमुळे उधारी ६०% वेगाने वसूल व्हावी हा मुख्य हेतू आहे.
+          आमचा हेतू: दुकानदाराला इंग्रजी किंवा टायपिंग न येताही फक्त फोटो काढून किंवा बोलून बिलिंग करता यावी आणि व्हॉट्सॲपमुळे उधारीचे पैसे ६०% जलद परत मिळावेत.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why WhatsApp over SMS? <strong>Ans:</strong> WhatsApp has a 98% open rate in India and supports clickable UPI payment links directly in Marathi.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Vaishnavi will now present the market gap analysis on Slide 5."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why send WhatsApp messages? <strong>Ans:</strong> WhatsApp is used by everyone in India, and customers can directly click the UPI link to pay via PhonePe or Google Pay.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Now Vaishnavi will compare existing market apps on Slide 5."</div>
       </div>
     </div>
   </div>
@@ -483,20 +483,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Thank you Sakshi. Compared to Vyapar, Khatabook, and OKCredit: VernaLedger uniquely provides Multimodal Marathi Bill OCR, continuous Devanagari Voice Billing, a zero-hallucination Gemini AI store assistant, and 50 pre-seeded Kirana commodities with auto stock deduction at zero recurring fee."
+          "Thank you Sakshi. On Slide 5, we compare VernaLedger with Vyapar and Khatabook. Other apps do not have paper bill scanning, do not support Marathi voice billing, and do not have an AI assistant. VernaLedger provides all these features completely free and offline-ready."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          खाताबुक किंवा व्यापार ॲपमध्ये कागदी पावती स्कॅनर नाही, मराठी व्हॉइस बिलिंग नाही आणि AI असिस्टंट नाही; हे सर्व VernaLedger मध्ये उपलब्ध आहे.
+          खाताबुक किंवा व्यापार ॲपमध्ये कागदी बिल स्कॅनर नाही, मराठी व्हॉइस बिलिंग नाही आणि AI चॅटबॉट नाही. आपल्या सिस्टीममध्ये हे सर्व मोफत आणि ऑफलाइन उपलब्ध आहे.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Is VernaLedger subscription-based? <strong>Ans:</strong> No, it is open, self-hosted, and zero-subscription, keeping merchant data 100% private.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Our leader Sanket will now explain the project objectives on Slide 6."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why is VernaLedger better than Khatabook? <strong>Ans:</strong> Khatabook requires typing everything in English; VernaLedger lets merchants speak in Marathi or scan paper bills.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Sanket will now present our project objectives on Slide 6."</div>
       </div>
     </div>
   </div>
@@ -509,20 +509,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "We achieved four concrete objectives: 1. Sub-1.5s multimodal receipt token extraction (>96% precision). 2. Continuous Marathi voice billing (`mr-IN`) with zero cutoff. 3. Automated Khata running balance with 1-click WhatsApp UPI links. 4. A 50-item Kirana auto-stock deduction engine and SQL RAG assistant."
+          "We had four clear goals: 1. Scan handwritten bills accurately in 1.5 seconds. 2. Support continuous Marathi voice billing without stopping. 3. Track customer credit and send 1-click WhatsApp payment links. 4. Pre-load 50 kirana items and auto-deduct stock on every sale."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ४ उद्दिष्टे सांगा: १.५ सेकंदात स्कॅनिंग, सलग मराठी व्हॉइस बिलिंग, व्हॉट्सॲप उधारी वसुली, आणि ५० किराणा मालाचा साठा आपोआप वजा होणे.
+          ४ उद्दिष्टे सांगा: १. पावती जलद स्कॅन करणे, २. सलग मराठी आवाज ऐकून बिल बनवणे, ३. व्हॉट्सॲपवर उधारी लिंक पाठवणे, आणि ४. ५० किराणा साठ्यातून माल आपोआप कमी होणे.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you prevent negative stock? <strong>Ans:</strong> Via SQLite constraint `stock_qty = MAX(0, stock_qty - billed_qty)` with visual '🚨 कमी साठा' alert.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us trace the system pipeline on Slide 7."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What happens if stock becomes zero? <strong>Ans:</strong> System shows a red '🚨 कमी साठा' alert and prevents negative stock using `MAX(0, stock - qty)`.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us see how the system works step-by-step on Slide 7."</div>
       </div>
     </div>
   </div>
@@ -535,20 +535,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Our pipeline operates in 4 stages: 1. Ingestion via camera bill capture, voice, or POS keyboard. 2. AI Intelligence via Gemini Flash Vision and NLP parser. 3. ACID Commit in <2ms with automatic stock deduction. 4. Output via thermal print, WhatsApp UPI bill, Excel (.xlsx), and Gemini AI chat."
+          "Our system works in 4 simple steps: <strong>Step 1:</strong> Input from camera photo, Marathi voice, or keyboard. <strong>Step 2:</strong> Gemini AI reads items, weights, and prices. <strong>Step 3:</strong> SQLite database saves the bill and auto-deducts inventory stock. <strong>Step 4:</strong> Output bill as thermal print, WhatsApp message, or Excel file."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ४ टप्पे: इनपुट (कॅमेरा/आवाज) -> AI द्वारे अक्षरे व आकडे ओळखणे -> SQLite डेटाबेसमध्ये सेव्ह व ५० मालातून साठा वजावट -> आउटपुट (पावती/व्हॉट्सॲप/एक्सेल/चॅटबॉट).
+          कामाचे ४ टप्पे: १. इनपुट (फोटो किंवा आवाज) -> २. AI द्वारे वाचन -> ३. डेटाबेस सेव्ह व साठा वजावट -> ४. आउटपुट (पावती प्रिंट, व्हॉट्सॲप किंवा एक्सेल).
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How is math verified? <strong>Ans:</strong> System verifies line item math: quantity × rate = total before committing to the database.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Rushikesh will now present our engineering stack and architecture on Slide 8."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you check if bill calculation is correct? <strong>Ans:</strong> The system automatically checks `quantity × rate = total` before saving to database.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Now Rushikesh will explain our technology stack on Slide 8."</div>
       </div>
     </div>
   </div>
@@ -561,20 +561,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Thank you Sanket. Our stack is engineered for zero latency: <strong>FastAPI & Uvicorn</strong> universal ASGI backend, vanilla JS reactive client with zero framework overhead, Web Speech API (`mr-IN`) for voice, Gemini 3.1 Flash Lite for vision OCR, SQLite in WAL mode for sub-2ms commits, and XlsxWriter for Devanagari Excel exports."
+          "Thank you Sanket. Our backend is built using <strong>FastAPI and Python</strong>, which is extremely fast. The frontend is built in pure JavaScript with zero heavy frameworks. We use Google Gemini for AI vision, Web Speech API for voice, and local <strong>SQLite database</strong> which saves bills in under 2 milliseconds."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          तंत्रज्ञान सांगा: बॅकएंडला FastAPI, फ्रंटएंडला व्हॅनिला JS, आवाजासाठी Web Speech API, डेटाबेससाठी SQLite WAL मोड, आणि मराठी एक्सेलसाठी XlsxWriter.
+          तंत्रज्ञान सांगा: बॅकएंडला वेगवान FastAPI व Python, फ्रंटएंडला हलके व्हॅनिला JS, AI साठी गुगल Gemini, आवाजासाठी Web Speech API, आणि २ मिलिसेकंदात सेव्ह होणारा SQLite डेटाबेस.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why SQLite over MongoDB? <strong>Ans:</strong> Relational ACID integrity is essential for running debt balance calculations; NoSQL lacks atomic joins.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 9 illustrates our modular 3-tier architecture."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Why SQLite instead of MySQL? <strong>Ans:</strong> SQLite is serverless and zero-setup; it runs inside a single file without needing expensive server hardware.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 9 shows our 3-tier architecture."</div>
       </div>
     </div>
   </div>
@@ -587,20 +587,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "We implement a clean 3-tier architecture: <strong>Presentation Layer</strong> (Cyberpunk/Kirana UI, canvas compression), <strong>Intelligence Layer</strong> (FastAPI routing, Gemini OCR, regex parser, RAG context), and <strong>Persistence Layer</strong> (SQLite tables: receipts, khata, 50-item inventory, expenses, audit logs)."
+          "We use a clean 3-tier architecture: 1. <strong>Presentation Layer:</strong> The mobile and desktop web UI with Kirana Light mode. 2. <strong>Application Layer:</strong> FastAPI server handling OCR, voice billing, and database queries. 3. <strong>Database Layer:</strong> SQLite database storing bills, customer khata, 50 inventory items, and expenses."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ३ स्तर सांगा: १. प्रेझेंटेशन (स्क्रीन व कॅमेरा), २. ॲप्लिकेशन व AI (FastAPI व जेमिनी मॉडेल), आणि ३. डेटाबेस (बिलांचे, उधारीचे, आणि ५० साठ्याचे टेबल्स).
+          ३ लेअर्स: १. प्रेझेंटेशन (स्क्रीन व कॅमेरा), २. ॲप्लिकेशन (FastAPI सर्व्हर जो AI आणि डेटाबेस जोडतो), आणि ३. डेटाबेस (बिलांचे, उधारीचे, आणि ५० मालाचे टेबल्स).
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How are API keys secured? <strong>Ans:</strong> Managed server-side with automatic failover key pools; never exposed to client browser.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 10 details our sequential execution flow."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How is merchant data kept safe? <strong>Ans:</strong> All sales and customer credit data are stored locally on the shopkeeper's device, not shared with third parties.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 10 details our working flow."</div>
       </div>
     </div>
   </div>
@@ -615,20 +615,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Step-by-step flow: 1. Merchant captures bill or speaks Marathi. 2. Image is compressed to 960px with SHA-256 duplicate detection. 3. Gemini parses items into typed JSON. 4. Interactive preview grid appears on screen. 5. On Save, SQLite commits, khata updates, and stock auto-deducts."
+          "The billing flow takes 5 steps: 1. Take a bill photo or speak in Marathi. 2. Image is compressed to 960px to speed up upload. 3. Gemini AI extracts items into a clean bill. 4. Shopkeeper checks the items on screen. 5. On clicking Save, the database commits and stock auto-deducts immediately."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          कार्यप्रवाह: पावतीचा फोटो/आवाज -> ९६०px कॉम्प्रेशन व डुप्लिकेट तपासणी -> AI द्वारे JSON बिल तयार -> स्क्रीनवर पडताळणी -> डेटाबेस सेव्ह व साठा वजावट.
+          कामाची पायरी: १. फोटो किंवा आवाज -> २. ९६०px इमेज कॉम्प्रेशन -> ३. AI द्वारे बिल तयार -> ४. स्क्रीनवर खात्री करणे -> ५. 'सेव्ह' दाबताच डेटाबेसमध्ये नोंद व साठा वजावट.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you block duplicate bills? <strong>Ans:</strong> SHA-256 image hashes are indexed in SQLite; re-scanning the same paper bill triggers an instant block.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us review performance benchmarks on Slide 11."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you stop scanning the same bill twice? <strong>Ans:</strong> We compute a SHA-256 digital hash of the image; if scanned twice, the system shows an instant duplicate warning.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Let us review our performance benchmarks on Slide 11."</div>
       </div>
     </div>
   </div>
@@ -641,20 +641,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Benchmarks under real kirana workloads: Sub-1.5s OCR Latency, 96.8% Devanagari Extraction Accuracy across 120 test bills, 10ms in-memory store dispatch for AI chat, and sub-2ms local SQLite ACID commit latency with zero checkout delays."
+          "We tested our system on real kirana bills: 1. Bill scanning takes under 1.5 seconds. 2. Marathi word recognition is 96.8% accurate across 120 test bills. 3. AI chat responds in 10 milliseconds from local memory. 4. Database commits take less than 2 milliseconds."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          आकडेवारी सांगा: १.५ सेकंदात स्कॅनिंग, ९६.८% मराठी अक्षरांची अचूकता, १०ms मध्ये AI चॅटबॉट रिस्पॉन्स, आणि २ मिलिसेकंदात डेटाबेस सेव्ह.
+          आकडेवारी सांगा: १. पावती १.५ सेकंदात स्कॅन होते. २. मराठी अक्षरे ९६.८% अचूक ओळखली जातात. ३. स्थानिक डेटाबेसमधून १०ms मध्ये उत्तर मिळते. ४. २ मिलिसेकंदात बिल सेव्ह होते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is WAL mode? <strong>Ans:</strong> Write-Ahead Logging allows simultaneous concurrent reads and writes, preventing UI lockups.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Sanket will now demonstrate Result 1: Multimodal Scanner on Slide 12."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is SQLite WAL mode? <strong>Ans:</strong> Write-Ahead Logging allows reading and writing at the same time, so the billing screen never freezes.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Sanket will now demonstrate Result 1: Smart Scanner on Slide 12."</div>
       </div>
     </div>
   </div>
@@ -667,20 +667,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 1 shows our live Multimodal Scanner. Photographing a physical Marathi bill segments items, weights, and prices into an editable POS grid in under 1.5 seconds. Crucially, saving the bill automatically deducts items from the store's 50 Kirana inventory items (`stock_qty = MAX(0, stock_qty - billed_qty)`)."
+          "This is Result 1: Our Smart Bill Scanner. When the shopkeeper takes a photo of a paper receipt, Google Gemini AI reads all item names, quantities, and rates into a clean bill on screen. When saved, all sold items are automatically deducted from store inventory."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          स्क्रीनशॉट दाखवून सांगा: पावतीचा फोटो काढताच १.५ सेकंदात डिजिटल बिल तयार झाले. 'सेव्ह' दाबताच ५० किराणा साठ्यातून साखर किंवा तेलाचे प्रमाण आपोआप कमी होते.
+          स्क्रीन दाखवून सांगा: कागदी पावतीचा फोटो काढताच स्क्रीनवर सुंदर बिल तयार होते. 'सेव्ह' दाबताच दुकानातील ५० साठ्यामधून तेवढा माल आपोआप कमी होतो.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you handle faint thermal receipts? <strong>Ans:</strong> Client canvas applies 960px Lanczos contrast sharpening and CLAHE histogram equalization before cloud OCR.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Vaishnavi will now demonstrate Result 2: Voice Billing on Slide 13."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What if handwriting is bad or faded? <strong>Ans:</strong> Our app sharpens the image first, and allows the shopkeeper to edit any item on screen before saving.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Next, Vaishnavi will show our voice billing engine on Slide 13."</div>
       </div>
     </div>
   </div>
@@ -693,20 +693,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 2 is our Vernacular Voice Billing Engine. During rush hours, typing causes delays. The shopkeeper speaks: 'सागरला २ किलो साखर ८४ रुपये आणि १ तेल १८५ रुपये'. The Web Speech API captures speech continuously without cutoff. Our NLP parser creates the bill, updates credit, and auto-deducts stock."
+          "This is Result 2: Voice Billing. When there is a crowd of customers, typing is impossible. The shopkeeper simply speaks: 'सागरला २ किलो साखर ८४ रुपये आणि १ तेल १८५ रुपये'. The app listens continuously, creates the bill, updates customer credit, and cuts down counter wait time by 85%."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          दुकानदार माईक दाबून बोलेल: 'सागरला २ किलो साखर ८४ रुपये...'. वाक्य पूर्ण होईपर्यंत माइक चालू राहतो आणि थेट बिल बनते, ज्यामुळे गर्दीत ८५% वेळ वाचतो.
+          गर्दी असताना टायपिंग करायला वेळ नसतो. दुकानदार फक्त माईक दाबून मराठीत बोलेल: 'सागरला २ किलो साखर ८४ रुपये...'. सिस्टीम वाक्य पूर्ण होईपर्यंत ऐकून थेट बिल बनवते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you handle 'पाव किलो'? <strong>Ans:</strong> Custom regex maps vernacular fractions ('पाव' = 0.25kg, 'अर्धा' = 0.5kg) to standard numeric floats.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Sakshi will now present Result 3: Customer Khata on Slide 14."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How does it understand words like 'पाव किलो'? <strong>Ans:</strong> Our regex parser automatically converts 'पाव' to 0.25 kg, 'अर्धा' to 0.5 kg, and 'दीड' to 1.5 kg.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Now Sakshi will present Customer Khata on Slide 14."</div>
       </div>
     </div>
   </div>
@@ -719,20 +719,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 3 is Customer Khata & Udhar Ledger. Merchants record 'उधारी दिली' and 'जमा मिळाले' with live running balances. Clicking the green WhatsApp icon sends a polite Marathi reminder with an embedded dynamic UPI link, enabling customers to pay in 10 seconds via Google Pay or PhonePe."
+          "This is Result 3: Customer Khata Book. Shopkeepers can record 'उधारी दिली' (credit given) and 'जमा मिळाले' (payment received) with one click. Clicking the green WhatsApp button sends a polite Marathi reminder with a direct UPI payment link to the customer's phone."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          उधारी आणि जमा रकमेचा हिशोब. व्हॉट्सॲप आयकॉनवर क्लिक करताच ग्राहकाला नम्र मराठी मेसेज आणि थेट Google Pay/PhonePe ची UPI लिंक जाते.
+          उधारी खातेवही: उधारी आणि जमा रकमेची नोंद एका सेकंदात होते. हिरवे व्हॉट्सॲप बटण दाबताच ग्राहकाला 'आपली बाकी ₹५०० आहे' असा मेसेज आणि थेट PhonePe/GPay ची लिंक जाते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Are WhatsApp links costly? <strong>Ans:</strong> No, uses native URI scheme `wa.me/{phone}?text=...` launching the installed app directly at zero cost.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Rushikesh will now explain Result 4: 50 Kirana Inventory Items on Slide 15."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Does WhatsApp messaging cost any money? <strong>Ans:</strong> No, it uses the free WhatsApp web intent (`wa.me`) to open the shopkeeper's WhatsApp directly.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Now Rushikesh will explain 50 Kirana Inventory Items on Slide 15."</div>
       </div>
     </div>
   </div>
@@ -747,20 +747,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 4 showcases 50 Pre-Seeded Kirana Commodities (grains, pulses, oils, sugar, tea, spices) across metric units (`kg`, `ltr`, `packet`). Key features: real-time search filtering, automatic stock deduction on sales (`stock_qty = MAX(0, stock_qty - billed_qty)`), low-stock '🚨 कमी साठा' alert badges, and 1-click reset."
+          "Result 4 is Store Operations. We pre-loaded 50 authentic Kirana items (wheat, rice, dals, sugar, oil, tea, spices) with units like kg, liter, and packet. When bills are saved, stock is automatically deducted (`stock = MAX(0, stock - qty)`). Items running low display a bright '🚨 कमी साठा' badge."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ५० मूळ किराणा वस्तू आधीच सेव्ह आहेत. सर्च बारने वस्तू शोधता येते, बिलासोबत साठा आपोआप कमी होतो आणि माल संपत आला की लाल रंगाचा 'कमी साठा' इशारा मिळतो.
+          ५० मूळ किराणा वस्तू आधीच भरलेल्या आहेत. सर्च बारने वस्तू शोधता येते, बिलासोबत गोदामातील साठा आपोआप कमी होतो आणि माल संपत आला की लाल रंगाचा '🚨 कमी साठा' इशारा मिळतो.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Can merchants add new items? <strong>Ans:</strong> Yes, via the Add Item form with custom units (`kg`, `ltr`, `packet`) and alert thresholds.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Vaishnavi will showcase Result 5: Verna AI Voice Assistant on Slide 16."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Can shopkeepers add their own items? <strong>Ans:</strong> Yes, they can add new items with custom units and rates, or click reset to restore original 50 items.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Now Vaishnavi will showcase Verna AI Assistant on Slide 16."</div>
       </div>
     </div>
   </div>
@@ -773,20 +773,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 5 is our official Gemini-style Verna AI Assistant. It features a pulsing mic button (`#chatVoiceBtn`), word-by-word streaming (`sendMessageStream`), strict script persistence (Devanagari to Devanagari), and zero-hallucination store SQL context RAG for inventory and sales questions."
+          "Result 5 is our Verna AI Assistant, designed like the official Google Gemini app. It has a pulsing mic button, answers word-by-word smoothly, and speaks strictly in the same language. It checks our real database to answer: 'How much sugar is left?' or 'What is today's total sale?' with 100% accuracy."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          गुगल जेमिनीसारखा AI चॅटबॉट: माईक पल्स ॲनिमेशन, शब्द न् शब्द थेट स्क्रीनवर येणे, मराठीत विचारल्यास मराठीतच उत्तर, आणि दुकानातील खरा साठा व विक्री तपासून उत्तर देणे.
+          गुगल जेमिनीसारखा AI असिस्टंट: बोलताना माईक पल्स होतो, शब्द न् शब्द समोर उमटतात, आणि मराठीत विचारल्यास मराठीतच उत्तर मिळते. दुकानातील खरा साठा तपासून अगदी अचूक उत्तर देतो.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How is zero-hallucination ensured? <strong>Ans:</strong> Exact SQL metrics are injected into system instruction; the LLM is restricted to database ground truth.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Rushikesh will demonstrate Result 6: Digital Ledger and Excel on Slide 17."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Does the AI give fake numbers? <strong>Ans:</strong> No, we inject real database numbers into the prompt, so it answers only from verified store data.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Rushikesh:</strong> "Rushikesh will now show our digital ledger and Excel export on Slide 17."</div>
       </div>
     </div>
   </div>
@@ -799,20 +799,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 6 is our Digital Ledger and Excel Export. All transactions are logged with dynamic search and thermal POS reprint. A prominent green button exports professional OpenXML `.xlsx` spreadsheets with auto-fitted columns and full Devanagari UTF-8 font fidelity for CAs and banks via XlsxWriter."
+          "Result 6 is our Digital Ledger and Excel Export. All old bills can be searched instantly by bill number or customer name. Clicking the big green button downloads a formatted Microsoft Excel (`.xlsx`) sheet with clean Marathi fonts, ready to show to chartered accountants (CAs) or banks."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          सर्व बिलांचा कायमस्वरूपी रेकॉर्ड. हिरवे एक्सेल बटण दाबताच मराठी नावांसह सुटसुटीत `.xlsx` फाईल डाऊनलोड होते, जी CA किंवा बँकेला दाखवता येते.
+          सर्व जुन्या बिलांचा कायमस्वरूपी रेकॉर्ड. हिरवे एक्सेल बटण दाबताच मराठी नावांसह सुटसुटीत `.xlsx` फाईल डाऊनलोड होते, जी CA किंवा बँकेला दाखवता येते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How does XlsxWriter handle Marathi? <strong>Ans:</strong> Embeds UTF-8 encoding in workbook strings, preventing character distortion common in basic CSV.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Sakshi will present Kirana Light Mode and Mobile PWA on Slide 18."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is your personal contribution? <strong>Ans:</strong> I built the FastAPI backend, SQLite WAL database, 50 Kirana item inventory auto-deduction, and the Excel export generator.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sakshi:</strong> "Sakshi will now present Kirana Light Mode and Mobile PWA on Slide 18."</div>
       </div>
     </div>
   </div>
@@ -825,20 +825,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 7 is High-Contrast Kirana Light Mode. Open-shutter kirana stores face intense afternoon sunlight where dark mode is unreadable. Our Kirana Light mode uses crisp white backgrounds, deep navy text, and high-contrast badges for 100% sunlight legibility."
+          "Kirana shops are on the roadside with bright sunlight entering the counter. On cheap mobile screens, dark mode cannot be seen under bright sunlight. So we made 'Kirana Light Mode' with a clean white background and dark navy text, so shopkeepers can read numbers easily in full sunlight."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          रस्त्यावरील दुकानात दुपारच्या कडक उन्हात डार्क मोड दिसत नाही; यासाठी पांढऱ्या पार्श्वभूमीवर गडद अक्षरांचा 'किराणा लाईट मोड' बनवला आहे, जो उन्हातही स्पष्ट दिसतो.
+          दुकानात दुपारच्या कडक उन्हामध्ये डार्क मोड दिसत नाही. म्हणून आम्ही 'किराणा लाईट मोड' बनवला; पांढऱ्या पार्श्वभूमीवर गडद अक्षरे असल्यामुळे उन्हातही सर्व आकडे अगदी स्पष्ट दिसतात.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How is theme persisted? <strong>Ans:</strong> Stored in `localStorage.getItem('verna_theme')` for instant zero-flicker restoration.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 19 showcases our Mobile PWA."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How do you switch themes? <strong>Ans:</strong> Click the sun/moon button on top; the setting is saved in browser localStorage.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 19 shows our Mobile App interface."</div>
       </div>
     </div>
   </div>
@@ -851,20 +851,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Result 8 is our Mobile-First Progressive Web App. Shopkeepers use smartphones, not PCs. On mobile, the desktop sidebar converts into an intuitive 5-tab bottom navigation bar (`Scanner`, `Khata`, `Store`, `Ledger`, `Verna AI`), installable on Android homescreens like a native app."
+          "Most shopkeepers do not have computers; they only use budget Android phones. So we built VernaLedger as a Mobile PWA. On phones, it shows 5 easy bottom tabs: Scanner, Khata, Store, Ledger, and AI. It can be installed directly on the phone home screen like a normal app."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          दुकानदारांच्या फोनसाठी खास डिझाइन; खाली ५ सोपे टॅब मिळतात आणि गुगल क्रोमवरून थेट मोबाईल स्क्रीनवर ॲपसारखे इन्स्टॉल करता येते.
+          दुकानदारांकडे कॉम्प्युटर नसतो, फक्त फोन असतो. म्हणून आम्ही मोबाईलसाठी खाली ५ सोपे टॅब दिले आहेत आणि हे ॲप क्रोममधून थेट मोबाईल स्क्रीनवर ॲपसारखे इन्स्टॉल करता येते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Can it access phone camera directly? <strong>Ans:</strong> Yes, HTML5 input `capture='environment'` launches the rear camera instantly.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 20 summarizes our core advantages."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> Can it take photos using mobile camera? <strong>Ans:</strong> Yes, it directly opens the phone's back camera when clicking the scan button.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 20 summarizes our system advantages."</div>
       </div>
     </div>
   </div>
@@ -879,20 +879,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Core advantages: True vernacular accessibility eliminating literacy barriers; 60% faster debt recovery via WhatsApp UPI links; zero-cost hardware running on existing phones; and offline-first SQLite resilience ensuring billing never halts."
+          "Our 4 biggest advantages are: 1. Works in Marathi so anyone can use it without training. 2. 60% faster credit recovery via WhatsApp UPI links. 3. Works on existing phones with zero extra hardware cost. 4. Works offline so billing never stops when internet is down."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          ४ मोठे फायदे: इंग्रजी न शिकता वापरता येणे, उधारीची ६०% जलद वसुली, वेगळे मशीन न लागणे, आणि इंटरनेट नसले तरी सुरक्षितपणे चालणे.
+          ४ मोठे फायदे: १. मराठीत असल्याने कोणीही वापरू शकते. २. उधारी ६०% लवकर वसूल होते. ३. नवीन महागडे मशीन लागत नाही. ४. इंटरनेट नसले तरी सुरक्षित चालते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is the biggest daily saving? <strong>Ans:</strong> Merchants save 2-3 hours daily on manual bookkeeping and eliminate forgotten credit debts.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Vaishnavi will discuss system limitations and future scope on Slide 21."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is your personal contribution? <strong>Ans:</strong> I designed the complete user interface, the Khata WhatsApp system, Kirana Light mode, and mobile PWA.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Vaishnavi:</strong> "Now Vaishnavi will explain system limitations on Slide 21."</div>
       </div>
     </div>
   </div>
@@ -905,20 +905,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "System limitations: While local ledger commits, manual POS, and khata are 100% offline, Gemini Flash Vision OCR and RAG reasoning require an active internet connection. Additionally, severely oil-stained or faded receipts require manual review in the editable grid."
+          "Here are our honest system limitations: 1. Core billing and database work 100% offline, but Gemini AI bill scanning and chat require an internet connection. 2. If a paper receipt is very oily, torn, or completely faded, the merchant must double-check the items on screen before saving."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          मर्यादा: स्थानिक डेटाबेस व खातेवही ऑफलाइन चालते, पण AI स्कॅनर व चॅटबॉटसाठी इंटरनेट लागते; तसेच फाटलेली पावती असल्यास स्क्रीनवर तपासून घ्यावी लागते.
+          सिस्टीमच्या २ मर्यादा: १. बिलिंग आणि डेटाबेस ऑफलाइन चालतो, पण AI स्कॅनर व चॅटसाठी इंटरनेट लागते. २. जर पावतीवर तेल सांडले असेल किंवा शाई उडाली असेल, तर स्क्रीनवर तपासून खात्री करावी लागते.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How to make OCR offline? <strong>Ans:</strong> Integrate quantized on-device lightweight models like MobileNet-OCR in future updates.</div>
-        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 22 outlines our future enhancements."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How will you make bill scanning work without internet? <strong>Ans:</strong> In future, we can run a small lightweight offline OCR model like MobileNet directly on the mobile device.</div>
+        <div class="handover-mini"><strong>➡️ Handover:</strong> "Slide 22 shows our future enhancements."</div>
       </div>
     </div>
   </div>
@@ -931,20 +931,20 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "Future roadmap: Standalone Android APK with edge AI models; dynamic UPI QR Bluetooth Soundbox for real-time Marathi audio payment announcements; multi-counter peer-to-peer sync; and automated GST compliance generating ready-to-file GSTR-1 spreadsheets."
+          "In the future, we plan four additions: 1. A standalone offline Android APK. 2. A Bluetooth UPI Soundbox that announces payments in Marathi: 'PhonePe वर ₹२५० प्राप्त झाले'. 3. Multi-counter syncing across the shop. 4. One-click GST tax report generation."
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          भविष्यातील योजना: ऑफलाइन अँड्रॉइड APK ॲप, 'PhonePe वर ₹250 मिळाले' असा आवाज देणारा UPI साऊंडबॉक्स, एकाच दुकानातील अनेक काऊंटर जोडणे, आणि आपोआप GST टॅक्स शीट तयार करणे.
+          भविष्यातील ४ योजना: १. फोनसाठी ऑफलाइन ॲप (APK), २. 'PhonePe वर ₹२५० मिळाले' असा मराठी आवाज देणारा UPI साऊंडबॉक्स, ३. दुकानातील इतर काऊंटर जोडणे, आणि ४. GST टॅक्स रिपोर्ट बनवणे.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> How will soundbox connect? <strong>Ans:</strong> Via Web Bluetooth API or local websocket daemon on counter smartphone.</div>
-        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Our leader Sanket will now deliver the conclusion on Slide 23."</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is your personal contribution? <strong>Ans:</strong> I developed the Marathi voice billing system, the regional dialect NLP parser, and the Gemini AI assistant.</div>
+        <div class="handover-mini"><strong>➡️ Handover to Sanket:</strong> "Now our leader Sanket will conclude our presentation on Slide 23."</div>
       </div>
     </div>
   </div>
@@ -957,19 +957,19 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
     <div class="card-body">
       <div class="box-en">
-        <div class="box-label lbl-en">🗣️ Spoken English Script (काय बोलायचे)</div>
+        <div class="box-label lbl-en">🗣️ Spoken English Script (सोपे इंग्रजी वाक्ये)</div>
         <div class="text-en">
-          "To conclude: VernaLedger.AI bridges the digital divide for India's 63M+ kirana merchants by uniting Gemini 3.1 Vision OCR, continuous Marathi voice billing, a 50-item inventory auto-deduction engine, official Gemini voice assistant, and SQLite ACID ledger with native Excel export. We sincerely thank our guide <strong>Prof. Kaisar Atar sir</strong>, HOD <strong>Dr. S. Y. Mulla sir</strong>, and AGCE Satara. We now welcome your questions!"
+          "To conclude: VernaLedger.AI brings modern AI to local kirana stores. It combines paper bill scanning, Marathi voice billing, 50 kirana items inventory, and WhatsApp payment recovery. We thank our guide <strong>Prof. Kaisar Atar sir</strong>, HOD <strong>Dr. S. Y. Mulla mam</strong>, and our college. We are now ready for your questions. Thank you!"
         </div>
       </div>
       <div class="box-mr">
-        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात संदर्भ)</div>
+        <div class="box-label lbl-mr">📖 मराठी अर्थ (थोडक्यात काय सांगायचे)</div>
         <div class="text-mr">
-          समारोप: वर्णा-लेजर AI ने ग्रामीण दुकानदारांना सर्वात आधुनिक AI तंत्रज्ञान दिले आहे. मार्गदर्शक <strong>अतार सर</strong>, विभागप्रमुख <strong>मुल्ला सर</strong> आणि परीक्षकांचे आभार मानून तांत्रिक प्रश्नांसाठी आत्मविश्वासाने सज्ज व्हा.
+          समारोप करा: "वर्णा-लेजर AI मुळे लहान दुकानदारांना बिलिंग करणे सोपे झाले आहे." <strong>अतार सर</strong>, <strong>मुल्ला मॅम</strong> आणि परीक्षकांचे आभार माना आणि तांत्रिक प्रश्नांसाठी सज्ज व्हा.
         </div>
       </div>
       <div class="bottom-row">
-        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is each member's core contribution? <strong>Ans:</strong> Sanket (AI vision & lead), Sakshi (UI/UX & Khata WhatsApp), Vaishnavi (Voice billing & Gemini assistant), Rushikesh (FastAPI, SQLite WAL, 50-item inventory & Excel).</div>
+        <div class="qa-mini"><strong>🎯 Viva Q:</strong> What is your personal contribution? <strong>Ans:</strong> I led the project, built the Gemini Vision OCR scanner, and integrated the complete system.</div>
         <div class="handover-mini"><strong>🏁 Open Defense:</strong> <strong>"All 4 members stand ready for Examiner Questions."</strong></div>
       </div>
     </div>
@@ -982,7 +982,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
   <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; padding: 6px 10px; font-size: 7.4pt; line-height: 1.35;">
     <ol style="padding-left: 14px;">
-      <li><strong>नेहमी आय-कॉन्टॅक्ट ठेवा:</strong> स्लाईडकडे पाठ करून वाचू नका; परीक्षक आणि अतार सरांकडे पाहून आत्मविश्वासाने बोला.</li>
+      <li><strong>नेहमी आय-कॉन्टॅक्ट ठेवा:</strong> स्लाईडकडे पाठ करून वाचू नका; परीक्षक, अतार सर आणि मुल्ला मॅम यांच्याकडे पाहून आत्मविश्वासाने बोला.</li>
       <li><strong>स्क्रीनवर बोट दाखवा:</strong> ५० आयटम्स किंवा स्क्रीनशॉट सांगताना स्क्रीनवरील घटकावर हात दाखवून बोला (उदा. "As seen here...").</li>
       <li><strong>हँडओव्हर व्यवस्थित करा:</strong> स्वतःच्या स्लाईड्स संपताच पुढील सहकाऱ्याचे नाव घेऊन हँडओव्हर करा, यामुळे टीमवर्कचे गुण वाढतात.</li>
       <li><strong>प्रश्न ज्याचा त्यानेच हाताळावा:</strong> AI साठी संकेत, UI साठी साक्षी, आवाजासाठी वैष्णवी, आणि बॅकएंड/डेटाबेससाठी ऋषिकेशने उत्तरे द्यावीत.</li>
@@ -996,10 +996,10 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 def generate_pdf():
     print("=" * 70)
-    print("🚀 Generating 23-Slide Presentation Script & Defense Guide PDF")
+    print("🚀 Generating Super Simple 23-Slide Presentation Script & Defense Guide PDF")
     print("=" * 70)
 
-    html_file = os.path.abspath("temp_presentation_script_23slides.html")
+    html_file = os.path.abspath("temp_presentation_script_simple.html")
     with open(html_file, "w", encoding="utf-8") as f:
         f.write(HTML_CONTENT)
 
@@ -1018,7 +1018,7 @@ def generate_pdf():
             print_background=True,
             margin={"top": "8mm", "bottom": "8mm", "left": "8mm", "right": "8mm"},
             display_header_footer=True,
-            header_template='<div style="font-size: 6.8pt; color: #64748b; width: 100%; text-align: right; padding-right: 10mm; font-family: Segoe UI, sans-serif;">VernaLedger.AI: Merchant Pro v7.5 • Guide: Prof. Kaisar Atar • HOD: Dr. S. Y. Mulla • AGCE Satara</div>',
+            header_template='<div style="font-size: 6.8pt; color: #64748b; width: 100%; text-align: right; padding-right: 10mm; font-family: Segoe UI, sans-serif;">VernaLedger.AI: Merchant Pro v7.5 • Guide: Prof. Kaisar Atar • HOD: Dr. S. Y. Mulla mam • AGCE Satara</div>',
             footer_template='<div style="font-size: 6.8pt; color: #64748b; width: 100%; display: flex; justify-content: space-between; padding: 0 10mm; font-family: Segoe UI, sans-serif;"><span>Arvind Gavali College of Engineering, Satara (DBATU Lonere)</span><span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>'
         )
         browser.close()
