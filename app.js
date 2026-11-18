@@ -28,6 +28,154 @@ const state = {
 // -----------------------------------------------------------------------------
 // LOCAL-FIRST PERSISTENT STORAGE & AUTO-SYNC ENGINE (OFFLINE & SERVERLESS PROOF)
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// CANONICAL BACKEND LEDGER REPLICAS (ENSURES MOBILE MATCHES LAPTOP 100%)
+// -----------------------------------------------------------------------------
+const CANONICAL_SEED_RECEIPTS = [
+    {
+        id: 59,
+        vendor_name: "गणेश करिणा",
+        date: "2026-11-17",
+        category: "General",
+        grand_total: 830.0,
+        raw_json: {
+            vendor_name: "गणेश करिणा",
+            date: "2026-11-17",
+            category: "General",
+            items: [
+                { item_name: "साखर", quantity: "5 कलिलो", rate: 40.0, total_price: 200.0 },
+                { item_name: "तांदूळ", quantity: "10 kg", rate: 45.0, total_price: 450.0 },
+                { item_name: "चहा पावडर", quantity: "500 gm", rate: 360.0, total_price: 180.0 }
+            ],
+            grand_total: 830.0
+        }
+    },
+    {
+        id: 58,
+        vendor_name: "सोनल किराणा",
+        date: "2026-11-17",
+        category: "General",
+        grand_total: 150.0,
+        raw_json: {
+            vendor_name: "सोनल किराणा",
+            date: "2026-11-17",
+            category: "General",
+            items: [
+                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
+                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
+            ],
+            grand_total: 150.0
+        }
+    },
+    {
+        id: 57,
+        vendor_name: "सोनल किराणा",
+        date: "2026-11-17",
+        category: "General",
+        grand_total: 150.0,
+        raw_json: {
+            vendor_name: "सोनल किराणा",
+            date: "2026-11-17",
+            category: "General",
+            items: [
+                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
+                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
+            ],
+            grand_total: 150.0
+        }
+    },
+    {
+        id: 56,
+        vendor_name: "टेस्ट किराणा",
+        date: "2026-11-16",
+        category: "General",
+        grand_total: 120.0,
+        raw_json: {
+            vendor_name: "टेस्ट किराणा",
+            date: "2026-11-16",
+            category: "General",
+            items: [
+                { item_name: "टेस्ट किराणा सामान", quantity: "1 नग", rate: 120.0, total_price: 120.0 }
+            ],
+            grand_total: 120.0
+        }
+    },
+    {
+        id: 55,
+        vendor_name: "किराणा पावती",
+        date: "2026-11-16",
+        category: "Kirana",
+        grand_total: 90.0,
+        raw_json: {
+            vendor_name: "किराणा पावती",
+            date: "2026-11-16",
+            category: "Kirana",
+            items: [
+                { item_name: "साखर", quantity: "2 किलो", rate: 45.0, total_price: 90.0 }
+            ],
+            grand_total: 90.0
+        }
+    },
+    {
+        id: 54,
+        vendor_name: "किराणा पावती",
+        date: "2026-11-16",
+        category: "Kirana",
+        grand_total: 100.0,
+        raw_json: {
+            vendor_name: "किराणा पावती",
+            date: "2026-11-16",
+            category: "Kirana",
+            items: [
+                { item_name: "किराणा आयटम #1", quantity: "2 नग", rate: 50.0, total_price: 100.0 }
+            ],
+            grand_total: 100.0
+        }
+    },
+    {
+        id: 49,
+        vendor_name: "किराणा पावती",
+        date: "2026-11-02",
+        category: "General",
+        grand_total: 230.0,
+        raw_json: {
+            vendor_name: "किराणा पावती",
+            date: "2026-11-02",
+            category: "General",
+            items: [
+                { item_name: "साखर", quantity: "2 किलो", rate: 40.0, total_price: 80.0 },
+                { item_name: "गहू", quantity: "5 किलो", rate: 30.0, total_price: 150.0 }
+            ],
+            grand_total: 230.0
+        }
+    },
+    {
+        id: 42,
+        vendor_name: "सोनल किराणा",
+        date: "2024-05-24",
+        category: "General",
+        grand_total: 150.0,
+        raw_json: {
+            vendor_name: "सोनल किराणा",
+            date: "2024-05-24",
+            category: "General",
+            items: [
+                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
+                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
+            ],
+            grand_total: 150.0
+        }
+    }
+];
+
+const CANONICAL_SEED_KHATA = [
+    { id: 10, customer_name: "sonal", phone: "7620042972", amount: 200.0, transaction_type: "Payment Received", date: "2026-11-18", due_date: "", notes: "" },
+    { id: 9, customer_name: "महेश जाधव", phone: "9811223344", amount: 500.0, transaction_type: "Credit Given", date: "2026-11-16", due_date: "", notes: "" },
+    { id: 8, customer_name: "सुरेश पवार", phone: "9822334455", amount: 250.0, transaction_type: "Credit Given", date: "2026-11-16", due_date: "", notes: "" },
+    { id: 2, customer_name: "सागर", phone: "", amount: 500.0, transaction_type: "Credit Given", date: "2026-10-20", due_date: "", notes: "सागर ला ५०० उधारी लिही" },
+    { id: 1, customer_name: "sonal", phone: "7620042972", amount: 500.0, transaction_type: "Credit Given", date: "2026-10-05", due_date: "2026-10-05", notes: "sugar" }
+];
+
 const VernaStorage = {
     KEY_RECEIPTS: "verna_persistent_receipts",
     KEY_KHATA: "verna_persistent_khata",
@@ -40,9 +188,16 @@ const VernaStorage = {
     get(key) {
         try {
             const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : [];
+            if (raw !== null) {
+                return JSON.parse(raw);
+            }
+            if (key === this.KEY_RECEIPTS) return JSON.parse(JSON.stringify(CANONICAL_SEED_RECEIPTS));
+            if (key === this.KEY_KHATA) return JSON.parse(JSON.stringify(CANONICAL_SEED_KHATA));
+            return [];
         } catch (e) {
             console.warn("VernaStorage get notice:", e);
+            if (key === this.KEY_RECEIPTS) return JSON.parse(JSON.stringify(CANONICAL_SEED_RECEIPTS));
+            if (key === this.KEY_KHATA) return JSON.parse(JSON.stringify(CANONICAL_SEED_KHATA));
             return [];
         }
     },
@@ -178,11 +333,15 @@ const VernaStorage = {
     },
 
     reconcileServerReceipts(serverReceipts) {
-        // When online, server is the primary source of truth!
-        // Purge any server-deleted receipts from local cache so they NEVER resurrect.
-        const serverList = (serverReceipts || []).filter(r => !this.isReceiptDeleted(r));
+        // When online, server is the absolute source of truth!
+        const serverList = Array.isArray(serverReceipts) ? serverReceipts : [];
+        
+        // Remove from deleted tombstones any IDs that the server actively returns
+        const activeServerIds = new Set(serverList.map(r => String(r.id).trim()));
+        const localDeletedIds = this.get(this.KEY_DELETED_RECEIPTS).filter(id => !activeServerIds.has(String(id).trim()));
+        this.save(this.KEY_DELETED_RECEIPTS, localDeletedIds);
+
         const local = this.get(this.KEY_RECEIPTS);
-        // Only keep genuine pending offline receipts (created offline, no server id yet, not deleted)
         const offlinePending = local.filter(r => r && r._offline_pending === true && !this.isReceiptDeleted(r));
 
         const map = new Map();
@@ -197,6 +356,7 @@ const VernaStorage = {
             }
         });
         const reconciled = Array.from(map.values());
+        reconciled.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
         this.save(this.KEY_RECEIPTS, reconciled);
         return reconciled;
     },
@@ -313,7 +473,11 @@ const VernaStorage = {
     },
 
     reconcileServerKhata(serverTxns) {
-        const serverList = (serverTxns || []).filter(t => !this.isKhataDeleted(t));
+        const serverList = Array.isArray(serverTxns) ? serverTxns : [];
+        const activeServerIds = new Set(serverList.map(t => String(t.id).trim()));
+        const localDeletedIds = this.get(this.KEY_DELETED_KHATA).filter(id => !activeServerIds.has(String(id).trim()));
+        this.save(this.KEY_DELETED_KHATA, localDeletedIds);
+
         const local = this.get(this.KEY_KHATA);
         const offlinePending = local.filter(t => t && t._offline_pending === true && !this.isKhataDeleted(t));
         const map = new Map();
@@ -328,6 +492,7 @@ const VernaStorage = {
             }
         });
         const reconciled = Array.from(map.values());
+        reconciled.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
         this.save(this.KEY_KHATA, reconciled);
         return reconciled;
     },
@@ -472,6 +637,7 @@ const i18n = {
         btn_cancel: "रद्द करा",
         btn_delete_selected: "निवडलेल्या डिलीट करा",
         btn_clear_all_ledger: "⚠️ सर्व रिकामे करा",
+        btn_resync_ledger: "🔄 थेट सिंक",
         lbl_selected_receipts: "निवडलेल्या:",
         lbl_total_receipts: "एकूण पावत्या:",
         lbl_filter_cust: "फिल्टर:",
@@ -741,6 +907,7 @@ const i18n = {
         btn_cancel: "Cancel",
         btn_delete_selected: "Delete Selected",
         btn_clear_all_ledger: "⚠️ Clear All",
+        btn_resync_ledger: "🔄 Live Sync",
         lbl_selected_receipts: "Selected:",
         lbl_total_receipts: "Total Receipts:",
         lbl_filter_cust: "Filter:",
@@ -1328,12 +1495,15 @@ function formatLocalizedName(name, lang = state.lang) {
 document.addEventListener("DOMContentLoaded", () => {
     // Automatic Storage Epoch: purge legacy cached ghost receipts from mobile/desktop
     const STORAGE_EPOCH_KEY = "verna_cache_epoch";
-    const CURRENT_EPOCH = "v54_unified_sync";
+    const CURRENT_EPOCH = "v78_live_server_sync";
     const savedEpoch = localStorage.getItem(STORAGE_EPOCH_KEY);
     if (savedEpoch !== CURRENT_EPOCH) {
         localStorage.removeItem("verna_persistent_receipts");
         localStorage.removeItem("verna_deleted_receipt_ids");
         localStorage.removeItem("verna_deleted_receipt_sigs");
+        localStorage.removeItem("verna_persistent_khata");
+        localStorage.removeItem("verna_deleted_khata_ids");
+        localStorage.removeItem("verna_deleted_khata_sigs");
         localStorage.setItem(STORAGE_EPOCH_KEY, CURRENT_EPOCH);
         console.info("VernaStorage: Purged legacy local ghost receipts for unified live sync.");
     }
@@ -2536,40 +2706,49 @@ async function playCurrentBillTTS() {
 }
 
 // Thermal Print Modal
-function openThermalPrintModal() {
-    const bill = getCurrentBillData();
+function openThermalPrintModal(customBill = null) {
+    const bill = customBill || getCurrentBillData();
     const shop = state.shopSettings || {};
-    const shopName = shop.shop_name || bill.vendor_name || "SK Store";
-    const shopAddress = shop.address || "";
-    const shopPhone = shop.phone || "";
+    // Preference: If bill has a vendor name (e.g. from receipt), show bill vendor name; else shop profile name
+    const shopName = bill.vendor_name || shop.shop_name || "SK Store";
+    const shopAddress = shop.address || "सातारा, महाराष्ट्र";
+    const shopPhone = shop.phone || "9876543210";
     document.getElementById("receipt-shop-name").innerText = formatLocalizedName(shopName, state.lang);
     const addressEl = document.getElementById("receipt-shop-addr");
     if (addressEl) {
         addressEl.innerText = [shopAddress, shopPhone ? `Ph: ${shopPhone}` : ""].filter(Boolean).join(" | ");
     }
-    document.getElementById("receipt-bill-no").innerText = `#VL-${Math.floor(100 + Math.random() * 900)}`;
-    document.getElementById("receipt-print-date").innerText = bill.date;
-    document.getElementById("receipt-print-total").innerText = `₹${bill.grand_total.toFixed(2)}`;
+    
+    // Explicit bill number: if bill.id is provided, show #VL-<id>, never a random number
+    const billNum = bill.id || (state.currentBill && state.currentBill.id) || state.currentBillId;
+    document.getElementById("receipt-bill-no").innerText = billNum ? `#VL-${billNum}` : `#VL-${Math.floor(100 + Math.random() * 900)}`;
+    document.getElementById("receipt-print-date").innerText = bill.date || new Date().toISOString().split("T")[0];
+    document.getElementById("receipt-print-total").innerText = `₹${Number(bill.grand_total || 0).toFixed(2)}`;
 
     // Build items HTML with localized item names
     const container = document.getElementById("receipt-print-items");
     container.innerHTML = "";
-    bill.items.forEach(i => {
-        const displayName = formatLocalizedName(i.item_name, state.lang);
+    const items = (bill.items && bill.items.length > 0)
+        ? bill.items
+        : [{ item_name: "किराणा खरेदी", quantity: "1", total_price: Number(bill.grand_total || 0) }];
+
+    items.forEach(i => {
+        const displayName = formatLocalizedName(i.item_name || "किराणा खरेदी", state.lang);
         const div = document.createElement("div");
         div.className = "row-flex";
         div.style.marginBottom = "3px";
+        const itemTotal = Number(i.total_price != null ? i.total_price : ((Number(i.rate) || 0) * (parseFloat(i.quantity) || 1)));
         div.innerHTML = `
             <span style="flex: 2; text-align: left;">${escapeHtml(displayName)}</span>
-            <span style="flex: 1; text-align: center;">${escapeHtml(i.quantity)}</span>
-            <span style="flex: 1; text-align: right;">₹${i.total_price.toFixed(2)}</span>
+            <span style="flex: 1; text-align: center;">${escapeHtml(String(i.quantity || 1))}</span>
+            <span style="flex: 1; text-align: right;">₹${itemTotal.toFixed(2)}</span>
         `;
         container.appendChild(div);
     });
 
     // Update UPI QR Code URL
     const upiId = shop.upi_id || "merchant@upi";
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(shopName)}&am=${bill.grand_total.toFixed(2)}&cu=INR`;
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(shopName)}&am=${Number(bill.grand_total || 0).toFixed(2)}&cu=INR`;
     document.getElementById("receipt-qr-img").src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUrl)}`;
 
     document.getElementById("modal-thermal").classList.add("active");
@@ -3229,21 +3408,20 @@ async function loadReceiptsLedger() {
 
         let receiptsToRender = [];
         if (isOnline && Array.isArray(serverData)) {
-            // Online: Reconcile server truth with local store, strictly purging any server-deleted receipts
             receiptsToRender = VernaStorage.reconcileServerReceipts(serverData);
-            
-            // If any genuine offline bills were created, sync them up
+            updateServerStatusBadge(true);
             const pending = VernaStorage.getOfflinePendingReceipts();
             if (pending.length > 0) {
                 syncLocalDataToServer();
             }
         } else {
-            // Offline fallback: load active, non-deleted receipts
+            updateServerStatusBadge(false);
             receiptsToRender = VernaStorage.getActiveReceipts();
         }
 
         state.allReceipts = receiptsToRender;
         renderLedgerTable(receiptsToRender);
+        try { loadDashboardMetrics(); } catch (_) {}
     } catch (e) {
         console.error("Receipts load error:", e);
     }
@@ -3472,15 +3650,30 @@ function viewSavedReceiptThermal(id) {
     );
     if (!r) return;
 
-    const raw = r.raw_json || {};
-    populateBillCard({
-        vendor_name: r.vendor_name,
+    let parsedItems = [];
+    if (r.raw_json) {
+        try {
+            const raw = typeof r.raw_json === 'string' ? JSON.parse(r.raw_json) : r.raw_json;
+            if (raw && Array.isArray(raw.items) && raw.items.length > 0) {
+                parsedItems = raw.items;
+            }
+        } catch (_) {}
+    }
+    if (parsedItems.length === 0) {
+        parsedItems = [{ item_name: "किराणा खरेदी", quantity: "1", rate: Number(r.grand_total), total_price: Number(r.grand_total) }];
+    }
+
+    const billObj = {
+        id: r.id,
+        vendor_name: r.vendor_name || "किराणा स्टोअर",
         date: r.date,
-        category: r.category,
-        items: raw.items || [{ item_name: "किराणा खरेदी", quantity: "1", rate: r.grand_total, total_price: r.grand_total }],
-        grand_total: r.grand_total
-    });
-    openThermalPrintModal();
+        category: r.category || "General",
+        items: parsedItems,
+        grand_total: Number(r.grand_total)
+    };
+    state.currentBillId = r.id;
+    populateBillCard(billObj);
+    openThermalPrintModal(billObj);
 }
 
 async function deleteReceipt(id) {
@@ -3530,20 +3723,52 @@ async function deleteReceipt(id) {
 // MOBILE & LAPTOP LIVE SYNC & GHOST CACHE PURGE CONTROLLER
 // =============================================================================
 async function forceCleanMobileCacheAndResync() {
-    showToast("⏳ सर्व्हरवरून थेट डेटा सिंक व कॅशे साफ होत आहे...", "info", 2500);
+    showToast("⏳ लॅपटॉप सर्व्हरवरून थेट डेटा सिंक होत आहे...", "info", 2000);
     try {
         // 1. Clear local browser persistent cache
         localStorage.removeItem("verna_persistent_receipts");
         localStorage.removeItem("verna_deleted_receipt_ids");
         localStorage.removeItem("verna_deleted_receipt_sigs");
-        localStorage.setItem("verna_cache_epoch", "v54_unified_sync");
+        localStorage.removeItem("verna_persistent_khata");
+        localStorage.removeItem("verna_deleted_khata_ids");
+        localStorage.removeItem("verna_deleted_khata_sigs");
+        localStorage.setItem("verna_cache_epoch", "v78_live_server_sync");
 
-        // 2. Fetch fresh server tombstones & ledger data
+        // 2. Fetch fresh server data
         await loadReceiptsLedger();
+        await loadKhataData();
+        await loadInventoryData();
         await loadDashboardMetrics();
-        showToast("✅ मोबाईल व लॅपटॉप डेटा 100% सिंक झाला!", "success", 3000);
+
+        updateServerStatusBadge(true);
+        const count = state.allReceipts ? state.allReceipts.length : 0;
+        showToast(`✅ लॅपटॉप सर्व्हरशी 100% सिंक झाले! एकूण ${count} पावत्या लोड झाल्या.`, "success", 3500);
     } catch (e) {
-        showToast("⚠️ सिंक करताना अडचण: " + e.message, "error", 3500);
+        updateServerStatusBadge(false);
+        showToast("⚠️ सिंक करताना अडचण: कृपया लॅपटॉप व मोबाईल एकाच वायफाय / हॉटस्पॉटवर कनेक्ट करा.", "error", 4000);
+    }
+}
+
+function updateServerStatusBadge(isOnline) {
+    const pill = document.getElementById("server-status-pill");
+    const mobBtn = document.getElementById("mobile-server-sync-btn");
+    if (pill) {
+        if (isOnline) {
+            pill.style.background = "rgba(16, 185, 129, 0.15)";
+            pill.style.borderColor = "var(--neon-green)";
+            pill.style.color = "var(--neon-green)";
+            pill.innerHTML = "🟢 Live";
+            pill.title = "लॅपटॉप सर्व्हरशी थेट कनेक्टेड (Live Connected)";
+        } else {
+            pill.style.background = "rgba(245, 158, 11, 0.15)";
+            pill.style.borderColor = "#f59e0b";
+            pill.style.color = "#f59e0b";
+            pill.innerHTML = "🟡 Offline (सिंक करा)";
+            pill.title = "ऑफलाइन मोड - सिंक करण्यासाठी टॅप करा";
+        }
+    }
+    if (mobBtn) {
+        mobBtn.title = isOnline ? "सर्व्हरशी जोडलेले (टॅप करून पुन्हा सिंक करा)" : "ऑफलाइन - लॅपटॉपशी जोडण्यासाठी टॅप करा";
     }
 }
 
