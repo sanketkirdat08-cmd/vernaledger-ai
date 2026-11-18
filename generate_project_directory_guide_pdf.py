@@ -1,15 +1,36 @@
-import os, sys
+"""
+VernaLedger.AI: Merchant Pro v7.5
+System Architecture & Technical Project Guide PDF Generator (Updated & Enhanced Edition)
+Features:
+- New Clean Professional Name: VernaLedger_AI_System_Architecture_and_Technical_Guide.pdf
+- Guide: Prof. Kaisar Atar sir | HOD: Dr. S. Y. Mulla mam | AGCE Satara (DBATU Lonere)
+- Exact roles & technical contributions for all 4 developers:
+  1. Sanket Kirdat (Team Leader & AI Architecture)
+  2. Sakshi Bhagat (Frontend & UI/UX Developer)
+  3. Vaishnavi Dhavale (Voice Billing & Multilingual AI)
+  4. Rushikesh Mulik (Backend & Database Developer)
+- Complete 23 Slides Presentation reference & companion Viva Script Guide
+- 50 Kirana Items auto-stock deduction engine & API endpoints
+- Playwright Chromium A4 multi-page PDF generation
+"""
+
+import os
+import sys
+import shutil
 from playwright.sync_api import sync_playwright
+
+OUTPUT_PDF_NEW = os.path.abspath("VernaLedger_AI_System_Architecture_and_Technical_Guide.pdf")
+OUTPUT_PDF_OLD = os.path.abspath("VernaLedger_AI_Project_Architecture_and_File_Directory_Guide.pdf")
 
 HTML_CONTENT = """<!DOCTYPE html>
 <html lang="mr">
 <head>
 <meta charset="utf-8">
-<title>VernaLedger.AI: Merchant Pro v7.5 - प्रकल्प आर्किटेक्चर व डिरेक्टरी गाईड</title>
+<title>VernaLedger.AI: Merchant Pro v7.5 - संपूर्ण सिस्टीम आर्किटेक्चर व तांत्रिक गाईड</title>
 <style>
   @page {
     size: A4;
-    margin: 11mm 12mm 11mm 12mm;
+    margin: 10mm 11mm 10mm 11mm;
     @bottom-right {
       content: counter(page);
     }
@@ -24,11 +45,11 @@ HTML_CONTENT = """<!DOCTYPE html>
   }
 
   body {
-    font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Segoe UI', -apple-system, sans-serif;
+    font-family: 'Segoe UI', 'Noto Sans Devanagari', 'Nirmala UI', sans-serif;
     color: #1e293b;
     background: #ffffff;
     font-size: 8.2pt;
-    line-height: 1.42;
+    line-height: 1.40;
   }
 
   .page {
@@ -50,11 +71,11 @@ HTML_CONTENT = """<!DOCTYPE html>
     margin-bottom: 9px;
   }
   .brand-title {
-    font-size: 16pt;
+    font-size: 15.5pt;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.3px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Segoe UI', sans-serif;
   }
   .brand-title span {
     color: #0284c7;
@@ -68,18 +89,18 @@ HTML_CONTENT = """<!DOCTYPE html>
   .badge-tag {
     background: linear-gradient(135deg, #0284c7, #0369a1);
     color: #ffffff;
-    font-size: 7.5pt;
+    font-size: 7.2pt;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 20px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Segoe UI', sans-serif;
   }
 
   /* Section Titles */
   .section-title {
-    font-size: 9.8pt;
+    font-size: 9.6pt;
     font-weight: 800;
     color: #0f172a;
     display: flex;
@@ -129,7 +150,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     background: #0f766e;
   }
   td {
-    padding: 3.8px 6px;
+    padding: 3.6px 6px;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: top;
     line-height: 1.35;
@@ -147,8 +168,8 @@ HTML_CONTENT = """<!DOCTYPE html>
     padding: 1px 5px;
     border-radius: 4px;
     font-weight: 700;
-    font-size: 7.2pt;
-    font-family: 'Inter', sans-serif;
+    font-size: 7.1pt;
+    font-family: 'Segoe UI', sans-serif;
   }
   .pill-blue { background: #e0f2fe; color: #0369a1; }
   .pill-green { background: #dcfce7; color: #15803d; }
@@ -159,7 +180,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
   code {
     font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 7.6pt;
+    font-size: 7.5pt;
     background: #f1f5f9;
     padding: 1px 3px;
     border-radius: 3px;
@@ -170,11 +191,6 @@ HTML_CONTENT = """<!DOCTYPE html>
   .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 7px;
-  }
-  .grid-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
     gap: 7px;
   }
 
@@ -190,7 +206,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     color: #64748b;
     border-top: 1px solid #e2e8f0;
     padding-top: 3px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Segoe UI', sans-serif;
   }
 </style>
 </head>
@@ -206,7 +222,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <div class="brand-subtitle">स्थानिक किराणा व MSMEs साठी नेक्स्ट-जनरेशन AI बिलिंग, उधारी वही, ५० किराणा स्टॉक व व्हॉइस असिस्टंट प्रणाली</div>
       </div>
       <div>
-        <span class="badge-tag">Official Architecture Guide</span>
+        <span class="badge-tag">Technical Architecture Guide</span>
       </div>
     </div>
 
@@ -214,8 +230,8 @@ HTML_CONTENT = """<!DOCTYPE html>
     <div class="card card-highlight">
       <table style="margin-bottom:0;">
         <tr>
-          <td style="width:19%; font-weight:700; color:#0369a1; border:none; padding:2px 3px;">🏛️ महाविद्यालय:</td>
-          <td style="width:81%; font-weight:600; border:none; padding:2px 3px;">अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering - AGCE)</td>
+          <td style="width:20%; font-weight:700; color:#0369a1; border:none; padding:2px 3px;">🏛️ महाविद्यालय:</td>
+          <td style="width:80%; font-weight:600; border:none; padding:2px 3px;">अरविंद गवळी कॉलेज ऑफ इंजिनिअरिंग, सातारा (Arvind Gavali College of Engineering - AGCE Satara)</td>
         </tr>
         <tr>
           <td style="font-weight:700; color:#0369a1; border:none; padding:2px 3px;">🎓 विद्यापीठ:</td>
@@ -227,30 +243,30 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
           <td style="font-weight:700; color:#0369a1; border:none; padding:2px 3px;">👨‍🏫 प्रकल्प मार्गदर्शक:</td>
-          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 3px;">श्री. कैसर अत्तार (Mr. Kaisar Atar) <span class="pill pill-slate">Dept of AI &amp; DS, AGCE Satara</span></td>
+          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 3px;">प्रा. कैसर अत्तार सर (Prof. Kaisar Atar sir) <span class="pill pill-slate">Faculty Member &amp; Project Guide (Dept of AI &amp; DS)</span></td>
         </tr>
         <tr>
           <td style="font-weight:700; color:#0369a1; border:none; padding:2px 3px;">🏛️ विभागप्रमुख (HOD):</td>
-          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 3px;">डॉ. एस. वाय. मुल्ला (Dr. S. Y. Mulla) <span class="pill pill-slate">Head of Department (AI &amp; DS), AGCE Satara</span></td>
+          <td style="font-weight:700; color:#0f172a; border:none; padding:2px 3px;">डॉ. एस. वाय. मुल्ला मॅम (Dr. S. Y. Mulla mam) <span class="pill pill-slate">Head of Department (AI &amp; DS), AGCE Satara</span></td>
         </tr>
         <tr>
-          <td style="font-weight:700; color:#0369a1; border:none; padding:3px 3px; vertical-align:top;">👨‍💻 प्रकल्प डेव्हलपर्स:</td>
+          <td style="font-weight:700; color:#0369a1; border:none; padding:3px 3px; vertical-align:top;">👨‍💻 प्रकल्प डेव्हलपर्स (सर्व ४):</td>
           <td style="border:none; padding:3px 3px; line-height: 1.4;">
             <div style="margin-bottom: 3px;">
-              <b>१. संकेत किर्दत</b> (Roll: 4060 | PRN: 24065451263508) &bull; <span class="pill pill-blue">टीम लीडर व AI डेव्हलपर (Team Leader &amp; AI Developer)</span><br/>
-              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> Google Gemini Flash Multimodal OCR, Verna AI व्हॉइस असिस्टंट (Streaming &amp; Devanagari Script Persistence), ५० किराणा माल साठा स्वयंचलित कपात इंजिन, एंड-टू-एंड क्लायंट-सर्व्हर आर्किटेक्चर व तांत्रिक नेतृत्व.</span>
+              <b>१. संकेत किर्दत</b> (Roll: 4060 | PRN: 24065451263508) &bull; <span class="pill pill-blue">Team Leader &amp; AI Architecture</span><br/>
+              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील योगदान:</b> Google Gemini Multimodal OCR Vision Pipeline, ५० किराणा वस्तूंचे ऑटो-कपात अल्गोरिदम, Verna AI असिस्टंट (Gemini Stream &amp; Devanagari RAG), संपूर्ण सिस्टीम इंटिग्रेशन व प्रोजेक्ट नेतृत्व.</span>
             </div>
             <div style="margin-bottom: 3px;">
-              <b>२. साक्षी भगत</b> (Roll: 4054 | PRN: 24065451263502) &bull; <span class="pill pill-green">फ्रंटएंड व UI डेव्हलपर (Frontend &amp; UI Developer)</span><br/>
-              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> HTML5/CSS3 आधारित ५ मुख्य ॲप व्ह्यूज, सायबरपंक निऑन ग्लास-मॉर्फिझम, १-क्लिक 'किराणा डे/नाईट मोड' थीम इंजिन, ५० वस्तूंचा लाइव्ह सर्च बार, व मोबाईल बॉटम नॅव्हिगेशन.</span>
+              <b>२. साक्षी भगत</b> (Roll: 4054 | PRN: 24065451263502) &bull; <span class="pill pill-green">Frontend &amp; UI/UX Experience</span><br/>
+              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> HTML5/CSS3 आधारित ५ मुख्य ॲप व्ह्यूज, सायबरपंक निऑन ग्लास-मॉर्फिझम, १-क्लिक 'किराणा डे/नाईट मोड' थीम इंजिन, ५० वस्तूंचा लाइव्ह सर्च बार, व मोबाईल बॉटम नॅव्हिगेशन PWA.</span>
             </div>
             <div style="margin-bottom: 3px;">
-              <b>३. वैष्णवी ढवळे</b> (Roll: 4056 | PRN: 24065451263504) &bull; <span class="pill pill-purple">व्हॉइस बिलिंग व AI डेव्हलपर (Voice Billing &amp; AI Developer)</span><br/>
-              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> अस्खलित मराठी व्हॉइस बिलिंग, Web Speech API (mr-IN / hi-IN / en-IN) लाइव्ह पल्सिंग माइक बटन, पूर्ण वाक्य अखंड बोलणे, आणि मराठी-इंग्रजी मिश्र किराणा संज्ञा पार्सिंग.</span>
+              <b>३. वैष्णवी ढवळे</b> (Roll: 4056 | PRN: 24065451263504) &bull; <span class="pill pill-purple">Voice Billing &amp; Multilingual AI</span><br/>
+              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> अस्खलित मराठी व्हॉइस बिलिंग इंजिन (Web Speech API mr-IN), पल्सिंग माइक बटन, पूर्ण वाक्य न अडखळता बोलणे (No premature cutoff), आणि मराठी-इंग्रजी भाषा ऑटो-डिटेक्शन.</span>
             </div>
             <div>
-              <b>४. ऋषिकेश मुळीक</b> (Roll: 4004 | PRN: 23065451263005) &bull; <span class="pill pill-slate">बॅकएंड व डेटाबेस डेव्हलपर (Backend &amp; Database Developer)</span><br/>
-              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> SQLite ACID WAL डेटाबेस आर्किटेक्चर, ग्राहक डिजिटल उधारी वही (Khata Ledger), १-क्लिक WhatsApp स्मरणपत्र लिंक, XlsxWriter द्वारे Excel (.xlsx) व CSV रिपोर्ट एक्सपोर्ट.</span>
+              <b>४. ऋषिकेश मुळीक</b> (Roll: 4004 | PRN: 23065451263005) &bull; <span class="pill pill-slate">Backend, Database &amp; Sync Engine</span><br/>
+              <span style="color:#475569; font-size:7.4pt;">↳ <b>प्रकल्पातील काम:</b> SQLite ACID WAL हायब्रिड डेटाबेस, ग्राहक डिजिटल उधारी वही (Khata), १-क्लिक WhatsApp स्मरणपत्र लिंक, XlsxWriter द्वारे Excel (.xlsx) व CSV रिपोर्ट एक्सपोर्ट, ऑफलाइन सॉकेट रेझिलियन्स (0.3s timeout).</span>
             </div>
           </td>
         </tr>
@@ -263,8 +279,8 @@ HTML_CONTENT = """<!DOCTYPE html>
       <thead>
         <tr>
           <th style="width:17%;">टियर (Tier)</th>
-          <th style="width:40%;">तंत्रज्ञान व टूल्स (Technology Stack)</th>
-          <th style="width:43%;">मुख्य कार्यप्रणाली व जबाबदारी (Key Responsibilities)</th>
+          <th style="width:38%;">तंत्रज्ञान व टूल्स (Technology Stack)</th>
+          <th style="width:45%;">मुख्य कार्यप्रणाली व जबाबदारी (Key Responsibilities)</th>
         </tr>
       </thead>
       <tbody>
@@ -275,12 +291,12 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
           <td><span class="pill pill-green">Tier 2: Backend</span><br/><b>सर्व्हरलेस AI</b></td>
-          <td>Python 3.13 + FastAPI, Google Gemini 3.1 Flash Lite / 3.8 Flash, PIL Image Optimizer, Vernacular NLP Engine</td>
-          <td>मल्टीमॉडल OCR पावती स्कॅनिंग, ASR स्पीच-टू-टेक्स्ट, Verna AI व्हॉइस असिस्टंट (स्क्रिप्ट पर्सिस्टन्स व लाइव्ह SQL RAG), ५० किराणा स्टॉक ऑटो-कपात मॅचर.</td>
+          <td>Python 3.13 + FastAPI, Google Gemini 2.5 Flash / Flash Lite, PIL Image Optimizer, Vernacular NLP Engine</td>
+          <td>मल्टीमॉडल OCR पावती स्कॅनिंग, ASR स्पीच-टू-टेक्स्ट, Verna AI असिस्टंट (स्क्रिप्ट पर्सिस्टन्स व लाइव्ह SQL RAG), ५० किराणा स्टॉक ऑटो-कपात मॅचर.</td>
         </tr>
         <tr>
           <td><span class="pill pill-purple">Tier 3: Ledger</span><br/><b>हायब्रिड डेटाबेस</b></td>
-          <td>SQLite 3 (ACID WAL Mode), VernaStorage Local-First, XlsxWriter Engine, Deletion Tombstones</td>
+          <td>SQLite 3 (ACID WAL Mode), Dexie IndexedDB Local-First, XlsxWriter Engine, Deletion Tombstones</td>
           <td>५० किराणा स्टॉक (shop_inventory), ग्राहक उधारी वही (customer_khata), पावत्या (receipts + stock_deducted फ्लॅग), खर्च नोंदी, आणि १-क्लिक Excel/CSV जनरेटर.</td>
         </tr>
       </tbody>
@@ -303,11 +319,11 @@ HTML_CONTENT = """<!DOCTYPE html>
 
       <!-- Chatbot 5 Pillars -->
       <div class="card" style="border-left: 3px solid #0f766e;">
-        <div style="font-weight:700; color:#0f766e; margin-bottom:4px; font-size:8.2pt;">🤖 Verna AI व्हॉइस असिस्टंट पिलर्स (Gemini Powered)</div>
+        <div style="font-weight:700; color:#0f766e; margin-bottom:4px; font-size:8.2pt;">🤖 Verna AI असिस्टंट पिलर्स (Gemini Powered)</div>
         <div style="font-size:7.6pt; line-height:1.38;">
           <b>१. Official Gemini-Style Voice Mic:</b> इनपुट बारमध्ये स्लीक माइक बटन, थेट देवनागरी मराठी (mr-IN), हिंदी व इंग्रजी स्पीच-टू-टेक्स्ट.<br/>
           <b>२. Strict Script Persistence:</b> युझरने देवनागरी मराठी, रोमन मराठी किंवा इंग्रजीत विचारल्यास त्याच लिपीत व भाषेत सलग उत्तर.<br/>
-          <b>३. Real-Time Word Streaming:</b> अधिकृत <code>sendMessageStream</code> द्वारे शब्दामागून शब्द गुगल ॲपप्रमाणे सहजतेने उमटतात.<br/>
+          <b>३. Real-Time Word Streaming:</b> अधिकृत <code>sendMessageStream</code> द्वारे शब्दामागून शब्द गुगल ॲपप्रमाणे स्क्रीनवर उमटतात.<br/>
           <b>४. Zero-Hallucination SQL RAG:</b> थेट दुकानातील ५० वस्तूंचा साठा, विक्री, खर्च व उधारी पाहून १००% अचूक आकडेवारी सांगते.<br/>
           <b>५. Complete Sentence Speaking:</b> अकाली ऑटो-सेंड कटऑफ काढून टाकल्याने दुकानदार पूर्ण वाक्य न अडखळता बोलू शकतो.
         </div>
@@ -315,7 +331,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <div class="page-footer">
-      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU University) • AI &amp; DS Dept</span>
+      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU Lonere) • AI &amp; DS Dept</span>
       <span>पान १ / ३</span>
     </div>
   </div>
@@ -351,7 +367,7 @@ HTML_CONTENT = """<!DOCTYPE html>
           <b>४. 📒 Ledger &amp; Excel</b><br/><span style="color:#64748b;">पावती इतिहास, थर्मल प्रिंट, .xlsx व CSV एक्सपोर्ट</span>
         </div>
         <div style="background:#fff; padding:4px 6px; border-radius:4px; border:1px solid #bae6fd;">
-          <b>५. 🤖 Verna AI</b><br/><span style="color:#64748b;">मराठी व्हॉइस असिस्टंट, लाइव्ह डेटा RAG व चॅट मेमरी</span>
+          <b>५. 🤖 Verna AI</b><br/><span style="color:#64748b;">मराठी AI असिस्टंट, लाइव्ह डेटा RAG व चॅट मेमरी</span>
         </div>
       </div>
     </div>
@@ -360,53 +376,53 @@ HTML_CONTENT = """<!DOCTYPE html>
     <table>
       <thead>
         <tr>
-          <th class="blue-th" style="width:17%;">फाईलचे नाव</th>
+          <th class="blue-th" style="width:18%;">फाईलचे नाव</th>
           <th class="blue-th" style="width:23%;">स्थान (Repository Path)</th>
           <th class="blue-th" style="width:16%;">प्रकार व आकार</th>
-          <th class="blue-th" style="width:44%;">त्यामध्ये काय महत्त्वाचे आहे व मुख्य कार्य (Core Role)</th>
+          <th class="blue-th" style="width:43%;">त्यामध्ये काय महत्त्वाचे आहे व मुख्य कार्य (Core Role)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><b>index.py</b></td>
           <td><code>api/index.py</code></td>
-          <td><span class="pill pill-green">FastAPI Backend</span><br/>148 KB</td>
-          <td>प्रकल्पाचे <b>मुख्य AI इंजिन</b>. यात Gemini Vision OCR, Voice Billing NLP, Verna AI व्हॉइस असिस्टंट (स्क्रिप्ट पर्सिस्टन्स), ५० किराणा स्टॉक ऑटो-कपात इंजिन (<code>deduct_inventory_stock</code>), SQLite WAL व्यवहार आणि Excel रिपोर्ट जनरेटर समाविष्ट आहे.</td>
+          <td><span class="pill pill-green">FastAPI Backend</span><br/>246 KB</td>
+          <td>प्रकल्पाचे <b>मुख्य AI इंजिन</b>. यात Gemini Vision OCR, Voice Billing NLP, Verna AI असिस्टंट (स्क्रिप्ट पर्सिस्टन्स), ५० किराणा स्टॉक ऑटो-कपात इंजिन (<code>deduct_inventory_stock</code>), SQLite WAL व्यवहार आणि Excel रिपोर्ट जनरेटर समाविष्ट आहे.</td>
         </tr>
         <tr>
           <td><b>app.py</b></td>
           <td><code>app.py</code></td>
-          <td><span class="pill pill-blue">Server Runner</span><br/>916 B</td>
-          <td>स्थानिक संगणकावर पोर्ट ८००० वर Uvicorn सर्व्हर सुरू करतो. यात <code>reload=True</code> असल्याने कोड सेव्ह करताच ॲप तात्काळ आपोआप रीलोड होते.</td>
+          <td><span class="pill pill-blue">Server Runner</span><br/>2.8 KB</td>
+          <td>स्थानिक संगणकावर पोर्ट ८००० वर Uvicorn सर्व्हर सुरू करतो. 0.3s सॉकेट टाइमआउटसह लॅपटॉप व मोबाईल IP ऑटो-डिटेक्ट करून ब्राऊझर आपोआप उघडतो.</td>
         </tr>
         <tr>
           <td><b>run_local.bat</b></td>
           <td><code>run_local.bat</code></td>
-          <td><span class="pill pill-slate">Batch Script</span><br/>328 B</td>
-          <td>विंडोजवर १-क्लिकमध्ये स्थानिक सर्व्हर सुरू करून डीफॉल्ट ब्राऊझरमध्ये <code>http://127.0.0.1:8000</code> उघडते.</td>
+          <td><span class="pill pill-slate">Batch Script</span><br/>450 B</td>
+          <td>विंडोजवर १-क्लिकमध्ये venv मधील Python द्वारे स्थानिक सर्व्हर सुरू करून डीफॉल्ट ब्राऊझरमध्ये <code>http://127.0.0.1:8000</code> उघडते.</td>
         </tr>
         <tr>
           <td><b>index.html</b></td>
           <td><code>public/index.html</code><br/>&amp; रूट <code>index.html</code></td>
-          <td><span class="pill pill-amber">Frontend SPA</span><br/>66 KB</td>
+          <td><span class="pill pill-amber">Frontend SPA</span><br/>90 KB</td>
           <td>५ व्ह्यूजचा संपूर्ण युझर इंटरफेस: स्मार्ट स्कॅनर, व्हॉइस बिलिंग, ग्राहक उधारी वही (Khata), ५० किराणा वस्तूंचा शोध बार, साठा तक्ता, आणि Verna AI असिस्टंट.</td>
         </tr>
         <tr>
           <td><b>app.js</b></td>
           <td><code>public/app.js</code><br/>&amp; रूट <code>app.js</code></td>
-          <td><span class="pill pill-amber">Client Logic</span><br/>130 KB</td>
-          <td>क्लायंट जावास्क्रिप्ट: Web Speech API देवनागरी व्हॉइस टायपिंग, कॅमेरा कॉम्प्रेशन, ऑटो-स्टॉक कपात लाइव्ह रीफ्रेश (<code>loadInventoryData</code>), WhatsApp ट्रिगर आणि स्टेट व्यवस्थापन.</td>
+          <td><span class="pill pill-amber">Client Logic</span><br/>256 KB</td>
+          <td>क्लायंट जावास्क्रिप्ट: Web Speech API देवनागरी व्हॉइस टायपिंग, कॅमेरा कॉम्प्रेशन, ऑटो-स्टॉक कपात लाइव्ह रीफ्रेश, WhatsApp ट्रिगर आणि स्टेट व्यवस्थापन.</td>
         </tr>
         <tr>
           <td><b>style.css</b></td>
           <td><code>public/style.css</code><br/>&amp; रूट <code>style.css</code></td>
-          <td><span class="pill pill-purple">Stylesheets</span><br/>65 KB</td>
+          <td><span class="pill pill-purple">Stylesheets</span><br/>72 KB</td>
           <td>सायबरपंक ग्लासमोर्फिझम, निऑन-सायन ॲक्सेंट्स, १-क्लिक किराणा कम्फर्ट डे/नाईट मोड, मायक्रोफोन पल्सिंग ॲनिमेशन आणि मोबाईल बॉटम नॅव्हिगेशन मांडणी.</td>
         </tr>
         <tr>
           <td><b>ledger.db</b></td>
           <td><code>ledger.db</code></td>
-          <td><span class="pill pill-green">SQLite 3 DB</span><br/>145 KB</td>
+          <td><span class="pill pill-green">SQLite 3 DB</span><br/>160 KB</td>
           <td>५० किराणा वस्तूंचा साठा (<code>shop_inventory</code>), ग्राहक उधारी वही (<code>customer_khata</code>), बिलांच्या नोंदी (<code>receipts</code> + <code>stock_deducted</code>), आणि व्यवसाय खर्च.</td>
         </tr>
         <tr>
@@ -418,8 +434,14 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tr>
           <td><b>Presentation.html</b></td>
           <td><code>VernaLedger_Presentation.html</code></td>
-          <td><span class="pill pill-blue">3D Slideshow</span><br/>2.4 MB</td>
-          <td>अंतिम वर्षाच्या प्रेझेंटेशन व व्हायव्हासाठी २३ आधुनिक Reveal.js ३डी स्लाइड्स. यात कॉलेज, गाईड, ४ डेव्हलपर्स आणि लाइव्ह स्क्रीनशॉट्स समाविष्ट आहेत.</td>
+          <td><span class="pill pill-blue">3D Slideshow</span><br/>10.0 MB</td>
+          <td>अंतिम वर्षाच्या प्रेझेंटेशन व व्हायव्हासाठी <b>२३ आधुनिक Reveal.js ३डी स्लाइड्स</b>. यात कॉलेज, गाईड, ४ डेव्हलपर्स आणि लाइव्ह स्क्रीनशॉट्स समाविष्ट आहेत.</td>
+        </tr>
+        <tr>
+          <td><b>Script_Guide.pdf</b></td>
+          <td><code>VernaLedger_AI_...Viva_Guide.pdf</code></td>
+          <td><span class="pill pill-purple">Defense Guide</span><br/>800 KB</td>
+          <td>२३ स्लाईड्सचे पाठ करायला अगदी सोपे इंग्रजी वाक्ये, सोप्या मराठीत अर्थ, ४ सदस्यांचे रोल वाटप आणि प्रत्येकी १ Viva प्रश्न-उत्तर देणारा अधिकृत गाईड.</td>
         </tr>
         <tr>
           <td><b>Project_Report.docx</b></td>
@@ -428,22 +450,16 @@ HTML_CONTENT = """<!DOCTYPE html>
           <td>DBATU/AGCE च्या अधिकृत फॉरमॅटनुसार तयार केलेला सविस्तर <b>Final Year Project Report (Word Document)</b>, सर्व चॅप्टर्स, मॅथ्स व चाचण्यांसह.</td>
         </tr>
         <tr>
-          <td><b>Guide_Generator.py</b></td>
-          <td><code>generate_project_directory_guide_pdf.py</code></td>
-          <td><span class="pill pill-purple">PDF Engine</span><br/>24 KB</td>
-          <td>हा अधिकृत ३-पानी A4 PDF गाईड तयार करणारी Playwright हेडलेस क्रोमियम ऑटोमेशन स्क्रिप्ट.</td>
-        </tr>
-        <tr>
           <td><b>vercel.json</b></td>
           <td><code>vercel.json</code></td>
-          <td><span class="pill pill-slate">Deployment</span><br/>369 B</td>
-          <td>Vercel सर्व्हरलेस फंक्शन राऊट्स (<code>/api/(.*) -&gt; api/index.py</code>), CORS हेडर, मेमरी अलोकेशन आणि टाइमआउट नियम.</td>
+          <td><span class="pill pill-slate">Deployment</span><br/>1.2 KB</td>
+          <td>Vercel सर्व्हरलेस फंक्शन राऊट्स (<code>/api/(.*) -&gt; api/index.py</code>), CORS हेडर, नो-कॅश नियम आणि टाइमआउट नियम.</td>
         </tr>
       </tbody>
     </table>
 
     <div class="page-footer">
-      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU University) • AI &amp; DS Dept</span>
+      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU Lonere) • AI &amp; DS Dept</span>
       <span>पान २ / ३</span>
     </div>
   </div>
@@ -469,7 +485,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         &bull; <b>५० अस्सल किराणा वस्तू:</b> गहू, बासमती/कोलम तांदूळ, ज्वारी, बाजरी, तूर/मूग/उडीद/चणा/मसूर डाळ, साखर, गूळ, रवा, पोहे, मैदा, बेसन, शेंगदाणा/सूर्यफूल/सोयाबीन/मोहरी तेल, तूप, मीठ, हळद, तिखट, मसाले, काजू, बदाम, चहा, कॉफी, बिस्किट्स, साबण, डिटर्जंट, टूथपेस्ट, विम बार.<br/>
         &bull; <b>स्वयंचलित कपात:</b> OCR स्कॅन, व्हॉइस बिल किंवा डिजिटल बिलातून वस्तू विकली जाताच <code>stock_qty = MAX(0, stock_qty - billed_qty)</code> द्वारे साठा तात्काळ कमी होतो.<br/>
         &bull; <b>युनिट व ग्रॅम कन्व्हर्जन:</b> <code>500 gm</code> दिल्यास आपोआप <code>0.5 kg</code> वजा होते. युनिट्स: <code>kg</code>, <code>लिटर</code>, <code>पॅकेट</code>, <code>नग</code>, <code>बाटली</code>.<br/>
-        &bull; <b>कमी साठा अलर्ट (Low Stock Notice):</b> साठा अलर्ट मर्यादेखाली जाताच स्क्रीनवर <b>🚨 कमी साठा</b> चा इशारा येतो व Verna AI असिस्टंटलाही याची लाइव्ह माहिती असते.
+        &bull; <b>कमी साठा अलर्ट (Low Stock Notice):</b> साठा अलर्ट मर्यादेखाली जाताच स्क्रीनवर <b>🚨 कमी साठा</b> चा इशारा येतो व Verna AI असिस्टंटलाही याची लाइव्ह माहिती असते.<br/>
+        &bull; <b>१-क्लिक रिसेट:</b> <code>/api/inventory/reset-defaults</code> द्वारे दुकानातील सर्व ५० वस्तू त्यांच्या मूळ साठ्यासह पूर्ववत होतात.
       </div>
     </div>
 
@@ -488,8 +505,8 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tr>
           <td><span class="pill pill-green">POST</span></td>
           <td><code>/api/rag-chat</code></td>
-          <td><code>{ message, audio_data }</code></td>
-          <td><b>Verna AI व्हॉइस असिस्टंट:</b> व्हॉइस/टेक्स्ट प्रश्न समजून देवनागरी लिपीत, लाइव्ह ५० वस्तूंचा साठा, विक्री व उधारी पाहून अचूक उत्तर.</td>
+          <td><code>{ message, chat_history }</code></td>
+          <td><b>Verna AI असिस्टंट:</b> व्हॉइस/टेक्स्ट प्रश्न समजून देवनागरी लिपीत, लाइव्ह ५० वस्तूंचा साठा, विक्री व उधारी पाहून अचूक उत्तर.</td>
         </tr>
         <tr>
           <td><span class="pill pill-green">POST</span></td>
@@ -523,7 +540,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         </tr>
         <tr>
           <td><span class="pill pill-blue">GET / POST</span></td>
-          <td><code>/api/customers</code></td>
+          <td><code>/api/customers</code> / <code>/khata</code></td>
           <td><code>{ customer_name, amount... }</code></td>
           <td><b>ग्राहक उधारी वही:</b> ग्राहकांची उधारी यादी, नवीन उधारी नोंदवणे व १-क्लिक WhatsApp स्मरणपत्र लिंक.</td>
         </tr>
@@ -536,7 +553,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tr>
           <td><span class="pill pill-purple">GET</span></td>
           <td><code>/api/receipts/export-excel</code></td>
-          <td><i>None (Direct File Download)</i></td>
+          <td><i>None (Direct Download)</i></td>
           <td><b>एक्सेल रिपोर्ट:</b> XlsxWriter द्वारे संपूर्ण व्यवसायाची सुंदर फॉरमॅट केलेली <code>.xlsx</code> फाईल थेट डाउनलोड होते.</td>
         </tr>
       </tbody>
@@ -556,7 +573,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tr>
           <td><b>स्थानिक संगणक</b><br/><span class="pill pill-blue">Localhost 8000</span></td>
           <td><code>run_local.bat</code> वर डबल-क्लिक करा<br/>किंवा <code>python app.py</code> रन करा</td>
-          <td>Uvicorn सर्व्हर पोर्ट ८००० वर सुरू होतो (<code>http://127.0.0.1:8000</code>). <code>reload=True</code> सक्षम असल्याने कोड बदलताच आपोआप रीलोड होतो.</td>
+          <td>Uvicorn सर्व्हर पोर्ट ८००० वर सुरू होतो (<code>http://127.0.0.1:8000</code>). मोबाईलवर पाहण्यासाठी एकाच वायफायवर लोकल आयपी वापरा.</td>
         </tr>
         <tr>
           <td><b>Vercel क्लाउड</b><br/><span class="pill pill-green">Production Live</span></td>
@@ -566,7 +583,7 @@ HTML_CONTENT = """<!DOCTYPE html>
         <tr>
           <td><b>ब्राऊझर कॅश क्लिअर</b><br/><span class="pill pill-amber">Hard Reload</span></td>
           <td>ब्राऊझरमध्ये <b>Ctrl + F5</b> दाबा<br/>किंवा DevTools मध्ये 'Empty Cache' करा</td>
-          <td>कॅश व्हर्जनिंग पॅरामीटर <code>?v=69.0</code> वापरल्याने नवीन बदल ब्राऊझरमध्ये तात्काळ सक्रिय होतात.</td>
+          <td>कॅश व्हर्जनिंग पॅरामीटर <code>?v=75.0</code> वापरल्याने नवीन बदल ब्राऊझरमध्ये तात्काळ सक्रिय होतात.</td>
         </tr>
       </tbody>
     </table>
@@ -582,7 +599,7 @@ HTML_CONTENT = """<!DOCTYPE html>
     </div>
 
     <div class="page-footer">
-      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU University) • AI &amp; DS Dept</span>
+      <span>VernaLedger.AI: Merchant Pro v7.5 • AGCE सातारा (DBATU Lonere) • AI &amp; DS Dept</span>
       <span>पान ३ / ३</span>
     </div>
   </div>
@@ -592,13 +609,15 @@ HTML_CONTENT = """<!DOCTYPE html>
 """
 
 def generate_pdf():
-    output_pdf = os.path.abspath("VernaLedger_AI_Project_Architecture_and_File_Directory_Guide.pdf")
-    temp_html = os.path.abspath("temp_guide_render.html")
+    temp_html = os.path.abspath("temp_technical_guide_render.html")
 
     with open(temp_html, "w", encoding="utf-8") as f:
         f.write(HTML_CONTENT)
 
-    print("Rendering updated PDF using Playwright...")
+    print("=" * 70)
+    print("🚀 Generating Updated System Architecture & Technical Project Guide PDF...")
+    print("=" * 70)
+    
     edge_path = r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
     with sync_playwright() as p:
         try:
@@ -612,8 +631,18 @@ def generate_pdf():
         page = browser.new_page()
         page.goto(f"file:///{temp_html.replace(os.sep, '/')}", wait_until="domcontentloaded", timeout=15000)
         page.wait_for_timeout(800)
+        
+        # 1. Generate primary new PDF
         page.pdf(
-            path=output_pdf,
+            path=OUTPUT_PDF_NEW,
+            format="A4",
+            print_background=True,
+            margin={"top": "0mm", "bottom": "0mm", "left": "0mm", "right": "0mm"}
+        )
+        
+        # 2. Also generate/update the legacy filename so no link or examiner document breaks
+        page.pdf(
+            path=OUTPUT_PDF_OLD,
             format="A4",
             print_background=True,
             margin={"top": "0mm", "bottom": "0mm", "left": "0mm", "right": "0mm"}
@@ -623,8 +652,17 @@ def generate_pdf():
     if os.path.exists(temp_html):
         os.remove(temp_html)
 
-    print(f"SUCCESS: Up-to-date guide PDF generated at: {output_pdf}")
-    print(f"Size: {os.path.getsize(output_pdf):,} bytes")
+    # Sync both PDFs to public/ folder
+    public_dir = os.path.abspath("public")
+    if os.path.exists(public_dir):
+        shutil.copy2(OUTPUT_PDF_NEW, os.path.join(public_dir, os.path.basename(OUTPUT_PDF_NEW)))
+        shutil.copy2(OUTPUT_PDF_OLD, os.path.join(public_dir, os.path.basename(OUTPUT_PDF_OLD)))
+        print(f"✅ Synced both PDFs to public/ folder.")
+
+    print(f"✅ SUCCESS: New Guide PDF: {OUTPUT_PDF_NEW}")
+    print(f"📊 File Size: {os.path.getsize(OUTPUT_PDF_NEW):,} bytes")
+    print(f"✅ Also preserved legacy filename: {OUTPUT_PDF_OLD}")
+    print("=" * 70)
 
 if __name__ == "__main__":
     generate_pdf()
