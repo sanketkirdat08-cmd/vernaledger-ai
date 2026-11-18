@@ -77,154 +77,6 @@ const state = {
 // -----------------------------------------------------------------------------
 // LOCAL-FIRST PERSISTENT STORAGE & AUTO-SYNC ENGINE (OFFLINE & SERVERLESS PROOF)
 // -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
-// CANONICAL BACKEND LEDGER REPLICAS (ENSURES MOBILE MATCHES LAPTOP 100%)
-// -----------------------------------------------------------------------------
-const CANONICAL_SEED_RECEIPTS = [
-    {
-        id: 59,
-        vendor_name: "गणेश करिणा",
-        date: "2026-11-17",
-        category: "General",
-        grand_total: 830.0,
-        raw_json: {
-            vendor_name: "गणेश करिणा",
-            date: "2026-11-17",
-            category: "General",
-            items: [
-                { item_name: "साखर", quantity: "5 कलिलो", rate: 40.0, total_price: 200.0 },
-                { item_name: "तांदूळ", quantity: "10 kg", rate: 45.0, total_price: 450.0 },
-                { item_name: "चहा पावडर", quantity: "500 gm", rate: 360.0, total_price: 180.0 }
-            ],
-            grand_total: 830.0
-        }
-    },
-    {
-        id: 58,
-        vendor_name: "सोनल किराणा",
-        date: "2026-11-17",
-        category: "General",
-        grand_total: 150.0,
-        raw_json: {
-            vendor_name: "सोनल किराणा",
-            date: "2026-11-17",
-            category: "General",
-            items: [
-                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
-                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
-            ],
-            grand_total: 150.0
-        }
-    },
-    {
-        id: 57,
-        vendor_name: "सोनल किराणा",
-        date: "2026-11-17",
-        category: "General",
-        grand_total: 150.0,
-        raw_json: {
-            vendor_name: "सोनल किराणा",
-            date: "2026-11-17",
-            category: "General",
-            items: [
-                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
-                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
-            ],
-            grand_total: 150.0
-        }
-    },
-    {
-        id: 56,
-        vendor_name: "टेस्ट किराणा",
-        date: "2026-11-16",
-        category: "General",
-        grand_total: 120.0,
-        raw_json: {
-            vendor_name: "टेस्ट किराणा",
-            date: "2026-11-16",
-            category: "General",
-            items: [
-                { item_name: "टेस्ट किराणा सामान", quantity: "1 नग", rate: 120.0, total_price: 120.0 }
-            ],
-            grand_total: 120.0
-        }
-    },
-    {
-        id: 55,
-        vendor_name: "किराणा पावती",
-        date: "2026-11-16",
-        category: "Kirana",
-        grand_total: 90.0,
-        raw_json: {
-            vendor_name: "किराणा पावती",
-            date: "2026-11-16",
-            category: "Kirana",
-            items: [
-                { item_name: "साखर", quantity: "2 किलो", rate: 45.0, total_price: 90.0 }
-            ],
-            grand_total: 90.0
-        }
-    },
-    {
-        id: 54,
-        vendor_name: "किराणा पावती",
-        date: "2026-11-16",
-        category: "Kirana",
-        grand_total: 100.0,
-        raw_json: {
-            vendor_name: "किराणा पावती",
-            date: "2026-11-16",
-            category: "Kirana",
-            items: [
-                { item_name: "किराणा आयटम #1", quantity: "2 नग", rate: 50.0, total_price: 100.0 }
-            ],
-            grand_total: 100.0
-        }
-    },
-    {
-        id: 49,
-        vendor_name: "किराणा पावती",
-        date: "2026-11-02",
-        category: "General",
-        grand_total: 230.0,
-        raw_json: {
-            vendor_name: "किराणा पावती",
-            date: "2026-11-02",
-            category: "General",
-            items: [
-                { item_name: "साखर", quantity: "2 किलो", rate: 40.0, total_price: 80.0 },
-                { item_name: "गहू", quantity: "5 किलो", rate: 30.0, total_price: 150.0 }
-            ],
-            grand_total: 230.0
-        }
-    },
-    {
-        id: 42,
-        vendor_name: "सोनल किराणा",
-        date: "2024-05-24",
-        category: "General",
-        grand_total: 150.0,
-        raw_json: {
-            vendor_name: "सोनल किराणा",
-            date: "2024-05-24",
-            category: "General",
-            items: [
-                { item_name: "गहू", quantity: "10 किलो", rate: 5.0, total_price: 50.0 },
-                { item_name: "तेल", quantity: "5 ltr", rate: 20.0, total_price: 100.0 }
-            ],
-            grand_total: 150.0
-        }
-    }
-];
-
-const CANONICAL_SEED_KHATA = [
-    { id: 10, customer_name: "sonal", phone: "7620042972", amount: 200.0, transaction_type: "Payment Received", date: "2026-11-18", due_date: "", notes: "" },
-    { id: 9, customer_name: "महेश जाधव", phone: "9811223344", amount: 500.0, transaction_type: "Credit Given", date: "2026-11-16", due_date: "", notes: "" },
-    { id: 8, customer_name: "सुरेश पवार", phone: "9822334455", amount: 250.0, transaction_type: "Credit Given", date: "2026-11-16", due_date: "", notes: "" },
-    { id: 2, customer_name: "सागर", phone: "", amount: 500.0, transaction_type: "Credit Given", date: "2026-10-20", due_date: "", notes: "सागर ला ५०० उधारी लिही" },
-    { id: 1, customer_name: "sonal", phone: "7620042972", amount: 500.0, transaction_type: "Credit Given", date: "2026-10-05", due_date: "2026-10-05", notes: "sugar" }
-];
-
 const VernaStorage = {
     KEY_RECEIPTS: "verna_persistent_receipts",
     KEY_KHATA: "verna_persistent_khata",
@@ -237,16 +89,9 @@ const VernaStorage = {
     get(key) {
         try {
             const raw = localStorage.getItem(key);
-            if (raw !== null) {
-                return JSON.parse(raw);
-            }
-            if (key === this.KEY_RECEIPTS) return JSON.parse(JSON.stringify(CANONICAL_SEED_RECEIPTS));
-            if (key === this.KEY_KHATA) return JSON.parse(JSON.stringify(CANONICAL_SEED_KHATA));
-            return [];
+            return raw ? JSON.parse(raw) : [];
         } catch (e) {
             console.warn("VernaStorage get notice:", e);
-            if (key === this.KEY_RECEIPTS) return JSON.parse(JSON.stringify(CANONICAL_SEED_RECEIPTS));
-            if (key === this.KEY_KHATA) return JSON.parse(JSON.stringify(CANONICAL_SEED_KHATA));
             return [];
         }
     },
@@ -1544,7 +1389,7 @@ function formatLocalizedName(name, lang = state.lang) {
 document.addEventListener("DOMContentLoaded", () => {
     // Automatic Storage Epoch: purge legacy cached ghost receipts from mobile/desktop
     const STORAGE_EPOCH_KEY = "verna_cache_epoch";
-    const CURRENT_EPOCH = "v78_live_server_sync";
+    const CURRENT_EPOCH = "v80_live_exact_sync";
     const savedEpoch = localStorage.getItem(STORAGE_EPOCH_KEY);
     if (savedEpoch !== CURRENT_EPOCH) {
         localStorage.removeItem("verna_persistent_receipts");
@@ -1688,11 +1533,15 @@ function showToast(message, type = "info", duration = 3500) {
 async function apiCall(endpoint, options = {}) {
     try {
         let res = await fetch(endpoint, options);
-        if ((res.status === 404 || res.status === 405) && endpoint.startsWith('/api/')) {
+        const ct = res.headers ? res.headers.get("content-type") : "";
+        const isHtml = ct && ct.includes("text/html");
+
+        if (((res.status === 404 || res.status === 405) || isHtml) && endpoint.startsWith('/api/')) {
             const fallbackPath = endpoint.replace('/api', '');
             try {
                 const retryRes = await fetch(fallbackPath, options);
-                if (retryRes && (retryRes.ok || retryRes.status !== 405)) {
+                const retryCt = retryRes.headers ? retryRes.headers.get("content-type") : "";
+                if (retryRes && (retryRes.ok || retryRes.status !== 405) && (!retryCt || !retryCt.includes("text/html"))) {
                     return retryRes;
                 }
             } catch (err) {
@@ -3456,8 +3305,11 @@ async function loadReceiptsLedger() {
         try {
             const res = await apiCall("/api/receipts");
             if (res.ok) {
-                serverData = await res.json();
-                isOnline = true;
+                const ct = res.headers ? res.headers.get("content-type") : "";
+                if (!ct || !ct.includes("text/html")) {
+                    serverData = await res.json();
+                    isOnline = true;
+                }
             }
         } catch (netErr) {
             console.warn("Server receipts fetch notice:", netErr);

@@ -22,79 +22,67 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/api/$1"
     },
     {
-      "source": "/ocr",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/ocr/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/voice-billing",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/chat",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/sync",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/tts",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/receipts",
-      "destination": "/api/index.py"
+      "source": "/api",
+      "destination": "/api/index.py?__path__=/api"
     },
     {
       "source": "/receipts/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/api/receipts/$1"
     },
     {
-      "source": "/khata",
-      "destination": "/api/index.py"
+      "source": "/receipts",
+      "destination": "/api/index.py?__path__=/api/receipts"
     },
     {
       "source": "/khata/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/api/khata/$1"
     },
     {
-      "source": "/scan-receipt",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/scan-receipt/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/customers",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/customers/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/inventory",
-      "destination": "/api/index.py"
+      "source": "/khata",
+      "destination": "/api/index.py?__path__=/api/khata"
     },
     {
       "source": "/inventory/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index.py?__path__=/api/inventory/$1"
     },
     {
-      "source": "/export-excel",
-      "destination": "/api/index.py"
+      "source": "/inventory",
+      "destination": "/api/index.py?__path__=/api/inventory"
     },
     {
-      "source": "/export/(.*)",
-      "destination": "/api/index.py"
+      "source": "/ocr",
+      "destination": "/api/index.py?__path__=/api/ocr"
+    },
+    {
+      "source": "/ocr/(.*)",
+      "destination": "/api/index.py?__path__=/api/ocr/$1"
+    },
+    {
+      "source": "/voice-billing",
+      "destination": "/api/index.py?__path__=/api/voice-billing"
+    },
+    {
+      "source": "/chat",
+      "destination": "/api/index.py?__path__=/api/chat"
+    },
+    {
+      "source": "/sync",
+      "destination": "/api/index.py?__path__=/api/sync"
+    },
+    {
+      "source": "/tts",
+      "destination": "/api/index.py?__path__=/api/tts"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/api/index.py?__path__=/api/dashboard"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.py?__path__=/health"
     }
   ],
   "functions": {

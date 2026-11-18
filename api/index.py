@@ -81,7 +81,7 @@ async def force_fresh_reload_middleware(request: Request, call_next):
     headers_dict = {k.lower(): v for k, v in request.scope.get("headers", [])}
 
     matched_path = ""
-    for hdr in (b"x-matched-path", b"x-invoke-path", b"x-forwarded-uri", b"x-original-url"):
+    for hdr in (b"x-matched-path", b"x-vercel-matched-path", b"x-invoke-path", b"x-forwarded-uri", b"x-original-url"):
         raw_val = headers_dict.get(hdr, b"").decode("utf-8", errors="ignore").strip()
         if raw_val:
             clean_val = raw_val.split("?")[0].strip()
