@@ -361,6 +361,29 @@ def init_db():
             DEFAULT_50_KIRANA_ITEMS
         )
     
+    # Auto-hydrate database from live_ledger_snapshot.json if receipts is empty
+    snapshot_path = os.path.join(ROOT_DIR, "data", "live_ledger_snapshot.json")
+    if os.path.exists(snapshot_path):
+        try:
+            cursor.execute("SELECT COUNT(*) FROM receipts")
+            if cursor.fetchone()[0] == 0:
+                with open(snapshot_path, "r", encoding="utf-8") as sf:
+                    snap_data = json.load(sf)
+                for r in snap_data.get("receipts", []):
+                    raw_str = json.dumps(r.get("raw_json", {}), ensure_ascii=False) if isinstance(r.get("raw_json"), dict) else (r.get("raw_json") or "{}")
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO receipts (id, vendor_name, date, category, grand_total, raw_json, image_hash, stock_deducted) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (r["id"], r.get("vendor_name", ""), r.get("date", ""), r.get("category", "General"), float(r.get("grand_total", 0.0)), raw_str, r.get("image_hash", ""), int(r.get("stock_deducted", 1)))
+                    )
+                for k in snap_data.get("khata", []):
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO customer_khata (id, customer_name, phone, amount, transaction_type, date, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (k["id"], k.get("customer_name", ""), k.get("phone", ""), float(k.get("amount", 0.0)), k.get("transaction_type", "Credit Given"), k.get("date", ""), k.get("due_date", ""), k.get("notes", ""))
+                    )
+                logger.info(f"Successfully hydrated database from {snapshot_path}")
+        except Exception as e:
+            logger.warning(f"Snapshot hydration notice: {e}")
+    
     # Database starts clean. Only user-entered or scanned data is persisted.
     
     conn.commit()
