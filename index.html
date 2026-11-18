@@ -98,9 +98,6 @@
                 <span>VernaLedger.AI</span>
             </div>
             <div class="actions">
-                <button class="btn-pill" id="mobile-server-sync-btn" onclick="forceCleanMobileCacheAndResync()" title="थेट सिंक (Live Server Resync)" style="background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.35); color: var(--neon-cyan); padding: 4px 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                    <span id="mobile-sync-icon">🔄</span>
-                </button>
                 <button class="btn-pill btn-lang" id="mob-theme-toggle-btn" onclick="toggleTheme()" title="थीम बदला" style="padding: 4px 10px;">
                     <span id="mob-theme-icon">☀️</span>
                 </button>
@@ -656,11 +653,6 @@
                                 🗑️ <span id="lbl-bulk-delete" data-i18n="btn_delete_selected">निवडलेल्या डिलीट करा</span> (<span id="ledger-selected-count">0</span>)
                             </button>
 
-                            <!-- Force Live Server Resync Button -->
-                            <button class="btn-cyber" id="btn-ledger-resync" onclick="forceCleanMobileCacheAndResync()" style="background: rgba(0, 242, 254, 0.12); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); font-weight: 700; padding: 8px 14px; font-size: 0.85rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="लॅपटॉप सर्व्हरवरून थेट डेटा सिंक करा">
-                                <span data-i18n="btn_resync_ledger">🔄 थेट सिंक</span>
-                            </button>
-
                             <!-- Clear Entire Ledger Button -->
                             <button class="btn-pill" id="btn-ledger-clear-all" onclick="clearEntireLedger()" style="background: rgba(255, 0, 85, 0.1); color: var(--neon-red); border: 1px solid rgba(255, 0, 85, 0.35); padding: 8px 14px; font-size: 0.82rem; font-weight: 700; cursor: pointer;" title="सर्व पावत्या डिलीट करा" data-i18n="btn_clear_all_ledger">
                                 ⚠️ सर्व रिकामे करा
@@ -680,7 +672,6 @@
                             📜 सर्व सेव्ह केलेल्या पावत्या (Ledger Audit Table)
                         </h3>
                         <div id="ledger-selection-stats" style="font-size: 0.82rem; color: var(--text-slate); display: flex; align-items: center; gap: 12px;">
-                            <span id="server-status-pill" class="user-role-badge badge-admin" style="font-size: 0.72rem; cursor: pointer;" onclick="forceCleanMobileCacheAndResync()" title="सर्व्हर कनेक्शन स्थिती">🟢 Live</span>
                             <span><span data-i18n="lbl_total_receipts">एकूण पावत्या:</span> <strong id="ledger-total-count" style="color: var(--neon-cyan);">0</strong></span>
                             <span id="ledger-selected-stats-pill" style="display: none; background: rgba(0, 242, 254, 0.12); padding: 3px 9px; border-radius: 6px; border: 1px solid rgba(0, 242, 254, 0.3); color: var(--neon-cyan); font-weight: 700;">
                                 <span data-i18n="lbl_selected_receipts">निवडलेल्या:</span> <span id="ledger-selected-num">0</span>
@@ -1118,6 +1109,6 @@
         </div>
     </div>
 
-<script src="app.js?v=78.0"></script>
+<script src="app.js?v=79.0"></script>
 </body>
 </html>

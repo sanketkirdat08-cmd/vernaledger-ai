@@ -1,3 +1,52 @@
+// -----------------------------------------------------------------------------
+// SEAMLESS 100% AUTOMATIC BACKGROUND SYNC ENGINE (ZERO MANUAL BUTTONS)
+// -----------------------------------------------------------------------------
+let autoSyncTimer = null;
+let isSyncingInBackground = false;
+
+async function triggerAutomaticLiveSync() {
+    if (isSyncingInBackground) return;
+    if (typeof document !== "undefined" && document.hidden) return; // Save battery/data when screen off
+    isSyncingInBackground = true;
+    try {
+        if (state.currentView === "ledger") {
+            await loadReceiptsLedger();
+        } else if (state.currentView === "khata") {
+            await loadKhataData();
+        } else if (state.currentView === "business") {
+            await loadInventoryData();
+        } else {
+            await loadDashboardMetrics();
+        }
+    } catch (_) {
+    } finally {
+        isSyncingInBackground = false;
+    }
+}
+
+function startAutomaticSyncEngine() {
+    if (autoSyncTimer) clearInterval(autoSyncTimer);
+    // Silent automatic heartbeat sync every 4 seconds in the background
+    autoSyncTimer = setInterval(triggerAutomaticLiveSync, 4000);
+
+    if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) {
+                triggerAutomaticLiveSync();
+            }
+        });
+    }
+
+    if (typeof window !== "undefined") {
+        window.addEventListener("focus", () => {
+            triggerAutomaticLiveSync();
+        });
+        window.addEventListener("online", () => {
+            triggerAutomaticLiveSync();
+        });
+    }
+}
+
 /**
  * VernaLedger.AI - Merchant Pro v7.5
  * Client-Side Application Engine (Vercel Serverless Ready)
@@ -1764,6 +1813,7 @@ function showApp() {
     try { loadInventoryData(); } catch (e) { console.warn("Inventory load notice:", e); }
     try { loadExpensesData(); } catch (e) { console.warn("Expenses load notice:", e); }
     try { recalcBillTotal(); } catch (e) { console.warn("Recalc bill notice:", e); }
+    try { startAutomaticSyncEngine(); } catch (e) { console.warn("Auto sync notice:", e); }
 
     // Restore saved view on refresh or URL hash
     const hash = window.location.hash.replace("#", "").trim();
@@ -1826,10 +1876,17 @@ function switchView(viewName) {
         sec.classList.toggle("active", sec.id === `view-${viewName}`);
     });
 
-    if (viewName === "business") {
+    // 100% Automatic real-time load on view switch - no manual sync needed
+    if (viewName === "ledger") {
+        loadReceiptsLedger();
+    } else if (viewName === "khata") {
+        loadKhataData();
+    } else if (viewName === "business") {
         applyShopSettingsToUI();
         loadInventoryData();
         loadExpensesData();
+    } else if (viewName === "scanner") {
+        loadDashboardMetrics();
     }
 
     // Update HUD titles based on active language
