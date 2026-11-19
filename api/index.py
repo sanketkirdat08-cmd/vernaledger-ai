@@ -420,13 +420,11 @@ def get_backup_api_key() -> str:
         return ""
 
 OCR_MODELS = [
-    'gemini-3.5-flash-lite',
     'gemini-flash-lite-latest',
-    'gemini-3.5-flash',
-    'gemini-3-flash-preview',
-    'gemini-3.1-flash-lite',
-    'gemini-3.8-flash',
-    'gemini-flash-latest'
+    'gemini-2.5-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-pro',
+    'gemini-pro-latest'
 ]
 
 def get_api_keys_pool() -> List[str]:
