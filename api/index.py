@@ -10,6 +10,9 @@ import io
 import re
 import json
 import csv
+import urllib
+import urllib.request
+import urllib.error
 try:
     import xlsxwriter
 except ImportError:
