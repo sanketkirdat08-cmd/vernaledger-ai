@@ -1435,13 +1435,13 @@ Return strictly valid JSON only:
     conn = get_db()
     cursor = conn.cursor()
 
-    # Check if this exact receipt already exists (same date and same grand total within tolerance, or same vendor & amount)
+    # Check if this exact receipt already exists (same date and same grand total and same vendor name, or exact image hash)
     existing_receipt = cursor.execute(
         "SELECT id, vendor_name, date, category, grand_total, raw_json FROM receipts "
-        "WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND (LOWER(vendor_name) = LOWER(?) OR vendor_name = '')) "
-        "OR (ABS(grand_total - ?) < 0.01 AND LOWER(vendor_name) = LOWER(?) AND grand_total > 0) "
+        "WHERE (date = ? AND ABS(grand_total - ?) < 0.01 AND LOWER(TRIM(vendor_name)) = LOWER(TRIM(?)) AND grand_total > 0) "
+        "OR (image_hash = ? AND grand_total > 0) "
         "ORDER BY id DESC LIMIT 1",
-        (rec_date, g_total, v_name, g_total, v_name)
+        (rec_date, g_total, v_name, image_hash)
     ).fetchone()
 
     if existing_receipt:
