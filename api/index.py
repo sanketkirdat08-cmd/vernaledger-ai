@@ -1,5 +1,6 @@
 """
-VernaLedger.AI: Merchant Pro v7.5 - Production Serverless API (Vercel Ready)
+
+- Production Serverless API (Vercel Ready)
 FastAPI Backend providing Multimodal Gemini Flash OCR, Vernacular Voice Billing,
 SQLite ACID Ledger, Customer Khata, Business Operations, and Neural RAG Chatbot.
 """
