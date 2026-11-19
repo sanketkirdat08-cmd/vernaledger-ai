@@ -299,11 +299,47 @@
                             </button>
                         </div>
 
-                        <!-- Status Spinner -->
-                        <div id="scanner-loader" style="display: none; margin-top: 16px; text-align: center; padding: 12px; background: rgba(0, 242, 254, 0.08); border-radius: 12px; border: 1px solid var(--neon-cyan);">
-                            <div style="font-size: 1.2rem; animation: spin 1s infinite linear; display: inline-block;">⚙️</div>
-                            <div style="font-size: 0.85rem; font-weight: 700; color: var(--neon-cyan); margin-top: 6px;" id="scanner-loader-text">
-                                ⚡ AI द्वारे पावती स्कॅनिंग सुरू आहे...
+                        <!-- Multi-Stage AI Scanner Live Progress Tracker -->
+                        <div id="scanner-loader" style="display: none; margin-top: 16px; padding: 16px; background: rgba(10, 25, 47, 0.92); border-radius: 14px; border: 1px solid rgba(0, 242, 254, 0.4); box-shadow: 0 8px 32px rgba(0, 242, 254, 0.15); backdrop-filter: blur(8px);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.2rem; animation: pulse 1.5s infinite;">🤖</span>
+                                    <span style="font-weight: 800; font-size: 0.88rem; color: var(--neon-cyan);">VernaLedger AI व्हिजन स्कॅनर</span>
+                                </div>
+                                <span id="scanner-loader-percent" style="font-size: 0.82rem; font-weight: 800; color: var(--neon-green); font-family: 'Space Mono', monospace;">25%</span>
+                            </div>
+
+                            <!-- Animated Glowing Progress Bar Track -->
+                            <div style="width: 100%; height: 7px; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; margin-bottom: 14px;">
+                                <div id="scanner-progress-bar" style="width: 25%; height: 100%; background: linear-gradient(90deg, #00f2fe, #4facfe, #10b981); border-radius: 10px; transition: width 0.4s ease; box-shadow: 0 0 10px rgba(0, 242, 254, 0.6);"></div>
+                            </div>
+
+                            <!-- Real-time 4 Steps Tracker -->
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.78rem; text-align: left;">
+                                <div id="step-ocr-1" class="scanner-step active" style="display: flex; align-items: center; gap: 10px; color: var(--text-white); transition: all 0.3s ease;">
+                                    <span class="step-icon" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(0, 242, 254, 0.2); border: 1px solid var(--neon-cyan); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--neon-cyan); font-weight: 800;">१</span>
+                                    <span style="flex: 1;">📸 <strong>पायरी १:</strong> फोटो ऑप्टिमायझेशन व देवनागरी वर्धक</span>
+                                    <span class="step-badge" style="font-size: 0.7rem; color: var(--neon-cyan); font-weight: 700;">सुरू आहे...</span>
+                                </div>
+                                <div id="step-ocr-2" class="scanner-step" style="display: flex; align-items: center; gap: 10px; color: var(--text-dim); transition: all 0.3s ease;">
+                                    <span class="step-icon" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-dim); font-weight: 800;">२</span>
+                                    <span style="flex: 1;">🧠 <strong>पायरी २:</strong> Google Multimodal AI व्हिजन द्वारे हस्ताक्षर वाचन</span>
+                                    <span class="step-badge" style="font-size: 0.7rem; color: var(--text-dim);">प्रतीक्षेत</span>
+                                </div>
+                                <div id="step-ocr-3" class="scanner-step" style="display: flex; align-items: center; gap: 10px; color: var(--text-dim); transition: all 0.3s ease;">
+                                    <span class="step-icon" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-dim); font-weight: 800;">३</span>
+                                    <span style="flex: 1;">🧾 <strong>पायरी ३:</strong> किराणा वस्तूंची नावे, नग/वजन व दर पडताळणी</span>
+                                    <span class="step-badge" style="font-size: 0.7rem; color: var(--text-dim);">प्रतीक्षेत</span>
+                                </div>
+                                <div id="step-ocr-4" class="scanner-step" style="display: flex; align-items: center; gap: 10px; color: var(--text-dim); transition: all 0.3s ease;">
+                                    <span class="step-icon" style="width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: var(--text-dim); font-weight: 800;">४</span>
+                                    <span style="flex: 1;">⚡ <strong>पायरी ४:</strong> डिजिटल पावती टेबलमध्ये लोड व लेजर नोंदणी</span>
+                                    <span class="step-badge" style="font-size: 0.7rem; color: var(--text-dim);">प्रतीक्षेत</span>
+                                </div>
+                            </div>
+
+                            <div id="scanner-loader-text" style="font-size: 0.76rem; color: var(--neon-cyan); margin-top: 12px; font-weight: 600; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+                                ⚡ पावतीचा फोटो AI कडे पाठवला आहे...
                             </div>
                         </div>
                     </div>
