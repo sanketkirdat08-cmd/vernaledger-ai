@@ -108,7 +108,7 @@ def sync_cycle():
     has_local_changes = bool(status_res.stdout and status_res.stdout.strip())
 
     if has_local_changes:
-        subprocess.run(["git", "add", "."], cwd=ROOT_DIR, capture_output=True)
+        subprocess.run(["git", "add", "-A"], cwd=ROOT_DIR, capture_output=True)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         commit_msg = f"auto-sync: automated state backup [{timestamp}]"
         commit_res = subprocess.run(["git", "commit", "-m", commit_msg], cwd=ROOT_DIR, capture_output=True, text=True)
