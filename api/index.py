@@ -1728,28 +1728,55 @@ Convert all Devanagari numbers to standard Arabic digits. Return strictly valid 
 
     genai.configure(api_key=api_key, transport='rest')
     models_to_try = [
-        'gemini-3.5-flash-lite',
         'gemini-flash-lite-latest',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
-        'gemini-3.1-flash-lite',
-        'gemini-3.8-flash',
-        'gemini-flash-latest'
+        'gemini-2.5-flash',
+        'gemini-flash-latest',
+        'gemini-2.5-pro',
+        'gemini-pro-latest'
     ]
     res_text = None
-    for m in models_to_try:
-        try:
-            model = genai.GenerativeModel(
-                m,
-                generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
-            )
-            model_input = [prompt, audio_part] if audio_part else prompt
-            res = model.generate_content(model_input, request_options={"timeout": 35})
-            if res and res.text:
-                res_text = res.text
-                break
-        except Exception:
-            continue
+
+    # 1. High-speed direct REST API for voice text parsing (0.5s response, avoids gRPC overhead)
+    if transcript:
+        for m in models_to_try:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"responseMimeType": "application/json", "temperature": 0.1}
+                }
+                req_obj = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req_obj, timeout=7) as resp:
+                    resp_json = json.loads(resp.read().decode("utf-8"))
+                    candidates = resp_json.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            res_text = parts[0]["text"]
+                            break
+            except Exception as e:
+                logger.warning(f"Voice REST call notice for {m}: {e}")
+                continue
+
+    # 2. Fallback to genai SDK if REST was not completed
+    if not res_text:
+        for m in models_to_try:
+            try:
+                model = genai.GenerativeModel(
+                    m,
+                    generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
+                )
+                model_input = [prompt, audio_part] if (audio_part and not transcript) else prompt
+                res = model.generate_content(model_input, request_options={"timeout": 8})
+                if res and res.text:
+                    res_text = res.text
+                    break
+            except Exception:
+                continue
 
     data = None
     today_str = date.today().strftime("%Y-%m-%d")
