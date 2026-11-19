@@ -1,5 +1,5 @@
 with open('VernaLedger_Presentation.html', 'r', encoding='utf-8') as f:
-    text = f.read()
+    lines = f.readlines()
 
-s = text.find('<!-- SLIDE 23: CONCLUSION & THANK YOU -->')
-print(text[s:])
+for i in range(len(lines)-60, len(lines)):
+    print(f"{i+1}: {lines[i].rstrip()}")
