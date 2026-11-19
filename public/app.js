@@ -2229,7 +2229,7 @@ async function submitReceiptOCR() {
 // VERNACULAR MARATHI VOICE BILLING
 // -----------------------------------------------------------------------------
 let voiceFinalTranscript = "";
-let voiceActiveLang = "";
+let voiceActiveLang = "mr-IN";
 let voiceRestartAttempts = 0;
 let voiceMediaRecorder = null;
 let voiceMediaStream = null;
@@ -2457,15 +2457,24 @@ async function submitVoiceBilling() {
             throw new Error(json.error || json.detail || "व्हॉइस पावती तयार करता आली नाही.");
         }
 
+        if (!json.data.id) {
+            json.data.id = Date.now();
+        }
+        state.currentBillId = json.data.id;
+        state.currentBill = json.data;
         populateBillCard(json.data);
+
+        // ALWAYS add to VernaStorage so voice receipts immediately show up in Ledger on mobile & desktop!
+        VernaStorage.addReceipt(json.data);
+
         voiceAudioData = null;
         loadDashboardMetrics();
         loadReceiptsLedger();
         loadInventoryData();
         if (typeof showToast === "function") {
-            showToast("✅ व्हॉइस पावती यशस्वीरित्या तयार झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);
+            showToast(`✅ व्हॉइस पावती तयार झाली व लेजरमध्ये नोंदवली गेली! (#VL-${json.data.id})`, "success", 3500);
         } else {
-            alert("✅ व्हॉइस पावती तयार झाली व लेजरमध्ये नोंदवली गेली!");
+            alert(`✅ व्हॉइस पावती तयार झाली व लेजरमध्ये नोंदवली गेली! (#VL-${json.data.id})`);
         }
 
         // Smooth scroll to digital bill preview
