@@ -229,7 +229,6 @@ const VernaStorage = {
     },
 
     reconcileServerReceipts(serverReceipts) {
-        // When online, server is the absolute source of truth!
         const serverList = Array.isArray(serverReceipts) ? serverReceipts : [];
         
         // Remove from deleted tombstones any IDs that the server actively returns
@@ -238,19 +237,31 @@ const VernaStorage = {
         this.save(this.KEY_DELETED_RECEIPTS, localDeletedIds);
 
         const local = this.get(this.KEY_RECEIPTS);
-        const offlinePending = local.filter(r => r && r._offline_pending === true && !this.isReceiptDeleted(r));
-
         const map = new Map();
+
+        // 1. Ingest all active server receipts (unless locally marked deleted)
         serverList.forEach(r => {
-            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
-            map.set(key, r);
-        });
-        offlinePending.forEach(r => {
-            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
-            if (!map.has(key)) {
+            if (r && !this.isReceiptDeleted(r)) {
+                const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
                 map.set(key, r);
             }
         });
+
+        // 2. PRESERVE ALL valid local receipts (scanned, created, or offline) that the server doesn't have yet!
+        // NEVER DROP locally scanned or created receipts!
+        local.forEach(r => {
+            if (r && !this.isReceiptDeleted(r)) {
+                const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+                if (!map.has(key)) {
+                    // Mark as offline pending if not already on server, so background sync can push it to server
+                    if (!r._offline_pending && !serverList.some(sr => sr.id == r.id)) {
+                        r._offline_pending = true;
+                    }
+                    map.set(key, r);
+                }
+            }
+        });
+
         const reconciled = Array.from(map.values());
         reconciled.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
         this.save(this.KEY_RECEIPTS, reconciled);
