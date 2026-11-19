@@ -1893,8 +1893,8 @@ function closeCameraModal() {
 function captureCameraPhoto() {
     const video = document.getElementById("camera-video-stream");
     const canvas = document.getElementById("camera-canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -1909,7 +1909,14 @@ function captureCameraPhoto() {
         }
         setReceiptImage(file);
         closeCameraModal();
-    }, "image/jpeg", 0.9);
+
+        // One-Click Auto-Scan immediately after camera capture on mobile!
+        setTimeout(() => {
+            if (typeof submitReceiptOCR === "function") {
+                submitReceiptOCR();
+            }
+        }, 350);
+    }, "image/jpeg", 0.92);
 }
 
 // -----------------------------------------------------------------------------
@@ -2522,15 +2529,124 @@ function populateBillCard(data) {
     recalcBillTotal();
 }
 
+function onBillItemRateChanged(rateInput) {
+    const row = rateInput.closest("tr");
+    if (!row) return;
+    const qtyInput = row.querySelector(".item-qty");
+    const totalInput = row.querySelector(".item-total");
+    const qtyNum = parseDevanagariNum(qtyInput ? qtyInput.value : 1) || 1;
+    const rateVal = parseDevanagariNum(rateInput.value) || 0;
+    const total = Math.round(qtyNum * rateVal * 100) / 100;
+    if (totalInput) {
+        if (totalInput.tagName === "INPUT") {
+            totalInput.value = total > 0 ? total : "";
+        } else {
+            totalInput.innerText = total.toFixed(2);
+        }
+    }
+    recalcBillGrandTotal();
+}
+
+function onBillItemTotalChanged(totalInput) {
+    const row = totalInput.closest("tr");
+    if (!row) return;
+    const qtyInput = row.querySelector(".item-qty");
+    const rateInput = row.querySelector(".item-rate");
+    const qtyNum = parseDevanagariNum(qtyInput ? qtyInput.value : 1) || 1;
+    const totalVal = parseDevanagariNum(totalInput.value) || 0;
+    const rate = qtyNum > 0 ? (Math.round((totalVal / qtyNum) * 100) / 100) : totalVal;
+    if (rateInput) {
+        rateInput.value = rate > 0 ? rate : "";
+    }
+    recalcBillGrandTotal();
+}
+
+function onBillItemQtyChanged(qtyInput) {
+    const row = qtyInput.closest("tr");
+    if (!row) return;
+    const rateInput = row.querySelector(".item-rate");
+    const totalInput = row.querySelector(".item-total");
+    const qtyNum = parseDevanagariNum(qtyInput.value) || 1;
+    const rateVal = parseDevanagariNum(rateInput ? rateInput.value : 0) || 0;
+    const totalVal = parseDevanagariNum(totalInput ? totalInput.value : 0) || 0;
+
+    if (rateVal > 0) {
+        const total = Math.round(qtyNum * rateVal * 100) / 100;
+        if (totalInput) {
+            if (totalInput.tagName === "INPUT") totalInput.value = total > 0 ? total : "";
+            else totalInput.innerText = total.toFixed(2);
+        }
+    } else if (totalVal > 0 && qtyNum > 0) {
+        const rate = Math.round((totalVal / qtyNum) * 100) / 100;
+        if (rateInput) rateInput.value = rate > 0 ? rate : "";
+    }
+    recalcBillGrandTotal();
+}
+
+function recalcBillGrandTotal() {
+    const rows = document.querySelectorAll("#bill-items-tbody tr");
+    let grandTotal = 0;
+
+    rows.forEach(row => {
+        const qtyEl = row.querySelector(".item-qty");
+        const rateEl = row.querySelector(".item-rate");
+        const totalEl = row.querySelector(".item-total");
+        if (!qtyEl || !rateEl) return;
+
+        let total = 0;
+        if (totalEl) {
+            total = totalEl.tagName === "INPUT" ? (parseFloat(totalEl.value) || 0) : (parseFloat(totalEl.innerText) || 0);
+        }
+        if (total === 0) {
+            const qtyNum = parseDevanagariNum(qtyEl.value) || 1;
+            const rate = parseDevanagariNum(rateEl.value) || 0;
+            total = Math.round(qtyNum * rate * 100) / 100;
+            if (totalEl) {
+                if (totalEl.tagName === "INPUT") totalEl.value = total > 0 ? total : "";
+                else totalEl.innerText = total.toFixed(2);
+            }
+        }
+        grandTotal += total;
+    });
+
+    const totalDisplay = document.getElementById("bill-grand-total");
+    if (totalDisplay) totalDisplay.innerText = `₹${grandTotal.toFixed(2)}`;
+    return grandTotal;
+}
+
+function recalcBillTotal() {
+    return recalcBillGrandTotal();
+}
+
 function appendBillRow(name = "", qty = "1", rate = 0, total = 0) {
     const tbody = document.getElementById("bill-items-tbody");
     const tr = document.createElement("tr");
+
+    let rVal = Number(rate) || 0;
+    let tVal = Number(total) || 0;
+    const qNum = parseDevanagariNum(qty) || 1;
+
+    // Smart rate & total resolution:
+    if (qNum > 1) {
+        if (tVal > 0 && rVal === 0) {
+            rVal = Math.round((tVal / qNum) * 100) / 100;
+        } else if (rVal > 0 && tVal === 0) {
+            tVal = Math.round((qNum * rVal) * 100) / 100;
+        } else if (rVal > 0 && tVal > 0 && Math.abs(rVal - tVal) < 0.01) {
+            // Both fields had total written (e.g. 50 Rs for 10 kg)
+            rVal = Math.round((tVal / qNum) * 100) / 100;
+        }
+    } else {
+        if (tVal > 0 && rVal === 0) rVal = tVal;
+        if (rVal > 0 && tVal === 0) tVal = rVal;
+    }
+
     tr.innerHTML = `
-        <td><input type="text" class="input-cyber item-name" value="${escapeHtml(name)}"></td>
-        <td><input type="text" class="input-cyber item-qty" value="${escapeHtml(String(qty))}" oninput="recalcBillTotal()"></td>
-        <td><input type="number" class="input-cyber item-rate" value="${rate}" step="0.5" oninput="recalcBillTotal()"></td>
-        <td class="item-total" style="font-weight: 700; color: var(--neon-cyan);">${Number(total).toFixed(2)}</td>
-        <td><button onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1.1rem;">✕</button></td>
+        <td><input type="text" class="input-cyber item-name" value="${escapeHtml(name)}" placeholder="वस्तूचे नाव"></td>
+        <td><input type="text" class="input-cyber item-qty" value="${escapeHtml(String(qty))}" oninput="onBillItemQtyChanged(this)"></td>
+        <td><input type="number" class="input-cyber item-rate" value="${rVal > 0 ? rVal : ''}" step="0.5" placeholder="दर (₹)" oninput="onBillItemRateChanged(this)"></td>
+        <td><input type="number" class="input-cyber item-total" value="${tVal > 0 ? tVal : ''}" step="0.5" placeholder="एकूण (₹)" style="font-weight: 700; color: var(--neon-cyan);" oninput="onBillItemTotalChanged(this)"></td>
+        <td><button type="button" onclick="removeBillRow(this)" style="background: none; border: none; color: var(--neon-red); cursor: pointer; font-size: 1.1rem;">✕</button></td>
     `;
     tbody.appendChild(tr);
 }
@@ -2548,35 +2664,10 @@ function removeBillRow(btn) {
     const tbody = document.getElementById("bill-items-tbody");
     if (tbody.children.length > 1) {
         row.remove();
-        recalcBillTotal();
+        recalcBillGrandTotal();
     } else {
         alert("पावतीमध्ये किमान एक वस्तू असणे आवश्यक आहे.");
     }
-}
-
-function recalcBillTotal() {
-    const rows = document.querySelectorAll("#bill-items-tbody tr");
-    let grandTotal = 0;
-
-    rows.forEach(row => {
-        const qtyEl = row.querySelector(".item-qty");
-        const rateEl = row.querySelector(".item-rate");
-        if (!qtyEl || !rateEl) return; // Skip placeholder or informational rows safely
-
-        const qtyStr = qtyEl.value;
-        const rateVal = rateEl.value;
-        const qtyNum = parseDevanagariNum(qtyStr) || 1;
-        const rate = parseDevanagariNum(rateVal) || 0;
-        const total = qtyNum * rate;
-
-        const totalCell = row.querySelector(".item-total");
-        if (totalCell) totalCell.innerText = total.toFixed(2);
-        grandTotal += total;
-    });
-
-    const totalEl = document.getElementById("bill-grand-total");
-    if (totalEl) totalEl.innerText = `₹${grandTotal.toFixed(2)}`;
-    return grandTotal;
 }
 
 function getCurrentBillData() {
@@ -2592,13 +2683,21 @@ function getCurrentBillData() {
         const nameEl = row.querySelector(".item-name");
         const qtyEl = row.querySelector(".item-qty");
         const rateEl = row.querySelector(".item-rate");
-        const totalCell = row.querySelector(".item-total");
-        if (!nameEl || !qtyEl || !rateEl) return; // Skip placeholder row safely
+        const totalEl = row.querySelector(".item-total");
+        if (!nameEl || !qtyEl || !rateEl) return;
 
         const name = nameEl.value.trim();
         const qty = qtyEl.value.trim();
-        const rate = parseFloat(rateEl.value) || 0;
-        const total = totalCell ? (parseFloat(totalCell.innerText) || 0) : (rate * 1);
+        const qtyNum = parseDevanagariNum(qty) || 1;
+        let rate = parseFloat(rateEl.value) || 0;
+        let total = totalEl ? (totalEl.tagName === "INPUT" ? (parseFloat(totalEl.value) || 0) : (parseFloat(totalEl.innerText) || 0)) : 0;
+
+        if (total === 0 && rate > 0) {
+            total = Math.round(qtyNum * rate * 100) / 100;
+        } else if (rate === 0 && total > 0 && qtyNum > 0) {
+            rate = Math.round((total / qtyNum) * 100) / 100;
+        }
+
         if (name) {
             items.push({ item_name: name, quantity: qty, rate: rate, total_price: total });
             grandTotal += total;
