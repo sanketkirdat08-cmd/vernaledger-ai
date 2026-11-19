@@ -2229,7 +2229,7 @@ async function submitReceiptOCR() {
 // VERNACULAR MARATHI VOICE BILLING
 // -----------------------------------------------------------------------------
 let voiceFinalTranscript = "";
-let voiceActiveLang = "";
+let voiceActiveLang = "mr-IN";
 let voiceRestartAttempts = 0;
 let voiceMediaRecorder = null;
 let voiceMediaStream = null;
