@@ -171,14 +171,16 @@ const VernaStorage = {
         this.unmarkReceiptDeleted(receipt.id, sig);
 
         const list = this.get(this.KEY_RECEIPTS);
-        const exists = list.some(r => 
+        const idx = list.findIndex(r => 
             (r.id && receipt.id && (String(r.id).trim() === String(receipt.id).trim() || Number(r.id) === Number(receipt.id))) ||
             (r.vendor_name === receipt.vendor_name && r.date === receipt.date && Math.abs((Number(r.grand_total) || 0) - (Number(receipt.grand_total) || 0)) < 0.01)
         );
-        if (!exists) {
+        if (idx >= 0) {
+            list[idx] = { ...list[idx], ...receipt };
+        } else {
             list.unshift(receipt);
-            this.save(this.KEY_RECEIPTS, list);
         }
+        this.save(this.KEY_RECEIPTS, list);
     },
 
     removeReceipt(id, signature) {
