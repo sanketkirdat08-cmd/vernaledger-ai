@@ -953,14 +953,36 @@ def clean_json_str(text: str) -> dict:
             else:
                 total_val = float(total_raw or 0.0)
 
-            # Auto-compute if missing or ambiguous
-            if total_val == 0.0 and rate_val > 0.0:
-                total_val = round(qty_val * rate_val, 2)
-            elif rate_val == 0.0 and total_val > 0.0 and qty_val > 0:
-                rate_val = round(total_val / qty_val, 2)
-            elif qty_val > 1.0 and abs(rate_val - total_val) < 0.01 and total_val > 0.0:
-                # In Kirana slips, row total is frequently written in the price column (e.g. 50 Rs for 10 kg)
-                rate_val = round(total_val / qty_val, 2)
+            # High-Precision Indian Kirana Rate vs Total Disambiguation:
+            # Rate = price of 1 unit or 1 kg (दर = एका वस्तूची / १ किलोची किंमत)
+            # Total = line total amount (एकूण रक्कम = qty * rate)
+            if qty_val > 1.0:
+                if total_val == 0.0 and rate_val > 0.0:
+                    # In Kirana slips, when only one amount is written beside a multi-unit item (e.g. "गहू 10 किलो 50"),
+                    # that amount is the line total (Total = 50 Rs, Rate = 5 Rs/kg).
+                    total_val = rate_val
+                    rate_val = round(total_val / qty_val, 2)
+                elif rate_val == 0.0 and total_val > 0.0:
+                    rate_val = round(total_val / qty_val, 2)
+                elif abs(rate_val - total_val) < 0.01 and total_val > 0.0:
+                    # Model placed the same number in both fields (e.g. 50 in rate and 50 in total for 10 kg)
+                    rate_val = round(total_val / qty_val, 2)
+                elif rate_val > total_val and total_val > 0.0:
+                    # Rate per unit can never exceed the entire line total for multiple units! Swap them.
+                    rate_val, total_val = total_val, rate_val
+                    rate_val = round(total_val / qty_val, 2)
+                elif abs((qty_val * rate_val) - total_val) > 0.05 and total_val > 0.0:
+                    # Recompute rate to match explicit line total
+                    rate_val = round(total_val / qty_val, 2)
+            else:
+                # For single quantity (1 unit, 1 kg, 1 packet):
+                if total_val == 0.0 and rate_val > 0.0:
+                    total_val = rate_val
+                elif rate_val == 0.0 and total_val > 0.0:
+                    rate_val = total_val
+                elif rate_val > 0.0 and total_val > 0.0:
+                    total_val = max(rate_val, total_val)
+                    rate_val = total_val
 
             clean_items.append({
                 "item_name": name,
