@@ -171,14 +171,16 @@ const VernaStorage = {
         this.unmarkReceiptDeleted(receipt.id, sig);
 
         const list = this.get(this.KEY_RECEIPTS);
-        const exists = list.some(r => 
+        const idx = list.findIndex(r => 
             (r.id && receipt.id && (String(r.id).trim() === String(receipt.id).trim() || Number(r.id) === Number(receipt.id))) ||
             (r.vendor_name === receipt.vendor_name && r.date === receipt.date && Math.abs((Number(r.grand_total) || 0) - (Number(receipt.grand_total) || 0)) < 0.01)
         );
-        if (!exists) {
+        if (idx >= 0) {
+            list[idx] = { ...list[idx], ...receipt };
+        } else {
             list.unshift(receipt);
-            this.save(this.KEY_RECEIPTS, list);
         }
+        this.save(this.KEY_RECEIPTS, list);
     },
 
     removeReceipt(id, signature) {
@@ -227,7 +229,6 @@ const VernaStorage = {
     },
 
     reconcileServerReceipts(serverReceipts) {
-        // When online, server is the absolute source of truth!
         const serverList = Array.isArray(serverReceipts) ? serverReceipts : [];
         
         // Remove from deleted tombstones any IDs that the server actively returns
@@ -236,19 +237,31 @@ const VernaStorage = {
         this.save(this.KEY_DELETED_RECEIPTS, localDeletedIds);
 
         const local = this.get(this.KEY_RECEIPTS);
-        const offlinePending = local.filter(r => r && r._offline_pending === true && !this.isReceiptDeleted(r));
-
         const map = new Map();
+
+        // 1. Ingest all active server receipts (unless locally marked deleted)
         serverList.forEach(r => {
-            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
-            map.set(key, r);
-        });
-        offlinePending.forEach(r => {
-            const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
-            if (!map.has(key)) {
+            if (r && !this.isReceiptDeleted(r)) {
+                const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
                 map.set(key, r);
             }
         });
+
+        // 2. PRESERVE ALL valid local receipts (scanned, created, or offline) that the server doesn't have yet!
+        // NEVER DROP locally scanned or created receipts!
+        local.forEach(r => {
+            if (r && !this.isReceiptDeleted(r)) {
+                const key = r.id != null ? String(r.id).trim() : `${r.vendor_name}_${r.date}_${r.grand_total}`;
+                if (!map.has(key)) {
+                    // Mark as offline pending if not already on server, so background sync can push it to server
+                    if (!r._offline_pending && !serverList.some(sr => sr.id == r.id)) {
+                        r._offline_pending = true;
+                    }
+                    map.set(key, r);
+                }
+            }
+        });
+
         const reconciled = Array.from(map.values());
         reconciled.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
         this.save(this.KEY_RECEIPTS, reconciled);
@@ -1960,6 +1973,66 @@ async function compressImageForOCR(file, maxDimension = 1280, quality = 0.82) {
 
 let isOcrScanning = false;
 
+function updateOcrProgress(step, percent, message) {
+    const loader = document.getElementById("scanner-loader");
+    if (!loader) return;
+    loader.style.display = "block";
+
+    const percentEl = document.getElementById("scanner-loader-percent");
+    if (percentEl) percentEl.innerText = `${percent}%`;
+
+    const barEl = document.getElementById("scanner-progress-bar");
+    if (barEl) barEl.style.width = `${percent}%`;
+
+    const textEl = document.getElementById("scanner-loader-text");
+    if (textEl && message) textEl.innerHTML = message;
+
+    for (let i = 1; i <= 4; i++) {
+        const stepEl = document.getElementById(`step-ocr-${i}`);
+        if (!stepEl) continue;
+        const icon = stepEl.querySelector(".step-icon");
+        const badge = stepEl.querySelector(".step-badge");
+
+        if (i < step) {
+            stepEl.style.color = "var(--text-white)";
+            if (icon) {
+                icon.style.background = "rgba(16, 185, 129, 0.25)";
+                icon.style.borderColor = "var(--neon-green)";
+                icon.style.color = "var(--neon-green)";
+                icon.innerText = "✓";
+            }
+            if (badge) {
+                badge.style.color = "var(--neon-green)";
+                badge.innerText = "पूर्ण";
+            }
+        } else if (i === step) {
+            stepEl.style.color = "var(--text-white)";
+            if (icon) {
+                icon.style.background = "rgba(0, 242, 254, 0.25)";
+                icon.style.borderColor = "var(--neon-cyan)";
+                icon.style.color = "var(--neon-cyan)";
+                icon.innerText = String(i);
+            }
+            if (badge) {
+                badge.style.color = "var(--neon-cyan)";
+                badge.innerText = "सुरू आहे...";
+            }
+        } else {
+            stepEl.style.color = "var(--text-dim)";
+            if (icon) {
+                icon.style.background = "rgba(255, 255, 255, 0.05)";
+                icon.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                icon.style.color = "var(--text-dim)";
+                icon.innerText = String(i);
+            }
+            if (badge) {
+                badge.style.color = "var(--text-dim)";
+                badge.innerText = "प्रतीक्षेत";
+            }
+        }
+    }
+}
+
 async function submitReceiptOCR() {
     if (!state.selectedFile) return;
     if (isOcrScanning) {
@@ -1972,9 +2045,20 @@ async function submitReceiptOCR() {
     const fileInput = document.getElementById("receipt-file-input");
 
     isOcrScanning = true;
-    if (loader) loader.style.display = "block";
     if (btn) btn.disabled = true;
     if (fileInput) fileInput.disabled = true;
+
+    // Step 1: Image optimization and clarity boost
+    updateOcrProgress(1, 25, "📸 पायरी १: पावती फोटो स्पष्टता व देवनागरी वर्धक प्रक्रिया सुरू आहे...");
+
+    // Staged realistic progress animation so user sees live feedback
+    const progressTimer1 = setTimeout(() => {
+        updateOcrProgress(2, 60, "🧠 पायरी २: Google Multimodal AI व्हिजन द्वारे हस्ताक्षर शब्द-न-शब्द वाचत आहे...");
+    }, 700);
+
+    const progressTimer2 = setTimeout(() => {
+        updateOcrProgress(3, 85, "🧾 पायरी ३: किराणा वस्तूंची नावे, नग/वजन व दर (Rate) हिशोब पडताळत आहे...");
+    }, 1700);
 
     try {
         const fileToUpload = await compressImageForOCR(state.selectedFile);
@@ -1993,7 +2077,6 @@ async function submitReceiptOCR() {
 
         // Automatic fallback to /api/scan-receipt or /ocr if 404, 405 or network glitch
         if (!res || (!res.ok && (res.status === 404 || res.status === 405))) {
-            console.warn(`Attempting /api/scan-receipt fallback due to status: ${res ? res.status : 'network error'}`);
             try {
                 const retryFormData = new FormData();
                 retryFormData.append("file", fileToUpload);
@@ -2010,7 +2093,6 @@ async function submitReceiptOCR() {
         }
 
         if (!res || (!res.ok && (res.status === 404 || res.status === 405))) {
-            console.warn(`Attempting /ocr fallback due to status: ${res ? res.status : 'network error'}`);
             try {
                 const retryFormData = new FormData();
                 retryFormData.append("file", fileToUpload);
@@ -2041,6 +2123,9 @@ async function submitReceiptOCR() {
             throw new Error(`अवैध सर्व्हर रिस्पॉन्स.`);
         }
 
+        clearTimeout(progressTimer1);
+        clearTimeout(progressTimer2);
+
         if (!res.ok || !json || !json.success || !json.data) {
             let warnMsg = (json && json.warning) || (json && json.detail) || "⚠️ AI सर्व्हर तात्पुरता व्यस्त आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.";
             if (typeof warnMsg === "string" && (warnMsg.includes("Endpoint not found") || warnMsg.includes("Method Not Allowed") || res.status === 405 || res.status === 404)) {
@@ -2048,38 +2133,56 @@ async function submitReceiptOCR() {
             }
             showToast(warnMsg, "warning", 5500);
 
-            // Resilient Fallback: If OCR extraction did not return items (due to API key or lighting),
-            // DO NOT BLOCK the merchant! Immediately initialize the digital bill card with the preview visible.
             const fileName = (state.selectedFile && state.selectedFile.name) ? state.selectedFile.name.replace(/\.[^/.]+$/, "") : "";
             const fallbackBill = {
-                id: null,
+                id: Date.now(),
                 vendor_name: fileName && !fileName.startsWith("camera_receipt") ? fileName : ((state.shopSettings && state.shopSettings.shop_name) || "किराणा पावती"),
                 date: new Date().toISOString().split("T")[0],
                 category: "General",
                 items: [
                     { item_name: "किराणा सामान", quantity: "1 नग", rate: 0, total_price: 0 }
                 ],
-                grand_total: 0
+                grand_total: 0,
+                _offline_pending: true
             };
+            state.currentBillId = fallbackBill.id;
+            state.currentBill = fallbackBill;
             populateBillCard(fallbackBill);
+            VernaStorage.addReceipt(fallbackBill);
+            loadReceiptsLedger();
             return;
         }
 
-        state.currentBillId = json.data.id || null;
+        // Step 4: Success! Populating digital table & persistent ledger
+        updateOcrProgress(4, 100, "✅ पायरी ४: डिजिटल पावती तयार झाली व लेजरमध्ये सुरक्षित नोंदवली गेली!");
+
+        // Ensure receipt has valid ID
+        if (!json.data.id) {
+            json.data.id = Date.now();
+        }
+        state.currentBillId = json.data.id;
         state.currentBill = json.data;
         populateBillCard(json.data);
 
-        if (json.duplicate) {
-            showToast("✅ पावती यशस्वीरीत्या स्कॅन झाली! (नोंदवलेले बिल लोड केले आहे)", "info", 4000);
-        } else {
-            VernaStorage.addReceipt(json.data);
-            showToast("✅ पावती यशस्वीरित्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली!", "success", 3500);
-        }
+        // ALWAYS add to VernaStorage so mobile & desktop ledger immediately have it!
+        VernaStorage.addReceipt(json.data);
+        showToast(`✅ पावती यशस्वीरीत्या स्कॅन झाली व लेजरमध्ये नोंदवली गेली! (#VL-${json.data.id})`, "success", 4000);
 
         loadDashboardMetrics();
         loadReceiptsLedger();
         loadInventoryData();
+
+        // Smooth scroll to populated bill card on mobile
+        setTimeout(() => {
+            const billInput = document.getElementById("bill-vendor-name");
+            if (billInput) {
+                billInput.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 500);
+
     } catch (err) {
+        clearTimeout(progressTimer1);
+        clearTimeout(progressTimer2);
         console.error("OCR Error:", err);
         const errMsg = String(err.message || err || "");
         if (errMsg.includes("Method Not Allowed")) {
@@ -2089,20 +2192,27 @@ async function submitReceiptOCR() {
         } else {
             showToast("⚠️ AI सर्व्हर तात्पुरता व्यस्त आहे. कृपया काही सेकंदांनी पुन्हा स्कॅन करा.", "warning", 4500);
         }
-        // Initialize bill card even on error so merchant is never blocked
         if (!state.currentBill) {
-            populateBillCard({
-                id: null,
+            const fallback = {
+                id: Date.now(),
                 vendor_name: (state.shopSettings && state.shopSettings.shop_name) || "किराणा पावती",
                 date: new Date().toISOString().split("T")[0],
                 category: "General",
                 items: [{ item_name: "किराणा सामान", quantity: "1 नग", rate: 0, total_price: 0 }],
-                grand_total: 0
-            });
+                grand_total: 0,
+                _offline_pending: true
+            };
+            state.currentBillId = fallback.id;
+            state.currentBill = fallback;
+            populateBillCard(fallback);
+            VernaStorage.addReceipt(fallback);
+            loadReceiptsLedger();
         }
     } finally {
         isOcrScanning = false;
-        if (loader) loader.style.display = "none";
+        setTimeout(() => {
+            if (loader) loader.style.display = "none";
+        }, 1200);
         if (btn) btn.disabled = false;
         if (fileInput) fileInput.disabled = false;
     }
