@@ -1893,8 +1893,8 @@ function closeCameraModal() {
 function captureCameraPhoto() {
     const video = document.getElementById("camera-video-stream");
     const canvas = document.getElementById("camera-canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -1909,7 +1909,14 @@ function captureCameraPhoto() {
         }
         setReceiptImage(file);
         closeCameraModal();
-    }, "image/jpeg", 0.9);
+
+        // One-Click Auto-Scan immediately after camera capture on mobile!
+        setTimeout(() => {
+            if (typeof submitReceiptOCR === "function") {
+                submitReceiptOCR();
+            }
+        }, 350);
+    }, "image/jpeg", 0.92);
 }
 
 // -----------------------------------------------------------------------------
