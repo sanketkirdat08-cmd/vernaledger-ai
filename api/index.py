@@ -1173,6 +1173,46 @@ async def _execute_ocr(file: UploadFile):
     contents = await file.read()
     return await _execute_ocr_bytes(contents)
 
+def call_gemini_multimodal_rest(api_key: str, model_name: str, prompt: str, img: Image.Image, timeout: int = 14) -> Optional[str]:
+    """High-speed REST multimodal call to Gemini. Bypasses gRPC network overhead on Windows & Vercel."""
+    try:
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=88)
+        b64_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": b64_data
+                        }
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.0
+            }
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts and "text" in parts[0]:
+                    return parts[0]["text"]
+    except Exception as e:
+        logger.warning(f"Fast multimodal REST ({model_name}) notice: {e}")
+    return None
+
 async def _execute_ocr_bytes(contents: bytes):
     if not contents or len(contents) < 50:
         return {
@@ -1249,8 +1289,12 @@ async def _execute_ocr_bytes(contents: bytes):
     try:
         raw_img = Image.open(io.BytesIO(contents))
         img = ImageOps.exif_transpose(raw_img).convert('RGB')
-        # Optimal 960 max dimension for fast transfer and high multimodal vision clarity
-        img.thumbnail((960, 960), Image.Resampling.LANCZOS)
+        # Optimal 1600 max dimension preserves high clarity for Devanagari handwriting
+        img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+        try:
+            img = ImageOps.autocontrast(img, cutoff=1)
+        except Exception:
+            pass
         enh_c = ImageEnhance.Contrast(img)
         img = enh_c.enhance(1.15)
         enh_s = ImageEnhance.Sharpness(img)
@@ -1259,7 +1303,7 @@ async def _execute_ocr_bytes(contents: bytes):
         logger.warning(f"Image enhancement notice: {e}")
         try:
             img = Image.open(io.BytesIO(contents)).convert('RGB')
-            img.thumbnail((960, 960))
+            img.thumbnail((1400, 1400))
         except Exception as e2:
             return {
                 "success": False,
@@ -1268,26 +1312,22 @@ async def _execute_ocr_bytes(contents: bytes):
             }
     prompt = """You are VernaLedger Smart Scanner, an expert multilingual OCR system for Indian retail receipts and Marathi handwritten Kirana slips.
 
-STRICT LANGUAGE & VERBATIM ACCURACY RULES:
-1. NEVER TRANSLATE! Extract the EXACT words in Marathi Devanagari character-for-character as written on paper. Not a single word should be changed or translated into English.
-   - For example: "गहू" MUST remain "गहू" (NEVER "Wheat").
-   - "तेल" MUST remain "तेल" (NEVER "Oil" or "Cooking Oil").
-   - "सोनल किराणा" MUST remain "सोनल किराणा" (NEVER "Sonal Kirana").
-2. vendor_name: Shop, store, or merchant name written at the top in Marathi (e.g. "सोनल किराणा", "गणेश किराणा", "महादेव किराणा", "श्री समर्थ ट्रेडर्स"). Pay close attention to Marathi handwriting letters (e.g. distinguish 'न' vs 'म', 'क' vs 'र', 'ल' vs 'त'). If no shop name is written, use "किराणा पावती".
-3. date: Date if clearly written on slip. If missing, return today's exact date formatted as YYYY-MM-DD.
-4. items: Array of objects for EACH line item written on the slip:
-   - item_name: Name of grocery/item in Marathi or script written on the slip EXACTLY as written on paper (e.g. "गहू", "तेल", "साखर", "तांदूळ", "शेंगदाणे", "चहा पावडर", "तूर डाळ"). Extract EVERY single item row.
-   - quantity: Quantity string with unit exactly as written (e.g. "10 किलो", "5 ltr", "1 kg", "500 gm", "2 नग", "1 डझन", "पाव किलो").
-   - rate: Price per single unit as a number.
-     * In Indian Kirana slips, often the total line amount is written (e.g. "गहू 10 किलो 50 रुपये"). In that case, compute rate = total_price / quantity (50 / 10 = 5.0).
-     * If rate and total are both written (e.g. "साखर 2 kg @ 45 = 90"), use rate = 45.0, total_price = 90.0.
-   - total_price: Numeric line total in rupees (e.g. 50.0, 90.0, 100.0).
-5. grand_total: Total bill amount (sum of total_price of all items).
+STRICT VERBATIM ACCURACY RULES (DO NOT TRANSLATE):
+1. Extract EVERY SINGLE handwritten or printed line verbatim in Marathi Devanagari script character-for-character.
+   - Do NOT translate into English (e.g. "गहू" MUST remain "गहू", "तेल" MUST remain "तेल", "सोनल किराणा" MUST remain "सोनल किराणा").
+2. vendor_name: Shop, store, or merchant name written at the top in Marathi (e.g. "सोनल किराणा", "गणेश किराणा", "महादेव किराणा"). Distinguish Devanagari letters carefully (e.g. 'न' vs 'म', 'क' vs 'र', 'ल' vs 'त'). If no shop name is present, return "किराणा पावती".
+3. date: Date in YYYY-MM-DD format if clearly written, otherwise null.
+4. items: Array of objects for EVERY single line item on the slip:
+   - item_name: Name of item exactly as written in Marathi Devanagari (e.g. "गहू", "तेल", "साखर", "तांदूळ", "शेंगदाणे", "चहा पावडर", "तूर डाळ"). Extract every single item row without skipping any.
+   - quantity: Quantity string with unit exactly as written (e.g. "10 किलो", "5 ltr", "1 kg", "500 gm", "2 नग", "1 डझन").
+   - rate: Price per single unit as a numeric float. If only total row price is written (e.g. 10 kg for 50 Rs), compute rate = total_price / quantity (50 / 10 = 5.0).
+   - total_price: Numeric line total in rupees as a float (e.g. 50.0, 100.0). Do not include currency strings like 'रुपये' in this field.
+5. grand_total: Total bill amount as numeric float (e.g. 150.0). If not explicitly written at bottom, sum all line totals.
 
 Return strictly valid JSON only:
 {
   "vendor_name": "string",
-  "date": "string",
+  "date": "YYYY-MM-DD or null",
   "category": "General",
   "items": [
     {"item_name": "string", "quantity": "string", "rate": 0.0, "total_price": 0.0}
@@ -1301,6 +1341,16 @@ Return strictly valid JSON only:
     # Multi-Key & Multi-Model Cascade: automatically bypasses 429 quota exhaustion
     if response != "LOCAL_VISION":
         for key in api_keys:
+            # 1. High-speed direct REST API (bypasses gRPC network overhead, fast 1-2s response)
+            for m in OCR_MODELS:
+                res_text = call_gemini_multimodal_rest(key, m, prompt, img, timeout=14)
+                if res_text:
+                    response = res_text
+                    break
+            if response:
+                break
+
+            # 2. Fallback to genai SDK if REST had network block
             try:
                 genai.configure(api_key=key, transport='rest')
             except Exception:
@@ -1317,7 +1367,7 @@ Return strictly valid JSON only:
                             m,
                             generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
                         )
-                        res = model.generate_content([prompt, img], request_options={"timeout": 18})
+                        res = model.generate_content([prompt, img], request_options={"timeout": 16})
                         if res and res.text:
                             response = res.text
                             break
