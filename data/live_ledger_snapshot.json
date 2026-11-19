@@ -1,13 +1,42 @@
 {
   "version": "7.5",
-  "last_synced_at": "2026-11-19T10:11:16.540035",
+  "last_synced_at": "2026-11-19T11:04:55.659273",
   "counts": {
-    "receipts": 2,
+    "receipts": 3,
     "khata": 5,
     "inventory": 50,
     "expenses": 1
   },
   "receipts": [
+    {
+      "id": 63,
+      "vendor_name": "किराणा खरेदी",
+      "date": "2026-11-19",
+      "category": "Kirana",
+      "grand_total": 230.0,
+      "raw_json": {
+        "vendor_name": "किराणा खरेदी",
+        "date": "2026-11-19",
+        "category": "Kirana",
+        "items": [
+          {
+            "item_name": "साखर",
+            "quantity": "2 किलो",
+            "rate": 40.0,
+            "total_price": 80.0
+          },
+          {
+            "item_name": "गहू",
+            "quantity": "5 किलो",
+            "rate": 30.0,
+            "total_price": 150.0
+          }
+        ],
+        "grand_total": 230.0
+      },
+      "image_hash": null,
+      "stock_deducted": 1
+    },
     {
       "id": 62,
       "vendor_name": "सोमल किराणा",
@@ -123,7 +152,7 @@
     {
       "id": 300,
       "item_name": "लोकवन गहू (Lokwan Wheat)",
-      "stock_qty": 80.0,
+      "stock_qty": 75.0,
       "unit": "kg",
       "alert_limit": 15.0,
       "barcode": "",
@@ -240,7 +269,7 @@
     {
       "id": 313,
       "item_name": "साखर (Sugar)",
-      "stock_qty": 100.0,
+      "stock_qty": 98.0,
       "unit": "kg",
       "alert_limit": 15.0,
       "barcode": "",
