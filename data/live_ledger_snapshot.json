@@ -1,13 +1,42 @@
 {
   "version": "7.5",
-  "last_synced_at": "2026-11-19T09:14:25.776196",
+  "last_synced_at": "2026-11-19T10:11:16.540035",
   "counts": {
-    "receipts": 1,
+    "receipts": 2,
     "khata": 5,
     "inventory": 50,
     "expenses": 1
   },
   "receipts": [
+    {
+      "id": 62,
+      "vendor_name": "सोमल किराणा",
+      "date": "2026-11-19",
+      "category": "General",
+      "grand_total": 150.0,
+      "raw_json": {
+        "vendor_name": "सोमल किराणा",
+        "date": "2026-11-19",
+        "category": "General",
+        "items": [
+          {
+            "item_name": "गहू",
+            "quantity": "10 किलो",
+            "rate": 5.0,
+            "total_price": 50.0
+          },
+          {
+            "item_name": "तेल",
+            "quantity": "5 ltr",
+            "rate": 20.0,
+            "total_price": 100.0
+          }
+        ],
+        "grand_total": 150.0
+      },
+      "image_hash": "7f35c44d4f33093d14348987d6aa6f86cb427787ae411aa5ea3cc009aff32d87",
+      "stock_deducted": 1
+    },
     {
       "id": 61,
       "vendor_name": "सोनल किराणा",
@@ -94,7 +123,7 @@
     {
       "id": 300,
       "item_name": "लोकवन गहू (Lokwan Wheat)",
-      "stock_qty": 90.0,
+      "stock_qty": 80.0,
       "unit": "kg",
       "alert_limit": 15.0,
       "barcode": "",
@@ -265,7 +294,7 @@
     {
       "id": 319,
       "item_name": "शेंगदाणा तेल (Groundnut Oil)",
-      "stock_qty": 45.0,
+      "stock_qty": 40.0,
       "unit": "लिटर",
       "alert_limit": 8.0,
       "barcode": "",
