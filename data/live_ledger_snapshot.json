@@ -1,13 +1,36 @@
 {
   "version": "7.5",
-  "last_synced_at": "2026-11-19T11:04:55.659273",
+  "last_synced_at": "2026-11-20T13:29:11.688296",
   "counts": {
-    "receipts": 3,
+    "receipts": 4,
     "khata": 5,
     "inventory": 50,
     "expenses": 1
   },
   "receipts": [
+    {
+      "id": 64,
+      "vendor_name": "किराणा खरेदी",
+      "date": "2026-11-20",
+      "category": "Kirana",
+      "grand_total": 20.0,
+      "raw_json": {
+        "vendor_name": "किराणा खरेदी",
+        "date": "2026-11-20",
+        "category": "Kirana",
+        "items": [
+          {
+            "item_name": "साखर",
+            "quantity": "1 किलो",
+            "rate": 20.0,
+            "total_price": 20.0
+          }
+        ],
+        "grand_total": 20.0
+      },
+      "image_hash": null,
+      "stock_deducted": 1
+    },
     {
       "id": 63,
       "vendor_name": "किराणा खरेदी",
@@ -269,7 +292,7 @@
     {
       "id": 313,
       "item_name": "साखर (Sugar)",
-      "stock_qty": 98.0,
+      "stock_qty": 97.0,
       "unit": "kg",
       "alert_limit": 15.0,
       "barcode": "",
