@@ -1121,7 +1121,8 @@ body::after {
     color: var(--text-dim);
 }
 .rag-send-btn {
-    min-width: 82px;
+    min-width: 44px;
+    width: 44px;
     height: 42px;
     border-radius: 22px;
     background: linear-gradient(135deg, var(--neon-cyan), #2563eb);
@@ -2661,8 +2662,8 @@ body.light-theme .ai-action-btn-sm:hover {
     }
 
     #view-ai .rag-send-btn {
-        width: 66px !important;
-        min-width: 66px !important;
+        width: 44px !important;
+        min-width: 44px !important;
         height: 36px !important;
         padding: 0 8px !important;
         font-size: 0.74rem !important;
@@ -2686,11 +2687,6 @@ body.light-theme .ai-action-btn-sm:hover {
     #view-ai .rag-send-btn {
         width: 44px !important;
         min-width: 44px !important;
-        font-size: 0;
-    }
-
-    #view-ai .rag-send-btn::after {
-        content: "➤";
         font-size: 1rem;
     }
 }

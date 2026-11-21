@@ -1121,7 +1121,8 @@ body::after {
     color: var(--text-dim);
 }
 .rag-send-btn {
-    min-width: 82px;
+    min-width: 44px;
+    width: 44px;
     height: 42px;
     border-radius: 22px;
     background: linear-gradient(135deg, var(--neon-cyan), #2563eb);

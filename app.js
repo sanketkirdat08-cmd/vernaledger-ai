@@ -4595,7 +4595,7 @@ async function submitAiChat() {
         isAiProcessing = false;
         if (sendBtn) {
             sendBtn.disabled = false;
-            sendBtn.innerHTML = `<span>पाठवा</span> 🚀`;
+            sendBtn.innerHTML = `🚀`;
         }
         if (historyContainer) {
             historyContainer.scrollTo({ top: historyContainer.scrollHeight, behavior: 'smooth' });
@@ -5056,7 +5056,7 @@ function applyLanguage() {
     // 8. Update AI Chat elements
     const sendBtn = document.getElementById("btn-ai-send");
     if (sendBtn && !isAiProcessing) {
-        sendBtn.innerHTML = `<span>${dict.btn_send}</span> 🚀`;
+        sendBtn.innerHTML = `🚀`;
     }
     const initialAiBubble = document.querySelector("#ai-chat-history .chat-bubble.chat-ai");
     if (initialAiBubble && (!state.chatHistory || state.chatHistory.length === 0)) {
