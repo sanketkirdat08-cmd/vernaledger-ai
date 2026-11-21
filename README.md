@@ -1,251 +1,245 @@
-# 🤖 VernaLedger AI (व्हर्ना लेजर ए आय)
+# VernaLedger.AI - Merchant Pro v7.5
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://vernaledger-ai.streamlit.app)
-![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue?logo=python)
-![Google Gemini](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Vision%20%26%20Flash-orange?logo=google)
-![Edge TTS](https://img.shields.io/badge/Voice-Microsoft%20Neural%20Edge--TTS-blueviolet)
-![Database](https://img.shields.io/badge/Database-SQLite3%20(WAL%20Mode)-003B57?logo=sqlite)
-![Status](https://img.shields.io/badge/Deployment-Live%20on%20Streamlit%20Cloud-success)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![Gemini](https://img.shields.io/badge/Google-Gemini%20AI-4285F4?logo=google&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Ledger-003B57?logo=sqlite&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-Mobile%20Ready-5A0FC8)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel)
 
-> **Next-Generation Vernacular Financial Assistant & Intelligent Khata Ledger for Indian Retailers, Kirana Stores, and MSMEs.**
+भारतीय किराणा दुकाने आणि लहान व्यापाऱ्यांसाठी बनवलेली एक बहुभाषिक AI लेजर, बिलिंग आणि स्टोअर व्यवस्थापन प्रणाली.
 
----
+**VernaLedger.AI** FastAPI backend, responsive vanilla HTML/CSS/JavaScript PWA frontend आणि Google Gemini AI वापरते. स्मार्ट OCR, आवाजातून बिलिंग, ग्राहक उधारी (खाता), इन्व्हेंटरी, खर्च, dashboard आणि नेचरल-भाषिक AI सहाय्यक एकाच application मध्ये उपलब्ध आहेत.
 
-## 🌟 Overview
+## मुख्य वैशिष्ट्ये
 
-**VernaLedger AI** bridges the digital divide for small Indian businesses by providing an intuitive, multilingual, and voice-enabled financial ledger system. Built specifically for the Indian commerce ecosystem, it understands handwritten regional receipts (Marathi, Hindi, English), processes spoken voice bills, manages customer credit (*Udhaari*), predicts inventory reorders, and answers business queries in real-time through an intelligent Context-Aware RAG AI Chatbot.
+- **बहुभाषिक स्मार्ट स्कॅनर** - मराठी, हिंदी आणि इंग्रजी पावत्या/हस्तलिखित बिलांमधील मजकूर Gemini Vision किंवा Google Cloud Vision वापरून वाचते.
+- **आवाजातून बिलिंग** - बोललेली transaction तपशीलांमध्ये parser करते.
+- **Customer Khata / उधारी खाते** - ग्राहकांचे debit, credit, payment आणि outstanding balance व्यवस्थापित करते.
+- **Inventory व्यवस्थापन** - stock quantity, reorder/alert limit आणि selling price व्यवस्थापित करते.
+- **Business expenses** - खर्चाचे प्रकार, रक्कम आणि नोंदी ठेवते.
+- **AI Business Studio** - ledger context वापरून sales, stock, expenses आणि उधारीबद्दल प्रश्नांची उत्तरे देते.
+- **Gemini Live voice chat** - browser PCM audio थेट Gemini Live WebSocket session ला bridge करते.
+- **Neural TTS** - Edge-TTS वापरून मराठी आणि इतर समर्थित भाषांमध्ये आवाजात प्रतिसाद देते.
+- **PWA support** - HTTPSवर installable आहे, theme आणि अनेक UI भाषांचा support आहे.
+- **Offline-friendly local mode** - browser client data sync API द्वारे SQLite मध्ये restore करण्यास support करते.
+- **GitOps auto-sync** - local server चालू असताना ledger snapshot तयार करते आणि changes GitHub वर push करते.
 
----
+## उपलब्ध modules
 
-## 📸 Visual Showcase
+| Module | कार्य |
+|---|---|
+| स्मार्ट स्कॅनर | receipt image OCR आणि bill/item extraction |
+| ग्राहक खाते | customer credit, payments आणि khata passbook |
+| स्टोअर ऑपरेशन्स | inventory आणि business expenses |
+| लेजर व पावत्या | receipt search, save, delete आणि bulk actions |
+| AI बिझनेस स्टुडिओ | ledger-aware RAG chat, voice chat आणि TTS |
+| Dashboard | sales, pending उधारी, expenses, net profit आणि low stock |
 
-<div align="center">
-  <table>
-    <tr>
-      <td width="50%">
-        <h4 align="center">🔐 Secure Glassmorphic Login</h4>
-        <img src="assets/login.png" alt="Login Screen" width="100%"/>
-      </td>
-      <td width="50%">
-        <h4 align="center">🧾 Smart OCR Receipt Scanner</h4>
-        <img src="assets/ocr.png" alt="OCR Scanner" width="100%"/>
-      </td>
-    </tr>
-    <tr>
-      <td width="50%">
-        <h4 align="center">📖 Customer Khata & Passbook</h4>
-        <img src="assets/khata.png" alt="Customer Khata" width="100%"/>
-      </td>
-      <td width="50%">
-        <h4 align="center">🤖 Context-Aware RAG AI Chatbot</h4>
-        <img src="assets/rag.png" alt="RAG AI Chat" width="100%"/>
-      </td>
-    </tr>
-    <tr>
-      <td width="50%">
-        <h4 align="center">📊 Analytics & Financial Overview</h4>
-        <img src="assets/analytics.png" alt="Analytics Dashboard" width="100%"/>
-      </td>
-      <td width="50%">
-        <h4 align="center">👥 Staff Roles & Audit Logs</h4>
-        <img src="assets/staff.png" alt="Staff Management" width="100%"/>
-      </td>
-    </tr>
-  </table>
-</div>
+## तंत्रज्ञान
 
----
+| भाग | तंत्रज्ञान |
+|---|---|
+| Backend | Python, FastAPI, Uvicorn, Pydantic |
+| Frontend | HTML5, CSS3, Vanilla JavaScript |
+| AI / OCR | Google Gemini, Google Cloud Vision fallback |
+| Voice | Edge-TTS, Web Speech API, Gemini Live WebSocket |
+| Database | SQLite3; local mode मध्ये `ledger.db` |
+| Export | CSV आणि Excel/XLSX |
+| Deployment | Vercel Serverless Functions; PWA |
+| Local sync | `git_auto_sync.py` GitOps auto-sync |
 
-## 🚀 Key Modules & Capabilities
+## प्रोजेक्टची रचना
 
-### 1. 🧾 Smart Multilingual OCR Scanner
-- **Regional Handwriting OCR:** Powered by Google Gemini Vision models to accurately extract item names, quantities, unit prices, and grand totals from handwritten or printed Devanagari (Marathi/Hindi) receipts.
-- **58mm Pure Thermal Receipt:** Generates crisp POS slips ready for one-click printing or PDF download.
-- **Smart Duplicate Prevention:** Automatically checks the database to prevent duplicate entries of the same bill.
-- **One-Click Batch Inward:** Add all scanned receipt items directly into the shop's live inventory with a single tap.
-
-### 2. 🎙️ Multi-Language Spoken Voice Billing
-- **Hands-Free Billing:** Speak transaction details naturally in Marathi, Hindi, or English (e.g., *"रमेश कडून २ किलो साखर १०० रुपये आणि १ लिटर तेल १५० रुपये"*).
-- **Auto-Parsing:** Converts natural spoken audio into structured itemized billing records instantaneously.
-
-### 3. 📖 Customer Khata & Credit Ledger (*उधारी खाते*)
-- **360° Customer Profiles:** Track customer balances, phone numbers, transaction timelines, and aging risk.
-- **Direct Payment Collection:** Record payments instantly with automatic ledger passbook entries.
-- **One-Click WhatsApp Reminders:** Generate personalized payment reminder messages with pre-filled customer details.
-
-### 4. 🤖 Context-Aware RAG AI Chatbot with Neural Voice Output
-- **Live Ledger Knowledge:** Asks analytical questions directly about sales, pending credit, customer debts, and stock availability (*"आज किती उधारी येणे बाकी आहे?", "साखर किती शिल्लक आहे?"*).
-- **Neural Voice Output:** Natural speech responses powered by Microsoft Neural TTS (`mr-IN-AarohiNeural` for Marathi, `en-IN-NeerjaNeural` for English) with tuned regional pronunciation.
-
-### 5. 📦 Business Operations & Inventory Management
-- **Predictive Reorder System:** Real-time low-stock alerts with auto-calculated wholesale reorder suggestions.
-- **Expense Tracking:** Monitor day-to-day shop operational costs with category breakdowns.
-
-### 6. 🔐 Staff Management & Enterprise Security
-- **Role-Based Access Control (RBAC):** Separate interfaces and permission levels for Store Owners (`Admin`) and Cashiers (`Staff`).
-- **Cryptographic Security:** Passwords hashed with salted `PBKDF2-HMAC-SHA256`.
-- **Immutable Audit Trail:** Comprehensive activity logging for financial compliance.
-
-### 7. 🌐 Multilingual Text & Voice AI
-- The AI Business Studio accepts typed and spoken questions in **Marathi, English, Hindi, Gujarati, Tamil, Telugu, Kannada, Bengali, Spanish, and French**.
-- Speech recognition uses the selected locale and neural voice output uses a matching Edge-TTS voice where available.
-- The application language selector persists the chosen language and the Kirana mode layout is optimized for desktop and mobile screens.
-
----
-
-## 🛠️ Architecture & Tech Stack
-
-```mermaid
-flowchart TD
-    A["User Input: Voice / Image / Text"] --> B["Streamlit Modern UI"]
-    B --> C{"Input Routing"}
-    C -->|"Receipt Image"| D["Gemini Vision OCR Engine"]
-    C -->|"Voice Bill"| E["Speech Recognition & Gemini Parser"]
-    C -->|"Analytical Query"| F["RAG AI Core (Gemini Flash)"]
-    C -->|"Ledger Entry"| G["Transaction Controller"]
-    
-    D --> G
-    E --> G
-    G --> H[("SQLite Ledger DB (WAL Mode)")]
-    H -->|"Database Context"| F
-    F --> I["Microsoft Edge-TTS Engine"]
-    I --> J["Aarohi / Neerja Audio Output"]
-    G --> K["Live KPI & Analytics Dashboard"]
+```text
+vernaledger-ai/
+├── api/
+│   └── index.py             # FastAPI application, database, AI आणि API routes
+├── public/
+│   ├── index.html           # PWA application interface
+│   ├── app.js               # frontend logic आणि API calls
+│   ├── style.css            # responsive UI styles
+│   ├── sw.js                # service worker
+│   └── manifest.webmanifest # installable PWA metadata
+├── assets/
+│   └── vernaledger_bg.jpg
+├── icons/
+├── data/
+│   └── live_ledger_snapshot.json
+├── app.py                   # local unified server entry point
+├── git_auto_sync.py         # offline-safe Git snapshot/push daemon
+├── requirements.txt
+├── vercel.json
+├── .env.example
+└── run_local.bat
 ```
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend & UI** | [Streamlit](https://streamlit.io), Custom HTML5/CSS3 (Glassmorphism), Vanilla JS Components |
-| **AI & Multimodal Vision** | [Google Gemini 2.0 / 1.5 Flash](https://ai.google.dev/) via `google-generativeai` |
-| **Voice & Speech Synthesis** | Microsoft Neural [Edge-TTS](https://github.com/rany2/edge-tts) (`mr-IN-AarohiNeural`, `en-IN-NeerjaNeural`) |
-| **Database & Persistence** | [SQLite3](https://sqlite.org) with Write-Ahead Logging (WAL) & automated snapshots |
-| **Security & Validation** | `pydantic` schemas, PBKDF2-HMAC password encryption, Role-based guards |
+## स्थानिक setup
 
----
+### आवश्यकता
 
-## 💻 Local Installation & Setup
-
-### Prerequisites
-- Python **3.11+** (Tested on Python 3.11, 3.12, 3.13)
+- Python 3.11 किंवा त्याहून नवे
 - Git
-- Google Gemini API Key ([Get one free from Google AI Studio](https://aistudio.google.com/))
+- Google Gemini API key
 
-### 1. Clone the Repository
+### 1. Repository clone करा
+
 ```bash
 git clone https://github.com/sanketkirdat08-cmd/vernaledger-ai.git
 cd vernaledger-ai
 ```
 
-### 2. Create and Activate Virtual Environment
-```bash
-# Windows
+### 2. Virtual environment तयार करा
+
+Windows:
+
+```bat
 python -m venv venv
 venv\Scripts\activate
+```
 
-# Linux / macOS
+Linux/macOS:
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### 3. Dependencies install करा
+
 ```bash
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configure API Keys
-Create `.streamlit/secrets.toml` in the project root:
-```toml
-GEMINI_API_KEY = "your_google_gemini_api_key_here"
+### 4. Environment configuration
+
+`.env.example` मधून `.env` तयार करा:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# पर्यायी: Google Cloud Vision fallback
+# GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+# GOOGLE_CLOUD_CREDENTIALS_JSON={"type":"service_account",...}
 ```
 
-For the optional Smart Scanner fallback, enable the **Cloud Vision API** in the same
-Google Cloud project, create a service account with the `Cloud Vision API User` role,
-and configure Application Default Credentials. Do not commit the service-account JSON.
+Gemini API key [Google AI Studio](https://aistudio.google.com/) वरून मिळू शकते.
 
-Windows PowerShell:
-```powershell
-$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secure\google-cloud-service-account.json"
-```
+Google Cloud Vision fallback वापरायचा असल्यास Google Cloud project मध्ये **Cloud Vision API** enable करा आणि service account ला आवश्यक read/OCR permissions द्या. Credential JSON किंवा त्याचा secret string repository मध्ये commit करू नका.
 
-For serverless environments where a file is not available, provide the minified service
-account JSON as `GOOGLE_CLOUD_CREDENTIALS_JSON`. Gemini remains the primary scanner;
-Cloud Vision is called only when Gemini cannot return a result.
+### 5. Application चालवा
 
-### 5. Run the Application
 ```bash
-streamlit run app.py
+python app.py
 ```
-Open your browser at **`http://localhost:8501`**.
 
----
+नंतर उघडा:
 
-## ⚡ Deployment on Vercel (Production Serverless SPA)
+- Laptop: `http://127.0.0.1:8000`
+- त्याच network वरील mobile: application console मध्ये दाखवलेला `http://<LAN-IP>:8000`
 
-VernaLedger.AI features a production-grade **FastAPI Serverless Backend** (`api/index.py`) and a responsive **Cyberpunk Dark Glassmorphic SPA** (`public/index.html`, `public/style.css`, `public/app.js`), fully pre-configured for 1-click deployment on [Vercel](https://vercel.com):
+Windows वर `run_local.bat` देखील वापरता येते.
 
-1. **Push to GitHub**:
-   Ensure all changes are pushed to your GitHub repository `vernaledger-ai`.
-2. **Import to Vercel**:
-   - Go to [vercel.com](https://vercel.com) and log in.
-   - Click **"Add New..."** -> **"Project"**.
-   - Select your `vernaledger-ai` repository and click **Import**.
-3. **Configure Environment Variables**:
-   - Expand the **Environment Variables** section.
-   - Key: `GEMINI_API_KEY`
-   - Value: `your_google_gemini_api_key_here`
-4. **Deploy**:
-   - Click **Deploy**. Vercel will automatically build the Python serverless API and serve the high-speed static frontend at `https://your-project.vercel.app`.
+### Demo login
 
-### Install as a mobile or desktop app
+Frontend आणि API master/admin fallback म्हणून हे credentials देते:
 
-The frontend includes a PWA manifest, install icons, and a service worker. Open the
-HTTPS Vercel URL in Chrome or Edge, then choose **Install VernaLedger** from the
-browser menu. Installation requires the deployed HTTPS URL; `localhost` is only for
-local development.
+```text
+Username: admin
+Password: admin123
+```
+
+`sanket` वापरकर्ता नाव आणि `verna123`, `pass123` या passwords सहही admin master fallback उपलब्ध आहे. Production deployment मध्ये हे predictable credentials बदलणे किंवा master fallback हटवणे आवश्यक आहे.
+
+## API endpoints
+
+मुख्य endpoints:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/health` | application health |
+| `POST /api/login` | user login |
+| `POST /api/register` | नवीन account registration |
+| `GET /api/dashboard` | business metrics |
+| `POST /api/ocr` | receipt image OCR |
+| `POST /api/voice-billing` | spoken bill parsing |
+| `POST /api/rag-chat` | ledger-aware AI chat |
+| `POST /api/tts` | neural text-to-speech |
+| `WS /api/live-chat` | Gemini Live voice WebSocket |
+| `GET/POST/DELETE /api/receipts` | receipts CRUD |
+| `GET/POST/DELETE /api/khata` | customer khata CRUD |
+| `GET/POST/DELETE /api/inventory` | inventory CRUD |
+| `GET/POST/DELETE /api/expenses` | expenses CRUD |
+| `POST /api/sync` | bi-directional client/server data sync |
+| `GET /api/export/csv` | CSV export |
+| `GET /api/export-excel` | Excel export |
+
+FastAPI interactive documentation सामान्यतः `http://127.0.0.1:8000/docs` वर उपलब्ध असते.
+
+## Vercel वर deployment
+
+1. GitHub मधील repository Vercel project म्हणून import करा.
+2. Vercel environment variables मध्ये `GEMINI_API_KEY` configure करा.
+3. Optional Google Vision credentials तसेच secrets म्हणून configure करा.
+4. Deploy करा.
+
+Frontend आणि API दोन्ही `vercel.json` मधील routes/rewrites वापरतात. Serverless function चे timeout setting 60 seconds आहे.
 
 ### Production data persistence
 
-Vercel serverless functions do not provide durable local SQLite storage. For
-production use, configure a managed database such as Supabase and migrate the
-ledger tables before relying on the app for permanent receipts or khata records.
-Set `GEMINI_API_KEY` and the database connection variables in the Vercel project
-Environment Variables for Production, Preview, and Development as appropriate.
+Vercel फंक्शन्स ephemeral आहेत. Vercelमध्ये `/tmp/ledger.db` वापरला जातो; प्रत्येक serverless instance किंवा cold start नंतर database state टिकू शकत नाही.
 
----
+Permanent data storage आणि वास्तविक production वापरासाठी managed database (उदा. Supabase/PostgreSQL) मध्ये schema migration करणे आवश्यक आहे. सधाची implementation खालील SQLite-backed features संदर्भित करते:
 
-## ☁️ Deployment on Streamlit Community Cloud (Legacy)
+- receipts आणि deleted receipt tombstones
+- customer khata आणि tombstones
+- inventory
+- expenses
+- users आणि shop settings
 
-1. Fork or push this repository to your GitHub account.
-2. Sign in to [share.streamlit.io](https://share.streamlit.io/).
-3. Create a new app:
-   - **Repository:** `your-username/vernaledger-ai`
-   - **Branch:** `main`
-   - **Main file path:** `app.py`
-4. Under **Advanced settings** -> **Secrets**, paste your API key:
-   ```toml
-   GEMINI_API_KEY = "your_google_gemini_api_key_here"
-   ```
-5. Click **Deploy!** 🚀
+## PWA install
 
----
+Vercel किंवा HTTPS deployment उघडल्यानंतर Chrome किंवा Edge मधील browser menu मधून **Install VernaLedger** निवडा.
 
-## 👨‍💻 Project Team & Credits
+PWA manifest आणि service worker पुढील paths मधून serve केले जातात:
 
-This project was developed by the B.Tech Final Year Engineering Team at **Arvind Gavali College of Engineering, Satara (AGCE Satara)**, affiliated with **Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere**:
+- `/manifest.webmanifest`
+- `/sw.js`
+- `/icons/`
 
-* 🎓 **Project Guide:** **Mr. Kaisar Atar** (*श्री. कैसर अत्तार*) — Department of AI & DS
-* 🏛️ **Head of Department (HOD):** **Dr. S. Y. Mulla** (*डॉ. एस. वाय. मुल्ला*) — Department of AI & DS
-* 💻 **Project Development Team:**
-  * 👑 **Sanket Kirdat** (*संकेत किर्दत*) — **Roll No: 4060 | PRN: 24065451263508** — **Team Leader & AI Developer**
-  * 🎨 **Sakshi Bhagat** (*साक्षी भगत*) — **Roll No: 4054 | PRN: 24065451263502** — **Frontend & UI Developer**
-  * 🎙️ **Vaishnavi Dhavale** (*वैष्णवी ढवळे*) — **Roll No: 4056 | PRN: 24065451263504** — **Voice Billing & AI Developer**
-  * 🗄️ **Rushikesh Mulik** (*ऋषिकेश मुळीक*) — **Roll No: 4004 | PRN: 23065451263005** — **Backend & Database Developer**
-* 🏛️ **Institution:** **Arvind Gavali College of Engineering, Satara, Maharashtra**
-* 📚 **Department:** **Artificial Intelligence & Data Science (AI & DS)**
+## Local GitOps data sync
 
----
+`python app.py` चालवल्यावर `git_auto_sync.py` मधील background daemon:
 
-## 📄 License
+- प्रत्येक 4 सेकंदांनी SQLite data JSON snapshot मध्ये export करते;
+- offline असताना local Git commit तयार करते;
+- internet उपलब्ध असताना `origin/main` वर push करते;
+- `ledger.db` आणि database sidecar files `.gitignore` मध्ये excluded आहेत.
 
-This project is developed for academic, retail empowerment, and research purposes. All rights reserved.
+`data/live_ledger_snapshot.json` tracked data file असू शकते. Customer आणि business data सार्वजनिक repository मध्ये commit होऊ शकत असल्याने ते production वापरात संवेदनशील मानून repository exposure आणि credentials तपासा.
+
+## सुरक्षा सूचना
+
+- API keys आणि `.env` मध्ये ठेवलेली credentials commit करू नका.
+- demo/master credentials production मध्ये हटवा किंवा बदला.
+- सर्व customer, staff आणि receipt data वर उत्पादनात secure authentication आणि authorization लागू करा.
+- HTTPS आणि managed database वापरा.
+- सार्वजनिक किंवा sample repositories मधून database snapshots किंवा identifiable customer data हटवा.
+
+## Project team
+
+**Arvind Gavali College of Engineering, Satara (AGCE Satara)**  
+Department of Artificial Intelligence & Data Science  
+Dr. Babasaheb Ambedkar Technological University (DBATU), Lonere
+
+- **Project Guide:** Mr. Kaisar Atar
+- **Head of Department:** Dr. S. Y. Mulla
+- **Team Leader & AI Developer:** Sanket Kirdat
+- **Frontend & UI Developer:** Sakshi Bhagat
+- **Voice Billing & AI Developer:** Vaishnavi Dhavale
+- **Backend & Database Developer:** Rushikesh Mulik
+
+## License
+
+This project is developed for academic, retail empowerment and research purposes. Review the repository owner for specific usage and redistribution terms.
