@@ -4301,6 +4301,48 @@ let ragSpeechRecognition = null;
 let isRagListening = false;
 let ragFinalTranscript = "";
 
+function mergeSpeechTranscript(existing, incoming) {
+    const current = (existing || "").trim();
+    const next = (incoming || "").trim();
+    if (!next) return current;
+    if (!current) return next;
+
+    const currentWords = current.split(/\s+/);
+    const nextWords = next.split(/\s+/);
+    const currentKey = currentWords.map(word => word.toLocaleLowerCase()).join(" ");
+    const nextKey = nextWords.map(word => word.toLocaleLowerCase()).join(" ");
+
+    // Chrome can emit the same final result again, or emit an overlapping
+    // result after a pause. Keep only the new suffix.
+    if (currentKey === nextKey || currentKey.endsWith(` ${nextKey}`)) {
+        return current;
+    }
+    if (nextKey.startsWith(`${currentKey} `)) {
+        return next;
+    }
+    for (let overlap = Math.min(currentWords.length, nextWords.length) - 1; overlap > 0; overlap--) {
+        const currentTail = currentWords.slice(-overlap).map(word => word.toLocaleLowerCase()).join(" ");
+        const nextHead = nextWords.slice(0, overlap).map(word => word.toLocaleLowerCase()).join(" ");
+        if (currentTail === nextHead) {
+            return `${current} ${nextWords.slice(overlap).join(" ")}`.trim();
+        }
+    }
+    return `${current} ${next}`.trim();
+}
+
+function cleanRepeatedSpeechWords(text) {
+    const words = (text || "").trim().split(/\s+/).filter(Boolean);
+    const cleaned = [];
+    for (const word of words) {
+        const previous = cleaned[cleaned.length - 1];
+        if (previous && previous.localeCompare(word, undefined, { sensitivity: "base" }) === 0) {
+            continue;
+        }
+        cleaned.push(word);
+    }
+    return cleaned.join(" ");
+}
+
 function getActiveVoiceLang() {
     return "mr-IN"; // Official Google Marathi Devanagari Voice Recognition
 }
@@ -4337,14 +4379,16 @@ function initRagSpeech() {
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    ragFinalTranscript += (ragFinalTranscript ? " " : "") + transcript.trim();
+                    ragFinalTranscript = mergeSpeechTranscript(ragFinalTranscript, transcript);
                 } else {
                     interim += transcript;
                 }
             }
 
             const inputEl = document.getElementById("ai-user-input");
-            const fullSpoken = (ragFinalTranscript + (interim ? " " + interim : "")).trim();
+            const fullSpoken = cleanRepeatedSpeechWords(
+                `${ragFinalTranscript}${interim ? ` ${interim}` : ""}`
+            );
             if (inputEl && fullSpoken) {
                 inputEl.value = autoCorrectMarathiSpeech(fullSpoken);
             }

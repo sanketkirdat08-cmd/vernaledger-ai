@@ -1919,6 +1919,28 @@ def detect_msg_language(text: str, requested: str = "mr") -> str:
     # Default in VernaLedger is ALWAYS Marathi
     return "mr"
 
+
+def normalize_repeated_query(text: str) -> str:
+    """Remove speech-recognition overlap and adjacent duplicate words."""
+    words = (text or "").strip().split()
+    if not words:
+        return ""
+
+    deduped = []
+    for word in words:
+        if deduped and deduped[-1].casefold() == word.casefold():
+            continue
+        deduped.append(word)
+
+    # Some speech engines repeat a complete phrase when a final result overlaps
+    # the previous result. Remove the largest repeated suffix/prefix.
+    for size in range(len(deduped) // 2, 0, -1):
+        if deduped[-size:] == deduped[-2 * size:-size]:
+            deduped = deduped[:-size]
+            break
+    return " ".join(deduped)
+
+
 TTS_VOICES = {
     "mr": "mr-IN-AarohiNeural", "en": "en-IN-NeerjaNeural",
     "hi": "hi-IN-SwaraNeural", "gu": "gu-IN-DhwaniNeural",
@@ -3069,7 +3091,7 @@ OUTPUT FORMAT (Strictly Raw JSON only without markdown code fences):
     # -------------------------------------------------------------------------
     # UNIFIED QUERY PROCESSING (APPLIES TO BOTH VOICE TRANSCRIPTS & TEXT INPUT)
     # -------------------------------------------------------------------------
-    user_msg = (req.message or user_transcript or "").strip()
+    user_msg = normalize_repeated_query(req.message or user_transcript or "")
     if not user_msg and not answer:
         user_msg = "दुकान हिशोब माहिती"
 
